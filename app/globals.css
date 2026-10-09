@@ -151,7 +151,8 @@
  * Warm off-white background #F4F2EE with graphite text, not black.
  * Surfaces follow the same elevation as the dark theme: each step (surface, surface-2,
  * surface-3) sits closer to the viewer, so here it gets lighter, up to white.
- * `brand-soft` becomes dark green (in light mode it is used for text and icons).
+ * The brand fill becomes a deep green with white text, so the call to action keeps its
+ * weight on a light page; `brand-soft` is the dark green for text and icons.
  * Text contrast ≥ 4.5:1 on every surface, status colors included (also over
  * their own 15% tint, as in StatusBadge).
  */
@@ -169,10 +170,10 @@
   --color-ink-muted: #4f5157;
   --color-ink-subtle: #56585e;
 
-  --color-brand: #93d6a5;
-  --color-brand-hover: #84cb98;
+  --color-brand: #2f7d4a;
+  --color-brand-hover: #28703f;
   --color-brand-soft: #236339;
-  --color-brand-ink: #14281c;
+  --color-brand-ink: #ffffff;
 
   --color-danger: #a32626;
   --color-success: #146432;

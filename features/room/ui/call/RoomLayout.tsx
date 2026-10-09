@@ -57,18 +57,53 @@ function ConnectionNotices({ connection }: { connection: Connection }) {
   );
 }
 
-/** People: a grid without a stage; with a stage, a side strip with the "presenting" mascot. */
+/**
+ * The call's mascot, in the bottom-left corner, away from the dock (center) and the chat
+ * (right). Always mounted and outside the layout animations: remounting it on every share
+ * or layout change restarted its pose, which looked like a glitch. Alone, the welcome has
+ * its own; phones have no free corner, so it stays out there.
+ */
+function CornerMascot({
+  connection,
+  hasStage,
+  alone,
+}: {
+  connection: Connection;
+  hasStage: boolean;
+  alone: boolean;
+}) {
+  const activity = connection !== "connected" ? "waiting" : hasStage ? "presenting" : "idle";
+  return (
+    <div
+      hidden={alone}
+      className={cn(
+        "pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-6 z-30 max-lg:hidden",
+        // Clears the browser's "sharing your screen" bar, like the dock.
+        "group-data-capture-bar/room:bottom-14 [@media(max-height:32rem)]:hidden",
+      )}
+    >
+      <div className="pointer-events-auto">
+        <Mascot
+          className="size-20"
+          sizes="240px"
+          canSleep={false}
+          facing="right"
+          activity={activity}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** People: a grid without a stage; with a stage, a side strip. */
 function PeopleArea({
   participants,
   sharingIds,
   hasStage,
-  busy,
 }: {
   participants: Participant[];
   sharingIds: Set<string>;
   hasStage: boolean;
-  /** Connecting or reconnecting: the mascot waits instead of presenting. */
-  busy: boolean;
 }) {
   return (
     <div
@@ -84,16 +119,6 @@ function PeopleArea({
         !hasStage && participants.length >= 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
       )}
     >
-      {hasStage ? (
-        <div className="flex shrink-0 items-center justify-center self-center">
-          <Mascot
-            className="size-20"
-            sizes="240px"
-            canSleep={false}
-            activity={busy ? "waiting" : "presenting"}
-          />
-        </div>
-      ) : null}
       {participants.map((participant) => (
         <ParticipantTile
           key={participant.identity}
@@ -188,15 +213,11 @@ export function RoomLayout({
         {alone ? (
           <AloneWelcome code={code} share={share} />
         ) : (
-          <PeopleArea
-            participants={participants}
-            sharingIds={sharingIds}
-            hasStage={hasStage}
-            busy={connection !== "connected"}
-          />
+          <PeopleArea participants={participants} sharingIds={sharingIds} hasStage={hasStage} />
         )}
       </main>
 
+      <CornerMascot connection={connection} hasStage={hasStage} alone={alone} />
       <ChatPanel chat={chat} />
       <ControlDock chat={chat} share={share} onLeave={onLeave} />
     </div>

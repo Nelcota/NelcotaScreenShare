@@ -12,7 +12,8 @@ function storedName(): string {
   }
 }
 
-function rememberName(name: string) {
+/** Saves a guest's name for the next invite (also when they rename themselves in a call). */
+export function rememberName(name: string) {
   try {
     localStorage.setItem(STORAGE_KEY, name);
   } catch {

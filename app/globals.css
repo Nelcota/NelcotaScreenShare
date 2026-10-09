@@ -148,8 +148,9 @@
 }
 
 /*
- * A light theme that does not glare: no pure white. Warm gray background #E6E4DF, the
- * lightest surface stops at #EFEDE9 and text is graphite, not black.
+ * Warm off-white background #F4F2EE with graphite text, not black.
+ * Surfaces follow the same elevation as the dark theme: each step (surface, surface-2,
+ * surface-3) sits closer to the viewer, so here it gets lighter, up to white.
  * `brand-soft` becomes dark green (in light mode it is used for text and icons).
  * Text contrast ≥ 4.5:1 on every surface, status colors included (also over
  * their own 15% tint, as in StatusBadge).
@@ -157,10 +158,10 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --color-canvas: #e6e4df;
-  --color-surface: #efede9;
-  --color-surface-2: #e2e0da;
-  --color-surface-3: #d8d5ce;
+  --color-canvas: #f4f2ee;
+  --color-surface: #faf9f6;
+  --color-surface-2: #fdfcfa;
+  --color-surface-3: #ffffff;
   --color-line: rgb(40 36 28 / 0.1);
   --color-line-strong: rgb(40 36 28 / 0.17);
 
@@ -181,17 +182,17 @@
 
   --shadow-soft: 0 1px 0 0 rgb(255 255 255 / 0.45) inset, 0 10px 28px -18px rgb(40 34 20 / 0.28);
 
-  --background: #e6e4df;
+  --background: #f4f2ee;
   --foreground: #1f2023;
-  --card: #efede9;
+  --card: #faf9f6;
   --card-foreground: #1f2023;
-  --popover: #efede9;
+  --popover: #fdfcfa;
   --popover-foreground: #1f2023;
-  --secondary: #e2e0da;
+  --secondary: #fdfcfa;
   --secondary-foreground: #1f2023;
-  --muted: #e2e0da;
+  --muted: #fdfcfa;
   --muted-foreground: #4f5157;
-  --accent: #d8d5ce;
+  --accent: #ffffff;
   --accent-foreground: #1f2023;
   --destructive: #a32626;
   --border: rgb(40 36 28 / 0.1);

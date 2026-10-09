@@ -178,10 +178,55 @@ describe("mail delivery", () => {
     expect(mail.fetch).toHaveBeenCalledTimes(1);
     expect(mail.sleep).not.toHaveBeenCalled();
     expect(mail.send).not.toHaveBeenCalled();
-    expect(mail.warn).not.toHaveBeenCalled();
+    expect(mail.warn).toHaveBeenCalledExactlyOnceWith(
+      { failure: "SyntaxError", provider: "resend" },
+      "e-mail provider answer is not JSON",
+    );
     expect(JSON.stringify(mail.error.mock.calls)).not.toMatch(
       /recipient|private-token|re_test_key/,
     );
+  });
+
+  test("logs Resend's error code, not its message, when it refuses a delivery", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.fetch.mockResolvedValue(
+      Response.json(
+        {
+          statusCode: 403,
+          name: "validation_error",
+          message: "You can only send testing emails to recipient@example.com",
+        },
+        { status: 403 },
+      ),
+    );
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow("Resend rejected e-mail delivery (HTTP 403)");
+    expect(mail.error).toHaveBeenCalledWith(
+      expect.objectContaining({ event: "mail.failed", status: 403, reason: "validation_error" }),
+      "e-mail delivery failed",
+    );
+    expect(JSON.stringify(mail.error.mock.calls)).not.toMatch(/recipient|testing emails/);
+  });
+
+  test.each([
+    Response.json({ name: "recipient@example.com", message: "private-token" }, { status: 403 }),
+    new Response("recipient@example.com private-token", { status: 403 }),
+    Response.json({ name: { recipient: "recipient@example.com" } }, { status: 403 }),
+  ])("omits private or malformed provider diagnostics", async (response) => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.fetch.mockResolvedValue(response);
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow("HTTP 403");
+    expect(JSON.stringify([mail.warn.mock.calls, mail.error.mock.calls])).not.toMatch(
+      /recipient|private-token/,
+    );
+    expect(mail.error).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 403, reason: undefined }),
+      "e-mail delivery failed",
+    );
+    expect(mail.fetch).toHaveBeenCalledTimes(1);
   });
 
   test.each([429, 503])(

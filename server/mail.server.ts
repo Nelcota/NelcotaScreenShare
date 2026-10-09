@@ -15,6 +15,32 @@ export interface MailMessage {
 
 let transporter: Transporter | undefined;
 
+// https://resend.com/docs/api-reference/errors — never log arbitrary provider text.
+const PROVIDER_ERROR_NAMES = new Set([
+  "invalid_idempotency_key",
+  "validation_error",
+  "missing_api_key",
+  "restricted_api_key",
+  "suspended_api_key",
+  "invalid_permission",
+  "email_above_quota",
+  "not_found",
+  "method_not_allowed",
+  "concurrent_idempotent_requests",
+  "invalid_idempotent_request",
+  "resource_locked",
+  "invalid_attachment",
+  "invalid_parameter",
+  "missing_required_field",
+  "missing_required_parameter",
+  "daily_quota_exceeded",
+  "monthly_quota_exceeded",
+  "rate_limit_exceeded",
+  "application_error",
+  "service_unavailable",
+  "invalid_from_address",
+]);
+
 function providerMessageId(result: unknown): string | undefined {
   if (!result || typeof result !== "object" || !("id" in result)) return undefined;
   if (typeof result.id !== "string") return undefined;
@@ -42,9 +68,21 @@ async function readProviderResult(response: Response): Promise<unknown> {
   try {
     return await response.json();
   } catch (error) {
-    logger.warn({ err: error, provider: "resend" }, "e-mail provider answer is not JSON");
+    logger.warn(
+      { failure: error instanceof Error ? error.name : "unknown", provider: "resend" },
+      "e-mail provider answer is not JSON",
+    );
     return undefined;
   }
+}
+
+/** Only known error codes reach the log; messages may contain recipients or tokens. */
+async function providerErrorName(response: Response | undefined): Promise<string | undefined> {
+  if (!response) return undefined;
+  const result = await readProviderResult(response);
+  if (!result || typeof result !== "object" || !("name" in result)) return undefined;
+  if (typeof result.name !== "string" || !PROVIDER_ERROR_NAMES.has(result.name)) return undefined;
+  return result.name;
 }
 
 /** One delivery attempt: the response, or only the kind of network failure. */
@@ -93,12 +131,11 @@ async function sendWithResend(message: MailMessage, apiKey: string, sender: stri
     }
 
     const status = response?.status;
-    // Only frees the connection: a failure here changes nothing about the delivery.
-    await response?.body?.cancel().catch(() => undefined);
+    const reason = await providerErrorName(response);
     const transient = status === undefined || status === 429 || status >= 500;
     if (!transient || attempt === 3) {
       logger.error(
-        { event: "mail.failed", provider: "resend", status, failure, attempt },
+        { event: "mail.failed", provider: "resend", status, failure, reason, attempt },
         "e-mail delivery failed",
       );
       throw new Error(
@@ -109,7 +146,7 @@ async function sendWithResend(message: MailMessage, apiKey: string, sender: stri
     }
 
     logger.warn(
-      { event: "mail.retry", provider: "resend", status, failure, attempt },
+      { event: "mail.retry", provider: "resend", status, failure, reason, attempt },
       "retrying e-mail delivery",
     );
     await setTimeout(500 * 2 ** (attempt - 1));

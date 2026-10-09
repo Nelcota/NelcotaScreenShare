@@ -1,6 +1,7 @@
-import { RoomAudioRenderer, RoomContext } from "@livekit/components-react";
+import { RoomContext } from "@livekit/components-react";
 import { useState } from "react";
 import { useRoomConnection } from "@/features/room/hooks/use-room-connection";
+import { DeafenProvider } from "@/features/room/ui/dock/Deafen";
 import { ReactionsProvider } from "@/features/room/ui/dock/Reactions";
 import type { JoinChoices } from "@/features/room/domain/join";
 import type { LeaveNotice } from "@/features/room/domain/leave";
@@ -54,22 +55,23 @@ export function RoomView({
   // Hidden, not unmounted: the connection, the audio and the shared screen stay on.
   return (
     <RoomContext.Provider value={room}>
-      <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
-        <ShortcutScope value={!minimized}>
-          <div hidden={minimized}>
-            <ReactionsProvider>
-              <RoomLayout
-                code={code}
-                maxParticipants={maxParticipants}
-                isAdmin={isAdmin}
-                onLeave={leave}
-              />
-            </ReactionsProvider>
-          </div>
-        </ShortcutScope>
-      </ShortcutSettings>
-      {minimized ? <MinimizedCall code={code} /> : null}
-      <RoomAudioRenderer />
+      <DeafenProvider>
+        <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
+          <ShortcutScope value={!minimized}>
+            <div hidden={minimized}>
+              <ReactionsProvider>
+                <RoomLayout
+                  code={code}
+                  maxParticipants={maxParticipants}
+                  isAdmin={isAdmin}
+                  onLeave={leave}
+                />
+              </ReactionsProvider>
+            </div>
+          </ShortcutScope>
+        </ShortcutSettings>
+        {minimized ? <MinimizedCall code={code} /> : null}
+      </DeafenProvider>
     </RoomContext.Provider>
   );
 }

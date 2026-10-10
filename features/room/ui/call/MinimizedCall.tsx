@@ -1,4 +1,5 @@
 import { useConnectionState, useLocalParticipant } from "@livekit/components-react";
+import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { ConnectionState } from "livekit-client";
 import { ArrowLeft, HeadphoneOff, MicOff, MonitorUp } from "lucide-react";
 import { Link } from "react-router";
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
  * says the call is still open, whether the screen is being shared, and goes back.
  */
 export function MinimizedCall({ code }: { code: string }) {
+  const { enabled } = useStreamerMode();
   const { isScreenShareEnabled, isMicrophoneEnabled } = useLocalParticipant();
   const connected = useConnectionState() === ConnectionState.Connected;
   const { deafened } = useDeafen();
@@ -32,7 +34,9 @@ export function MinimizedCall({ code }: { code: string }) {
         <span className="truncate text-sm font-medium">
           {isScreenShareEnabled ? "Compartilhando sua tela" : "Em chamada"}
         </span>
-        <span className="truncate text-xs text-ink-muted tabular-nums">Sala {code}</span>
+        <span className="truncate text-xs text-ink-muted tabular-nums">
+          {enabled ? "Código oculto" : `Sala ${code}`}
+        </span>
       </span>
       {isScreenShareEnabled ? (
         <MonitorUp className="size-4 shrink-0 text-brand-soft" aria-hidden="true" />

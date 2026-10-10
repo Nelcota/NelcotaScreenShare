@@ -1,5 +1,6 @@
 import { RoomContext } from "@livekit/components-react";
 import { useState } from "react";
+import { StreamerModeContext } from "@/features/room/hooks/use-streamer-mode";
 import { useRoomConnection } from "@/features/room/hooks/use-room-connection";
 import { DeafenProvider } from "@/features/room/ui/dock/Deafen";
 import { ReactionsProvider } from "@/features/room/ui/dock/Reactions";
@@ -34,6 +35,7 @@ export function RoomView({
 }: RoomViewProps) {
   const { room, connectError, leave } = useRoomConnection(choices, onLeave);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
+  const [streamerMode, setStreamerMode] = useState(false);
 
   if (connectError) {
     return (
@@ -55,23 +57,25 @@ export function RoomView({
   // Hidden, not unmounted: the connection, the audio and the shared screen stay on.
   return (
     <RoomContext.Provider value={room}>
-      <DeafenProvider>
-        <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
-          <ShortcutScope value={!minimized}>
-            <div hidden={minimized}>
-              <ReactionsProvider>
-                <RoomLayout
-                  code={code}
-                  maxParticipants={maxParticipants}
-                  isAdmin={isAdmin}
-                  onLeave={leave}
-                />
-              </ReactionsProvider>
-            </div>
-          </ShortcutScope>
-        </ShortcutSettings>
-        {minimized ? <MinimizedCall code={code} /> : null}
-      </DeafenProvider>
+      <StreamerModeContext.Provider value={{ enabled: streamerMode, setEnabled: setStreamerMode }}>
+        <DeafenProvider>
+          <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
+            <ShortcutScope value={!minimized}>
+              <div hidden={minimized}>
+                <ReactionsProvider>
+                  <RoomLayout
+                    code={code}
+                    maxParticipants={maxParticipants}
+                    isAdmin={isAdmin}
+                    onLeave={leave}
+                  />
+                </ReactionsProvider>
+              </div>
+            </ShortcutScope>
+          </ShortcutSettings>
+          {minimized ? <MinimizedCall code={code} /> : null}
+        </DeafenProvider>
+      </StreamerModeContext.Provider>
     </RoomContext.Provider>
   );
 }

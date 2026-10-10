@@ -122,6 +122,46 @@ test.describe("in the room", () => {
     }
   });
 
+  test("deafen silences existing and new audio and restores the microphone", async ({
+    browser,
+  }) => {
+    const listener = await newParticipant(browser, "Audio Leitor");
+    const speaker = await newParticipant(browser, "Audio Falante");
+    const newcomer = await newParticipant(browser, "Audio Novo");
+    const code = newRoomCode();
+    await fakeScreenCapture(speaker.page, { withSound: true, safeAudio: true });
+    await joinRoom(listener.page, code);
+    await joinRoom(speaker.page, code);
+    const audioVolumes = () =>
+      listener.page
+        .locator("audio")
+        .evaluateAll((elements) => elements.map((element) => (element as HTMLAudioElement).volume));
+    await expect.poll(async () => (await audioVolumes()).length).toBeGreaterThan(0);
+    await listener.page.getByRole("button", { name: "Parar de ouvir a sala", exact: true }).click();
+    await expect.poll(audioVolumes).toEqual([0]);
+    await expect(listener.page.getByRole("button", { name: /Ligar microfone/ })).toBeVisible();
+    await joinRoom(newcomer.page, code);
+    await speaker.page.getByRole("button", { name: /Compartilhar tela/ }).click();
+    await speaker.page.getByRole("button", { name: /^Tela inteira/ }).click();
+    await expect.poll(async () => (await audioVolumes()).length).toBe(3);
+    await expect.poll(audioVolumes).toEqual([0, 0, 0]);
+    await listener.page.getByRole("button", { name: "Voltar a ouvir a sala" }).click();
+    await expect.poll(audioVolumes).toEqual([1, 1, 1]);
+    await expect(listener.page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();
+    await listener.page.setViewportSize({ width: 320, height: 740 });
+    const dock = listener.page.getByRole("navigation", { name: "Controles da chamada" });
+    await expect
+      .poll(async () => {
+        const bounds = await dock.boundingBox();
+        return bounds !== null && bounds.x >= 0 && bounds.x + bounds.width <= 320;
+      })
+      .toBe(true);
+    await listener.page.screenshot({ path: test.info().outputPath("deafen-mobile.png") });
+    await listener.context.close();
+    await speaker.context.close();
+    await newcomer.context.close();
+  });
+
   test("opening and reopening a long chat positions the latest messages in view", async ({
     browser,
   }) => {

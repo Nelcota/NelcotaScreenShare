@@ -49,7 +49,7 @@ export function DeafenProvider({ children }: { children: ReactNode }) {
   return (
     <DeafenContext value={state}>
       {children}
-      <RoomAudioRenderer muted={deafened} />
+      <RoomAudioRenderer muted={deafened} volume={deafened ? 0 : 1} />
     </DeafenContext>
   );
 }

@@ -70,3 +70,64 @@ test("unsupported audio stays silent without throwing", async () => {
   const { playChatNotification } = await import("@/features/room/audio/chat-notification");
   expect(await playChatNotification("chime")).toBe(false);
 });
+
+test("resumes audio, plays the selected pattern and releases each finished sound", async () => {
+  class SoundNode extends EventTarget {
+    type = "sine";
+    frequency = { setValueAtTime: vi.fn() };
+    connect = vi.fn();
+    disconnect = vi.fn();
+    start = vi.fn();
+    stop = vi.fn();
+  }
+  const notes: SoundNode[] = [];
+  const volumes: { disconnect: ReturnType<typeof vi.fn> }[] = [];
+  const context = {
+    state: "suspended",
+    currentTime: 10,
+    destination: {},
+    resume: vi.fn(async () => {
+      context.state = "running";
+    }),
+    createOscillator: () => {
+      const note = new SoundNode();
+      notes.push(note);
+      return note;
+    },
+    createGain: () => {
+      const volume = {
+        gain: {
+          setValueAtTime: vi.fn(),
+          linearRampToValueAtTime: vi.fn(),
+          exponentialRampToValueAtTime: vi.fn(),
+        },
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+      };
+      volumes.push(volume);
+      return volume;
+    },
+  };
+  const constructor = vi.fn(function () {
+    return context;
+  });
+  vi.stubGlobal("AudioContext", constructor);
+  const { playChatNotification } = await import("@/features/room/audio/chat-notification");
+  expect(await playChatNotification("chime")).toBe(true);
+  expect(context.resume).toHaveBeenCalledTimes(1);
+  expect(notes).toHaveLength(2);
+  for (const note of notes) {
+    const start = Number(note.start.mock.calls[0]?.[0]);
+    const stop = Number(note.stop.mock.calls[0]?.[0]);
+    expect(start).toBeGreaterThanOrEqual(context.currentTime);
+    expect(stop).toBeGreaterThan(start);
+    note.dispatchEvent(new Event("ended"));
+    expect(note.disconnect).toHaveBeenCalledTimes(1);
+  }
+  expect(volumes.every((volume) => volume.disconnect.mock.calls.length === 1)).toBe(true);
+  expect(await playChatNotification("soft")).toBe(true);
+  expect(notes).toHaveLength(3);
+  expect(constructor).toHaveBeenCalledTimes(1);
+  expect(await playChatNotification("off")).toBe(false);
+  expect(notes).toHaveLength(3);
+});

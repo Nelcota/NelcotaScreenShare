@@ -54,11 +54,15 @@ export function createFaceAnimator(renderer: FaceRenderer, initial: FaceState, h
     const blinking = progress < 1;
     if (!blinking) blinkStarted = 0;
     const lid = blinkLid(progress);
-    renderer.render(gaze, {
-      ...face,
-      lid0: Math.max(lid, face.lid0),
-      lid1: Math.max(lid, face.lid1),
-    });
+    renderer.render(
+      gaze,
+      {
+        ...face,
+        lid0: Math.max(lid, face.lid0),
+        lid1: Math.max(lid, face.lid1),
+      },
+      blinking,
+    );
     frame =
       gazeSettled && faceSettled && !blinking && !extra.keepAlive ? 0 : requestAnimationFrame(step);
   }

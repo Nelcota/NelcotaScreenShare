@@ -105,7 +105,7 @@ export function DockButton({
             animate(event.currentTarget, { scale: 1 });
           }}
           className={cn(
-            "group flex shrink-0 touch-manipulation flex-col items-center gap-2 rounded-xl outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+            "group flex shrink-0 cursor-pointer touch-manipulation flex-col items-center gap-2 rounded-xl outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
             caption ? "min-w-11 sm:min-w-16" : "",
             className,
           )}

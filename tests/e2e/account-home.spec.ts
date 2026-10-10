@@ -98,6 +98,15 @@ test("profile photo: preview, persistence on the account and avatar on the home 
     "src",
     /^data:image\/webp;base64,/,
   );
+  const serverOnly = await browser.newContext({
+    baseURL: E2E_URL,
+    javaScriptEnabled: false,
+    storageState: await context.storageState(),
+  });
+  const serverPage = await serverOnly.newPage();
+  await serverPage.goto("/");
+  await expect(serverPage.locator('a[href="/conta"] [data-slot=avatar-image]')).toBeVisible();
+  await serverOnly.close();
   await joinRoom(page, newRoomCode(), { micOn: false });
   const roomPhoto = page
     .getByRole("navigation", { name: "Sala", exact: true })

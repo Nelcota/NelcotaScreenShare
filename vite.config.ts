@@ -10,12 +10,17 @@ export default defineConfig({
   // The Hono server (app/server.ts) must come before React Router.
   plugins: [
     tailwindcss(),
-    reactRouterHonoServer(),
+    // The plugin only lets Vite serve source files under app/; the "@/" alias also
+    // imports from these folders, which would otherwise fall through to Hono (404).
+    reactRouterHonoServer({
+      dev: { exclude: [/^\/(components|features|lib|server|types)\/.+\.[^/?]+(\?.*)?$/] },
+    }),
     reactRouter(),
     babel({ presets: [reactCompilerPreset()] }),
   ],
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
-  server: { host: "127.0.0.1", port: 3000 },
+  // Fixed origin (saved logins in the browser); fails instead of switching ports when taken.
+  server: { host: "127.0.0.1", port: 3111, strictPort: true },
   optimizeDeps: {
     // Avoids rebuilding the cache during the first form submission or navigation.
     noDiscovery: true,

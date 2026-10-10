@@ -1,4 +1,4 @@
-# Development LiveKit with a webhook to the local app (pnpm dev on port 3000).
+# Development LiveKit with a webhook to the local app (pnpm dev on port 3111).
 #
 #   docker run -d --name lk-dev -p 7880:7880 -p 7881:7881 -p 7882:7882/udp \
 #     --add-host=host.docker.internal:host-gateway \
@@ -11,4 +11,4 @@ keys:
 webhook:
   api_key: devkey
   urls:
-    - http://host.docker.internal:3000/api/livekit/webhook
+    - http://host.docker.internal:3111/api/livekit/webhook

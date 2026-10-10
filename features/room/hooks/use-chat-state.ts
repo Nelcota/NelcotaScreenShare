@@ -7,6 +7,7 @@ import {
 import type { Participant } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { playChatNotification } from "@/features/room/audio/chat-notification";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import {
@@ -102,6 +103,7 @@ export function useChatState(): ChatState {
     if (open) return;
     const last = fresh.findLast((message) => !message.from?.isLocal);
     if (last) {
+      void playChatNotification();
       toast(`${participantLabel(last.from)}: ${capChatText(last.message)}`, {
         id: chatToastId(last.id),
         action: { label: "Abrir", onClick: () => setOpenState(true) },

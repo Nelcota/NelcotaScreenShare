@@ -56,6 +56,9 @@ Self-hosted, with LiveKit and React Router.
 
 Shortcuts don't fire while you are typing in the chat or another field.
 
+Before gaming, turn off **Atalhos na sala** in the room's **Mais opções** menu.
+Call buttons keep working, and the choice lasts for the current call.
+
 ## Quick start
 
 You need Node 26.9+, pnpm 12.9.1 and Docker. With the dev LiveKit container running and `.env.local` filled in:

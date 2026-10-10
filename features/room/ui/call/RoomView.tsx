@@ -1,9 +1,10 @@
 import { RoomAudioRenderer, RoomContext } from "@livekit/components-react";
+import { useState } from "react";
 import { useRoomConnection } from "@/features/room/hooks/use-room-connection";
 import { ReactionsProvider } from "@/features/room/ui/dock/Reactions";
 import type { JoinChoices } from "@/features/room/domain/join";
 import type { LeaveNotice } from "@/features/room/domain/leave";
-import { ShortcutScope } from "@/lib/hooks/use-shortcut";
+import { ShortcutScope, ShortcutSettings } from "@/lib/hooks/use-shortcut";
 import { ConnectError } from "./ConnectError";
 import { MinimizedCall } from "./MinimizedCall";
 import { RoomLayout } from "./RoomLayout";
@@ -31,6 +32,7 @@ export function RoomView({
   onRetry,
 }: RoomViewProps) {
   const { room, connectError, leave } = useRoomConnection(choices, onLeave);
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
 
   if (connectError) {
     return (
@@ -52,18 +54,20 @@ export function RoomView({
   // Hidden, not unmounted: the connection, the audio and the shared screen stay on.
   return (
     <RoomContext.Provider value={room}>
-      <ShortcutScope value={!minimized}>
-        <div hidden={minimized}>
-          <ReactionsProvider>
-            <RoomLayout
-              code={code}
-              maxParticipants={maxParticipants}
-              isAdmin={isAdmin}
-              onLeave={leave}
-            />
-          </ReactionsProvider>
-        </div>
-      </ShortcutScope>
+      <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
+        <ShortcutScope value={!minimized}>
+          <div hidden={minimized}>
+            <ReactionsProvider>
+              <RoomLayout
+                code={code}
+                maxParticipants={maxParticipants}
+                isAdmin={isAdmin}
+                onLeave={leave}
+              />
+            </ReactionsProvider>
+          </div>
+        </ShortcutScope>
+      </ShortcutSettings>
       {minimized ? <MinimizedCall code={code} /> : null}
       <RoomAudioRenderer />
     </RoomContext.Provider>

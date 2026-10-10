@@ -1,6 +1,9 @@
 import { Link } from "react-router";
 import { Popover } from "radix-ui";
 import type { ComponentProps, ReactNode } from "react";
+import { use, useId } from "react";
+import { Switch } from "@/components/ui/switch";
+import { ShortcutSettings } from "@/lib/hooks/use-shortcut";
 import { ROOM_SHORTCUTS } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 import { navItemClass } from "./nav-item-class";
@@ -108,9 +111,21 @@ export function NavPopover({
 }
 
 export function ShortcutsPanel() {
+  const settings = use(ShortcutSettings);
+  const switchId = useId();
   return (
     <>
-      <p className="text-sm font-medium tracking-tight">Atalhos na sala</p>
+      <div className="flex items-center justify-between gap-3">
+        <label
+          htmlFor={settings ? switchId : undefined}
+          className="text-sm font-medium tracking-tight"
+        >
+          Atalhos na sala
+        </label>
+        {settings ? (
+          <Switch id={switchId} checked={settings.enabled} onCheckedChange={settings.setEnabled} />
+        ) : null}
+      </div>
       <dl className="mt-3 flex flex-col gap-2">
         {ROOM_SHORTCUTS.map(({ key, action }) => (
           <div key={key} className="flex items-center gap-3 text-sm">
@@ -123,7 +138,11 @@ export function ShortcutsPanel() {
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-xs text-ink-subtle">Não disparam enquanto você digita.</p>
+      <p className="mt-3 text-xs text-ink-subtle">
+        {settings?.enabled === false
+          ? "Atalhos desligados nesta chamada. Use os botões ou ligue novamente quando quiser."
+          : "Desligue para jogar sem acionar a chamada. Não disparam enquanto você digita."}
+      </p>
     </>
   );
 }

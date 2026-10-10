@@ -13,13 +13,21 @@ function isTyping(target: EventTarget | null): boolean {
  */
 export const ShortcutScope = createContext(true);
 
+/** The call's shortcut switch is independent of whether the call is minimized. */
+export const ShortcutSettings = createContext<{
+  enabled: boolean;
+  setEnabled: (enabled: boolean) => void;
+} | null>(null);
+
 /**
  * Single-key shortcut, without modifiers. Ignored while the person is typing
  * (chat, fields) and while the key is held down. `key` in lowercase, like "m".
  */
 export function useShortcut(key: string, onPress: () => void, enabled = true) {
   const handle = useEffectEvent(onPress);
-  const active = enabled && use(ShortcutScope);
+  const scopeActive = use(ShortcutScope);
+  const settings = use(ShortcutSettings);
+  const active = enabled && scopeActive && (settings?.enabled ?? true);
 
   useEffect(() => {
     if (!active) return;

@@ -276,6 +276,16 @@ test.describe("in the room", () => {
     await edu.page.keyboard.press("Escape");
     await edu.page.keyboard.press("h");
     await expect(dani.page.getByText("✋ Edu Lima levantou a mão")).toBeVisible();
+    await expect(
+      dani.page.getByLabel("Edu Lima está com a mão levantada", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      edu.page.getByLabel("Edu Lima está com a mão levantada", { exact: true }),
+    ).toBeVisible();
+    await edu.page.keyboard.press("h");
+    await expect(
+      dani.page.getByLabel("Edu Lima está com a mão levantada", { exact: true }),
+    ).toBeHidden();
 
     await dani.context.close();
     await edu.context.close();

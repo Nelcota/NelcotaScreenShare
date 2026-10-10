@@ -5,7 +5,7 @@ import {
   useRoomContext,
 } from "@livekit/components-react";
 import { RoomEvent, type Participant } from "livekit-client";
-import { Hand, Smile } from "lucide-react";
+import { Hand } from "lucide-react";
 import { Popover } from "radix-ui";
 import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -191,7 +191,7 @@ export function ReactionsMenu() {
           {handRaised ? (
             <Hand className="icon-wave size-5" aria-hidden="true" />
           ) : (
-            <Smile className="size-5" aria-hidden="true" />
+            <Hand className="size-5" aria-hidden="true" />
           )}
         </DockButton>
       </Popover.Trigger>

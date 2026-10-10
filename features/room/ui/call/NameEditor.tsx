@@ -1,5 +1,6 @@
 import { useLocalParticipant } from "@livekit/components-react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { Popover } from "radix-ui";
 import { useId, useState, type FormEvent } from "react";
 import { Link, useRevalidator } from "react-router";
 import { toast } from "sonner";
@@ -82,14 +83,16 @@ export function NameEditor({ code }: { code: string }) {
           Vale para esta chamada e para os próximos convites.
         </p>
       ) : (
-        <Link
-          viewTransition
-          to={`/conta?voltar=${encodeURIComponent(roomPath(code))}`}
-          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-brand-soft underline-offset-4 hover:underline"
-        >
-          Foto, e-mail e senha na sua conta (a chamada continua)
-          <ArrowRight className="icon-nudge size-4" aria-hidden="true" />
-        </Link>
+        <Popover.Close asChild>
+          <Link
+            viewTransition
+            to={`/conta?voltar=${encodeURIComponent(roomPath(code))}`}
+            className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-brand-soft underline-offset-4 hover:underline"
+          >
+            Foto, e-mail e senha na sua conta (a chamada continua)
+            <ArrowRight className="icon-nudge size-4" aria-hidden="true" />
+          </Link>
+        </Popover.Close>
       )}
     </form>
   );

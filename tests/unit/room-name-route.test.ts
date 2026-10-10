@@ -1,12 +1,15 @@
 import { ServerError } from "livekit-server-sdk";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { renameInRoom } from "@/features/room/client/api";
 
 const deps = vi.hoisted(() => ({
   caller: vi.fn(),
   updateParticipant: vi.fn(),
   updateUser: vi.fn(),
   logError: vi.fn(),
+  logBrowserWarning: vi.fn(),
 }));
+vi.mock("@/lib/telemetry.client", () => ({ logBrowserWarning: deps.logBrowserWarning }));
 
 vi.mock("@/features/room/server/room-caller.server", () => ({ roomCaller: deps.caller }));
 vi.mock("@/features/room/server/room-service.server", () => ({
@@ -46,6 +49,39 @@ beforeEach(() => {
   vi.clearAllMocks();
   deps.updateParticipant.mockResolvedValue({});
   deps.updateUser.mockResolvedValue({ status: true });
+});
+afterEach(() => vi.unstubAllGlobals());
+
+test("the client does not report a successful rename for an HTML response or a missing name", async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  fetch.mockResolvedValueOnce(new Response("<html>Proxy page</html>"));
+  expect(await renameInRoom(ROOM, "Ana")).toMatchObject({ ok: false });
+  fetch.mockResolvedValueOnce(Response.json({}));
+  expect(await renameInRoom(ROOM, "Ana")).toMatchObject({ ok: false });
+  fetch.mockResolvedValueOnce(Response.json({ name: "   " }));
+  expect(await renameInRoom(ROOM, "Ana")).toMatchObject({ ok: false });
+});
+
+test("the client accepts the validated name and preserves the server's error message", async () => {
+  const fetch = vi.fn();
+  vi.stubGlobal("fetch", fetch);
+  fetch.mockResolvedValueOnce(Response.json({ name: "Ana Souza" }));
+  expect(await renameInRoom(ROOM, "Ana")).toEqual({ ok: true, name: "Ana Souza" });
+  fetch.mockResolvedValueOnce(
+    Response.json({ message: "Você não está nesta sala." }, { status: 409 }),
+  );
+  expect(await renameInRoom(ROOM, "Ana")).toEqual({
+    ok: false,
+    message: "Você não está nesta sala.",
+  });
+});
+
+test("the client reports a network failure without treating the name as saved", async () => {
+  const error = new TypeError("Failed to fetch");
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(error));
+  expect(await renameInRoom(ROOM, "Ana")).toMatchObject({ ok: false });
+  expect(deps.logBrowserWarning).toHaveBeenCalledWith("Room rename request failed", error);
 });
 
 test("an account renames itself in the room and keeps the name", async () => {

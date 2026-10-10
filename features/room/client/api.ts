@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { displayNameSchema } from "@/features/room/domain/participant-label";
 import { readJson } from "@/lib/read-json";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 import {
@@ -72,7 +73,10 @@ export async function setHandRaised(room: string, raised: boolean): Promise<bool
   }
 }
 
-const renameReplySchema = z.object({ name: z.string().optional(), message: z.string().optional() });
+const renameReplySchema = z.object({
+  name: displayNameSchema.optional(),
+  message: z.string().optional(),
+});
 
 /** Renames oneself in the call (the server checks and writes it; see /api/sala/nome). */
 export async function renameInRoom(
@@ -87,11 +91,12 @@ export async function renameInRoom(
       body: JSON.stringify({ room, name }),
       cache: "no-store",
     });
-    const json = renameReplySchema.safeParse(await response.json().catch(() => null));
+    const json = renameReplySchema.safeParse(await readJson(response));
     const reply = json.success ? json.data : {};
-    if (response.ok) return { ok: true, name: reply.name ?? name };
+    if (response.ok && reply.name !== undefined) return { ok: true, name: reply.name };
     return { ok: false, message: reply.message ?? fallback };
-  } catch {
+  } catch (error) {
+    logBrowserWarning("Room rename request failed", error);
     return { ok: false, message: fallback };
   }
 }

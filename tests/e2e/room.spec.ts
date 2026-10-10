@@ -325,6 +325,13 @@ test.describe("in the room", () => {
         edu.page.getByLabel("Tela de Dani Souza").evaluate((v: HTMLVideoElement) => v.readyState),
       )
       .toBeGreaterThan(0);
+    await expect(edu.page.getByLabel("Estatísticas da tela")).toHaveCount(0);
+    await edu.page.getByRole("button", { name: "Mostrar FPS e ping" }).click();
+    const metrics = edu.page.getByLabel("Estatísticas da tela");
+    await expect(metrics).toContainText(/Recebendo: [1-9]\d* FPS/);
+    await expect(metrics).toContainText(/Ping ao servidor: (\d+|—) ms/);
+    await edu.page.getByRole("button", { name: "Ocultar FPS e ping" }).click();
+    await expect(metrics).toHaveCount(0);
     await edu.page.getByRole("button", { name: "Abrir em janela" }).click();
     await expect(edu.page.getByRole("button", { name: "Fechar a janela" })).toBeVisible();
     await edu.page.keyboard.press("j");

@@ -5,6 +5,7 @@ import {
   MonitorUp,
   MousePointerClick,
   PictureInPicture2,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 import { useRef, useState, type RefObject } from "react";
@@ -15,6 +16,7 @@ import { usePageFullscreen } from "@/features/room/hooks/use-page-fullscreen";
 import { usePictureInPicture } from "@/features/room/hooks/use-picture-in-picture";
 import { cn } from "@/lib/utils";
 import { PointerLayer, usePointers } from "./PointerLayer";
+import { StreamMetrics } from "./StreamMetrics";
 
 interface ScreenStageProps {
   shares: TrackReference[];
@@ -144,6 +146,7 @@ function SharePicker({
 /** The shared screen in focus, with its pointers, controls and screen picker. */
 export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [showMetrics, setShowMetrics] = useState(false);
   // Pointing mode applies to the screen it was turned on for: switching screens turns it off.
   const [pointingAt, setPointingAt] = useState<string>();
   const { pings, pointAt } = usePointers();
@@ -215,14 +218,27 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
       )}
 
       <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-3">
-        <span className="glass pointer-events-auto inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium">
+        <span className="glass pointer-events-auto inline-flex min-w-0 items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium">
           <span className="size-2 shrink-0 rounded-full bg-brand-soft" aria-hidden="true" />
-          {isOwnScreen
-            ? "Você está apresentando"
-            : `Tela de ${participantLabel(focused.participant)}`}
+          <span className="truncate">
+            {isOwnScreen
+              ? "Você está apresentando"
+              : `Tela de ${participantLabel(focused.participant)}`}
+          </span>
         </span>
 
-        <span className="flex gap-2">
+        <span className="flex shrink-0 gap-1 sm:gap-2">
+          <Hint text={showMetrics ? "Ocultar FPS e ping" : "Mostrar FPS e ping"}>
+            <button
+              type="button"
+              aria-label={showMetrics ? "Ocultar FPS e ping" : "Mostrar FPS e ping"}
+              aria-pressed={showMetrics}
+              onClick={() => setShowMetrics(!showMetrics)}
+              className="glass pointer-events-auto grid size-9 place-items-center rounded-xl text-ink-muted hover:text-ink"
+            >
+              <Activity className="size-4" aria-hidden="true" />
+            </button>
+          </Hint>
           {isOwnScreen ? null : <PointingButton pointing={pointing} onToggle={togglePointing} />}
           {/* Your own screen in a window would bring back the mirror effect. */}
           {isOwnScreen ? null : <PictureInPictureButton videoRef={videoRef} />}
@@ -234,6 +250,10 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
           ) : null}
         </span>
       </div>
+
+      {showMetrics ? (
+        <StreamMetrics key={trackSid} track={focused.publication.track} local={isOwnScreen} />
+      ) : null}
 
       {pointing ? (
         <p className="glass pointer-events-none absolute top-14 right-3 rounded-xl px-3 py-1.5 text-xs font-medium">

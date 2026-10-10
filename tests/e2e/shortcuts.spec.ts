@@ -45,3 +45,40 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
     await context.close();
   }
 });
+
+test("typing and modified or repeated keys do not toggle the microphone", async ({ browser }) => {
+  const { page, context } = await newParticipant(browser, "Atalhos Campos");
+  try {
+    await joinRoom(page, newRoomCode(), { micOn: false });
+    const microphoneOff = page.getByRole("button", { name: "Ligar microfone", exact: true });
+    await page.keyboard.press("c");
+    const input = page.getByPlaceholder("Escreva para a sala", { exact: true });
+    await input.click();
+    await page.keyboard.type("mchs");
+    await expect(input).toHaveValue("mchs");
+    await expect(microphoneOff).toBeVisible();
+    await page.getByRole("button", { name: "Fechar chat", exact: true }).click();
+    const prevented = await page.evaluate(() => {
+      return [{ ctrlKey: true }, { metaKey: true }, { altKey: true }, { repeat: true }].map(
+        (modifiers) => {
+          const event = new KeyboardEvent("keydown", {
+            key: "m",
+            bubbles: true,
+            cancelable: true,
+            ...modifiers,
+          });
+          window.dispatchEvent(event);
+          return event.defaultPrevented;
+        },
+      );
+    });
+    expect(prevented).toEqual([false, false, false, false]);
+    await expect(microphoneOff).toBeVisible();
+    await page.keyboard.press("m");
+    await expect(
+      page.getByRole("button", { name: "Desligar microfone", exact: true }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});

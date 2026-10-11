@@ -63,6 +63,7 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
           <div className="flex flex-col items-center gap-2">
             <div
               className={cn(
+                // Each half has matching corners; keyboard focus can extend beyond the pair.
                 "flex rounded-xl ring-1 transition-[background-color,box-shadow] duration-200 ring-inset",
                 !isMicrophoneEnabled
                   ? "bg-danger/10 ring-danger/25"
@@ -78,7 +79,8 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
                 shortcut="M"
                 disabled={micBusy}
                 busy={micBusy}
-                iconClassName="rounded-xl border-0 bg-transparent sm:w-13"
+                // Square on the right: the hover fill reaches the divider instead of floating inside.
+                iconClassName="rounded-l-xl rounded-r-none border-0 bg-transparent sm:w-13"
                 onClick={() => void toggleMic()}
               >
                 {isMicrophoneEnabled ? (

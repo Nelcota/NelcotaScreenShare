@@ -5,6 +5,7 @@ const STORAGE_KEY = "nelcota-chat-notification-sound";
 const CHANGE_EVENT = "nelcota-chat-sound-change";
 let fallback: ChatNotificationSound = "soft";
 let warned = false;
+let storageBlocked = false;
 
 export function isChatNotificationSound(value: unknown): value is ChatNotificationSound {
   return value === "soft" || value === "chime" || value === "off";
@@ -17,11 +18,12 @@ function warnStorage(error: unknown) {
 }
 
 export function currentChatSound(): ChatNotificationSound {
-  if (typeof window === "undefined") return fallback;
+  if (typeof window === "undefined" || storageBlocked) return fallback;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     return isChatNotificationSound(stored) ? stored : fallback;
   } catch (error) {
+    storageBlocked = true;
     warnStorage(error);
     return fallback;
   }
@@ -33,6 +35,7 @@ export function setChatSound(sound: ChatNotificationSound) {
   try {
     window.localStorage.setItem(STORAGE_KEY, sound);
   } catch (error) {
+    storageBlocked = true;
     warnStorage(error);
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));

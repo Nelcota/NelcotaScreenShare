@@ -53,6 +53,27 @@ test("blocked browser storage keeps the preference for this session and reports 
   expect(telemetry.warning).toHaveBeenCalledTimes(1);
 });
 
+test("a failed storage write cannot restore an old saved sound over the session choice", async () => {
+  vi.stubGlobal(
+    "window",
+    Object.assign(new EventTarget(), {
+      localStorage: {
+        getItem: () => "soft",
+        setItem: () => {
+          throw new DOMException("Storage full", "QuotaExceededError");
+        },
+      },
+    }),
+  );
+  const sound = await import("@/features/room/domain/chat-notification-sound");
+  expect(sound.currentChatSound()).toBe("soft");
+  sound.setChatSound("off");
+  expect(sound.currentChatSound()).toBe("off");
+  sound.setChatSound("chime");
+  expect(sound.currentChatSound()).toBe("chime");
+  expect(telemetry.warning).toHaveBeenCalledTimes(1);
+});
+
 test("muting never creates audio and a blocked audio context fails without breaking chat", async () => {
   const constructor = vi.fn(function () {
     throw new Error("Audio unavailable");

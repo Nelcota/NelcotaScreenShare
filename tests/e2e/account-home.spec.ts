@@ -144,8 +144,11 @@ test('home: "/" focuses the room field and a valid code opens the room', async (
   await page.goto("/");
   // The top bar; the closing one repeats it lower on the page and leaves "/" to it.
   const input = page.getByPlaceholder("Link ou código da sala").first();
-  await page.keyboard.press("/");
-  await expect(input).toBeFocused();
+  // The SSR field is visible before hydration installs the global shortcut listener.
+  await expect(async () => {
+    await page.keyboard.press("/");
+    await expect(input).toBeFocused({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
 
   await input.fill("abc-defg-hij");
   await input.press("Enter");

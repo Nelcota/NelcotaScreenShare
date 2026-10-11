@@ -12,7 +12,7 @@ function Logo({ name }: { name: "chrome" | "edge" | "brave" | "firefox" | "safar
 }
 
 /**
- * Each family's logos in their own colors (the Chromium card shows Chrome and Edge); phones
+ * Each family's logos in their own colors (the Chromium card shows Chrome, Edge and Brave); phones
  * and tablets get a device glyph in the text color. All sit on the same neutral tile.
  */
 const MARKS: Record<BrowserRow["id"], ReactNode> = {

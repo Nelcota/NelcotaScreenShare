@@ -18,9 +18,10 @@ export function createFaceRenderer(face: HTMLElement) {
   const lids = [...sprite.querySelectorAll<SVGElement>("[data-mascot-lid]")];
   return {
     lids,
-    render(gaze: Gaze, state: FaceState) {
+    render(gaze: Gaze, state: FaceState, poseLids: Pick<FaceState, "lid0" | "lid1"> = state) {
       const root = face.closest<HTMLElement>("[data-slot=mascot]");
-      const pose = avatarFrame(root?.dataset.expression, state.lid0, state.lid1);
+      // A blink closes the vector eyelids, keeping the body's atlas pose stable.
+      const pose = avatarFrame(root?.dataset.expression, poseLids.lid0, poseLids.lid1);
       face.style.setProperty("--sprite-column", String(pose.column));
       face.style.setProperty("--sprite-row", String(pose.row));
       const tilt = state.tilt + gaze.x * 0.65;

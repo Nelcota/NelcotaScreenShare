@@ -219,3 +219,33 @@ test("repeated waves replace the previous ones and cleanup stops the animation",
     vi.unstubAllGlobals();
   }
 });
+
+test("holding the presenting pose again keeps the running pose instead of restarting it", () => {
+  vi.stubGlobal("window", { matchMedia: () => ({ matches: false }) });
+  let created = 0;
+  let cancelled = 0;
+  const sprite = {
+    animate() {
+      created += 1;
+      return {
+        playState: "finished",
+        cancel() {
+          cancelled += 1;
+        },
+      } as unknown as Animation;
+    },
+  };
+  try {
+    const avatarHands = createHandMotions({
+      querySelector: (selector: string) => (selector === "[data-mascot-sprite]" ? sprite : null),
+    } as unknown as HTMLElement);
+    for (let update = 0; update < 30; update++) avatarHands.hold();
+    assert.equal(created, 1);
+    assert.equal(cancelled, 0);
+    avatarHands.wave();
+    avatarHands.hold();
+    assert.equal(created, 3);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

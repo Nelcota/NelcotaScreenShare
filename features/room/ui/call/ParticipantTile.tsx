@@ -102,18 +102,16 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
               <span className="sr-only">compartilhando a tela</span>
             </span>
           ) : null}
+          {handRaised ? (
+            <span className="absolute -top-1 -left-1 grid size-6 place-items-center rounded-full bg-warning text-canvas ring-2 ring-canvas">
+              <Hand className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">{name} está com a mão levantada</span>
+            </span>
+          ) : null}
         </div>
         <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
           {participantLabel(participant)}
         </span>
-        {handRaised ? (
-          <span
-            className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-1 text-xs font-semibold text-warning"
-            aria-label={`${name} está com a mão levantada`}
-          >
-            <Hand className="size-4" aria-hidden="true" /> Mão levantada
-          </span>
-        ) : null}
         {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
       </div>
     );
@@ -134,11 +132,10 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
       />
       <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
         {handRaised ? (
-          <span
-            className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning"
-            aria-label={`${name} está com a mão levantada`}
-          >
-            <Hand className="size-5" aria-hidden="true" /> Mão levantada
+          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
+            <Hand className="size-5" aria-hidden="true" />
+            <span aria-hidden="true">Mão levantada</span>
+            <span className="sr-only">{name} está com a mão levantada</span>
           </span>
         ) : null}
         <div

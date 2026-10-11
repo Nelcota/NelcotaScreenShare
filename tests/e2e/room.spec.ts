@@ -277,14 +277,25 @@ test.describe("in the room", () => {
     await edu.page.keyboard.press("h");
     await expect(dani.page.getByText("✋ Edu Lima levantou a mão")).toBeVisible();
     await expect(
-      dani.page.getByLabel("Edu Lima está com a mão levantada", { exact: true }),
+      dani.page.getByText("Edu Lima está com a mão levantada", { exact: true }),
     ).toBeVisible();
     await expect(
-      edu.page.getByLabel("Edu Lima está com a mão levantada", { exact: true }),
+      edu.page.getByText("Edu Lima está com a mão levantada", { exact: true }),
     ).toBeVisible();
+    await dani.page.setViewportSize({ width: 320, height: 740 });
+    const badge = dani.page
+      .getByText("Edu Lima está com a mão levantada", { exact: true })
+      .locator("..");
+    await expect(badge).toBeVisible();
+    const badgeBounds = await badge.boundingBox();
+    expect(badgeBounds).not.toBeNull();
+    expect(badgeBounds!.width).toBeLessThanOrEqual(24);
+    await expect(
+      dani.page.getByText("Edu Lima está com a mão levantada", { exact: true }),
+    ).toHaveClass("sr-only");
     await edu.page.keyboard.press("h");
     await expect(
-      dani.page.getByLabel("Edu Lima está com a mão levantada", { exact: true }),
+      dani.page.getByText("Edu Lima está com a mão levantada", { exact: true }),
     ).toBeHidden();
 
     await dani.context.close();

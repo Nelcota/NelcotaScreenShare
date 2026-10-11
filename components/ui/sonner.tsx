@@ -34,6 +34,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           // 16 px: o padrão do Sonner (13 px) é pequeno demais para ler de relance.
           toast: "cn-toast font-sans text-base!",
+          // At most two lines each: expanded toasts never grow down over the call's dock.
+          title: "line-clamp-2",
         },
       }}
       {...props}

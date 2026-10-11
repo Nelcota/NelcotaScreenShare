@@ -1,3 +1,4 @@
+import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
 import { useState } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { RoomSession } from "./RoomSession";
@@ -26,19 +27,21 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
   if (entry === undefined) return null;
 
   return (
-    <RoomSession
-      // Another room drops the current call.
-      key={entry.code}
-      code={entry.code}
-      userName={entry.user?.name ?? null}
-      userImage={entry.user?.image ?? null}
-      passwordRequired={entry.passwordRequired}
-      invite={entry.invite}
-      maxParticipants={entry.maxParticipants}
-      presence={entry.presence}
-      isAdmin={entry.isAdmin}
-      minimized={room === undefined}
-      onCallChange={(inCall) => setCall(inCall ? entry : undefined)}
-    />
+    <StreamerModeProvider>
+      <RoomSession
+        // Another room drops the current call.
+        key={entry.code}
+        code={entry.code}
+        userName={entry.user?.name ?? null}
+        userImage={entry.user?.image ?? null}
+        passwordRequired={entry.passwordRequired}
+        invite={entry.invite}
+        maxParticipants={entry.maxParticipants}
+        presence={entry.presence}
+        isAdmin={entry.isAdmin}
+        minimized={room === undefined}
+        onCallChange={(inCall) => setCall(inCall ? entry : undefined)}
+      />
+    </StreamerModeProvider>
   );
 }

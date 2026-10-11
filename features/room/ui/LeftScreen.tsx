@@ -1,3 +1,4 @@
+import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { ArrowLeft, Check, Link2, Lock, Plus, RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link, useLocation, useViewTransitionState } from "react-router";
@@ -78,6 +79,24 @@ function GuestSignUp({ guest, joined }: { guest: boolean; joined: boolean }) {
   );
 }
 
+function CallSummary({ code, durationMs }: { code: string; durationMs?: number }) {
+  const { enabled: streamerMode } = useStreamerMode();
+  if (durationMs === undefined) return null;
+  return (
+    <p className="text-lg text-pretty text-ink-muted">
+      Você ficou <strong className="font-medium text-ink">{formatCallDuration(durationMs)}</strong>{" "}
+      na sala
+      {!streamerMode ? (
+        <span translate="no" className="font-medium text-ink tabular-nums">
+          {" "}
+          {code}
+        </span>
+      ) : null}
+      .
+    </p>
+  );
+}
+
 /**
  * After the call: why it ended, how long it lasted and the next step.
  * No card: the mascot says goodbye, just as it welcomed on the way in.
@@ -101,6 +120,7 @@ export function LeftScreen({
 }) {
   const scope = useRef<HTMLElement>(null);
   const copy = COPY[reason];
+  const { enabled: streamerMode } = useStreamerMode();
   const transitioning = useViewTransitionState(useLocation().pathname);
   const joined = durationMs !== undefined;
   // Room ended or person removed: the way forward is the home page, not the same room.
@@ -149,17 +169,7 @@ export function LeftScreen({
         <h1 id="left-title" className="text-3xl font-semibold tracking-[-0.025em] text-balance">
           {copy.title}
         </h1>
-        {joined ? (
-          <p className="text-lg text-pretty text-ink-muted">
-            Você ficou{" "}
-            <strong className="font-medium text-ink">{formatCallDuration(durationMs)}</strong> na
-            sala{" "}
-            <span translate="no" className="font-medium text-ink tabular-nums">
-              {code}
-            </span>
-            .
-          </p>
-        ) : null}
+        <CallSummary code={code} durationMs={durationMs} />
         {reason !== "self" && message ? (
           <p className="text-base text-pretty text-ink-muted">{message}</p>
         ) : null}
@@ -180,7 +190,7 @@ export function LeftScreen({
               </Link>
             </Button>
           )}
-          {copy.copyLink ? <CopyRoomLink code={code} /> : null}
+          {copy.copyLink && !streamerMode ? <CopyRoomLink code={code} /> : null}
           {copy.rejoin && !rejoinIsPrimary ? (
             <Button variant="outline" size="lg" onClick={onRejoin}>
               <RotateCcw aria-hidden="true" />

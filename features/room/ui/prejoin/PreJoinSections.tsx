@@ -7,6 +7,7 @@ import type { MicSetupState } from "@/features/room/hooks/use-mic-setup";
 import { ShareSupportNote } from "@/features/room/ui/ShareSupportNote";
 import { InviteLinkButton } from "./InviteLinkButton";
 import { PresenceLine } from "./PresenceLine";
+import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 
 /** Mascot, title, room code, presence and the invite badge. */
 export function PreJoinHeader({
@@ -26,6 +27,7 @@ export function PreJoinHeader({
   mic: MicSetupState;
   submitting: boolean;
 }) {
+  const { enabled: streamerMode } = useStreamerMode();
   return (
     <header data-anim="row" className="flex w-full flex-col items-center gap-2 text-center">
       <Mascot
@@ -40,12 +42,14 @@ export function PreJoinHeader({
           Pronto para entrar?
         </h1>
         <div className="flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1">
-          <p className="text-sm text-ink-muted">
-            Sala{" "}
-            <span translate="no" className="font-sans font-medium text-ink tabular-nums">
-              {code}
-            </span>
-          </p>
+          {!streamerMode ? (
+            <p className="text-sm text-ink-muted">
+              Sala{" "}
+              <span translate="no" className="font-sans font-medium text-ink tabular-nums">
+                {code}
+              </span>
+            </p>
+          ) : null}
           <InviteLinkButton code={code} />
         </div>
         <PresenceLine presence={presence} max={maxParticipants} guest={guest} />

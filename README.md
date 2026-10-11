@@ -46,7 +46,6 @@ Self-hosted, with LiveKit and React Router.
 | Key | Action                                     |
 | --- | ------------------------------------------ |
 | `M` | Toggles the microphone                     |
-| `D` | Stops hearing the room (and mutes you)     |
 | `S` | Opens the share menu (or stops sharing)    |
 | `F` | Full screen on the stage                   |
 | `J` | Someone else's screen in a floating window |

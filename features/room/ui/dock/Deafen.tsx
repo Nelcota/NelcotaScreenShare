@@ -4,7 +4,6 @@ import { createContext, use, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { roomMicErrorMessage } from "@/features/room/client/microphone-errors";
 import { MIC_ERROR_TOAST } from "@/features/room/client/toast-ids";
-import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { DockButton } from "./DockButton";
 
 interface DeafenState {
@@ -29,8 +28,10 @@ export function DeafenProvider({ children }: { children: ReactNode }) {
   async function setMic(enabled: boolean) {
     try {
       await localParticipant.setMicrophoneEnabled(enabled);
+      return true;
     } catch (error) {
       toast.error(roomMicErrorMessage(error), { id: MIC_ERROR_TOAST });
+      return false;
     }
   }
 
@@ -41,8 +42,12 @@ export function DeafenProvider({ children }: { children: ReactNode }) {
       return;
     }
     micWasOn.current = isMicrophoneEnabled;
+    if (isMicrophoneEnabled && !(await setMic(false))) {
+      micWasOn.current = false;
+      setDeafened(false);
+      return;
+    }
     setDeafened(true);
-    if (isMicrophoneEnabled) await setMic(false);
   }
 
   const state: DeafenState = { deafened, toggle, hearAgain: () => setDeafened(false) };
@@ -71,15 +76,12 @@ export function DeafenButton() {
     setBusy(false);
   }
 
-  useShortcut("d", () => void handleToggle(), !busy);
-
   return (
     <DockButton
       label={deafened ? "Voltar a ouvir a sala" : "Parar de ouvir a sala"}
       tone={deafened ? "muted" : "default"}
       caption={deafened ? "Surdo" : "Áudio"}
       pressed={deafened}
-      shortcut="D"
       disabled={busy}
       onClick={() => void handleToggle()}
     >

@@ -137,6 +137,11 @@ test.describe("in the room", () => {
         .locator("audio")
         .evaluateAll((elements) => elements.map((element) => (element as HTMLAudioElement).volume));
     await expect.poll(async () => (await audioVolumes()).length).toBeGreaterThan(0);
+    await listener.page.keyboard.press("d");
+    await expect(
+      listener.page.getByRole("button", { name: "Parar de ouvir a sala", exact: true }),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(listener.page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();
     await listener.page.getByRole("button", { name: "Parar de ouvir a sala", exact: true }).click();
     await expect.poll(audioVolumes).toEqual([0]);
     await expect(listener.page.getByRole("button", { name: /Ligar microfone/ })).toBeVisible();
@@ -156,7 +161,6 @@ test.describe("in the room", () => {
         return bounds !== null && bounds.x >= 0 && bounds.x + bounds.width <= 320;
       })
       .toBe(true);
-    await listener.page.screenshot({ path: test.info().outputPath("deafen-mobile.png") });
     await listener.context.close();
     await speaker.context.close();
     await newcomer.context.close();

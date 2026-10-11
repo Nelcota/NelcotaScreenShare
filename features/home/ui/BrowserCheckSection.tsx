@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
 import { SectionIntro } from "./SectionIntro";
 
 /** A browser's own logo, in full color, from public/browsers (from the browser-logos set). */
-function Logo({ name }: { name: "chrome" | "edge" | "firefox" | "safari" }) {
+function Logo({ name }: { name: "chrome" | "edge" | "brave" | "firefox" | "safari" }) {
   return <img src={`/browsers/${name}.svg`} alt="" width={28} height={28} className="size-7" />;
 }
 
 /**
- * Each family's logos in their own colors (the Chromium card shows Chrome and Edge); phones
+ * Each family's logos in their own colors (the Chromium card shows Chrome, Edge and Brave); phones
  * and tablets get a device glyph in the text color. All sit on the same neutral tile.
  */
 const MARKS: Record<BrowserRow["id"], ReactNode> = {
@@ -20,6 +20,7 @@ const MARKS: Record<BrowserRow["id"], ReactNode> = {
     <>
       <Logo name="chrome" />
       <Logo name="edge" />
+      <Logo name="brave" />
     </>
   ),
   firefox: <Logo name="firefox" />,
@@ -71,7 +72,7 @@ export function BrowserCheckSection() {
               aria-current={here || undefined}
               className="flex flex-col gap-5 rounded-3xl border border-line p-6 transition-colors duration-(--motion-feedback) hover:border-line-strong aria-[current]:border-brand"
             >
-              <span className="flex items-start justify-between gap-3">
+              <span className="flex flex-wrap items-start justify-between gap-3">
                 <span className="flex h-12 min-w-12 items-center justify-center gap-1.5 rounded-2xl bg-surface-2 px-2.5 text-ink">
                   {MARKS[row.id]}
                 </span>

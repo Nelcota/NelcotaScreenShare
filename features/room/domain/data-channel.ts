@@ -7,6 +7,7 @@ import { z } from "zod";
 export const TOPICS = {
   reaction: "nelcota.reaction",
   pointer: "nelcota.pointer",
+  screenStats: "nelcota.screen-stats",
 } as const;
 
 export const REACTIONS = ["👍", "👏", "😂", "❤️", "🎉", "😮"] as const;
@@ -21,6 +22,12 @@ export const pointerSchema = z.object({
   y: z.number().min(0).max(1),
 });
 export type PointerMessage = z.infer<typeof pointerSchema>;
+
+/** The presenter's own round trip to the media server, sent to the viewers of that screen. */
+export const screenStatsSchema = z.object({
+  trackSid: z.string().min(1).max(64),
+  pingMs: z.number().int().min(0).max(60_000),
+});
 
 /** Participant attribute for "raise hand". */
 export const HAND_ATTRIBUTE = "hand";

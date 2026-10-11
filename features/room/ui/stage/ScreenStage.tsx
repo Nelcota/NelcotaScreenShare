@@ -17,6 +17,7 @@ import { usePictureInPicture } from "@/features/room/hooks/use-picture-in-pictur
 import { cn } from "@/lib/utils";
 import { PointerLayer, usePointers } from "./PointerLayer";
 import { StreamMetrics } from "./StreamMetrics";
+import { useBroadcastPresenterPing } from "@/features/room/hooks/use-presenter-ping";
 
 interface ScreenStageProps {
   shares: TrackReference[];
@@ -156,6 +157,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
   const pointing = !isOwnScreen && pointingAt === trackSid;
   const togglePointing = () => setPointingAt(pointing ? undefined : trackSid);
 
+  useBroadcastPresenterPing();
   useShortcut("f", () => void toggleFullscreen(), canFullscreen);
   useShortcut("p", togglePointing, !isOwnScreen);
 
@@ -252,7 +254,12 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
       </div>
 
       {showMetrics ? (
-        <StreamMetrics key={trackSid} track={focused.publication.track} local={isOwnScreen} />
+        <StreamMetrics
+          key={trackSid}
+          track={focused.publication.track}
+          trackSid={trackSid}
+          presenter={isOwnScreen ? undefined : focused.participant.identity}
+        />
       ) : null}
 
       {pointing ? (

@@ -329,7 +329,9 @@ test.describe("in the room", () => {
     await edu.page.getByRole("button", { name: "Mostrar FPS e ping" }).click();
     const metrics = edu.page.getByLabel("Estatísticas da tela");
     await expect(metrics).toContainText(/Recebendo: [1-9]\d* FPS/);
-    await expect(metrics).toContainText(/Ping ao servidor: (\d+|—) ms/);
+    await expect(metrics).toContainText(/Seu ping ao servidor: (\d+|—) ms/);
+    // Measured in Dani's browser and sent to the viewers.
+    await expect(metrics).toContainText(/Ping de quem apresenta: \d+ ms/);
     await edu.page.getByRole("button", { name: "Ocultar FPS e ping" }).click();
     await expect(metrics).toHaveCount(0);
     await edu.page.getByRole("button", { name: "Abrir em janela" }).click();

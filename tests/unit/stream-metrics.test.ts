@@ -24,3 +24,12 @@ test("missing or invalid measurements stay unknown instead of showing invented z
     ]),
   ).toEqual({ fps: 0, pingMs: 0 });
 });
+
+test("a presenter's ping report is accepted only as a sane number for one screen", async () => {
+  const { screenStatsSchema } = await import("@/features/room/domain/data-channel");
+  expect(screenStatsSchema.safeParse({ trackSid: "TR_screen", pingMs: 42 }).success).toBe(true);
+  expect(screenStatsSchema.safeParse({ trackSid: "TR_screen", pingMs: -1 }).success).toBe(false);
+  expect(screenStatsSchema.safeParse({ trackSid: "TR_screen", pingMs: 1.5 }).success).toBe(false);
+  expect(screenStatsSchema.safeParse({ trackSid: "", pingMs: 42 }).success).toBe(false);
+  expect(screenStatsSchema.safeParse({ pingMs: 42 }).success).toBe(false);
+});

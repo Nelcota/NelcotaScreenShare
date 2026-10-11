@@ -4,12 +4,30 @@ import {
   readStreamMetrics,
   type StreamMetrics as Metrics,
 } from "@/features/room/domain/stream-metrics";
+import { usePresenterPing } from "@/features/room/hooks/use-presenter-ping";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 const EMPTY: Metrics = { fps: null, pingMs: null };
 
-/** Mounted only while the user chooses to inspect the focused screen. */
-export function StreamMetrics({ track, local }: { track: Track | undefined; local: boolean }) {
+/** Reported by the presenter's browser: viewers cannot measure someone else's connection. */
+function PresenterPing({ identity, trackSid }: { identity: string; trackSid: string }) {
+  const ping = usePresenterPing(identity, trackSid);
+  return <span className="block">Ping de quem apresenta: {ping ?? "—"} ms</span>;
+}
+
+/**
+ * Mounted only while the user chooses to inspect the focused screen.
+ * `presenter`: identity of whoever shares it (absent for your own screen).
+ */
+export function StreamMetrics({
+  track,
+  trackSid,
+  presenter,
+}: {
+  track: Track | undefined;
+  trackSid: string;
+  presenter: string | undefined;
+}) {
   const [metrics, setMetrics] = useState<Metrics>(EMPTY);
   useEffect(() => {
     if (!track) return;
@@ -41,9 +59,10 @@ export function StreamMetrics({ track, local }: { track: Track | undefined; loca
       className="glass absolute bottom-14 left-3 rounded-xl px-3 py-2 text-xs tabular-nums"
     >
       <span className="block">
-        {local ? "Enviando" : "Recebendo"}: {metrics.fps ?? "—"} FPS
+        {presenter ? "Recebendo" : "Enviando"}: {metrics.fps ?? "—"} FPS
       </span>
-      <span className="block">Ping ao servidor: {metrics.pingMs ?? "—"} ms</span>
+      <span className="block">Seu ping ao servidor: {metrics.pingMs ?? "—"} ms</span>
+      {presenter ? <PresenterPing identity={presenter} trackSid={trackSid} /> : null}
     </output>
   );
 }

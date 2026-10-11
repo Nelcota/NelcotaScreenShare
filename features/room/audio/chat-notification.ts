@@ -29,16 +29,29 @@ function scheduleNote(context: AudioContext, frequency: number, start: number, d
   oscillator.stop(start + duration);
 }
 
+/**
+ * Creates or wakes the audio context. Browsers only allow it during a user gesture
+ * (click or key), so this runs from one; later notices then play without one.
+ */
+export async function unlockChatAudio(
+  sound: ChatNotificationSound = currentChatSound(),
+): Promise<void> {
+  if (sound === "off" || typeof AudioContext === "undefined") return;
+  try {
+    if (!audio || audio.state === "closed") audio = new AudioContext();
+    if (audio.state === "suspended") await audio.resume();
+  } catch (error) {
+    logBrowserWarning("Could not start the chat notification audio", error);
+  }
+}
+
 export async function playChatNotification(
   sound: ChatNotificationSound = currentChatSound(),
   userGesture = false,
 ): Promise<boolean> {
   if (sound === "off" || typeof AudioContext === "undefined") return false;
   try {
-    if (userGesture) {
-      if (!audio || audio.state === "closed") audio = new AudioContext();
-      if (audio.state === "suspended") await audio.resume();
-    }
+    if (userGesture) await unlockChatAudio(sound);
     if (!audio) return false;
     if (audio.state !== "running") return false;
     const start = audio.currentTime;

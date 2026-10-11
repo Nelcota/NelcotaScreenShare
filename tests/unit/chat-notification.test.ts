@@ -143,3 +143,23 @@ test("resumes audio, plays the selected pattern and releases each finished sound
   expect(notes).toHaveLength(4);
   expect(context.resume).toHaveBeenCalledTimes(2);
 });
+
+test("the first gesture unlocks audio once, unless notifications are muted", async () => {
+  const context = {
+    state: "suspended",
+    resume: vi.fn(async () => {
+      context.state = "running";
+    }),
+  };
+  const constructor = vi.fn(function () {
+    return context;
+  });
+  vi.stubGlobal("AudioContext", constructor);
+  const { unlockChatAudio } = await import("@/features/room/audio/chat-notification");
+  await unlockChatAudio("off");
+  expect(constructor).not.toHaveBeenCalled();
+  await unlockChatAudio("soft");
+  await unlockChatAudio("soft");
+  expect(constructor).toHaveBeenCalledTimes(1);
+  expect(context.resume).toHaveBeenCalledTimes(1);
+});

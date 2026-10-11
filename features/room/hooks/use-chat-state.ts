@@ -7,7 +7,7 @@ import {
 import type { Participant } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { playChatNotification } from "@/features/room/audio/chat-notification";
+import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import {
@@ -95,6 +95,17 @@ export function useChatState(): ChatState {
       ...resolved,
     };
   });
+
+  // Browsers keep audio locked until the person interacts: the first click or key unlocks it.
+  useEffect(() => {
+    const unlock = () => void unlockChatAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   // Panel closed: notify about a new message from someone else.
   useEffect(() => {

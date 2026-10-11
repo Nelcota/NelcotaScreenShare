@@ -3,6 +3,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import type { ChatState } from "@/features/room/hooks/use-chat-state";
 import { ChatComposer } from "./ChatComposer";
+import { ChatSoundSettings } from "./ChatSoundSettings";
 import { ChatEmptyState, ChatHeader, ChatMessageList } from "./ChatPanelParts";
 import { useChatEditing, useChatPanelMotion, useChatScroll } from "./use-chat-panel";
 
@@ -25,6 +26,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
       className="glass invisible fixed top-20 right-3 bottom-32 z-40 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl group-data-capture-bar/room:max-lg:bottom-42 sm:right-6 lg:top-4 lg:bottom-4"
     >
       <ChatHeader onClose={() => chat.setOpen(false)} />
+      <ChatSoundSettings />
 
       {chat.messages.length === 0 ? (
         <ChatEmptyState />

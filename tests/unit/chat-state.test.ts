@@ -31,7 +31,14 @@ vi.mock("react", () => ({
   },
   useRef: (initial: unknown) => ({ current: initial }),
   useEffect: () => {},
+  useCallback: <T>(callback: T) => callback,
 }));
+// Chat notices listen for departures on the room; nothing leaves in these tests.
+const fakeRoom = vi.hoisted(() => {
+  const room = { on: () => room, off: () => room };
+  return room;
+});
+
 vi.mock("@livekit/components-react", () => ({
   useChat: () => ({
     chatMessages: ["first", "second"].map((id) => ({
@@ -44,6 +51,7 @@ vi.mock("@livekit/components-react", () => ({
     isSending: false,
   }),
   useLocalParticipant: () => ({ localParticipant: { identity: "local" } }),
+  useRoomContext: () => fakeRoom,
   useDataChannel: (_topic: string, receive: (message: Delivery) => void) => {
     capture.receive = receive;
     return { send: capture.publish };

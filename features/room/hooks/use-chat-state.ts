@@ -7,7 +7,9 @@ import {
 import type { Participant } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useChatToasts } from "@/features/room/hooks/use-chat-toasts";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import {
   CHAT_EDIT_TOPIC,
@@ -59,6 +61,7 @@ export function useChatState(): ChatState {
   const [seen, setSeen] = useState(0);
   const announced = useRef(0);
   const [edits, setEdits] = useState<ChatEdits>(() => new Map());
+  const showChatToast = useChatToasts();
 
   const { send: publishEdit } = useDataChannel(CHAT_EDIT_TOPIC, (message) => {
     const sender = message.from?.identity;
@@ -95,6 +98,17 @@ export function useChatState(): ChatState {
     };
   });
 
+  // Browsers keep audio locked until the person interacts: the first click or key unlocks it.
+  useEffect(() => {
+    const unlock = () => void unlockChatAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   // Panel closed: notify about a new message from someone else.
   useEffect(() => {
     const fresh = chatMessages.slice(announced.current);
@@ -102,12 +116,15 @@ export function useChatState(): ChatState {
     if (open) return;
     const last = fresh.findLast((message) => !message.from?.isLocal);
     if (last) {
-      toast(`${participantLabel(last.from)}: ${capChatText(last.message)}`, {
+      void playChatNotification();
+      showChatToast({
         id: chatToastId(last.id),
-        action: { label: "Abrir", onClick: () => setOpenState(true) },
+        author: last.from,
+        text: `${participantLabel(last.from)}: ${capChatText(last.message)}`,
+        onOpen: () => setOpenState(true),
       });
     }
-  }, [open, chatMessages]);
+  }, [open, chatMessages, showChatToast]);
 
   useShortcut("c", () => setOpen(!open));
 

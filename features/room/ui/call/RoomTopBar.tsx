@@ -17,6 +17,7 @@ import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
 import { participantName } from "@/features/room/domain/participant-label";
 import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
+import { NameEditor } from "./NameEditor";
 import type { Connection } from "./RoomLayout";
 
 const CONNECTION_LABELS: Record<Connection, string> = {
@@ -114,7 +115,7 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
   );
 }
 
-/** Room link, connection state, participants, shortcuts and theme. */
+/** Room link, connection state, participants, your name, shortcuts and theme. */
 export function RoomTopBar({
   code,
   participants,
@@ -168,6 +169,9 @@ export function RoomTopBar({
         align="end"
         trigger={<MoreHorizontal className="size-5" aria-hidden="true" />}
       >
+        <div className="mb-4 border-b border-line pb-4">
+          <NameEditor code={code} />
+        </div>
         <div className="flex items-center justify-between gap-3 sm:hidden">
           <span className="text-base font-medium">Tema claro ou escuro</span>
           <ThemeToggle />

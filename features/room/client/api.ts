@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { displayNameSchema } from "@/features/room/domain/participant-label";
 import { readJson } from "@/lib/read-json";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 import {
@@ -68,5 +70,33 @@ export async function setHandRaised(room: string, raised: boolean): Promise<bool
   } catch (error) {
     logBrowserWarning("Hand request failed", error);
     return false;
+  }
+}
+
+const renameReplySchema = z.object({
+  name: displayNameSchema.optional(),
+  message: z.string().optional(),
+});
+
+/** Renames oneself in the call (the server checks and writes it; see /api/sala/nome). */
+export async function renameInRoom(
+  room: string,
+  name: string,
+): Promise<{ ok: true; name: string } | { ok: false; message: string }> {
+  const fallback = "Não foi possível trocar o nome agora. Verifique sua internet e tente de novo.";
+  try {
+    const response = await fetch("/api/sala/nome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ room, name }),
+      cache: "no-store",
+    });
+    const json = renameReplySchema.safeParse(await readJson(response));
+    const reply = json.success ? json.data : {};
+    if (response.ok && reply.name !== undefined) return { ok: true, name: reply.name };
+    return { ok: false, message: reply.message ?? fallback };
+  } catch (error) {
+    logBrowserWarning("Room rename request failed", error);
+    return { ok: false, message: fallback };
   }
 }

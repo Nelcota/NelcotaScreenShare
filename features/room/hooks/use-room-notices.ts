@@ -8,7 +8,27 @@ import {
 } from "livekit-client";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import {
+  addToNoticeGroup,
+  noticeGroupMessage,
+  type GroupedNoticeKind,
+  type NoticeGroup,
+} from "@/features/room/domain/notice-grouping";
 import { participantName } from "@/features/room/domain/participant-label";
+
+const NOTICE_DURATION_MS = 3000;
+
+// Bottom right keeps room notices away from the top bar; the Toaster offset lifts them above the dock.
+const NOTICE_OPTIONS = { duration: NOTICE_DURATION_MS, position: "bottom-right" } as const;
+
+function showRoomNotice(message: string) {
+  toast(message, NOTICE_OPTIONS);
+}
+
+/** One toast per kind: a newer group replaces the visible one instead of stacking another. */
+function showGroupedNotice(group: NoticeGroup) {
+  toast(noticeGroupMessage(group), { ...NOTICE_OPTIONS, id: `room-notice-${group.kind}` });
+}
 
 /**
  * Short notices of what happens in the room: who joined, who left and who
@@ -19,6 +39,14 @@ export function useRoomNotices() {
 
   useEffect(() => {
     const participants = new Map<string, Set<string>>();
+    const groups = new Map<GroupedNoticeKind, NoticeGroup>();
+
+    const announce = (kind: GroupedNoticeKind, participant: RemoteParticipant) => {
+      const person = { identity: participant.identity, name: participantName(participant) };
+      const group = addToNoticeGroup(groups.get(kind), kind, person, Date.now());
+      groups.set(kind, group);
+      showGroupedNotice(group);
+    };
 
     // Joining and reconnecting load a snapshot, not new activity to announce.
     const synchronize = () => {
@@ -36,12 +64,12 @@ export function useRoomNotices() {
       if (room.state !== ConnectionState.Connected) return;
       if (participants.has(participant.identity)) return;
       participants.set(participant.identity, new Set());
-      toast(`${participantName(participant)} entrou na sala`, { duration: 3000 });
+      announce("joined", participant);
     };
     const left = (participant: RemoteParticipant) => {
       if (room.state !== ConnectionState.Connected) return;
       if (!participants.delete(participant.identity)) return;
-      toast(`${participantName(participant)} saiu da sala`, { duration: 3000 });
+      announce("left", participant);
     };
     const published = (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (room.state !== ConnectionState.Connected) return;
@@ -49,7 +77,7 @@ export function useRoomNotices() {
       const screens = participants.get(participant.identity);
       if (!screens || screens.has(publication.trackSid)) return;
       screens.add(publication.trackSid);
-      toast(`${participantName(participant)} começou a mostrar a tela`, { duration: 3000 });
+      showRoomNotice(`${participantName(participant)} começou a mostrar a tela`);
     };
     const unpublished = (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (publication.source !== Track.Source.ScreenShare) return;
@@ -58,7 +86,7 @@ export function useRoomNotices() {
       if (!room.remoteParticipants.has(participant.identity)) return;
       const screens = participants.get(participant.identity);
       if (!screens?.delete(publication.trackSid)) return;
-      toast(`${participantName(participant)} parou de mostrar a tela`, { duration: 3000 });
+      showRoomNotice(`${participantName(participant)} parou de mostrar a tela`);
     };
 
     room

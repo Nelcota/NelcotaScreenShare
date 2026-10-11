@@ -328,6 +328,9 @@ test.describe("in the room", () => {
     await iris.getByRole("button", { name: "Sair da sala" }).click();
     await iris.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();
     await expect(iris.getByRole("link", { name: "Criar conta grátis" })).toBeVisible();
+    // Alone again after the guest left: not "the first person here" anymore.
+    await expect(gil.page.getByText("Todo mundo saiu da sala")).toBeVisible();
+    await expect(gil.page.getByText("Você é a primeira pessoa aqui")).toBeHidden();
     await context.close();
     await gil.context.close();
   });

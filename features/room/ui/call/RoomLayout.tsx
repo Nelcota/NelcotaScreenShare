@@ -14,6 +14,7 @@ import { useRoomNotices } from "@/features/room/hooks/use-room-notices";
 import { useScreenShare } from "@/features/room/hooks/use-screen-share";
 import { useStageFocus } from "@/features/room/hooks/use-stage-focus";
 import { useChatState } from "@/features/room/hooks/use-chat-state";
+import { useHadCompany } from "@/features/room/hooks/use-had-company";
 import { ChatPanel } from "@/features/room/ui/dock/Chat";
 import { ControlDock } from "@/features/room/ui/dock/ControlDock";
 import { ScreenStage } from "@/features/room/ui/stage/ScreenStage";
@@ -164,6 +165,7 @@ export function RoomLayout({
   const connection = connectionStatus(connectionState);
   const alone =
     !hasStage && participants.length === 1 && connectionState === ConnectionState.Connected;
+  const hadCompany = useHadCompany(participants.length);
 
   const layoutKey = `${hasStage ? "stage" : alone ? "alone" : "grid"}|${participants.map((participant) => participant.identity).join(",")}|chat:${chat.open}`;
   useRoomAnimations(scope, layoutKey);
@@ -211,7 +213,7 @@ export function RoomLayout({
         ) : null}
 
         {alone ? (
-          <AloneWelcome code={code} share={share} />
+          <AloneWelcome code={code} share={share} everyoneLeft={hadCompany} />
         ) : (
           <PeopleArea participants={participants} sharingIds={sharingIds} hasStage={hasStage} />
         )}

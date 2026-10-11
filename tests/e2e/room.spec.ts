@@ -67,6 +67,61 @@ test.describe("pre-join", () => {
 });
 
 test.describe("in the room", () => {
+  test("entering an occupied room is silent and subsequent activity is announced once", async ({
+    browser,
+  }) => {
+    const sender = await newParticipant(browser, "Avisos Remetente");
+    const reader = await newParticipant(browser, "Avisos Leitor");
+    try {
+      const code = newRoomCode();
+      await fakeScreenCapture(sender.page);
+      await joinRoom(sender.page, code, { micOn: false });
+      await sender.page
+        .getByRole("button", { name: "Compartilhar minha tela", exact: true })
+        .click();
+      await sender.page.getByRole("button", { name: /^Tela inteira/ }).click();
+      await expect(sender.page.getByLabel("Prévia da sua tela")).toBeVisible();
+      await joinRoom(reader.page, code, { micOn: false });
+      await expect(
+        reader.page.getByRole("region", { name: "Tela compartilhada por Avisos Remetente" }),
+      ).toBeVisible();
+      await expect(
+        reader.page.getByText("Avisos Remetente entrou na sala", { exact: true }),
+      ).toBeHidden();
+      await expect(
+        reader.page.getByText("Avisos Remetente começou a mostrar a tela", { exact: true }),
+      ).toBeHidden();
+      await expect(
+        sender.page.getByText("Avisos Leitor entrou na sala", { exact: true }),
+      ).toHaveCount(1);
+
+      const dock = sender.page.getByRole("navigation", {
+        name: "Controles da chamada",
+        exact: true,
+      });
+      await dock.getByRole("button", { name: /^Parar de compartilhar/ }).click();
+      await expect(
+        reader.page.getByText("Avisos Remetente parou de mostrar a tela", { exact: true }),
+      ).toHaveCount(1);
+      await dock.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
+      await sender.page.getByRole("button", { name: /^Tela inteira/ }).click();
+      await expect(
+        reader.page.getByText("Avisos Remetente começou a mostrar a tela", { exact: true }),
+      ).toHaveCount(1);
+      await dock.getByRole("button", { name: "Sair da sala", exact: true }).click();
+      await sender.page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: "Sair", exact: true })
+        .click();
+      await expect(
+        reader.page.getByText("Avisos Remetente saiu da sala", { exact: true }),
+      ).toHaveCount(1);
+    } finally {
+      await sender.context.close();
+      await reader.context.close();
+    }
+  });
+
   test("opening and reopening a long chat positions the latest messages in view", async ({
     browser,
   }) => {

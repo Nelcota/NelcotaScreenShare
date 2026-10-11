@@ -13,7 +13,11 @@ test("sign-up through the UI, account page and ending the other session", async 
 
   await page.goto("/cadastro");
   // The theme is chosen right on the access screen; the photo comes later, in the account.
-  await page.getByRole("radio", { name: "Claro", exact: true }).check();
+  // Click the visible label, as a person does: the radio itself is visually hidden
+  // (sr-only) under the label's icon, which would intercept a click aimed at it.
+  const lightTheme = page.getByRole("radio", { name: "Claro", exact: true });
+  await page.locator("label").filter({ has: lightTheme }).click();
+  await expect(lightTheme).toBeChecked();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator("main input[type=file]")).toHaveCount(0);
   await page.getByLabel("Seu nome").fill("Gil Teste");

@@ -188,11 +188,7 @@ export function ReactionsMenu() {
           shortCaption={handRaised ? "Mão" : "Reações"}
           pressed={open}
         >
-          {handRaised ? (
-            <Hand className="icon-wave size-5" aria-hidden="true" />
-          ) : (
-            <Hand className="size-5" aria-hidden="true" />
-          )}
+          <Hand className={handRaised ? "icon-wave size-5" : "size-5"} aria-hidden="true" />
         </DockButton>
       </Popover.Trigger>
       <DockPopoverContent aria-label="Reações">

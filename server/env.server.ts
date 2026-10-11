@@ -64,8 +64,8 @@ const envSchema = z
       z.string().min(32, "ADMIN_AUTH_SECRET must be at least 32 characters").optional(),
     ),
     // Transactional e-mail (invitations, password recovery, verification).
-    // Use the Resend API or SMTP with MAIL_FROM. Without a provider, production
-    // skips delivery and development logs the content.
+    // Use the Resend API or SMTP with MAIL_FROM. Without a provider, production fails
+    // each delivery (logged as an error) and development logs the content.
     RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     SMTP_URL: z.preprocess(
       emptyToUndefined,

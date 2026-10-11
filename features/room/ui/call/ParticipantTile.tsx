@@ -1,6 +1,7 @@
-import { useIsMuted, useIsSpeaking } from "@livekit/components-react";
+import { useIsMuted, useIsSpeaking, useParticipantAttribute } from "@livekit/components-react";
 import { Track, type Participant } from "livekit-client";
-import { MicOff, MonitorUp } from "lucide-react";
+import { Hand, MicOff, MonitorUp } from "lucide-react";
+import { HAND_ATTRIBUTE } from "@/features/room/domain/data-channel";
 import { useRef, type RefObject } from "react";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { participantLabel, participantName } from "@/features/room/domain/participant-label";
@@ -58,6 +59,7 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
   const isSpeaking = useIsSpeaking(participant);
   const isMuted = useIsMuted({ participant, source: Track.Source.Microphone });
   const name = participantName(participant);
+  const handRaised = useParticipantAttribute(HAND_ATTRIBUTE, { participant }) === "1";
   useSpeakingPulse(scope, isSpeaking, compact);
 
   if (compact) {
@@ -100,6 +102,12 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
               <span className="sr-only">compartilhando a tela</span>
             </span>
           ) : null}
+          {handRaised ? (
+            <span className="absolute -top-1 -left-1 grid size-6 place-items-center rounded-full bg-warning text-canvas ring-2 ring-canvas">
+              <Hand className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">{name} está com a mão levantada</span>
+            </span>
+          ) : null}
         </div>
         <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
           {participantLabel(participant)}
@@ -123,6 +131,13 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
       <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
+        {handRaised ? (
+          <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
+            <Hand className="size-5" aria-hidden="true" />
+            <span aria-hidden="true">Mão levantada</span>
+            <span className="sr-only">{name} está com a mão levantada</span>
+          </span>
+        ) : null}
         <div
           data-ring
           aria-hidden="true"

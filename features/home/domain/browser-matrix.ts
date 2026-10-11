@@ -13,7 +13,7 @@ export interface BrowserRow {
 export const BROWSER_ROWS: readonly BrowserRow[] = [
   {
     id: "chromium",
-    name: "Chrome, Edge e outros Chromium",
+    name: "Chrome, Edge, Brave e outros Chromium",
     screen: true,
     audio: true,
     summary: "Tela e som do computador.",

@@ -124,9 +124,13 @@ If a burst has already filled the queue, cancel queued deployments of superseded
 
 To enable the GHCR pipeline, first resolve any GitHub Actions billing block, configure the secrets and variables above, and enable the `Deploy` workflow. Verify image publication and migrations before switching the Coolify resource to **Docker Image**. Keep direct Git auto-deploy disabled so only the pipeline triggers production deployments.
 
+#### Required checks on main
+
+During normal operation, the hosted `CI` workflow is enabled. The required checks on `main` are `Lint, formatting, types and audit`, `Tests (unit + integration on Postgres)`, `Production build`, and `E2E (real Playwright, Postgres and LiveKit)`, all from the GitHub Actions app. Changes require a PR, successful checks, and a branch up to date with `main`.
+
 #### Local CI while hosted runners are unavailable
 
-The free interim path runs CI on the developer's computer and publishes actual results as `Local CI / quality`, `Local CI / tests`, `Local CI / build`, and `Local CI / e2e`. These commit statuses replace the four GitHub Actions requirements on `main`; PRs and the requirement to be up to date with `main` remain enabled. The hosted `CI` and `Deploy` workflows stay disabled until hosted runners are available again.
+When hosted runners are unavailable, run CI on the developer's computer and publish actual results as `Local CI / quality`, `Local CI / tests`, `Local CI / build`, and `Local CI / e2e`. During this fallback, replace the four hosted requirements on `main` with these local statuses and disable the hosted `CI` workflow. Keep PRs and the requirement to be up to date with `main` enabled. The `Deploy` workflow stays disabled until hosted runners and the production configuration are ready.
 
 Use PowerShell 7, Node 26.9 or newer, pnpm, Docker, and authenticated GitHub CLI. Start the development Postgres and LiveKit described in [development](development.md), and set `TEST_DATABASE_URL` in the environment or `.env.local` to a disposable test database. Integration tests recreate template/worker databases and E2E recreates `nelcota_e2e`, so use the test Postgres only. Run `pnpm ci:local` to validate the working tree. The command runs formatting, lint, types, unused-code and duplication checks, schema generation, dependency audit, coverage, Docker build, and Chromium E2E; any failed command stops validation.
 

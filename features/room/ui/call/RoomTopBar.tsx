@@ -189,8 +189,7 @@ export function RoomTopBar({
             />
           </label>
           <p className="mt-2 text-sm text-ink-muted">
-            Oculta código, link e QR code na chamada. Não restringe a entrada nem oculta a barra de
-            endereço.
+            Esconde o código, o link e o QR code da sala, inclusive na barra de endereço.
           </p>
         </div>
         <div className="mb-4 border-b border-line pb-4">

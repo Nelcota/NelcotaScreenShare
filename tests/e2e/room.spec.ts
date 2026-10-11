@@ -141,6 +141,16 @@ test.describe("in the room", () => {
     await expect(page.getByText("Você é a primeira pessoa aqui")).toBeVisible();
 
     const dock = page.getByRole("navigation", { name: "Controles da chamada", exact: true });
+    const microphone = dock.getByRole("button", { name: "Ligar microfone", exact: true });
+    await microphone.focus();
+    await expect(microphone).toBeFocused();
+    expect(
+      await microphone.evaluate((element) => {
+        const pair = element.parentElement;
+        if (!pair) throw new Error("Missing microphone pair");
+        return getComputedStyle(pair).overflow;
+      }),
+    ).toBe("visible");
     await dock.getByRole("button", { name: "Ligar microfone", exact: true }).click();
     await expect(
       dock.getByRole("button", { name: "Desligar microfone", exact: true }),

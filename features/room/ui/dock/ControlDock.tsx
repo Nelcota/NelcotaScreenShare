@@ -63,8 +63,8 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
           <div className="flex flex-col items-center gap-2">
             <div
               className={cn(
-                // Clips each half's hover fill to the pair's rounded outline.
-                "flex overflow-hidden rounded-xl ring-1 transition-[background-color,box-shadow] duration-200 ring-inset",
+                // Each half has matching corners; keyboard focus can extend beyond the pair.
+                "flex rounded-xl ring-1 transition-[background-color,box-shadow] duration-200 ring-inset",
                 !isMicrophoneEnabled
                   ? "bg-danger/10 ring-danger/25"
                   : speaking

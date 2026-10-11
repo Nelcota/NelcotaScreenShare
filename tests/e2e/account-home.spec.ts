@@ -134,6 +134,28 @@ test("profile photo: preview, persistence on the account and avatar on the home 
   await context.close();
 });
 
+test("the profile avatar falls back when a structurally valid photo cannot decode", async ({
+  browser,
+}) => {
+  const { page, context } = await newParticipant(browser, "Broken Photo");
+  // RIFF/WebP with an empty VP8 chunk: valid container structure, invalid image data.
+  const image = "data:image/webp;base64,UklGRgwAAABXRUJQVlA4IAAAAAA=";
+  await page.goto("/");
+  const status = await page.evaluate(async (source) => {
+    const response = await fetch("/api/auth/update-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: source }),
+    });
+    return response.status;
+  }, image);
+  expect(status).toBe(200);
+  await page.reload();
+  await expect(page.locator('a[href="/conta"] [data-slot=avatar-fallback]')).toBeVisible();
+  await expect(page.locator('a[href="/conta"] [data-slot=avatar-image]')).toHaveCount(0);
+  await context.close();
+});
+
 test("a failure sending links does not show as success", async ({ browser }) => {
   const { page, context } = await newVisitor(browser);
   for (const endpoint of ["request-password-reset", "send-verification-email"]) {

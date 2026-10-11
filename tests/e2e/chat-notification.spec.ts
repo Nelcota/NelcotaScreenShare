@@ -19,9 +19,7 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   await joinRoom(receiver.page, code);
   await joinRoom(sender.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();
-  await receiver.page
-    .getByRole("combobox", { name: "Som da notificação de chat" })
-    .selectOption("chime");
+  await receiver.page.getByRole("combobox", { name: "Som do aviso" }).selectOption("chime");
   await receiver.page.getByRole("button", { name: "Ouvir som da notificação" }).click();
   const notes = () =>
     receiver.page.evaluate(() => (window as Window & { chatSoundNotes?: number }).chatSoundNotes);
@@ -45,9 +43,7 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
       .getByText("Com o chat aberto", { exact: true }),
   ).toBeVisible();
   expect(await notes()).toBe(4);
-  await receiver.page
-    .getByRole("combobox", { name: "Som da notificação de chat" })
-    .selectOption("off");
+  await receiver.page.getByRole("combobox", { name: "Som do aviso" }).selectOption("off");
   await receiver.page.getByRole("button", { name: "Fechar chat" }).click();
   await send("Aviso sem som");
   await expect(
@@ -56,14 +52,9 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   expect(await notes()).toBe(4);
   await joinRoom(receiver.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();
-  await expect(
-    receiver.page.getByRole("combobox", { name: "Som da notificação de chat" }),
-  ).toHaveValue("off");
+  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveValue("off");
   await receiver.page.setViewportSize({ width: 320, height: 740 });
-  await expect(
-    receiver.page.getByRole("combobox", { name: "Som da notificação de chat" }),
-  ).toBeVisible();
-  await receiver.page.screenshot({ path: test.info().outputPath("chat-sound-mobile.png") });
+  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toBeVisible();
   await receiver.context.close();
   await sender.context.close();
 });

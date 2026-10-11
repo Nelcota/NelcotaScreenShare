@@ -19,7 +19,6 @@ export function ChatSoundSettings() {
       </label>
       <select
         id={id}
-        aria-label="Som da notificação de chat"
         value={sound}
         onChange={(event) => {
           const value = event.target.value;
@@ -36,7 +35,7 @@ export function ChatSoundSettings() {
         size="icon"
         disabled={sound === "off"}
         aria-label="Ouvir som da notificação"
-        onClick={() => void playChatNotification(sound)}
+        onClick={() => void playChatNotification(sound, true)}
       >
         <Volume2 className="size-4" aria-hidden="true" />
       </Button>

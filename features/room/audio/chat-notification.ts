@@ -31,11 +31,15 @@ function scheduleNote(context: AudioContext, frequency: number, start: number, d
 
 export async function playChatNotification(
   sound: ChatNotificationSound = currentChatSound(),
+  userGesture = false,
 ): Promise<boolean> {
   if (sound === "off" || typeof AudioContext === "undefined") return false;
   try {
-    if (!audio || audio.state === "closed") audio = new AudioContext();
-    if (audio.state === "suspended") await audio.resume();
+    if (userGesture) {
+      if (!audio || audio.state === "closed") audio = new AudioContext();
+      if (audio.state === "suspended") await audio.resume();
+    }
+    if (!audio) return false;
     if (audio.state !== "running") return false;
     const start = audio.currentTime;
     if (sound === "soft") {

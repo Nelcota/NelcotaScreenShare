@@ -62,6 +62,8 @@ test("muting never creates audio and a blocked audio context fails without break
   expect(await playChatNotification("off")).toBe(false);
   expect(constructor).not.toHaveBeenCalled();
   expect(await playChatNotification("soft")).toBe(false);
+  expect(constructor).not.toHaveBeenCalled();
+  expect(await playChatNotification("soft", true)).toBe(false);
   expect(telemetry.warning).toHaveBeenCalledTimes(1);
 });
 
@@ -113,7 +115,9 @@ test("resumes audio, plays the selected pattern and releases each finished sound
   });
   vi.stubGlobal("AudioContext", constructor);
   const { playChatNotification } = await import("@/features/room/audio/chat-notification");
-  expect(await playChatNotification("chime")).toBe(true);
+  expect(await playChatNotification("chime")).toBe(false);
+  expect(constructor).not.toHaveBeenCalled();
+  expect(await playChatNotification("chime", true)).toBe(true);
   expect(context.resume).toHaveBeenCalledTimes(1);
   expect(notes).toHaveLength(2);
   for (const note of notes) {
@@ -130,4 +134,12 @@ test("resumes audio, plays the selected pattern and releases each finished sound
   expect(constructor).toHaveBeenCalledTimes(1);
   expect(await playChatNotification("off")).toBe(false);
   expect(notes).toHaveLength(3);
+  context.state = "suspended";
+  expect(await playChatNotification("chime")).toBe(false);
+  expect(await playChatNotification("chime")).toBe(false);
+  expect(context.resume).toHaveBeenCalledTimes(1);
+  expect(notes).toHaveLength(3);
+  expect(await playChatNotification("soft", true)).toBe(true);
+  expect(notes).toHaveLength(4);
+  expect(context.resume).toHaveBeenCalledTimes(2);
 });

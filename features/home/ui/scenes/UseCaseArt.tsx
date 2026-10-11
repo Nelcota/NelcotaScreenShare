@@ -102,7 +102,7 @@ export function ReviewArt() {
             Bem-vindo de volta
           </p>
           <span className="mt-[3cqi] block rounded-[1.4cqi] border border-[#d8d5ce] px-[2cqi] py-[1.4cqi] text-[2.6cqi] text-[#8a8a92]">
-            voce@empresa.com
+            Seu e-mail
           </span>
           <span className="mt-[1.6cqi] block rounded-[1.4cqi] border border-[#d8d5ce] px-[2cqi] py-[1.4cqi] text-[2.6cqi] text-[#8a8a92]">
             ••••••••

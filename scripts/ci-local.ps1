@@ -19,7 +19,7 @@ foreach ($taskCommand in $taskRequiredCommands) {
     }
 }
 
-$taskRepository = 'HanielCota/NelcotaScreenShare'
+$taskRepository = 'Nelcota/NelcotaScreenShare'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 $taskOriginalDatabaseUrl = $env:TEST_DATABASE_URL
 $taskResults = [System.Collections.Generic.List[object]]::new()

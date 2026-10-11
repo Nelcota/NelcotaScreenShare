@@ -88,6 +88,31 @@ jobs:
           tags: nelcota-ci
           cache-from: type=gha,scope=nelcota-image
           cache-to: type=gha,scope=nelcota-image,mode=max
+      - name: Production container starts and curl can probe its health
+        run: |
+          cleanup() {
+            docker logs nelcota-startup
+            docker rm -f nelcota-startup >/dev/null
+          }
+          trap cleanup EXIT
+          docker run -d --name nelcota-startup \
+            -e DATABASE_URL=postgres://test:test@127.0.0.1:9/unused \
+            -e APP_URL=http://127.0.0.1:3000 \
+            -e AUTH_SECRET=test-startup-secret-0123456789abcdef \
+            -e LIVEKIT_URL=ws://127.0.0.1:9 \
+            -e LIVEKIT_API_KEY=test \
+            -e LIVEKIT_API_SECRET=test-startup-livekit-0123456789abcdef \
+            nelcota-ci
+          docker exec nelcota-startup curl --version >/dev/null
+          for _ in $(seq 1 60); do
+            if docker exec nelcota-startup curl --fail --silent \
+              http://127.0.0.1:3000/api/health >/tmp/nelcota-health.json; then
+              node -e 'const fs = require("node:fs"); const assert = require("node:assert/strict"); assert.equal(JSON.parse(fs.readFileSync("/tmp/nelcota-health.json", "utf8")).status, "ok");'
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
 
   e2e:
     name: E2E (real Playwright, Postgres and LiveKit)

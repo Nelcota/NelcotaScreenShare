@@ -86,7 +86,7 @@ test("the client reports a network failure without treating the name as saved", 
 
 test("an account renames itself in the room and keeps the name", async () => {
   const identity = asCaller("account");
-  const response = await rename({ room: ROOM, name: "  Ana Souza " });
+  const response = await rename({ room: ROOM, name: "  Ana Souza ", identity: "someone-else" });
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ name: "Ana Souza" });
   expect(deps.updateParticipant).toHaveBeenCalledWith(ROOM, identity, { name: "Ana Souza" });
@@ -133,6 +133,18 @@ test("a LiveKit failure is logged and answered as unavailable", async () => {
   deps.updateParticipant.mockRejectedValue(new Error("down"));
   const response = await rename({ room: ROOM, name: "Ana" });
   expect(response.status).toBe(502);
+  expect(deps.logError).toHaveBeenCalledOnce();
+});
+
+test("an account persistence failure reports that only the room name changed", async () => {
+  asCaller("account");
+  deps.updateUser.mockRejectedValueOnce(new Error("Account storage unavailable"));
+  const response = await rename({ room: ROOM, name: "Ana" });
+  expect(response.status).toBe(502);
+  expect(await response.json()).toEqual({
+    message: "O nome mudou nesta sala, mas não foi salvo na sua conta. Tente de novo.",
+  });
+  expect(deps.updateParticipant).toHaveBeenCalledOnce();
   expect(deps.logError).toHaveBeenCalledOnce();
 });
 

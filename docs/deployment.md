@@ -35,7 +35,7 @@ Do **not** open 7880: it goes through Coolify's HTTPS proxy. If your provider ha
 
 ### 2. LiveKit resource (Docker Compose)
 
-1. - New Resource → Docker Compose pointing to this repository.
+1. - New Resource → Docker Compose pointing to [Nelcota/NelcotaScreenShare](https://github.com/Nelcota/NelcotaScreenShare).
 2. In _Docker Compose Location_, use `/docker-compose.livekit.yml`.
 3. Edit `deploy/livekit/livekit.yaml` and replace `lk.yourdomain.com` with your domain (`turn.domain`).
 4. In Environment Variables, set `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`.
@@ -82,11 +82,11 @@ To test: `curl https://lk.yourdomain.com` should respond `OK`.
 
 ### 4. App resource (GHCR image)
 
-The image is built on **GitHub Actions** (not on the VPS, so it doesn't compete with the app for CPU and memory) and published to `ghcr.io/hanielcota/nelcota` with three tags: `:<sha>` (immutable), `:main` and `:latest`.
+The image is built on **GitHub Actions** (not on the VPS, so it doesn't compete with the app for CPU and memory) and published to `ghcr.io/nelcota/nelcota` with three tags: `:<sha>` (immutable), `:main` and `:latest`.
 
-The package keeps its original lowercase `nelcota` name after the repository was renamed to `NelcotaScreenShare`, so existing Coolify resources using `:latest` continue to receive updates. The separate `ghcr.io/hanielcota/nelcota-server` package belongs to the Nelcota server/CLI project.
+The package belongs to the `Nelcota` organization and keeps the lowercase `nelcota` image name. The workflow labels each image with its source repository, `Nelcota/NelcotaScreenShare`. After the first successful publication in the organization, update existing Coolify image resources to `ghcr.io/nelcota/nelcota:latest` (or `:main`) and configure a GHCR read credential with access to the organization's package.
 
-1. In Coolify: New Resource → **Docker Image** → `ghcr.io/hanielcota/nelcota:latest` (with a GHCR read credential). Ports Exposes: `3000`. Domains: `https://app.yourdomain.com`.
+1. In Coolify: New Resource → **Docker Image** → `ghcr.io/nelcota/nelcota:latest` (with a GHCR read credential). Ports Exposes: `3000`. Domains: `https://app.yourdomain.com`.
 2. Environment Variables (runtime):
 
    ```
@@ -116,7 +116,7 @@ GitHub secrets (`production` environment): `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS
 
 #### Interim deployment from Git
 
-If GitHub Actions is unavailable or the GHCR pipeline has not been configured, keep the Coolify resource on **Dockerfile** with Docker build cache enabled and `SOURCE_COMMIT` available only at runtime. The production resource currently uses this path. Automatic deployments are disabled: merge a batch of reviewed changes, then deploy `main` once from Coolify. Git submodules and Git LFS are disabled because this repository uses neither.
+If GitHub Actions is unavailable or the GHCR pipeline has not been configured, keep the Coolify resource on **Dockerfile**, with the Git source pointing to `https://github.com/Nelcota/NelcotaScreenShare`, Docker build cache enabled and `SOURCE_COMMIT` available only at runtime. The production resource currently uses this path. Automatic deployments are disabled: merge a batch of reviewed changes, then deploy `main` once from Coolify. Git submodules and Git LFS are disabled because this repository uses neither.
 
 Before deploying a batch, check for pending database migrations. The app does not migrate on startup; apply new migrations with the migration user and the new image before deploying code that requires them. Keep the rolling update and `/api/ready` health check enabled. The production resource uses a 10-second start period, a 5-second interval and timeout, and 10 retries.
 
@@ -124,9 +124,13 @@ If a burst has already filled the queue, cancel queued deployments of superseded
 
 To enable the GHCR pipeline, first resolve any GitHub Actions billing block, configure the secrets and variables above, and enable the `Deploy` workflow. Verify image publication and migrations before switching the Coolify resource to **Docker Image**. Keep direct Git auto-deploy disabled so only the pipeline triggers production deployments.
 
+#### Required checks on main
+
+During normal operation, the hosted `CI` workflow is enabled. The required checks on `main` are `Lint, formatting, types and audit`, `Tests (unit + integration on Postgres)`, `Production build`, and `E2E (real Playwright, Postgres and LiveKit)`, all from the GitHub Actions app. Changes require a PR, successful checks, and a branch up to date with `main`.
+
 #### Local CI while hosted runners are unavailable
 
-The free interim path runs CI on the developer's computer and publishes actual results as `Local CI / quality`, `Local CI / tests`, `Local CI / build`, and `Local CI / e2e`. These commit statuses replace the four GitHub Actions requirements on `main`; PRs and the requirement to be up to date with `main` remain enabled. The hosted `CI` and `Deploy` workflows stay disabled until hosted runners are available again.
+When hosted runners are unavailable, run CI on the developer's computer and publish actual results as `Local CI / quality`, `Local CI / tests`, `Local CI / build`, and `Local CI / e2e`. During this fallback, replace the four hosted requirements on `main` with these local statuses and disable the hosted `CI` workflow. Keep PRs and the requirement to be up to date with `main` enabled. The `Deploy` workflow stays disabled until hosted runners and the production configuration are ready.
 
 Use PowerShell 7, Node 26.9 or newer, pnpm, Docker, and authenticated GitHub CLI. Start the development Postgres and LiveKit described in [development](development.md), and set `TEST_DATABASE_URL` in the environment or `.env.local` to a disposable test database. Integration tests recreate template/worker databases and E2E recreates `nelcota_e2e`, so use the test Postgres only. Run `pnpm ci:local` to validate the working tree. The command runs formatting, lint, types, unused-code and duplication checks, schema generation, dependency audit, coverage, Docker build, and Chromium E2E; any failed command stops validation.
 
@@ -138,7 +142,7 @@ After all four required local checks pass, merge through the PR and deploy `main
 >
 > The IP used for rate limiting is taken from `X-Forwarded-For` counting from the end, according to `TRUSTED_PROXY_HOPS` (Traefik = 1). If `app.` also goes through the Cloudflare proxy, use `TRUSTED_PROXY_HOPS=2`. The same count tells Express which proxies to trust for `X-Forwarded-Proto`: the app must see `https` requests, or React Router refuses every browser action (400) because its `Origin` is `https://`.
 >
-> **Rollback:** the `:main` and `:latest` tags change on every deploy. To go back a version, point the resource to `ghcr.io/hanielcota/nelcota:<previous-sha>` (immutable tag) and redeploy; migrations are always additive (expand/contract), so the previous code works with the new schema.
+> **Rollback:** the `:main` and `:latest` tags change on every deploy. To go back a version published in the organization, point the resource to `ghcr.io/nelcota/nelcota:<previous-sha>` (immutable tag) and redeploy; migrations are always additive (expand/contract), so the previous code works with the new schema.
 
 ### 4.1. PostgreSQL
 

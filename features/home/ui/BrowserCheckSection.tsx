@@ -69,6 +69,7 @@ export function BrowserCheckSection() {
           return (
             <li
               key={row.id}
+              data-fx-item
               aria-current={here || undefined}
               className="flex flex-col gap-5 rounded-3xl border border-line p-6 transition-colors duration-(--motion-feedback) hover:border-line-strong aria-[current]:border-brand"
             >

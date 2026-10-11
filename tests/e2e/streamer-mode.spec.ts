@@ -12,6 +12,7 @@ test("streamer mode hides every invitation and can reveal them again", async ({ 
   await expect(
     page.getByRole("button", { name: "Código oculto. Copiar link para convidar" }),
   ).toBeVisible();
+  await expect(page).toHaveURL(/\/sala$/);
   await expect(page.getByLabel("Link da sala", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("QR code para entrar na sala pelo celular")).toHaveCount(0);
   expect(await page.locator("body").innerText()).not.toContain(code);
@@ -22,10 +23,12 @@ test("streamer mode hides every invitation and can reveal them again", async ({ 
   await expect(page.getByRole("button", { name: "Copiar link", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Voltar para a sala", exact: true }).click();
   await expect(page.getByRole("button", { name: "Copiar convite", exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/sala$/);
   await page.reload();
   await expect(
     page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }),
   ).toBeEnabled();
+  await expect(page).toHaveURL(/\/sala$/);
   await expect(page.getByRole("button", { name: "Copiar convite", exact: true })).toHaveCount(0);
   expect(await page.locator("body").innerText()).not.toContain(code);
   await joinRoom(page, code, { micOn: false });
@@ -38,5 +41,13 @@ test("streamer mode hides every invitation and can reveal them again", async ({ 
   await expect(
     page.getByRole("button", { name: `Sala ${code}. Copiar link para convidar` }),
   ).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/sala/${code}$`));
+  await context.close();
+});
+
+test("the hidden room address alone leads nowhere", async ({ browser }) => {
+  const { page, context } = await newParticipant(browser, "Streamer Visita");
+  await page.goto("/sala");
+  await expect(page).toHaveURL(/\/$/);
   await context.close();
 });

@@ -1,4 +1,5 @@
 import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
+import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-address";
 import { useState } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { RoomSession } from "./RoomSession";
@@ -15,6 +16,12 @@ export interface RoomEntry {
   isAdmin: boolean;
 }
 
+/** Streamer mode: the address bar shows `/sala` while the room page is open. */
+function HiddenRoomAddress({ entry, active }: { entry: RoomEntry; active: boolean }) {
+  useHiddenRoomAddress(entry.code, entry.invite, active);
+  return null;
+}
+
 /**
  * The room lives above the routes, so a call survives navigation: on the room page
  * it fills the screen; on any other page (the admin panel) it goes on minimized
@@ -28,6 +35,7 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
 
   return (
     <StreamerModeProvider>
+      <HiddenRoomAddress entry={entry} active={room !== undefined} />
       <RoomSession
         // Another room drops the current call.
         key={entry.code}

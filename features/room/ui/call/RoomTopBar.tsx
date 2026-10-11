@@ -172,7 +172,7 @@ export function RoomTopBar({
           <span className="text-base font-medium">Tema claro ou escuro</span>
           <ThemeToggle />
         </div>
-        <div className="mt-4 border-t border-line pt-4 max-sm:hidden">
+        <div className="max-sm:hidden">
           <ShortcutsPanel />
         </div>
       </NavPopover>

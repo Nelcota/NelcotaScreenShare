@@ -143,10 +143,11 @@ responsible for the application policy. For full validation in CI, run `pnpm lin
 
 ## Common problems
 
-| Symptom                                                                           | Cause and fix                                                                                                            |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Integration tests fail with `ECONNREFUSED 127.0.0.1:54329`                        | The dev Postgres isn't running (happens after restarting Docker). Run `pnpm db:bootstrap:dev`.                           |
-| Room E2E tests fail and the log shows `failed to generate token` (`ECONNREFUSED`) | The dev LiveKit isn't running. Run `docker start lk-dev` (or the `docker run` above, the first time).                    |
-| `http://localhost:3111` opens another app                                         | Another process holds port 3111 on IPv6, and `localhost` resolves to `::1` first. Use `http://127.0.0.1:3111`.           |
-| `pnpm dev` fails with "Port 3111 is already in use"                               | Another dev server (often another worktree) is running. Stop it: the port is fixed so saved browser logins keep working. |
-| Port 3100 taken when running E2E                                                  | Set `E2E_PORT` in the environment before `pnpm test:e2e`.                                                                |
+| Symptom                                                                           | Cause and fix                                                                                                                                          |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Integration tests fail with `ECONNREFUSED 127.0.0.1:54329`                        | The dev Postgres isn't running (happens after restarting Docker). Run `pnpm db:bootstrap:dev`.                                                         |
+| Room E2E tests fail and the log shows `failed to generate token` (`ECONNREFUSED`) | The dev LiveKit isn't running. Run `docker start lk-dev` (or the `docker run` above, the first time).                                                  |
+| `http://localhost:3111` opens another app                                         | Another process holds port 3111 on IPv6, and `localhost` resolves to `::1` first. Use `http://127.0.0.1:3111`.                                         |
+| `pnpm dev` fails with "Port 3111 is already in use"                               | Another dev server (often another worktree) is running. Stop it: the port is fixed so saved browser logins keep working.                               |
+| Sign-in or any form fails with 403 in dev                                         | `.env.local` still has `APP_URL=http://localhost:3000`, or the page is open on `localhost`. Set `APP_URL=http://127.0.0.1:3111` and open that address. |
+| Port 3100 taken when running E2E                                                  | Set `E2E_PORT` in the environment before `pnpm test:e2e`.                                                                                              |

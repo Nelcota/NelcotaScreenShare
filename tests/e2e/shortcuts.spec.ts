@@ -13,6 +13,7 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
     await expect(chatInput).toBeVisible();
     await page.getByRole("button", { name: "Fechar chat", exact: true }).click();
 
+    await page.setViewportSize({ width: 390, height: 844 });
     const options = page.getByRole("button", { name: "Mais opções", exact: true });
     await options.click();
     const shortcuts = page.getByRole("switch", { name: "Atalhos na sala", exact: true });
@@ -21,6 +22,7 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
     await expect(shortcuts).not.toBeChecked();
     await options.click();
     await expect(page.getByRole("dialog", { name: "Mais opções", exact: true })).toBeHidden();
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     for (const key of ["m", "c", "s", "h", "e"]) await page.keyboard.press(key);
     await expect(dock.getByRole("button", { name: "Ligar microfone", exact: true })).toBeVisible();

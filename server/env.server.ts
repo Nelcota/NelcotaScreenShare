@@ -119,7 +119,7 @@ const envSchema = z
  * rule as the full environment): create-owner builds the link without needing the rest.
  */
 export function appUrl(): string {
-  return (appUrlSchema.parse(process.env.APP_URL) ?? "http://localhost:3000").replace(/\/$/, "");
+  return (appUrlSchema.parse(process.env.APP_URL) ?? "http://127.0.0.1:3111").replace(/\/$/, "");
 }
 
 type Env = z.infer<typeof envSchema>;

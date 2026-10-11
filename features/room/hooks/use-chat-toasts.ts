@@ -17,7 +17,7 @@ interface ChatToast {
  */
 export function useChatToasts() {
   const room = useRoomContext();
-  const shownByAuthor = useRef(new Map<string, Set<string>>());
+  const shownByAuthor = useRef(new Map<string | undefined, Set<string>>());
 
   useEffect(() => {
     const shown = shownByAuthor.current;
@@ -38,18 +38,21 @@ export function useChatToasts() {
       room
         .off(RoomEvent.ParticipantDisconnected, dismissFrom)
         .off(RoomEvent.Disconnected, dismissAll);
+      dismissAll();
     };
   }, [room]);
 
   // Stable across renders: it only touches the ref, so effects can depend on it.
   return useCallback(({ id, author, text, onOpen }: ChatToast) => {
     const identity = author?.identity;
-    if (identity) {
-      const ids = shownByAuthor.current.get(identity) ?? new Set<string>();
-      shownByAuthor.current.set(identity, ids.add(id));
-    }
+    const ids = shownByAuthor.current.get(identity) ?? new Set<string>();
+    shownByAuthor.current.set(identity, ids.add(id));
     const release = () => {
-      if (identity) shownByAuthor.current.get(identity)?.delete(id);
+      const shown = shownByAuthor.current;
+      const current = shown.get(identity);
+      if (!current) return;
+      current.delete(id);
+      if (current.size === 0) shown.delete(identity);
     };
     toast(text, {
       id,

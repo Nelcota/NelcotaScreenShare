@@ -23,8 +23,8 @@
 
   --color-ink: #fafafa;
   --color-ink-muted: #a1a1aa;
-  /* A visible step below muted that still passes AA on canvas, surface and surface-2. */
-  --color-ink-subtle: #8d8d96;
+  /* A visible step below muted that still passes AA on every surface, including hover. */
+  --color-ink-subtle: #9696a0;
 
   /* Mint with dark-green text and a light variant for text, icons and focus. */
   --color-brand: #a2e1b2;

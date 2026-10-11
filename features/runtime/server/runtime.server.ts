@@ -12,6 +12,7 @@ const runtime = globalThis as typeof globalThis & {
 
 export function initializeRuntime(): Promise<void> {
   return (runtime.nelcotaRuntime ??= (async () => {
+    const started = performance.now();
     validateEnvOnBoot();
     runtime.nelcotaStopMaintenance = scheduleMaintenance(getDb, logger);
     const dsn = getEnv().SENTRY_DSN;
@@ -23,6 +24,15 @@ export function initializeRuntime(): Promise<void> {
       sentry.init(sentryOptions(dsn));
       runtime.nelcotaSentry = sentry;
     }
+    logger.info(
+      {
+        startup: {
+          runtimeMs: Math.round(performance.now() - started),
+          sentryEnabled: Boolean(dsn),
+        },
+      },
+      "runtime initialized",
+    );
   })());
 }
 

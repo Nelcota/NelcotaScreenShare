@@ -21,7 +21,8 @@ RUN pnpm build && pnpm build:scripts
 
 FROM node:26.9.0-alpine AS runner
 WORKDIR /app
-RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nelcota
+RUN apk add --no-cache curl && \
+    addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nelcota
 COPY --from=production-deps --chown=nelcota:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nelcota:nodejs /app/package.json ./package.json
 COPY --from=build --chown=nelcota:nodejs /app/build ./build

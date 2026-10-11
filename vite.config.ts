@@ -19,6 +19,9 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
   ],
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
+  // Bundle and tree-shake the calendar's locale barrels instead of loading every
+  // locale and date helper from node_modules before the production server can listen.
+  ssr: { noExternal: ["react-day-picker", "date-fns", "@date-fns/tz"] },
   // Fixed origin (saved logins in the browser); fails instead of switching ports when taken.
   server: { host: "127.0.0.1", port: 3111, strictPort: true },
   optimizeDeps: {

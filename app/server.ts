@@ -1,6 +1,7 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { compress } from "hono/compress";
 import { createHonoServer } from "react-router-hono-server/node";
+import { logger } from "@/server/logger.server";
 
 /** `pnpm start` preloads scripts/production-env.ts; the Docker image sets it in its env. */
 const production = process.env.NODE_ENV === "production";
@@ -15,6 +16,21 @@ const PEER_IP_HEADER = "x-nelcota-peer-ip";
  */
 export default await createHonoServer({
   defaultLogger: false,
+  onServe(server) {
+    server.once("listening", () => {
+      const cpu = process.cpuUsage();
+      logger.info(
+        {
+          startup: {
+            processMs: Math.round(process.uptime() * 1_000),
+            cpuMs: Math.round((cpu.user + cpu.system) / 1_000),
+            rssMb: Math.round(process.memoryUsage().rss / 1_048_576),
+          },
+        },
+        "server listening",
+      );
+    });
+  },
   beforeAll(app) {
     app.use(async (c, next) => {
       const original = c.req.raw;

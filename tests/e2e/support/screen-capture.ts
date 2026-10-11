@@ -4,7 +4,7 @@ import type { Page } from "@playwright/test";
  * adds computer audio that, like a real capture without `restrictOwnAudio`, would carry
  * the room's playback.
  */
-async function fakeScreenCapture(page: Page, { withSound = false, safeAudio = false } = {}) {
+export async function fakeScreenCapture(page: Page, { withSound = false, safeAudio = false } = {}) {
   await page.addInitScript(
     ({ sound, restricted }) => {
       navigator.mediaDevices.getDisplayMedia = () => {

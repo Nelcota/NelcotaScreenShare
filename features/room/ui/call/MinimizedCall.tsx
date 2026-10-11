@@ -1,9 +1,10 @@
 import { useConnectionState, useLocalParticipant } from "@livekit/components-react";
 import { ConnectionState } from "livekit-client";
-import { ArrowLeft, MicOff, MonitorUp } from "lucide-react";
+import { ArrowLeft, HeadphoneOff, MicOff, MonitorUp } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { roomPath } from "@/features/room/domain/room-code";
+import { useDeafen } from "@/features/room/ui/dock/Deafen";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 export function MinimizedCall({ code }: { code: string }) {
   const { isScreenShareEnabled, isMicrophoneEnabled } = useLocalParticipant();
   const connected = useConnectionState() === ConnectionState.Connected;
+  const { deafened } = useDeafen();
 
   return (
     <aside
@@ -34,6 +36,12 @@ export function MinimizedCall({ code }: { code: string }) {
       </span>
       {isScreenShareEnabled ? (
         <MonitorUp className="size-4 shrink-0 text-brand-soft" aria-hidden="true" />
+      ) : null}
+      {deafened ? (
+        <span className="shrink-0 text-ink-muted">
+          <HeadphoneOff className="size-4" aria-hidden="true" />
+          <span className="sr-only">Som da sala desligado</span>
+        </span>
       ) : null}
       {isMicrophoneEnabled ? null : (
         <span className="shrink-0 text-ink-muted">

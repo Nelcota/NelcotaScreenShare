@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { cn } from "@/lib/utils";
 import type { ChatState } from "@/features/room/hooks/use-chat-state";
+import { DeafenButton, useDeafen } from "./Deafen";
 import { DockButton } from "./DockButton";
 import { LeaveMenu } from "./LeaveMenu";
 import { MicMenu } from "./MicMenu";
@@ -28,6 +29,7 @@ interface ControlDockProps {
 export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [micBusy, setMicBusy] = useState(false);
+  const deafen = useDeafen();
   // Microphone sign of life: alone in the room, nobody confirms you are being heard.
   const speaking = useIsSpeaking(localParticipant) && isMicrophoneEnabled;
 
@@ -35,6 +37,8 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
     setMicBusy(true);
     try {
       await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+      // Talking again means hearing again: nobody speaks to a room they cannot hear.
+      if (!isMicrophoneEnabled) deafen.hearAgain();
     } catch (error) {
       toast.error(roomMicErrorMessage(error), { id: MIC_ERROR_TOAST });
     } finally {
@@ -57,7 +61,7 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
       <nav
         data-anim="dock"
         aria-label="Controles da chamada"
-        className="glass pointer-events-auto flex items-start gap-0.5 rounded-3xl border-line-strong bg-surface/90 p-2 sm:gap-2 sm:p-3"
+        className="glass pointer-events-auto flex items-start gap-0.5 rounded-3xl border-line-strong bg-surface/90 p-2 max-[360px]:gap-0 max-[360px]:p-1 sm:gap-2 sm:p-3 max-[360px]:[&_[data-dock-surface]]:size-9 max-[360px]:[&_button[data-anim=dock-item]]:min-w-0"
       >
         <fieldset aria-label="Áudio e compartilhamento" className="flex items-start gap-1 sm:gap-2">
           <div className="flex flex-col items-center gap-2">
@@ -109,6 +113,7 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
             </span>
           </div>
 
+          <DeafenButton />
           <ShareMenu share={share} />
         </fieldset>
 

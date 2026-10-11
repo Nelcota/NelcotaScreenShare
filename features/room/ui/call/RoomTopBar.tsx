@@ -161,17 +161,18 @@ export function RoomTopBar({
           </Link>
         </Hint>
       ) : null}
+      <ThemeToggle className="max-sm:hidden" />
       <NavPopover
         label="Mais opções"
         iconOnly
         align="end"
         trigger={<MoreHorizontal className="size-5" aria-hidden="true" />}
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 sm:hidden">
           <span className="text-base font-medium">Tema claro ou escuro</span>
           <ThemeToggle />
         </div>
-        <div className="mt-4 border-t border-line pt-4 max-sm:hidden">
+        <div className="max-sm:hidden">
           <ShortcutsPanel />
         </div>
       </NavPopover>

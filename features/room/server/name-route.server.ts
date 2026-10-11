@@ -1,3 +1,4 @@
+import { readJsonBody, SMALL_JSON_MAX_BYTES } from "@/server/body.server";
 import { ServerError } from "livekit-server-sdk";
 import { z } from "zod";
 import { displayNameSchema } from "@/features/room/domain/participant-label";
@@ -30,7 +31,7 @@ export async function setRoomName(request: Request) {
     return fail("Muitas trocas seguidas. Aguarde um pouco e tente de novo.", 429);
   }
 
-  const body: unknown = await request.json().catch(() => null);
+  const body = await readJsonBody(request, SMALL_JSON_MAX_BYTES);
   const parsed = nameSchema.safeParse(body);
   if (!parsed.success) {
     const nameIssue = parsed.error.issues.find((issue) => issue.path[0] === "name");

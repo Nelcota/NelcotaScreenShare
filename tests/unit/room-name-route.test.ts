@@ -142,3 +142,35 @@ test("too many renames in a minute are refused", async () => {
   const response = await rename({ room: ROOM, name: "Ana" });
   expect(response.status).toBe(429);
 });
+
+test("another origin cannot rename a participant", async () => {
+  asCaller("account");
+  const response = await setRoomName(
+    new Request("http://localhost/api/sala/nome", {
+      method: "POST",
+      headers: { origin: "https://another.example", "content-type": "application/json" },
+      body: JSON.stringify({ room: ROOM, name: "Ana" }),
+    }),
+  );
+  expect(response.status).toBe(403);
+  expect(deps.caller).not.toHaveBeenCalled();
+  expect(deps.updateParticipant).not.toHaveBeenCalled();
+  expect(deps.updateUser).not.toHaveBeenCalled();
+});
+
+test.each([
+  "{invalid",
+  JSON.stringify({ room: ROOM, name: "Ana", padding: "x".repeat(16 * 1024) }),
+])("invalid or oversized JSON cannot change either name", async (body) => {
+  asCaller("account");
+  const response = await setRoomName(
+    new Request("http://localhost/api/sala/nome", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    }),
+  );
+  expect(response.status).toBe(400);
+  expect(deps.updateParticipant).not.toHaveBeenCalled();
+  expect(deps.updateUser).not.toHaveBeenCalled();
+});

@@ -110,6 +110,12 @@ The package belongs to the `Nelcota` organization and keeps the lowercase `nelco
 
 3. Keep rolling updates on (no host port mapping and no fixed container name). The Dockerfile's `HEALTHCHECK` queries `/api/health`; the container runs as a non-root user (`nelcota`).
 
+The runtime image includes `curl` for Coolify's generated HTTP health check. Startup logs
+separate `runtime initialized` (`runtimeMs`, `sentryEnabled`) from `server listening`
+(`processMs`, `cpuMs`, `rssMb`). A long elapsed time with little CPU time indicates waiting or
+limited CPU availability; compare host load and disk activity before attributing it to database
+work. The database pool is lazy and startup does not run queries or migrations.
+
 **Pipeline** (`.github/workflows`): `ci.yml` runs formatting, lint, types, `pnpm audit`, tests (with Postgres 18.6) and build on every PR. On `main`, `deploy.yml` does: image to GHCR → **migration** (SSH to the VPS, `docker run` of the new image with the migration user) → Coolify webhook → waits for `/api/ready` to respond with the new SHA. If the migration fails, nothing is deployed.
 
 GitHub secrets (`production` environment): `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_USER`, `MIGRATOR_DATABASE_URL`, `COOLIFY_DEPLOY_WEBHOOK`, `COOLIFY_TOKEN`. Variables: `APP_URL`, `DEPLOY_DOCKER_NETWORK` (default `coolify`), `PUBLIC_SENTRY_DSN` (optional). On the server, the deploy user needs `docker login ghcr.io` once.

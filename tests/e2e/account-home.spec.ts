@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { E2E_URL } from "./support/env";
-import { expectNoHorizontalScroll, newParticipant, newVisitor, PASSWORD } from "./support/session";
+import {
+  expectNoHorizontalScroll,
+  joinRoom,
+  newRoomCode,
+  newParticipant,
+  newVisitor,
+  PASSWORD,
+} from "./support/session";
 
 const PNG_PIXEL = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -91,6 +98,23 @@ test("profile photo: preview, persistence on the account and avatar on the home 
     "src",
     /^data:image\/webp;base64,/,
   );
+  const serverOnly = await browser.newContext({
+    baseURL: E2E_URL,
+    javaScriptEnabled: false,
+    storageState: await context.storageState(),
+  });
+  const serverPage = await serverOnly.newPage();
+  await serverPage.goto("/");
+  await expect(serverPage.locator('a[href="/conta"] [data-slot=avatar-image]')).toBeVisible();
+  await serverOnly.close();
+  await joinRoom(page, newRoomCode(), { micOn: false });
+  const roomPhoto = page
+    .getByRole("navigation", { name: "Sala", exact: true })
+    .locator("[data-slot=avatar-image]");
+  await expect(roomPhoto).toHaveAttribute("src", /^data:image\/webp;base64,/);
+  await expect(roomPhoto).toBeVisible();
+  await page.getByRole("button", { name: "Sair da sala", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();
   await page.goto("/conta");
   await page.getByRole("button", { name: "Alterar foto de perfil", exact: true }).click();
   await page.getByRole("menuitem", { name: "Remover foto", exact: true }).click();
@@ -107,6 +131,28 @@ test("profile photo: preview, persistence on the account and avatar on the home 
     page.getByRole("button", { name: "Excluir minha conta para sempre", exact: true }),
   ).toBeVisible();
   await expectNoHorizontalScroll(page);
+  await context.close();
+});
+
+test("the profile avatar falls back when a structurally valid photo cannot decode", async ({
+  browser,
+}) => {
+  const { page, context } = await newParticipant(browser, "Broken Photo");
+  // RIFF/WebP with an empty VP8 chunk: valid container structure, invalid image data.
+  const image = "data:image/webp;base64,UklGRgwAAABXRUJQVlA4IAAAAAA=";
+  await page.goto("/");
+  const status = await page.evaluate(async (source) => {
+    const response = await fetch("/api/auth/update-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: source }),
+    });
+    return response.status;
+  }, image);
+  expect(status).toBe(200);
+  await page.reload();
+  await expect(page.locator('a[href="/conta"] [data-slot=avatar-fallback]')).toBeVisible();
+  await expect(page.locator('a[href="/conta"] [data-slot=avatar-image]')).toHaveCount(0);
   await context.close();
 });
 

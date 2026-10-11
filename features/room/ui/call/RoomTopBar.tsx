@@ -1,6 +1,8 @@
 import type { Participant } from "livekit-client";
 import { Check, Copy, LayoutDashboard, MoreHorizontal } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useRouteLoaderData } from "react-router";
+import type { loader as rootLoader } from "@/app/root";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Hint } from "@/components/Hint";
 import {
   NavBar,
@@ -55,6 +57,7 @@ function RoomCodeButton({ code }: { code: string }) {
 
 /** Stacked avatars + "N pessoas"; on tap, the list and the room limit. */
 function PeopleButton({ participants, max }: { participants: Participant[]; max: number }) {
+  const account = useRouteLoaderData<typeof rootLoader>("root")?.account;
   const shown = participants.slice(0, 3);
   const count = participants.length;
   return (
@@ -69,7 +72,11 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
                 key={participant.identity}
                 className="grid size-8 place-items-center rounded-full bg-brand/20 text-sm font-medium text-brand-soft ring-2 ring-surface"
               >
-                {initials(participantName(participant))}
+                {participant.isLocal && account?.image ? (
+                  <UserAvatar image={account.image} className="size-8" />
+                ) : (
+                  initials(participantName(participant))
+                )}
               </span>
             ))}
           </span>
@@ -87,7 +94,11 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
               aria-hidden="true"
               className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/20 text-sm font-medium text-brand-soft"
             >
-              {initials(participantName(participant))}
+              {participant.isLocal && account?.image ? (
+                <UserAvatar image={account.image} className="size-9" />
+              ) : (
+                initials(participantName(participant))
+              )}
             </span>
             <span className="truncate">
               {participantName(participant)}

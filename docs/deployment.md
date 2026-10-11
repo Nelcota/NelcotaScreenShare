@@ -171,7 +171,7 @@ The app receives LiveKit events at `POST /api/livekit/webhook`. Each event is st
 2. Redeploy LiveKit.
 3. Check: join a room and run `select event, processed_at, error from livekit_events order by received_at desc limit 5;`.
 
-In development, `deploy/livekit/livekit.dev.yaml` points the webhook to `http://host.docker.internal:3000` (see the top of the file).
+In development, `deploy/livekit/livekit.dev.yaml` points the webhook to `http://host.docker.internal:3111` (see the top of the file).
 
 Every request to `/api/token` is also stored in `token_requests` (result, account and IP), which ties each join to its source IP.
 

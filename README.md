@@ -63,7 +63,7 @@ You need Node 26.9+, pnpm 12.9.1 and Docker. With the dev LiveKit container runn
 ```bash
 pnpm install
 pnpm db:bootstrap:dev && pnpm db:migrate
-pnpm dev            # http://localhost:3000
+pnpm dev            # http://127.0.0.1:3111
 ```
 
 The LiveKit command, the dev values for `.env.local`, every script and fixes for common problems are in [docs/development.md](docs/development.md#running-locally).

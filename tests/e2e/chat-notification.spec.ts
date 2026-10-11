@@ -46,10 +46,20 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   await receiver.page.getByRole("combobox", { name: "Som do aviso" }).selectOption("off");
   await receiver.page.getByRole("button", { name: "Fechar chat" }).click();
   await send("Aviso sem som");
+  const silentNotice = receiver.page.getByText("Envia Avisos: Aviso sem som", { exact: true });
+  await expect(silentNotice).toBeVisible();
+  // In a call, chat notices sit at the bottom so the room's top bar stays readable.
   await expect(
-    receiver.page.getByText("Envia Avisos: Aviso sem som", { exact: true }),
+    receiver.page.locator('[data-sonner-toast][data-y-position="bottom"]', { has: silentNotice }),
   ).toBeVisible();
   expect(await notes()).toBe(4);
+  // A notice from someone who left goes away with them.
+  await sender.page.getByRole("button", { name: "Sair da sala", exact: true }).click();
+  await sender.page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Sair", exact: true })
+    .click();
+  await expect(silentNotice).toBeHidden();
   await joinRoom(receiver.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();
   await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveValue("off");

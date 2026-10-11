@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useChatToasts } from "@/features/room/hooks/use-chat-toasts";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import {
   CHAT_EDIT_TOPIC,
@@ -60,6 +61,7 @@ export function useChatState(): ChatState {
   const [seen, setSeen] = useState(0);
   const announced = useRef(0);
   const [edits, setEdits] = useState<ChatEdits>(() => new Map());
+  const showChatToast = useChatToasts();
 
   const { send: publishEdit } = useDataChannel(CHAT_EDIT_TOPIC, (message) => {
     const sender = message.from?.identity;
@@ -115,12 +117,14 @@ export function useChatState(): ChatState {
     const last = fresh.findLast((message) => !message.from?.isLocal);
     if (last) {
       void playChatNotification();
-      toast(`${participantLabel(last.from)}: ${capChatText(last.message)}`, {
+      showChatToast({
         id: chatToastId(last.id),
-        action: { label: "Abrir", onClick: () => setOpenState(true) },
+        author: last.from,
+        text: `${participantLabel(last.from)}: ${capChatText(last.message)}`,
+        onOpen: () => setOpenState(true),
       });
     }
-  }, [open, chatMessages]);
+  }, [open, chatMessages, showChatToast]);
 
   useShortcut("c", () => setOpen(!open));
 

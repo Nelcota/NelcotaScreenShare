@@ -53,7 +53,7 @@ export function subscribeStreamerMode(changed: () => void) {
   };
 }
 
-export const StreamerModeContext = createContext<{
+const StreamerModeContext = createContext<{
   enabled: boolean;
   setEnabled: (enabled: boolean) => void;
 } | null>(null);

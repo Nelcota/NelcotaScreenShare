@@ -62,14 +62,17 @@ test("profile photo: preview, persistence on the account and avatar on the home 
   const { page, context } = await newParticipant(browser, "Foto Teste");
   await page.goto("/conta");
   const fileInput = page.locator("main input[type=file]");
-  await fileInput.setInputFiles({
-    name: "quebrada.png",
-    mimeType: "image/png",
-    buffer: Buffer.from("imagem inválida"),
-  });
-  await expect(
-    page.getByText("Não foi possível abrir a imagem. Escolha outra foto.", { exact: true }),
-  ).toBeVisible();
+  // A file picked before hydration reaches no handler: pick it again until the page answers.
+  await expect(async () => {
+    await fileInput.setInputFiles({
+      name: "quebrada.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("imagem inválida"),
+    });
+    await expect(
+      page.getByText("Não foi possível abrir a imagem. Escolha outra foto.", { exact: true }),
+    ).toBeVisible({ timeout: 2000 });
+  }).toPass();
   await fileInput.setInputFiles({
     name: "avatar.png",
     mimeType: "image/png",

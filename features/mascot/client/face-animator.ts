@@ -61,7 +61,7 @@ export function createFaceAnimator(renderer: FaceRenderer, initial: FaceState, h
         lid0: Math.max(lid, face.lid0),
         lid1: Math.max(lid, face.lid1),
       },
-      blinking,
+      face,
     );
     frame =
       gazeSettled && faceSettled && !blinking && !extra.keepAlive ? 0 : requestAnimationFrame(step);

@@ -34,6 +34,9 @@ test("switches shared screens, clears pointing and recovers when the selected sh
     "aria-pressed",
     "true",
   );
+  await expect(
+    viewer.page.getByRole("region", { name: "Tela compartilhada por Primeira Tela" }),
+  ).toBeVisible();
   await viewer.page.getByRole("button", { name: "Apontar na tela", exact: true }).click();
   await expect(viewer.page.getByRole("button", { name: "Parar de apontar" })).toBeVisible();
   await viewer.page.setViewportSize({ width: 320, height: 740 });

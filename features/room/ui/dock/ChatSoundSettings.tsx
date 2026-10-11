@@ -1,7 +1,7 @@
 import { useId, useSyncExternalStore } from "react";
 import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { playChatNotification } from "@/features/room/audio/chat-notification";
+import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import {
   currentChatSound,
   isChatNotificationSound,
@@ -22,7 +22,10 @@ export function ChatSoundSettings() {
         value={sound}
         onChange={(event) => {
           const value = event.target.value;
-          if (isChatNotificationSound(value)) setChatSound(value);
+          if (!isChatNotificationSound(value)) return;
+          setChatSound(value);
+          // Selecting a sound is a user gesture, even after the initial muted gestures.
+          void unlockChatAudio(value);
         }}
         className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm"
       >

@@ -7,6 +7,9 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   const receiver = await newParticipant(browser, "Recebe Avisos");
   const sender = await newParticipant(browser, "Envia Avisos");
   await receiver.page.addInitScript(() => {
+    if (localStorage.getItem("nelcota-chat-notification-sound") === null) {
+      localStorage.setItem("nelcota-chat-notification-sound", "off");
+    }
     const target = window as Window & { chatSoundNotes?: number };
     target.chatSoundNotes = 0;
     const original = Reflect.get(AudioContext.prototype, "createOscillator");
@@ -19,11 +22,11 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   await joinRoom(receiver.page, code);
   await joinRoom(sender.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();
+  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveValue("off");
   await receiver.page.getByRole("combobox", { name: "Som do aviso" }).selectOption("chime");
-  await receiver.page.getByRole("button", { name: "Ouvir som da notificação" }).click();
   const notes = () =>
     receiver.page.evaluate(() => (window as Window & { chatSoundNotes?: number }).chatSoundNotes);
-  await expect.poll(notes).toBe(2);
+  expect(await notes()).toBe(0);
   await receiver.page.getByRole("button", { name: "Fechar chat" }).click();
   await sender.page.getByRole("button", { name: /^Chat/ }).click();
   async function send(message: string) {
@@ -34,8 +37,10 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   await expect(
     receiver.page.getByText("Envia Avisos: Aviso com duas notas", { exact: true }),
   ).toBeVisible();
-  await expect.poll(notes).toBe(4);
+  await expect.poll(notes).toBe(2);
   await receiver.page.getByRole("button", { name: "Abrir", exact: true }).click();
+  await receiver.page.getByRole("button", { name: "Ouvir som da notificação" }).click();
+  await expect.poll(notes).toBe(4);
   await send("Com o chat aberto");
   await expect(
     receiver.page

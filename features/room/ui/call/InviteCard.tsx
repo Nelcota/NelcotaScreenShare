@@ -1,4 +1,5 @@
 import { Check, Copy } from "lucide-react";
+import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { useId, useRef } from "react";
 import { QrCode } from "@/components/QrCode";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { roomUrl, useCopyRoomLink } from "@/features/room/hooks/use-copy-room-li
  * copy button and, on desktop, a QR code to join from a phone.
  */
 export function InviteCard({ code }: { code: string }) {
+  const { enabled } = useStreamerMode();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const url = roomUrl(code);
@@ -19,6 +21,14 @@ export function InviteCard({ code }: { code: string }) {
     inputRef.current?.focus();
     inputRef.current?.select();
   });
+
+  if (enabled) {
+    return (
+      <p className="text-sm text-ink-muted">
+        Convites ocultos pelo modo streamer. Você ainda pode copiar o link pelo botão da sala.
+      </p>
+    );
+  }
 
   return (
     <section

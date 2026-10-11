@@ -1,3 +1,4 @@
+import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { Check, Link2 } from "lucide-react";
 import { useState } from "react";
 import { roomUrl, useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
@@ -7,6 +8,9 @@ import { cn } from "@/lib/utils";
 export function InviteLinkButton({ code }: { code: string }) {
   const [manual, setManual] = useState(false);
   const { copied, copy } = useCopyRoomLink(code, () => setManual(true));
+
+  const { enabled: streamerMode } = useStreamerMode();
+  if (streamerMode) return null;
 
   if (manual) {
     return (

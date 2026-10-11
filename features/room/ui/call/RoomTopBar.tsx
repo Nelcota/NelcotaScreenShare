@@ -1,4 +1,7 @@
 import type { Participant } from "livekit-client";
+import { useId } from "react";
+import { Switch } from "@/components/ui/switch";
+import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { Check, Copy, LayoutDashboard, MoreHorizontal } from "lucide-react";
 import { Link, useRouteLoaderData } from "react-router";
 import type { loader as rootLoader } from "@/app/root";
@@ -29,17 +32,22 @@ const CONNECTION_LABELS: Record<Connection, string> = {
 /** "Sala abc-defg-hij" that copies the link; the confirmation appears on the button itself. */
 function RoomCodeButton({ code }: { code: string }) {
   const { copied, copy } = useCopyRoomLink(code);
+  const { enabled } = useStreamerMode();
 
   return (
     <button
       type="button"
       onClick={() => void copy()}
-      aria-label={`Sala ${code}. Copiar link para convidar`}
+      aria-label={
+        enabled
+          ? "Código oculto. Copiar link para convidar"
+          : `Sala ${code}. Copiar link para convidar`
+      }
       className="group flex h-10 min-w-0 items-center gap-2 rounded-xl px-3 transition-colors hover:bg-surface-3"
     >
       <span className="truncate text-base font-medium tracking-tight">
         <span className="font-normal text-ink-muted max-sm:hidden">Sala </span>
-        <span className="font-sans tabular-nums">{code}</span>
+        <span className="font-sans tabular-nums">{enabled ? "Código oculto" : code}</span>
       </span>
       {copied ? (
         <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-success">
@@ -130,6 +138,8 @@ export function RoomTopBar({
   isAdmin: boolean;
   connection: Connection;
 }) {
+  const streamer = useStreamerMode();
+  const streamerId = useId();
   return (
     <NavBar aria-label="Sala" className="mx-auto max-w-5xl">
       <NavBrand showName={false} className="max-sm:hidden" />
@@ -169,6 +179,20 @@ export function RoomTopBar({
         align="end"
         trigger={<MoreHorizontal className="size-5" aria-hidden="true" />}
       >
+        <div className="mb-4 border-b border-line pb-4">
+          <label htmlFor={streamerId} className="flex items-center justify-between gap-3">
+            <span className="text-base font-medium">Modo streamer</span>
+            <Switch
+              id={streamerId}
+              checked={streamer.enabled}
+              onCheckedChange={streamer.setEnabled}
+            />
+          </label>
+          <p className="mt-2 text-sm text-ink-muted">
+            Oculta código, link e QR code na chamada. Não restringe a entrada nem oculta a barra de
+            endereço.
+          </p>
+        </div>
         <div className="mb-4 border-b border-line pb-4">
           <NameEditor code={code} />
         </div>

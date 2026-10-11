@@ -24,6 +24,7 @@ export function DeafenProvider({ children }: { children: ReactNode }) {
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [deafened, setDeafened] = useState(false);
   const micWasOn = useRef(false);
+  const hearingRevision = useRef(0);
 
   async function setMic(enabled: boolean) {
     try {
@@ -41,16 +42,26 @@ export function DeafenProvider({ children }: { children: ReactNode }) {
       if (micWasOn.current) await setMic(true);
       return;
     }
+    const revision = hearingRevision.current;
     micWasOn.current = isMicrophoneEnabled;
     if (isMicrophoneEnabled && !(await setMic(false))) {
       micWasOn.current = false;
       setDeafened(false);
       return;
     }
+    if (revision !== hearingRevision.current) return;
     setDeafened(true);
   }
 
-  const state: DeafenState = { deafened, toggle, hearAgain: () => setDeafened(false) };
+  const state: DeafenState = {
+    deafened,
+    toggle,
+    hearAgain: () => {
+      // Turning the microphone on supersedes a pending request to stop hearing.
+      hearingRevision.current += 1;
+      setDeafened(false);
+    },
+  };
   return (
     <DeafenContext value={state}>
       {children}

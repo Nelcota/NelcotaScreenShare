@@ -11,7 +11,7 @@ const dependencies = vi.hoisted(() => ({
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof React>()),
   useState: () => [false, dependencies.setDeafened],
-  useRef: () => ({ current: false }),
+  useRef: (initial: unknown) => ({ current: initial }),
 }));
 vi.mock("@livekit/components-react", () => ({
   useLocalParticipant: () => ({
@@ -66,4 +66,23 @@ test("an already disabled microphone does not require a device operation", async
   await toggle();
   expect(dependencies.setMicrophoneEnabled).not.toHaveBeenCalled();
   expect(dependencies.setDeafened).toHaveBeenCalledWith(true);
+});
+
+test("restoring hearing supersedes a deafen operation still waiting for the microphone", async () => {
+  let release: (() => void) | undefined;
+  dependencies.setMicrophoneEnabled.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const provider = DeafenProvider({ children: null }) as ReactElement<{
+    value: { toggle: () => Promise<void>; hearAgain: () => void };
+  }>;
+  const pending = provider.props.value.toggle();
+  provider.props.value.hearAgain();
+  if (!release) throw new Error("Missing microphone operation");
+  release();
+  await pending;
+  expect(dependencies.setDeafened).toHaveBeenLastCalledWith(false);
 });

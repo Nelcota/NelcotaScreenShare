@@ -19,6 +19,10 @@ import { PointerLayer, usePointers } from "./PointerLayer";
 import { StreamMetrics } from "./StreamMetrics";
 import { useBroadcastPresenterPing } from "@/features/room/hooks/use-presenter-ping";
 
+import { useAnnotations } from "@/features/room/hooks/use-annotations";
+import { AnnotationLayer } from "./AnnotationLayer";
+import { AnnotationTools } from "./AnnotationTools";
+
 interface ScreenStageProps {
   shares: TrackReference[];
   focused: TrackReference;
@@ -154,8 +158,12 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
   const { isFullscreen, canFullscreen, toggle: toggleFullscreen } = usePageFullscreen();
   const isOwnScreen = focused.participant.isLocal;
   const trackSid = focused.publication.trackSid;
-  const pointing = !isOwnScreen && pointingAt === trackSid;
-  const togglePointing = () => setPointingAt(pointing ? undefined : trackSid);
+  const annotations = useAnnotations(trackSid, videoRef, isOwnScreen);
+  const pointing = isPointing(isOwnScreen, pointingAt, trackSid, annotations.tool !== undefined);
+  const togglePointing = () => {
+    annotations.setTool(undefined);
+    setPointingAt(pointing ? undefined : trackSid);
+  };
 
   useBroadcastPresenterPing();
   useShortcut("f", () => void toggleFullscreen(), canFullscreen);
@@ -183,6 +191,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
               className="size-full object-contain"
               aria-label="Prévia da sua tela"
             />
+            <AnnotationLayer videoRef={videoRef} control={annotations} />
             <PointerLayer
               key={trackSid}
               videoRef={videoRef}
@@ -207,6 +216,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
             className="size-full object-contain"
             aria-label={`Tela de ${participantLabel(focused.participant)}`}
           />
+          <AnnotationLayer videoRef={videoRef} control={annotations} />
           <PointerLayer
             // Another screen on stage: remount to measure the new video.
             key={trackSid}
@@ -230,6 +240,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
         </span>
 
         <span className="flex shrink-0 gap-1 sm:gap-2">
+          <AnnotationTools control={annotations} onStart={() => setPointingAt(undefined)} />
           <Hint text={showMetrics ? "Ocultar FPS e ping" : "Mostrar FPS e ping"}>
             <button
               type="button"
@@ -273,4 +284,14 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
       ) : null}
     </section>
   );
+}
+
+function isPointing(
+  own: boolean,
+  pointingAt: string | undefined,
+  trackSid: string,
+  drawing: boolean,
+) {
+  if (drawing) return false;
+  return !own && pointingAt === trackSid;
 }

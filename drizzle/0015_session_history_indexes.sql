@@ -1,0 +1,2 @@
+CREATE INDEX "room_sessions_definition_history_idx" ON "room_sessions" USING btree ("definition_id","created_at","id");--> statement-breakpoint
+CREATE INDEX "room_participations_session_idx" ON "room_participations" USING btree ("session_id","id");

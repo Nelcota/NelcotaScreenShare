@@ -19,6 +19,9 @@ export const TOKEN_LOG_RESULTS = [
   "invalid",
   "invite_invalid",
   "host_absent",
+  "room_locked",
+  "room_removed",
+  "room_closed",
   "error",
 ] as const;
 
@@ -66,6 +69,7 @@ export interface TokenGrant {
   identity: string;
   name: string;
   room: string;
+  canShare?: boolean;
 }
 
 /** Refusals the decision can produce (the cross-origin one belongs to the HTTP edge). */
@@ -92,6 +96,9 @@ export const TOKEN_ERROR_STATUS: Record<TokenRefusal, number> = {
   room_full: 409,
   invite_invalid: 403,
   host_absent: 409,
+  room_locked: 403,
+  room_removed: 403,
+  room_closed: 409,
   server_error: 502,
 };
 

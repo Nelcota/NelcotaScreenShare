@@ -1,3 +1,7 @@
+import {
+  assertDefinitionAdmission,
+  definitionByCode,
+} from "@/features/rooms/server/room-access.server";
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
   decideTokenRequest,
@@ -8,11 +12,13 @@ import {
 } from "@/features/room/domain/issue-token";
 import type { TokenResponse } from "@/features/room/domain/token-contract";
 import { getDb } from "@/server/db/index.server";
-import { getEnv } from "@/server/env.server";
+import { appUrl, getEnv } from "@/server/env.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 import { redeemRoomInvite } from "./invites.server";
 import { liveKitGateway, type LiveKitGateway } from "./livekit-gateway.server";
 import { recordTokenRequest } from "./token-log.server";
+import { AdmissionError, mediaRoomForCode } from "./session-store.server";
+import { reserveAdmission } from "./session-admission.server";
 
 // Per account: switching IP does not grant more attempts.
 const perAccountLimit = createRateLimiter({ limit: 20, windowMs: 60_000 });
@@ -72,17 +78,43 @@ export async function issueRoomToken(
           reset: () => passwordFailures.reset(ipKey),
         },
         passwordMatches: (given) => safeEqual(given, env.ACCESS_PASSWORD ?? ""),
-        countParticipants: (room, identity) => gateway.countParticipants(room, identity),
+        countParticipants: async (room, identity) =>
+          gateway.countParticipants(await mediaRoomForCode(room), identity),
         redeemInvite: (invite, room, accountId) =>
           redeemRoomInvite(getDb(), { token: invite, roomCode: room, userId: accountId }),
-        hostPresent: (room) => gateway.hostPresent(room),
+        hostPresent: async (room) => gateway.hostPresent(await mediaRoomForCode(room)),
       },
     );
-    await log(decision.log);
-    if (!decision.ok) return decision;
+    if (!decision.ok) {
+      await log(decision.log);
+      return decision;
+    }
+    const definition = await definitionByCode(getDb(), decision.grant.room);
+    if (definition)
+      await assertDefinitionAdmission(getDb(), definition, decision.grant.identity, false);
+    if (env.ROOM_HOST_CONTROLS_ENABLED) {
+      const admission = await reserveAdmission(getDb(), decision.grant, env.MAX_PARTICIPANTS);
+      const token = await gateway.signToken({
+        ...decision.grant,
+        room: admission.mediaRoomName,
+        canShare: admission.canShare,
+      });
+      await log("granted");
+      const publicUrl = new URL("/api/sala/conexao", appUrl());
+      publicUrl.protocol = publicUrl.protocol === "https:" ? "wss:" : "ws:";
+      return {
+        ok: true,
+        data: { token, serverUrl: publicUrl.toString(), sessionId: admission.sessionId },
+      };
+    }
     const token = await gateway.signToken(decision.grant);
+    await log("granted");
     return { ok: true, data: { token, serverUrl: env.LIVEKIT_URL } };
   } catch (failure) {
+    if (failure instanceof AdmissionError) {
+      await log(failure.code);
+      return { ok: false, error: failure.code, log: failure.code, message: failure.message };
+    }
     await log("error");
     return { ok: false, error: "server_error", message: SERVER_ERROR_MESSAGE, failure };
   }

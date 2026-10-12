@@ -47,13 +47,14 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
   // While sharing, the button shows for how long: makes it clear the screen is live.
   const elapsed = formatElapsed(useElapsedSeconds(isSharing));
 
-  const label = !supported
-    ? "Compartilhar tela não é suportado neste navegador"
-    : isSharing
-      ? `Parar de compartilhar (no ar há ${elapsed})`
-      : "Compartilhar tela";
+  const sharingRestricted = !share.permitted && !isSharing;
+  const label = shareButtonLabel(sharingRestricted, supported, isSharing, elapsed);
 
   function handleOpenChange(next: boolean) {
+    if (next && sharingRestricted) {
+      toast.info("O anfitrião restringiu o compartilhamento de tela.");
+      return;
+    }
     if (next && !supported) {
       toast.info(shareSupportMessage(support ?? "unsupported"));
       return;
@@ -80,7 +81,7 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
           shortCaption={busy ? "…" : isSharing ? elapsed : "Tela"}
           pressed={isSharing}
           shortcut={isSharing ? undefined : "S"}
-          aria-disabled={!supported || undefined}
+          aria-disabled={!supported || !share.permitted || undefined}
           disabled={busy}
           busy={busy}
           className="tabular-nums sm:min-w-24"
@@ -95,11 +96,13 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
 
       <DockPopoverContent
         aria-label="Opções de compartilhamento"
-        className="w-[min(22rem,calc(100vw-2rem))]"
+        className="max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain"
       >
         <SharePanel
           audio={share.audio}
+          profile={share.profile}
           onAudioChange={share.setAudio}
+          onProfileChange={share.setProfile}
           onPick={(choice) => {
             setOpen(false);
             void share.start(choice);
@@ -108,4 +111,16 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
       </DockPopoverContent>
     </Popover.Root>
   );
+}
+
+function shareButtonLabel(
+  restricted: boolean,
+  supported: boolean,
+  sharing: boolean,
+  elapsed: string,
+) {
+  if (restricted) return "Compartilhamento restrito pelo anfitrião";
+  if (!supported) return "Compartilhar tela não é suportado neste navegador";
+  if (sharing) return `Parar de compartilhar (no ar há ${elapsed})`;
+  return "Compartilhar tela";
 }

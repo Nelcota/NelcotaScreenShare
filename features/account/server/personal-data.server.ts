@@ -1,5 +1,7 @@
+import { workspacePersonalData } from "./workspace-export.server";
 import { and, count, desc, eq, gt, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
+import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import {
   roomParticipations,
   rooms,
@@ -65,7 +67,30 @@ export async function personalData(db: DbExecutor, userId: string) {
     .where(eq(tokenRequests.userId, userId))
     .orderBy(desc(tokenRequests.createdAt));
 
+  const definitions = await db
+    .select({
+      sala: roomDefinitions.code,
+      nome: roomDefinitions.name,
+      tipo: roomDefinitions.kind,
+      arquivadaEm: roomDefinitions.archivedAt,
+      criadaEm: roomDefinitions.createdAt,
+      encerradaEm: roomDefinitions.closedAt,
+    })
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.ownerUserId, userId));
+  const admissions = await db
+    .select({
+      sala: roomDefinitions.code,
+      chamada: roomSessions.id,
+      admitidoEm: roomSessionMembers.admittedAt,
+      excluidoEm: roomSessionMembers.excludedAt,
+    })
+    .from(roomSessionMembers)
+    .innerJoin(roomSessions, eq(roomSessions.id, roomSessionMembers.sessionId))
+    .innerJoin(roomDefinitions, eq(roomDefinitions.id, roomSessions.definitionId))
+    .where(eq(roomSessionMembers.userId, userId));
   return {
+    ...(await workspacePersonalData(db, userId, profile?.email ?? "")),
     gerado_em: new Date().toISOString(),
     aviso: "Dados pessoais guardados pelo Nelcota ligados à sua conta.",
     conta: profile,
@@ -73,5 +98,7 @@ export async function personalData(db: DbExecutor, userId: string) {
     // Access records: kept for 6 months (Marco Civil, art. 15).
     participacoes_em_salas: participations,
     pedidos_de_entrada: tokenLog,
+    salas_criadas: definitions,
+    admissoes_em_chamadas: admissions,
   };
 }

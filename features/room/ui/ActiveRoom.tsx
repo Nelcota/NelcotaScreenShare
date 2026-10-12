@@ -7,6 +7,8 @@ import { RoomSession } from "./RoomSession";
 /** What the room page loads (`/sala/:codigo`). */
 export interface RoomEntry {
   code: string;
+  unavailable?: string;
+  permanent?: boolean;
   /** Signed-in account, or null for a guest who joins through the link. */
   user: { name: string; image: string | null } | null;
   passwordRequired: boolean;
@@ -40,6 +42,8 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
         // Another room drops the current call.
         key={entry.code}
         code={entry.code}
+        unavailable={entry.unavailable}
+        permanent={entry.permanent}
         userName={entry.user?.name ?? null}
         userImage={entry.user?.image ?? null}
         passwordRequired={entry.passwordRequired}

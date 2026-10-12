@@ -14,7 +14,9 @@ interface Dispatch {
   /** Read-only operations: served by GET. The others, only by POST. */
   readOperations: ReadonlySet<string>;
   /** Where the operation leads on success (303 instead of the JSON). */
-  successRedirects: Readonly<Record<string, string>>;
+  successRedirects: Readonly<
+    Record<string, string | ((data: unknown, input: unknown) => string | undefined)>
+  >;
 }
 
 async function readInput(request: Request): Promise<unknown> {
@@ -73,7 +75,9 @@ export function operationDispatcher({ operations, readOperations, successRedirec
     const { input } = read;
     const operation = operations[id]!;
     const result = await withRequest(request, context, () => operation.handle(input));
-    const destination = successRedirects[id];
+    const configured = successRedirects[id];
+    const destination =
+      typeof configured === "function" ? configured(result.data, input) : configured;
     if (result.data !== undefined && destination) {
       return redirect(destination, { status: 303, headers: { "Cache-Control": "no-store" } });
     }

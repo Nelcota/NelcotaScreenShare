@@ -1,4 +1,8 @@
+import { roomWorkspaceAction } from "@/features/rooms/actions.server";
+import { teamWorkspaceAction } from "@/features/team/actions.server";
+import { provisionBetaAction } from "@/features/admin/beta/actions.server";
 import type { OperationHandlers } from "@/server/operations/dispatch.server";
+import { hostCommandAction } from "@/features/room/actions.server";
 import {
   revokeMySession,
   revokeMyOtherSessions,
@@ -30,6 +34,10 @@ import { acceptInvitation } from "@/features/auth/actions.server";
  * `<feature>-<name>` and matches the descriptor in each `actions.ts`.
  */
 export const operations: OperationHandlers = {
+  "rooms-roomWorkspaceAction": roomWorkspaceAction,
+  "team-teamWorkspaceAction": teamWorkspaceAction,
+  "admin-beta-provisionBetaAction": provisionBetaAction,
+  "room-hostCommandAction": hostCommandAction,
   "account-revokeMySession": revokeMySession,
   "account-revokeMyOtherSessions": revokeMyOtherSessions,
   "account-deleteMyAccount": deleteMyAccount,

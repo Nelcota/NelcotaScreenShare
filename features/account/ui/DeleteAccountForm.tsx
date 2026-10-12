@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { Loader2 } from "lucide-react";
 
 import { useOperation } from "@/lib/operations/use-operation";
@@ -11,7 +12,7 @@ import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
 
 /** Account deletion confirmation (LGPD): asks for the current password. */
-export function DeleteAccountForm() {
+export function DeleteAccountForm({ ownedTeamCount = 0 }: { ownedTeamCount?: number }) {
   const passwordId = useId();
   const errorId = useId();
   const closeRow = useCloseRow();
@@ -25,14 +26,15 @@ export function DeleteAccountForm() {
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        const password = formText(new FormData(event.currentTarget), "password");
+        const data = new FormData(event.currentTarget);
+        const password = formText(data, "password");
         if (!password) {
           setPasswordError("Informe sua senha para confirmar.");
           event.currentTarget.querySelector<HTMLInputElement>("input[name=password]")?.focus();
           return;
         }
         setPasswordError(undefined);
-        remove.execute({ password });
+        remove.execute({ password, deleteOwnedTeams: data.get("deleteTeams") === "on" });
       }}
       className="flex max-w-sm flex-col gap-3"
     >
@@ -48,6 +50,21 @@ export function DeleteAccountForm() {
           onChange={() => setPasswordError(undefined)}
         />
       </div>
+      {ownedTeamCount ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-danger/30 p-3 text-sm">
+          <p>
+            Você é dono de {ownedTeamCount} time(s).{" "}
+            <Link className="underline" to="/times">
+              Transfira a propriedade
+            </Link>{" "}
+            para manter esses times.
+          </p>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="deleteTeams" className="mt-1" />
+            <span>Excluir também meus times, encerrar suas chamadas e arquivar suas salas.</span>
+          </label>
+        </div>
+      ) : null}
       <FormError id={errorId} message={error} />
       <div className="flex flex-wrap gap-2">
         <Button

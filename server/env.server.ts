@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isPrivateSignalHost } from "./private-signal-host";
 
 const emptyToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
@@ -26,6 +27,14 @@ const envSchema = z
       protocol: /^wss?$/,
       error: "LIVEKIT_URL must be a ws:// or wss:// URL",
     }),
+    // Enable only after the upstream signaling port is inaccessible to browsers.
+    ROOM_HOST_CONTROLS_ENABLED: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(["true", "false"])
+        .default("false")
+        .transform((value) => value === "true"),
+    ),
     ACCESS_PASSWORD: z.preprocess(
       emptyToUndefined,
       z.string().min(8, "ACCESS_PASSWORD must be at least 8 characters").optional(),
@@ -80,6 +89,14 @@ const envSchema = z
     APP_VERSION: z.preprocess(emptyToUndefined, z.string().max(64).optional()),
   })
   .superRefine((env, ctx) => {
+    if (env.ROOM_HOST_CONTROLS_ENABLED && !isPrivateSignalHost(new URL(env.LIVEKIT_URL).hostname)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["LIVEKIT_URL"],
+        message:
+          "Host controls require a private LIVEKIT_URL; fence public signaling before enabling them",
+      });
+    }
     if (env.RESEND_API_KEY && env.SMTP_URL) {
       ctx.addIssue({
         code: "custom",

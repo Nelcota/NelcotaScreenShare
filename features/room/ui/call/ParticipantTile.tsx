@@ -6,6 +6,8 @@ import { useRef, type RefObject } from "react";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { participantLabel, participantName } from "@/features/room/domain/participant-label";
 import { initials } from "@/lib/initials";
+import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
+import { HostBadge } from "./HostBadge";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -108,9 +110,11 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
               <span className="sr-only">{name} está com a mão levantada</span>
             </span>
           ) : null}
+          <ParticipantAudioMenu participant={participant} className="absolute -bottom-1 -left-1" />
         </div>
         <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
           {participantLabel(participant)}
+          <HostBadge identity={participant.identity} />
         </span>
         {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
       </div>
@@ -131,6 +135,7 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
       <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
+        <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3" />
         {handRaised ? (
           <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
             <Hand className="size-5" aria-hidden="true" />
@@ -154,6 +159,7 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
 
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
           <span className="glass inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium">
+            <HostBadge identity={participant.identity} />
             <span className="truncate">
               {name}
               {participant.isLocal ? (

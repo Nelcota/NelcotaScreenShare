@@ -25,6 +25,7 @@ export const statements = {
   roomInvite: ["create", "revoke"],
   audit: ["read", "export"],
   settings: ["read", "update"],
+  beta: ["read", "update"],
   lgpd: ["read", "handle"],
   system: ["dbHealth"],
 } as const;
@@ -43,6 +44,7 @@ export const roles = {
     roomInvite: ["create", "revoke"],
     audit: ["read"],
     settings: ["read"],
+    beta: ["read", "update"],
     lgpd: ["read"],
   }),
   viewer: ac.newRole({

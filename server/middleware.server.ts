@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { MiddlewareFunction } from "react-router";
 import { buildCsp } from "./csp.server";
 import { CLIENT_IP_HEADER, getClientIp } from "./client-ip.server";
-import { getEnv } from "./env.server";
+import { appUrl, getEnv } from "./env.server";
 import { withResponseCookies } from "./response-cookies.server";
 
 const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
@@ -18,7 +18,12 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
   const response = await withResponseCookies(next);
   response.headers.set("x-request-id", requestId);
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set(
+    "Referrer-Policy",
+    new URL(request.url).pathname.startsWith("/times/convite/")
+      ? "no-referrer"
+      : "strict-origin-when-cross-origin",
+  );
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
     "Permissions-Policy",
@@ -28,7 +33,9 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
     response.headers.set(
       "Content-Security-Policy",
       buildCsp({
-        livekitUrl: env.LIVEKIT_URL,
+        livekitUrl: env.ROOM_HOST_CONTROLS_ENABLED
+          ? appUrl().replace(/^http/, "ws")
+          : env.LIVEKIT_URL,
         nonce,
         dev: process.env.NODE_ENV !== "production",
         sentryDsn: env.PUBLIC_SENTRY_DSN,

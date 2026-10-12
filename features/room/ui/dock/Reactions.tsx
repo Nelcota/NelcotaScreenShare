@@ -4,6 +4,7 @@ import {
   useParticipantAttribute,
   useRoomContext,
 } from "@livekit/components-react";
+import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
 import { RoomEvent, type Participant } from "livekit-client";
 import { Hand } from "lucide-react";
 import { Popover } from "radix-ui";
@@ -161,6 +162,7 @@ export function ReactionsMenu() {
   const react = useReact();
   const [open, setOpen] = useState(false);
   const handId = useId();
+  const { roomCode } = useRoomHost();
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
   const handRaised =
@@ -168,7 +170,7 @@ export function ReactionsMenu() {
 
   async function toggleHand() {
     const next = !handRaised;
-    const ok = await setHandRaised(room.name, next);
+    const ok = await setHandRaised(roomCode ?? room.name, next);
     if (ok) {
       toast(next ? "✋ Você levantou a mão" : "Você baixou a mão");
       return;

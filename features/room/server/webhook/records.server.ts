@@ -19,10 +19,14 @@ export async function ensureRoom(
   tx: DbExecutor,
   code: string,
   at: Date,
-  { reopen, sid }: { reopen: boolean; sid?: string },
+  {
+    reopen,
+    sid,
+    authoritative = false,
+  }: { reopen: boolean; sid?: string; authoritative?: boolean },
 ): Promise<string> {
   const reopens = reopen
-    ? sql`${rooms.status} = 'finished' and excluded.last_activity_at > ${rooms.finishedAt}`
+    ? sql`${rooms.status} = 'finished' and (${authoritative} or excluded.last_activity_at > ${rooms.finishedAt})`
     : sql`false`;
   const [room] = await tx
     .insert(rooms)
@@ -46,7 +50,7 @@ export async function ensureRoom(
         startedAt: sql`least(${rooms.startedAt}, excluded.started_at)`,
         lastActivityAt: sql`greatest(${rooms.lastActivityAt}, excluded.last_activity_at)`,
         livekitSid: sid
-          ? sql`case when excluded.last_activity_at >= ${rooms.lastActivityAt} then excluded.livekit_sid else ${rooms.livekitSid} end`
+          ? sql`case when ${authoritative} or excluded.last_activity_at >= ${rooms.lastActivityAt} then excluded.livekit_sid else ${rooms.livekitSid} end`
           : sql`${rooms.livekitSid}`,
         status: sql`case when ${reopens} then 'active'::room_status else ${rooms.status} end`,
         finishedAt: sql`case when ${reopens} then null else ${rooms.finishedAt} end`,
@@ -92,6 +96,7 @@ export async function ensureParticipation(
   roomCode: string,
   participant: WebhookParticipant,
   at: Date,
+  control?: { sessionId?: string; mediaName: string },
 ): Promise<{ id: string; joinedAt: Date; leftAt: Date | null }> {
   const joinedAt = joinedAtOf(participant, at);
   const userId = UUID.test(participant.identity) ? participant.identity : null;
@@ -107,11 +112,12 @@ export async function ensureParticipation(
         .for("update")
     : [];
   const keepName = !userId || (account && !account.anonymizedAt);
-  const closedAt = await roomClosureAt(tx, roomId, roomCode, joinedAt);
+  const closedAt = await roomClosureAt(tx, roomId, control?.mediaName ?? roomCode, joinedAt);
   const [row] = await tx
     .insert(roomParticipations)
     .values({
       roomId,
+      sessionId: control?.sessionId,
       livekitIdentity: participant.identity,
       livekitSid: participant.sid,
       // The identity is the account id (see /api/token); a deleted account becomes null.

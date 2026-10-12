@@ -75,6 +75,7 @@ export default defineConfig({
       LIVEKIT_URL: env.LIVEKIT_URL ?? "ws://127.0.0.1:7880",
       ACCESS_PASSWORD: E2E_ACCESS_PASSWORD,
       MAX_PARTICIPANTS: "5",
+      ROOM_HOST_CONTROLS_ENABLED: process.env.E2E_HOST_CONTROLS === "true" ? "true" : "false",
       REQUIRE_EMAIL_VERIFICATION: "false",
       LOG_LEVEL: "warn",
       SENTRY_DSN: "",

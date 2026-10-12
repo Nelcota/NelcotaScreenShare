@@ -104,6 +104,7 @@ function CallSummary({ code, durationMs }: { code: string; durationMs?: number }
 export function LeftScreen({
   code,
   reason,
+  permanent,
   message,
   durationMs,
   guest,
@@ -111,6 +112,7 @@ export function LeftScreen({
 }: {
   code: string;
   reason: LeaveReason;
+  permanent?: boolean;
   message?: string;
   /** Time in the call; absent when the person never got in. */
   durationMs?: number;
@@ -119,7 +121,7 @@ export function LeftScreen({
   onRejoin: () => void;
 }) {
   const scope = useRef<HTMLElement>(null);
-  const copy = COPY[reason];
+  const copy = leaveCopy(reason, permanent);
   const { enabled: streamerMode } = useStreamerMode();
   const transitioning = useViewTransitionState(useLocation().pathname);
   const joined = durationMs !== undefined;
@@ -223,4 +225,15 @@ export function LeftScreen({
       ) : null}
     </section>
   );
+}
+
+function leaveCopy(reason: LeaveReason, permanent: boolean | undefined) {
+  if (reason === "ended" && permanent)
+    return {
+      ...COPY.ended,
+      title: "A chamada foi encerrada",
+      rejoin: "Iniciar nova chamada",
+      copyLink: true,
+    };
+  return COPY[reason];
 }

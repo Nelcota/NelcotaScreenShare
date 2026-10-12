@@ -139,6 +139,9 @@ doesn't offer individual exceptions; on managed machines, ask the administrator
 responsible for the application policy. For full validation in CI, run `pnpm lint`,
 `pnpm typecheck`, `pnpm test` and `pnpm build`.
 
+On a clean checkout, run `pnpm typecheck` before `pnpm lint`: the type-aware linter
+requires the generated React Router route types. GitHub and local CI use this order.
+
 > In production and locally, `pnpm start` runs the Hono server built from `app/server.ts` (`build/server/index.js`, port from `PORT`). The Docker image includes only production dependencies, the SSR build, assets and the migration scripts.
 
 ## Common problems
@@ -151,3 +154,25 @@ responsible for the application policy. For full validation in CI, run `pnpm lin
 | `pnpm dev` fails with "Port 3111 is already in use"                               | Another dev server (often another worktree) is running. Stop it: the port is fixed so saved browser logins keep working.                               |
 | Sign-in or any form fails with 403 in dev                                         | `.env.local` still has `APP_URL=http://localhost:3000`, or the page is open on `localhost`. Set `APP_URL=http://127.0.0.1:3111` and open that address. |
 | Port 3100 taken when running E2E                                                  | Set `E2E_PORT` in the environment before `pnpm test:e2e`.                                                                                              |
+
+## Host controls
+
+Host controls use a private signaling admission gate and are disabled by default.
+See [host controls](host-controls.md) for the environment flag, migrations and dedicated
+Playwright command. Local loopback LiveKit is sufficient for functional testing.
+
+## Collaboration pilot
+
+Apply migrations 0013–0015 and enable `ROOM_HOST_CONTROLS_ENABLED=true` only with the private
+LiveKit signaling boundary from [host controls](host-controls.md). Account and team Pro
+allowances are independent and manually provisioned by a platform admin at `/admin/pro`.
+The pilot keeps the existing participant limit. See [collaboration workspaces](collaboration-workspaces.md).
+
+```bash
+pnpm test:e2e
+E2E_HOST_CONTROLS=true pnpm test:e2e tests/e2e/host-controls.spec.ts tests/e2e/annotations.spec.ts tests/e2e/workspaces.spec.ts tests/e2e/collaboration-smoke.spec.ts
+```
+
+Run these sequentially: each E2E invocation recreates the same disposable database.
+The production dependency audit is `pnpm audit --prod --audit-level=high`. The full audit
+including development tooling separately reports the existing `braces`/`shadcn` advisory.

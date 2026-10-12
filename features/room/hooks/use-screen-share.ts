@@ -1,6 +1,7 @@
 import { useLocalParticipant } from "@livekit/components-react";
 import { ScreenSharePresets, Track, type LocalTrack, type VideoEncoding } from "livekit-client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
 import { toast } from "sonner";
 import {
   canRestrictOwnAudio,
@@ -11,6 +12,8 @@ import {
 } from "@/features/room/domain/share-support";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
 import { reportBrowserError } from "@/lib/telemetry.client";
+import { resolveShareProfile, type ShareProfile } from "@/features/room/domain/share-profile";
+import { savedShareProfile, saveShareProfile } from "@/features/room/client/saved-share-profile";
 
 /**
  * Drops the computer audio when it would carry the room back to everyone (see
@@ -42,7 +45,13 @@ export function useScreenShare() {
   const [busy, setBusy] = useState(false);
   // Sound preference shared by the dock menu and the alone screen.
   const [audioPreferred, setAudioPreferred] = useState(true);
+  const [profile, setProfile] = useState<ShareProfile>(savedShareProfile);
   const support = useShareSupport();
+  const host = useRoomHost();
+  useEffect(() => {
+    if (host.canShare || !isScreenShareEnabled) return;
+    void localParticipant.setScreenShareEnabled(false).catch(reportBrowserError);
+  }, [host.canShare, isScreenShareEnabled, localParticipant]);
   const sharedSurface = isScreenShareEnabled
     ? localParticipant
         .getTrackPublication(Track.Source.ScreenShare)
@@ -65,10 +74,12 @@ export function useScreenShare() {
   }
 
   async function start({ surface, audio }: ShareChoice) {
-    // Text (screen, window): 15fps leaves bandwidth for every frame to come out sharp.
-    // A tab is usually video or animated slides: 30fps.
-    const preset =
-      surface === "browser" ? ScreenSharePresets.h1080fps30 : ScreenSharePresets.h1080fps15;
+    if (!host.canShare) {
+      toast.info("O anfitrião restringiu o compartilhamento de tela.");
+      return;
+    }
+    const options = resolveShareProfile(profile, surface);
+    const preset = ScreenSharePresets[options.preset];
     setBusy(true);
     try {
       const tracks = await localParticipant.createScreenTracks({
@@ -88,7 +99,7 @@ export function useScreenShare() {
         systemAudio: audio && canRestrictOwnAudio() ? "include" : "exclude",
         selfBrowserSurface: "exclude",
         surfaceSwitching: "include",
-        contentHint: surface === "browser" ? "motion" : "detail",
+        contentHint: options.contentHint,
         resolution: preset.resolution,
       });
       await publishScreen(withoutEchoingAudio(tracks), preset.encoding);
@@ -128,11 +139,17 @@ export function useScreenShare() {
 
   return {
     isSharing: isScreenShareEnabled,
+    permitted: host.canShare,
     /** The browser's own sharing bar covers the bottom of the page. */
     captureBar: support !== null && showsCaptureBar(support, sharedSurface),
     busy,
     audio: audioPreferred,
     setAudio: setAudioPreferred,
+    profile,
+    setProfile: (next: ShareProfile) => {
+      setProfile(next);
+      saveShareProfile(next);
+    },
     start,
     stop,
   };

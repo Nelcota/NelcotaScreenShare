@@ -1,3 +1,4 @@
+import { redactTelemetryUrls } from "@/lib/telemetry-urls";
 import type { NodeOptions } from "@sentry/react-router";
 import { getEnv } from "@/server/env.server";
 
@@ -24,6 +25,7 @@ export function sentryOptions(dsn: string): NodeOptions {
     },
     tracesSampleRate: 0.1,
     traceLifecycle: "static",
+    beforeSendTransaction: redactTelemetryUrls,
     beforeSend(event) {
       if (event.user) event.user = event.user.id ? { id: event.user.id } : undefined;
       if (event.request) {
@@ -35,7 +37,7 @@ export function sentryOptions(dsn: string): NodeOptions {
           }
         }
       }
-      return event;
+      return redactTelemetryUrls(event);
     },
   };
 }

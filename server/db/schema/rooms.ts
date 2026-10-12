@@ -20,6 +20,7 @@ import { createdAt, id, timestamptz, updatedAt } from "./columns";
 import { users } from "./user-auth";
 import { TOKEN_LOG_RESULTS } from "@/features/room/domain/issue-token";
 import { ROOM_CODE_PATTERN } from "@/features/room/domain/room-code";
+import { roomSessions } from "./room-control";
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 
@@ -99,6 +100,7 @@ export const roomParticipations = pgTable(
       .references(() => rooms.id, { onDelete: "restrict" }),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     // = users.id in the token.
+    sessionId: uuid("session_id").references(() => roomSessions.id, { onDelete: "set null" }),
     livekitIdentity: text("livekit_identity").notNull(),
     // sid of the connection in LiveKit (PA_…): comes in every participant event,
     // including track events, which do not carry joined_at.
@@ -122,6 +124,7 @@ export const roomParticipations = pgTable(
       sql`${table.leftAt} is null or ${table.leftAt} >= ${table.joinedAt}`,
     ),
     index("room_participations_room_idx").on(table.roomId, table.joinedAt.desc()),
+    index("room_participations_session_idx").on(table.sessionId, table.id),
     index("room_participations_user_idx").on(table.userId, table.joinedAt.desc()),
     index("room_participations_online_idx")
       .on(table.roomId)

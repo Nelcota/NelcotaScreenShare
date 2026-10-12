@@ -8,6 +8,7 @@ export interface JoinChoices {
   guestName?: string;
   token: string;
   serverUrl: string;
+  sessionId?: string;
   micEnabled: boolean;
   audioDeviceId?: string;
 }

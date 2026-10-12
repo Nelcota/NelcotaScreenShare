@@ -1,3 +1,7 @@
+import { Archive } from "lucide-react";
+import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import { StatusScreen } from "./StatusScreen";
 import { lazy, Suspense, useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/shell/AppHeader";
@@ -27,6 +31,8 @@ async function prefetchRoomView() {
 
 interface RoomSessionProps {
   code: string;
+  unavailable?: string;
+  permanent?: boolean;
   /** Null for a guest (no account). */
   userName: string | null;
   userImage: string | null;
@@ -51,6 +57,8 @@ type Phase =
 
 export function RoomSession({
   code,
+  unavailable,
+  permanent,
   userName,
   userImage,
   passwordRequired,
@@ -83,7 +91,12 @@ export function RoomSession({
     }
     setPhase({
       kind: "room",
-      choices: { ...choices, token: result.data.token, serverUrl: result.data.serverUrl },
+      choices: {
+        ...choices,
+        token: result.data.token,
+        serverUrl: result.data.serverUrl,
+        sessionId: result.data.sessionId,
+      },
       attempt: attempt + 1,
       startedAt,
     });
@@ -125,6 +138,20 @@ export function RoomSession({
 
   if (minimized) return null;
 
+  if (unavailable)
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <AppHeader account={userName === null ? null : { name: userName, image: userImage }} />
+        <main className="flex flex-1 items-center justify-center px-4">
+          <StatusScreen icon={Archive} title="Sala indisponível" message={unavailable}>
+            <Button asChild>
+              <Link to={userName ? "/salas" : "/"}>Voltar</Link>
+            </Button>
+          </StatusScreen>
+        </main>
+      </div>
+    );
+
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader
@@ -149,6 +176,7 @@ export function RoomSession({
           <LeftScreen
             code={code}
             reason={phase.reason}
+            permanent={permanent}
             message={phase.message}
             durationMs={phase.durationMs}
             guest={userName === null}

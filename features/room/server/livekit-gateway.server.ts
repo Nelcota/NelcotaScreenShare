@@ -41,7 +41,7 @@ export const liveKitGateway: LiveKitGateway = {
     return (await identitiesIn(room)).some((identity) => !isGuestIdentity(identity));
   },
 
-  async signToken({ identity, name, room }) {
+  async signToken({ identity, name, room, canShare = true }) {
     const env = getEnv();
     // Identity = account: the same person in two tabs takes a single spot in the room
     // (LiveKit disconnects the previous connection) and events map to the right account.
@@ -54,7 +54,7 @@ export const liveKitGateway: LiveKitGateway = {
       room,
       roomJoin: true,
       canPublish: true,
-      canPublishSources: PUBLISH_SOURCES,
+      canPublishSources: canShare ? PUBLISH_SOURCES : [TrackSource.MICROPHONE],
       canSubscribe: true,
       // Chat, reactions and pointer use the data channel.
       canPublishData: true,

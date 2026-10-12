@@ -30,16 +30,22 @@ Self-hosted, with LiveKit and React Router.
 
 ## Features
 
-| Feature              | What it does                                                                                              |
-| -------------------- | --------------------------------------------------------------------------------------------------------- |
-| Screen with audio    | Shares the screen with tab or system audio, when the browser allows it                                    |
-| Microphone           | Test before joining, device switching and an indicator of who is speaking                                 |
-| In the room          | Chat, reactions, raise your hand and point at someone else's screen (everyone sees the pointer)           |
-| Joining is simple    | Create a room with `Enter` or paste the link you received; optional password and a limit of 2 to 8 people |
-| Accounts             | Sign-up, 2FA, profile picture, connected devices, data export and deletion (LGPD)                         |
-| Admin panel          | Rooms, participants, shares and an immutable audit log, with invitations, mandatory 2FA and permissions   |
-| Light and dark theme | GSAP animations that respect `prefers-reduced-motion`                                                     |
-| Nelcota              | A mascot that follows the form, celebrates, worries about errors and dozes off when you go away           |
+| Feature               | What it does                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Screen with audio     | Shares the screen with tab or system audio, when the browser allows it                                                    |
+| Microphone            | Test before joining, device switching and an indicator of who is speaking                                                 |
+| In the room           | Chat, reactions, raise your hand and point at someone else's screen (everyone sees the pointer)                           |
+| Individual audio      | Adjust each person's voice and shared sound separately, or mute them only for yourself                                    |
+| Temporary annotations | Arrows, circles and pen marks, author labels, undo, expiry and server-authorized clear (private gate)                     |
+| Permanent rooms       | Named stable links, favorites, archive and per-call history, with manual Pro beta activation                              |
+| Team workspace        | Owner/manager/member roles, email-bound invite links, team rooms and membership revocation                                |
+| Sharing profiles      | Automatic, Text, Video and Data saver, remembered on this browser for the next share                                      |
+| Host controls         | Server authority, admission lock, removal, transfer and sharing policy; opt-in [private signaling](docs/host-controls.md) |
+| Joining is simple     | Create a room with `Enter` or paste the link you received; optional password and a limit of 2 to 8 people                 |
+| Accounts              | Sign-up, 2FA, profile picture, connected devices, data export and deletion (LGPD)                                         |
+| Admin panel           | Rooms, participants, shares and an immutable audit log, with invitations, mandatory 2FA and permissions                   |
+| Light and dark theme  | GSAP animations that respect `prefers-reduced-motion`                                                                     |
+| Nelcota               | A mascot that follows the form, celebrates, worries about errors and dozes off when you go away                           |
 
 ### Room shortcuts
 
@@ -142,3 +148,8 @@ CI runs all of this on every PR, plus `pnpm audit`. The Deploy workflow (image, 
 | [Accounts, panel and database](docs/accounts-and-admin.md) | Participant accounts, `/admin` panel, audit log, Postgres roles      |
 | [Deployment and operations](docs/deployment.md)            | Coolify, LiveKit, proxy, TURN, webhook and how to test in production |
 | [Decisions (ADRs)](docs/adr/)                              | Why things are the way they are                                      |
+
+Collaboration features require the opt-in private signaling gate. Personal and team Pro beta
+activations are provisioned at `/admin/pro`; no billing or automatic invitation email is
+implemented. See [collaboration workspaces](docs/collaboration-workspaces.md) for setup,
+permissions, privacy, validation and rollout.

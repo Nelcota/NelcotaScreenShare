@@ -58,7 +58,7 @@ export const revokeMyOtherSessions = defineUserOperation(
  */
 export const deleteMyAccount = defineUserOperation(
   { name: "account.delete", audit: "required" },
-  z.object({ password: z.string().min(1).max(128) }),
+  z.object({ password: z.string().min(1).max(128), deleteOwnedTeams: z.boolean().default(false) }),
   async ({ parsedInput, ctx }) => {
     const db = getDb();
     const userId = ctx.current.user.id;
@@ -78,7 +78,7 @@ export const deleteMyAccount = defineUserOperation(
     }
     deletePasswordFailures.reset(userId);
     await db.transaction(async (tx) => {
-      await anonymizeParticipant(tx, userId);
+      await anonymizeParticipant(tx, userId, parsedInput.deleteOwnedTeams);
       // LGPD: record of the deletion requested by the data subject (no personal data).
       await ctx.audit.record(tx, {
         action: "user.self_delete",

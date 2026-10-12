@@ -72,6 +72,8 @@ describe("permission matrix (docs/archive/admin-plan.md §5.2)", () => {
       "roomInvite.revoke",
       "audit.read",
       "settings.read",
+      "beta.read",
+      "beta.update",
       "lgpd.read",
     ],
     viewer: ["dashboard.read", "participant.read", "room.read", "shareSession.read", "live.read"],

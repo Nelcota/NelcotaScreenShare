@@ -1,0 +1,201 @@
+import { afterAll, beforeEach, expect, test, vi } from "vitest";
+import { and, eq } from "drizzle-orm";
+import { closeDb, getDb } from "@/server/db/index.server";
+import {
+  roomCommands,
+  roomDefinitions,
+  roomSessionMembers,
+  roomSessions,
+} from "@/server/db/schema/room-control";
+import { auditLogs } from "@/server/db/schema/audit";
+import { reserveAdmission } from "@/features/room/server/session-admission.server";
+import { controlGateway } from "@/features/room/server/control-gateway.server";
+import { liveKitGateway } from "@/features/room/server/livekit-gateway.server";
+import {
+  authorizeSignal,
+  openSignal,
+  validateSignal,
+} from "@/features/room/server/signal-admission.server";
+import { applyRoomCommand } from "@/features/room/server/control-commands.server";
+import { reconcileSessionPresence } from "@/features/room/server/session-presence.server";
+import { readControlState } from "@/features/room/server/control-state.server";
+import { maintainRoomControls } from "@/features/room/server/control-maintenance.server";
+import {
+  account,
+  controlledRoom,
+  grant,
+  mockControlTransport,
+  online,
+  participant,
+} from "./support/host-controls";
+
+process.env.ROOM_HOST_CONTROLS_ENABLED = "true";
+beforeEach(mockControlTransport);
+afterAll(closeDb);
+
+test("signaling refuses forged credentials and foreign origins before admission", async () => {
+  const invalid = await openSignal(
+    new Request("http://localhost:3000/api/sala/conexao/rtc?access_token=forged"),
+  );
+  expect(invalid).toBeInstanceOf(Response);
+  if (!(invalid instanceof Response)) throw new Error("Forged token was admitted");
+  expect(invalid.status).toBe(403);
+  const foreign = await validateSignal(
+    new Request("http://localhost:3000/api/sala/conexao/rtc/validate?access_token=forged", {
+      headers: { origin: "https://foreign.example" },
+    }),
+  );
+  expect(foreign.status).toBe(403);
+});
+
+test("concurrent host claims and capacity reservations have a single winner", async () => {
+  const identities = await Promise.all([account(), account(), account()]);
+  const code = "simultaneous-hosts";
+  const results = await Promise.allSettled(
+    identities.map((identity) => reserveAdmission(getDb(), grant(code, identity), 2)),
+  );
+  expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(2);
+  expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+  const sessions = await getDb().select().from(roomSessions);
+  expect(sessions).toHaveLength(1);
+  expect(identities).toContain(sessions[0]?.hostUserId);
+  expect(await getDb().select().from(roomSessionMembers)).toHaveLength(2);
+});
+
+test("guest cannot claim host and token reservation is not admission", async () => {
+  await expect(
+    reserveAdmission(getDb(), grant("guest-no-host", "convidado-test"), 6),
+  ).rejects.toMatchObject({ code: "host_absent" });
+  const room = await controlledRoom();
+  const waiting = await account();
+  await reserveAdmission(getDb(), grant(room.code, waiting), 6);
+  const oldToken = await liveKitGateway.signToken(grant(room.mediaRoomName, waiting));
+  await room.command({ kind: "lock", locked: true });
+  await expect(authorizeSignal(getDb(), oldToken)).rejects.toMatchObject({ code: "room_locked" });
+  await expect(reserveAdmission(getDb(), grant(room.code, waiting), 6)).rejects.toMatchObject({
+    code: "room_locked",
+  });
+  const admittedToken = await liveKitGateway.signToken(grant(room.mediaRoomName, room.other));
+  await expect(authorizeSignal(getDb(), admittedToken)).resolves.toBeUndefined();
+});
+
+test("non-host, wrong room and guest transfers are refused under the authority lock", async () => {
+  const room = await controlledRoom();
+  await expect(room.command({ kind: "close" }, room.other)).rejects.toThrow("Só o anfitrião");
+  await expect(room.command({ kind: "transfer", identity: "convidado-test" })).rejects.toThrow(
+    "outra pessoa com conta",
+  );
+  await expect(room.command({ kind: "remove", identity: room.host })).rejects.toThrow("Para sair");
+  await room.command({ kind: "transfer", identity: room.other });
+  await expect(room.command({ kind: "lock", locked: true })).rejects.toThrow("Só o anfitrião");
+  expect((await readControlState(getDb(), room.code, room.sessionId, room.other))?.isHost).toBe(
+    true,
+  );
+  expect(
+    await readControlState(getDb(), "different-room", room.sessionId, room.other),
+  ).toBeUndefined();
+});
+
+test("original and server-refreshed credentials cannot bypass exclusion or closure", async () => {
+  const room = await controlledRoom();
+  const oldToken = await liveKitGateway.signToken(grant(room.mediaRoomName, room.other));
+  const refreshedToken = await liveKitGateway.signToken(grant(room.mediaRoomName, room.other));
+  await room.command({ kind: "remove", identity: room.other });
+  for (const token of [oldToken, refreshedToken])
+    await expect(authorizeSignal(getDb(), token)).rejects.toMatchObject({ code: "room_removed" });
+  await expect(reserveAdmission(getDb(), grant(room.code, room.other), 6)).rejects.toMatchObject({
+    code: "room_removed",
+  });
+  const hostToken = await liveKitGateway.signToken(grant(room.mediaRoomName, room.host));
+  await room.command({ kind: "close" });
+  await expect(authorizeSignal(getDb(), hostToken)).rejects.toMatchObject({ code: "room_closed" });
+  await expect(reserveAdmission(getDb(), grant(room.code, room.host), 6)).rejects.toMatchObject({
+    code: "room_closed",
+  });
+});
+
+test("old broad grants are rewritten to the current sharing policy on reconnect", async () => {
+  const room = await controlledRoom();
+  const token = await liveKitGateway.signToken(grant(room.mediaRoomName, room.other));
+  await room.command({ kind: "sharing", policy: "host", allowed: [] });
+  const signer = vi.spyOn(liveKitGateway, "signToken");
+  await authorizeSignal(getDb(), token);
+  expect(signer).toHaveBeenLastCalledWith(
+    expect.objectContaining({ identity: room.other, canShare: false }),
+  );
+  await room.command({ kind: "sharing", policy: "selected", allowed: [room.other] });
+  await authorizeSignal(getDb(), token);
+  expect(signer).toHaveBeenLastCalledWith(expect.objectContaining({ canShare: true }));
+});
+
+test("transport failure preserves policy/audit and retry applies current state", async () => {
+  const room = await controlledRoom();
+  const sync = vi.spyOn(controlGateway, "sync").mockRejectedValueOnce(new Error("unavailable"));
+  const failed = await room.command({ kind: "sharing", policy: "host", allowed: [] });
+  expect(failed.status).toBe("failed");
+  expect((await readControlState(getDb(), room.code, room.sessionId, room.other))?.canShare).toBe(
+    false,
+  );
+  expect(
+    await getDb()
+      .select()
+      .from(auditLogs)
+      .where(and(eq(auditLogs.resourceId, room.sessionId), eq(auditLogs.action, "room.sharing"))),
+  ).toHaveLength(1);
+  await room.command({ kind: "sharing", policy: "everyone", allowed: [] });
+  expect(await applyRoomCommand(getDb(), failed.commandId)).toBe("applied");
+  expect(sync).toHaveBeenLastCalledWith(expect.objectContaining({ sharePolicy: "everyone" }));
+  const [stored] = await getDb()
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, failed.commandId));
+  expect(stored?.attempts).toBe(2);
+  vi.spyOn(controlGateway, "sync").mockRejectedValueOnce(new Error("unavailable again"));
+  const retried = await room.command({ kind: "lock", locked: true });
+  expect(retried.status).toBe("failed");
+  await maintainRoomControls(getDb(), new Date(Date.now() + 6_000));
+  const [applied] = await getDb()
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, retried.commandId));
+  expect(applied?.status).toBe("applied");
+});
+
+test("host absence respects grace and elects oldest admitted active account", async () => {
+  const room = await controlledRoom();
+  const db = getDb();
+  const [initial] = await db.select().from(roomSessions).where(eq(roomSessions.id, room.sessionId));
+  if (!initial) throw new Error("Missing session");
+  const now = new Date();
+  const people = [participant("convidado-older", 0), participant(room.other, 2)];
+  const waiting = await db.transaction((tx) => reconcileSessionPresence(tx, initial, people, now));
+  expect(waiting.hostUserId).toBe(room.host);
+  const elected = await db.transaction((tx) =>
+    reconcileSessionPresence(tx, waiting, people, new Date(now.getTime() + 60_001)),
+  );
+  expect(elected.hostUserId).toBe(room.other);
+  online.set(room.mediaRoomName, people);
+});
+
+test("empty call expires without making definition terminal; old JWT cannot open next session", async () => {
+  const room = await controlledRoom();
+  const db = getDb();
+  const [initial] = await db.select().from(roomSessions).where(eq(roomSessions.id, room.sessionId));
+  if (!initial) throw new Error("Missing session");
+  const now = new Date();
+  const waiting = await db.transaction((tx) => reconcileSessionPresence(tx, initial, [], now));
+  const closed = await db.transaction((tx) =>
+    reconcileSessionPresence(tx, waiting, [], new Date(now.getTime() + 60_001)),
+  );
+  expect(closed.status).toBe("closed");
+  const token = await liveKitGateway.signToken(grant(room.mediaRoomName, room.host));
+  await expect(authorizeSignal(db, token)).rejects.toMatchObject({ code: "room_closed" });
+  const [definition] = await db
+    .select()
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.id, closed.definitionId));
+  expect(definition?.closedAt).toBeNull();
+  const next = await reserveAdmission(db, grant(room.code, room.host), 6);
+  expect(next.sessionId).not.toBe(room.sessionId);
+  expect(next.mediaRoomName).not.toBe(room.mediaRoomName);
+});

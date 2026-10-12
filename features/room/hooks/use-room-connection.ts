@@ -1,3 +1,4 @@
+import { controlledDisconnectNotice } from "@/features/room/client/disconnect-notice";
 import { useSequentialRoomConnectDisconnect } from "@livekit/components-react";
 import { DisconnectReason, Room, RoomEvent } from "livekit-client";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -20,6 +21,7 @@ import { logBrowserWarning, runAndReport } from "@/lib/telemetry.client";
  */
 export function useRoomConnection(
   choices: JoinChoices,
+  code: string,
   /** No notice: the person left on purpose. */
   onLeave: (notice?: LeaveNotice) => void,
 ): { room: Room; connectError: string | undefined; leave: () => void } {
@@ -39,18 +41,23 @@ export function useRoomConnection(
   const { connect, disconnect } = useSequentialRoomConnectDisconnect(room);
   const [connectError, setConnectError] = useState<string>();
   const leavingRef = useRef(false);
+  const activeRef = useRef(true);
 
   const handleUnexpectedDisconnect = useEffectEvent((reason?: DisconnectReason) => {
     if (leavingRef.current || reason === DisconnectReason.CLIENT_INITIATED) return;
-    onLeave({
+    const fallback: LeaveNotice = {
       reason: disconnectReason(reason),
       message:
         disconnectMessage(reason) ??
         "Você foi desconectado. Verifique sua internet e entre de novo.",
+    };
+    void controlledDisconnectNotice(code, choices.sessionId, fallback).then((notice) => {
+      if (activeRef.current && !leavingRef.current) onLeave(notice);
     });
   });
 
   useEffect(() => {
+    activeRef.current = true;
     let cancelled = false;
     // Until connect() finishes, the catch below handles failure: the SDK
     // also emits Disconnected when the connection never opens, and that
@@ -95,6 +102,7 @@ export function useRoomConnection(
 
     return () => {
       cancelled = true;
+      activeRef.current = false;
       room
         .off(RoomEvent.Disconnected, handleDisconnected)
         .off(RoomEvent.Reconnected, handleReconnected)

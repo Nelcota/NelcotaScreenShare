@@ -2,6 +2,10 @@
 
 Production guide: Coolify on a VPS, with self-hosted LiveKit, the app as a GHCR image and Postgres managed by Coolify. To run locally, see the [development guide](development.md).
 
+The instructions below describe legacy public signaling (`ROOM_HOST_CONTROLS_ENABLED=false`).
+For host controls, follow the [private signaling deployment boundary](host-controls.md#required-deployment-boundary)
+before enabling the feature; the public proxy in step 3 must be removed.
+
 ## Deploying on Coolify
 
 You will create two resources on the same server: LiveKit and the app.

@@ -1,3 +1,6 @@
+vi.mock("@/features/room/server/session-store.server", () => ({
+  mediaRoomForCode: async (room: string) => room,
+}));
 import { ServerError } from "livekit-server-sdk";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { renameInRoom } from "@/features/room/client/api";

@@ -22,6 +22,9 @@ import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
 import { NameEditor } from "./NameEditor";
 import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
+import { HostBadge } from "./HostBadge";
+import { HostParticipantMenu } from "./HostParticipantMenu";
+import { HostControlsMenu } from "./HostControlsMenu";
 import type { Connection } from "./RoomLayout";
 
 const CONNECTION_LABELS: Record<Connection, string> = {
@@ -114,7 +117,9 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
               {participantName(participant)}
               {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
             </span>
+            <HostBadge identity={participant.identity} />
             <ParticipantAudioMenu participant={participant} />
+            <HostParticipantMenu participant={participant} />
           </li>
         ))}
       </ul>
@@ -162,6 +167,7 @@ export function RoomTopBar({
 
       <span className="ml-auto" />
       <PeopleButton participants={participants} max={maxParticipants} />
+      <HostControlsMenu participants={participants} />
       {isAdmin ? (
         <Hint text="Painel admin (a chamada continua)">
           <Link

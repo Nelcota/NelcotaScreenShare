@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
+import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import {
   roomParticipations,
   userAccounts,
@@ -105,6 +106,15 @@ export async function anonymizeParticipant(tx: DbExecutor, id: string) {
   await tx.delete(userAccounts).where(eq(userAccounts.userId, id));
   await tx.delete(userTwoFactors).where(eq(userTwoFactors.userId, id));
   await tx.delete(userSessions).where(eq(userSessions.userId, id));
+  await tx
+    .update(roomDefinitions)
+    .set({ ownerUserId: null })
+    .where(eq(roomDefinitions.ownerUserId, id));
+  await tx.update(roomSessions).set({ hostUserId: null }).where(eq(roomSessions.hostUserId, id));
+  await tx
+    .update(roomSessionMembers)
+    .set({ userId: null, excludedAt: sql`now()` })
+    .where(eq(roomSessionMembers.userId, id));
   // Password recovery: identifier = reset-password:<token>, value = user.id.
   await tx
     .delete(userVerifications)

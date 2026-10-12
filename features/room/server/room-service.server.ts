@@ -14,5 +14,6 @@ export function roomService(): RoomServiceClient {
     httpUrlFrom(env.LIVEKIT_URL),
     env.LIVEKIT_API_KEY,
     env.LIVEKIT_API_SECRET,
+    { requestTimeout: 4 },
   );
 }

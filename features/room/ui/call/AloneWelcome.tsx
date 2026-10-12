@@ -17,7 +17,7 @@ function ShareButton({ share }: { share: ScreenShareControl }) {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <Button size="lg" disabled={share.busy}>
+        <Button size="lg" disabled={share.busy || !share.permitted}>
           {share.busy ? (
             <Loader2 className="animate-spin" aria-hidden="true" />
           ) : (

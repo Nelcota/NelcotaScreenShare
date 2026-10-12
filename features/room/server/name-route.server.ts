@@ -9,6 +9,7 @@ import { getUserAuth } from "@/features/auth/server/participant-auth.server";
 import { forbiddenCrossSite, isCrossSiteMutation } from "@/server/origin-guard.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 import { requestLogger } from "@/server/request-log.server";
+import { mediaRoomForCode } from "./session-store.server";
 
 const nameSchema = z.object({ room: roomCodeSchema, name: displayNameSchema });
 const limiter = createRateLimiter({ limit: 10, windowMs: 60_000 });
@@ -42,7 +43,7 @@ export async function setRoomName(request: Request) {
 
   // The room first: it also proves the caller is in this call before the account changes.
   try {
-    await roomService().updateParticipant(room, caller.identity, { name });
+    await roomService().updateParticipant(await mediaRoomForCode(room), caller.identity, { name });
   } catch (error) {
     if (error instanceof ServerError && error.status === 404) {
       return fail("Você não está nesta sala.", 409);

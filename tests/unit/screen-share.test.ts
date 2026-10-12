@@ -6,6 +6,7 @@ import type { ShareProfile } from "@/features/room/domain/share-profile";
 
 const capture = vi.hoisted(() => ({
   profile: "automatic" as ShareProfile,
+  canShare: true,
   createScreenTracks: vi.fn(),
   publishTrack: vi.fn(),
   unpublishTrack: vi.fn(),
@@ -15,8 +16,12 @@ const capture = vi.hoisted(() => ({
   toastError: vi.fn(),
   reportError: vi.fn(),
 }));
+vi.mock("@/features/room/ui/call/RoomHostProvider", () => ({
+  useRoomHost: () => ({ canShare: capture.canShare }),
+}));
 vi.mock("react", async (original) => ({
   ...(await original<typeof React>()),
+  useEffect: () => {},
   useState: <T>(initial: T | (() => T)): [T, () => void] => [
     typeof initial === "function" ? (initial as () => T)() : initial,
     () => {},
@@ -58,6 +63,7 @@ function screenTrack() {
 beforeEach(() => {
   vi.resetAllMocks();
   capture.profile = "automatic";
+  capture.canShare = true;
   capture.createScreenTracks.mockResolvedValue([screenTrack()]);
   capture.publishTrack.mockResolvedValue(undefined);
   capture.unpublishTrack.mockResolvedValue(undefined);
@@ -129,4 +135,14 @@ test("cancelling capture does not publish tracks and keeps errors out of telemet
   expect(capture.publishTrack).not.toHaveBeenCalled();
   expect(capture.reportError).not.toHaveBeenCalled();
   expect(capture.toastInfo).toHaveBeenCalledOnce();
+});
+
+test("host restriction does not open capture or publish a screen", async () => {
+  capture.canShare = false;
+  await useScreenShare().start({ surface: "monitor", audio: true });
+  expect(capture.createScreenTracks).not.toHaveBeenCalled();
+  expect(capture.publishTrack).not.toHaveBeenCalled();
+  expect(capture.toastInfo).toHaveBeenCalledWith(
+    "O anfitrião restringiu o compartilhamento de tela.",
+  );
 });

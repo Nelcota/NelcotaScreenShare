@@ -9,6 +9,7 @@ import { ShortcutScope, ShortcutSettings } from "@/lib/hooks/use-shortcut";
 import { ConnectError } from "./ConnectError";
 import { MinimizedCall } from "./MinimizedCall";
 import { RoomLayout } from "./RoomLayout";
+import { RoomHostProvider } from "./RoomHostProvider";
 
 interface RoomViewProps {
   code: string;
@@ -55,23 +56,25 @@ export function RoomView({
   // Hidden, not unmounted: the connection, the audio and the shared screen stay on.
   return (
     <RoomContext.Provider value={room}>
-      <DeafenProvider>
-        <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
-          <ShortcutScope value={!minimized}>
-            <div hidden={minimized}>
-              <ReactionsProvider>
-                <RoomLayout
-                  code={code}
-                  maxParticipants={maxParticipants}
-                  isAdmin={isAdmin}
-                  onLeave={leave}
-                />
-              </ReactionsProvider>
-            </div>
-          </ShortcutScope>
-        </ShortcutSettings>
-        {minimized ? <MinimizedCall code={code} /> : null}
-      </DeafenProvider>
+      <RoomHostProvider code={code} sessionId={choices.sessionId} onLeave={onLeave}>
+        <DeafenProvider>
+          <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
+            <ShortcutScope value={!minimized}>
+              <div hidden={minimized}>
+                <ReactionsProvider>
+                  <RoomLayout
+                    code={code}
+                    maxParticipants={maxParticipants}
+                    isAdmin={isAdmin}
+                    onLeave={leave}
+                  />
+                </ReactionsProvider>
+              </div>
+            </ShortcutScope>
+          </ShortcutSettings>
+          {minimized ? <MinimizedCall code={code} /> : null}
+        </DeafenProvider>
+      </RoomHostProvider>
     </RoomContext.Provider>
   );
 }

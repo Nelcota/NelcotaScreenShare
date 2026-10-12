@@ -5,6 +5,7 @@ import { roomParticipations, rooms, shareSessions } from "@/server/db/schema";
 import { leaveReasonFrom, occurredAt, type WebhookPayload } from "./payload";
 import { closeShares, ensureParticipation, ensureRoom, updatePeak } from "./records.server";
 import { reconcileShareAudio } from "./share-audio.server";
+import { lockControlRoom, sessionByMediaName, openControlSession } from "../session-store.server";
 import { isDeletedRoomEvent, lockRoomCodes } from "../room-lifecycle.server";
 
 export type ProjectionResult = "projected" | "ignored";
@@ -17,23 +18,52 @@ interface EventContext {
   payload: WebhookPayload;
   code: string;
   at: Date;
+  sessionId?: string;
+  canReopen: boolean;
+  currentSession: boolean;
+  mediaSid?: string;
+  authority: boolean;
 }
 
 type Handler = (ctx: EventContext) => Promise<ProjectionResult>;
 
-const roomStarted: Handler = async ({ tx, payload, code, at }) => {
+const roomStarted: Handler = async ({ tx, payload, code, at, canReopen, mediaSid, authority }) => {
   const startedAt = payload.room?.creationTime ? new Date(payload.room.creationTime * 1000) : at;
-  await ensureRoom(tx, code, startedAt, { reopen: true, sid: payload.room?.sid });
+  await ensureRoom(tx, code, startedAt, {
+    reopen: canReopen,
+    sid: mediaSid,
+    authoritative: authority,
+  });
   return "projected";
 };
 
-const roomFinished: Handler = async ({ tx, payload, code, at }) => {
-  const roomId = await ensureRoom(tx, code, at, { reopen: false, sid: payload.room?.sid });
+const roomFinished: Handler = async ({
+  tx,
+  payload,
+  code,
+  at,
+  sessionId,
+  currentSession,
+  mediaSid,
+  authority,
+}) => {
+  const roomId = await ensureRoom(tx, code, at, {
+    reopen: false,
+    sid: mediaSid,
+    authoritative: authority,
+  });
   // Activity after this time (a late event from an already reopened room) keeps the room active.
   await tx
     .update(rooms)
     .set({ status: "finished", finishedAt: sql`greatest(${rooms.startedAt}, ${at}::timestamptz)` })
-    .where(and(eq(rooms.id, roomId), eq(rooms.status, "active"), lte(rooms.lastActivityAt, at)));
+    .where(
+      and(
+        eq(rooms.id, roomId),
+        eq(rooms.status, "active"),
+        lte(rooms.lastActivityAt, at),
+        currentSession ? undefined : sql`false`,
+      ),
+    );
   await tx
     .update(roomParticipations)
     .set({
@@ -43,29 +73,70 @@ const roomFinished: Handler = async ({ tx, payload, code, at }) => {
     .where(
       and(
         eq(roomParticipations.roomId, roomId),
+        sessionId ? eq(roomParticipations.sessionId, sessionId) : undefined,
         isNull(roomParticipations.leftAt),
         lte(roomParticipations.joinedAt, at),
       ),
     );
-  await closeShares(tx, eq(shareSessions.roomId, roomId), at);
+  await closeShares(
+    tx,
+    and(
+      eq(shareSessions.roomId, roomId),
+      sessionId
+        ? sql`${shareSessions.participationId} in (select ${roomParticipations.id} from ${roomParticipations} where ${roomParticipations.sessionId} = ${sessionId})`
+        : undefined,
+    ),
+    at,
+  );
   await updatePeak(tx, roomId);
-  await reconcileShareAudio(tx, roomId, code);
+  await reconcileShareAudio(tx, roomId, payload.room?.name ?? code);
   return "projected";
 };
 
-const participantJoined: Handler = async ({ tx, payload, code, at }) => {
+const participantJoined: Handler = async ({
+  tx,
+  payload,
+  code,
+  at,
+  sessionId,
+  canReopen,
+  mediaSid,
+  authority,
+}) => {
   if (!payload.participant) return "ignored";
-  const roomId = await ensureRoom(tx, code, at, { reopen: true, sid: payload.room?.sid });
-  await ensureParticipation(tx, roomId, code, payload.participant, at);
+  const roomId = await ensureRoom(tx, code, at, {
+    reopen: canReopen,
+    sid: mediaSid,
+    authoritative: authority,
+  });
+  await ensureParticipation(tx, roomId, code, payload.participant, at, {
+    sessionId,
+    mediaName: payload.room?.name ?? code,
+  });
   await updatePeak(tx, roomId);
   return "projected";
 };
 
-const participantLeft: Handler = async ({ tx, payload, code, at }) => {
+const participantLeft: Handler = async ({
+  tx,
+  payload,
+  code,
+  at,
+  sessionId,
+  mediaSid,
+  authority,
+}) => {
   const { participant } = payload;
   if (!participant) return "ignored";
-  const roomId = await ensureRoom(tx, code, at, { reopen: false, sid: payload.room?.sid });
-  const participation = await ensureParticipation(tx, roomId, code, participant, at);
+  const roomId = await ensureRoom(tx, code, at, {
+    reopen: false,
+    sid: mediaSid,
+    authoritative: authority,
+  });
+  const participation = await ensureParticipation(tx, roomId, code, participant, at, {
+    sessionId,
+    mediaName: payload.room?.name ?? code,
+  });
   const reason =
     payload.event === "participant_connection_aborted"
       ? "disconnected"
@@ -84,29 +155,58 @@ const participantLeft: Handler = async ({ tx, payload, code, at }) => {
     );
   await closeShares(tx, eq(shareSessions.participationId, participation.id), at);
   await updatePeak(tx, roomId);
-  await reconcileShareAudio(tx, roomId, code);
+  await reconcileShareAudio(tx, roomId, payload.room?.name ?? code);
   return "projected";
 };
 
 /** Audio can arrive before or after its video, including after the share has ended. */
-const screenAudioChanged: Handler = async ({ tx, payload, code, at }) => {
+const screenAudioChanged: Handler = async ({
+  tx,
+  payload,
+  code,
+  at,
+  sessionId,
+  canReopen,
+  mediaSid,
+  authority,
+}) => {
   if (!payload.participant) return "ignored";
   const roomId = await ensureRoom(tx, code, at, {
-    reopen: payload.event === "track_published",
-    sid: payload.room?.sid,
+    reopen: payload.event === "track_published" && canReopen,
+    sid: mediaSid,
+    authoritative: authority,
   });
-  await ensureParticipation(tx, roomId, code, payload.participant, at);
-  await reconcileShareAudio(tx, roomId, code);
+  await ensureParticipation(tx, roomId, code, payload.participant, at, {
+    sessionId,
+    mediaName: payload.room?.name ?? code,
+  });
+  await reconcileShareAudio(tx, roomId, payload.room?.name ?? code);
   return "projected";
 };
 
 /** Screen share started or ended (arrival order does not matter). */
-const screenTrack: Handler = async ({ tx, payload, code, at }) => {
+const screenTrack: Handler = async ({
+  tx,
+  payload,
+  code,
+  at,
+  sessionId,
+  canReopen,
+  mediaSid,
+  authority,
+}) => {
   const { participant, track } = payload;
   if (!participant || !track) return "ignored";
   const published = payload.event === "track_published";
-  const roomId = await ensureRoom(tx, code, at, { reopen: published, sid: payload.room?.sid });
-  const participation = await ensureParticipation(tx, roomId, code, participant, at);
+  const roomId = await ensureRoom(tx, code, at, {
+    reopen: published && canReopen,
+    sid: mediaSid,
+    authoritative: authority,
+  });
+  const participation = await ensureParticipation(tx, roomId, code, participant, at, {
+    sessionId,
+    mediaName: payload.room?.name ?? code,
+  });
   await tx
     .insert(shareSessions)
     .values({
@@ -128,7 +228,7 @@ const screenTrack: Handler = async ({ tx, payload, code, at }) => {
             endedAt: sql`greatest(${shareSessions.startedAt}, least(${shareSessions.endedAt}, excluded.ended_at))`,
           },
     });
-  await reconcileShareAudio(tx, roomId, code);
+  await reconcileShareAudio(tx, roomId, payload.room?.name ?? code);
   return "projected";
 };
 
@@ -156,13 +256,40 @@ export async function projectEvent(
   tx: DbExecutor,
   payload: WebhookPayload,
 ): Promise<ProjectionResult> {
-  const code = payload.room?.name;
-  if (!code || !ROOM_CODE.test(code)) return "ignored";
+  const mediaName = payload.room?.name;
+  if (!mediaName) return "ignored";
+  const controlled = await sessionByMediaName(tx, mediaName);
+  const code = controlled?.code ?? mediaName;
+  if (!ROOM_CODE.test(code)) return "ignored";
   const handler = HANDLERS[payload.event];
   if (!handler) return "ignored";
   const at = occurredAt(payload);
   const opening = payload.room?.creationTime ? new Date(payload.room.creationTime * 1000) : at;
+  if (controlled) await lockControlRoom(tx, code);
   await lockRoomCodes(tx, [code]);
   if (await isDeletedRoomEvent(tx, code, opening, payload.room?.sid)) return "ignored";
-  return handler({ tx, payload, code, at });
+  const control = await controlEventContext(tx, code, controlled);
+  return handler({
+    tx,
+    payload,
+    code,
+    at,
+    ...control,
+    mediaSid: control.currentSession ? payload.room?.sid : undefined,
+  });
+}
+
+async function controlEventContext(
+  tx: DbExecutor,
+  code: string,
+  controlled: Awaited<ReturnType<typeof sessionByMediaName>>,
+) {
+  if (!controlled) return { canReopen: true, currentSession: true, authority: false };
+  const open = await openControlSession(tx, code);
+  return {
+    sessionId: controlled.session.id,
+    authority: open?.id === controlled.session.id,
+    canReopen: open?.id === controlled.session.id,
+    currentSession: !open || open.id === controlled.session.id,
+  };
 }

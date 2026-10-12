@@ -7,6 +7,7 @@ import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { participantLabel, participantName } from "@/features/room/domain/participant-label";
 import { initials } from "@/lib/initials";
 import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
+import { HostBadge } from "./HostBadge";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -113,6 +114,7 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
         </div>
         <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
           {participantLabel(participant)}
+          <HostBadge identity={participant.identity} />
         </span>
         {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
       </div>
@@ -157,6 +159,7 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
 
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
           <span className="glass inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium">
+            <HostBadge identity={participant.identity} />
             <span className="truncate">
               {name}
               {participant.isLocal ? (

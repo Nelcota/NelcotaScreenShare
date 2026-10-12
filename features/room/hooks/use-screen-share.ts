@@ -1,6 +1,7 @@
 import { useLocalParticipant } from "@livekit/components-react";
 import { ScreenSharePresets, Track, type LocalTrack, type VideoEncoding } from "livekit-client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
 import { toast } from "sonner";
 import {
   canRestrictOwnAudio,
@@ -46,6 +47,11 @@ export function useScreenShare() {
   const [audioPreferred, setAudioPreferred] = useState(true);
   const [profile, setProfile] = useState<ShareProfile>(savedShareProfile);
   const support = useShareSupport();
+  const host = useRoomHost();
+  useEffect(() => {
+    if (host.canShare || !isScreenShareEnabled) return;
+    void localParticipant.setScreenShareEnabled(false).catch(reportBrowserError);
+  }, [host.canShare, isScreenShareEnabled, localParticipant]);
   const sharedSurface = isScreenShareEnabled
     ? localParticipant
         .getTrackPublication(Track.Source.ScreenShare)
@@ -68,6 +74,10 @@ export function useScreenShare() {
   }
 
   async function start({ surface, audio }: ShareChoice) {
+    if (!host.canShare) {
+      toast.info("O anfitrião restringiu o compartilhamento de tela.");
+      return;
+    }
     const options = resolveShareProfile(profile, surface);
     const preset = ScreenSharePresets[options.preset];
     setBusy(true);
@@ -129,6 +139,7 @@ export function useScreenShare() {
 
   return {
     isSharing: isScreenShareEnabled,
+    permitted: host.canShare,
     /** The browser's own sharing bar covers the bottom of the page. */
     captureBar: support !== null && showsCaptureBar(support, sharedSurface),
     busy,

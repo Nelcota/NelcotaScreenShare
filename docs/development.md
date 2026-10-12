@@ -151,3 +151,9 @@ responsible for the application policy. For full validation in CI, run `pnpm lin
 | `pnpm dev` fails with "Port 3111 is already in use"                               | Another dev server (often another worktree) is running. Stop it: the port is fixed so saved browser logins keep working.                               |
 | Sign-in or any form fails with 403 in dev                                         | `.env.local` still has `APP_URL=http://localhost:3000`, or the page is open on `localhost`. Set `APP_URL=http://127.0.0.1:3111` and open that address. |
 | Port 3100 taken when running E2E                                                  | Set `E2E_PORT` in the environment before `pnpm test:e2e`.                                                                                              |
+
+## Host controls
+
+Host controls use a private signaling admission gate and are disabled by default.
+See [host controls](host-controls.md) for the environment flag, migrations and dedicated
+Playwright command. Local loopback LiveKit is sufficient for functional testing.

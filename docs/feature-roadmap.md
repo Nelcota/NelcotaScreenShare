@@ -4,8 +4,10 @@ Status: proposed implementation plan. Updated: 2026-10-12.
 
 Implementation started on `feature/room-audio-profiles`. The room/session design and
 local self-hosted admission experiment are recorded in [ADR 0006](adr/0006-room-definitions-and-session-authority.md).
-Individual audio and sharing profiles are implemented and locally validated. Host controls,
-annotations, permanent rooms and team workspaces remain planned. Real-device media
+Individual audio and sharing profiles are implemented and locally validated. Host authority
+and controls are implemented on `feature/room-host-controls`, behind an opt-in private
+signaling gate. See [host controls](host-controls.md) for the required deployment boundary.
+Annotations, permanent rooms and team workspaces remain planned. Real-device media
 baselines and pilot rollout remain part of release validation.
 
 Local validation on 2026-10-12 passed formatting, typecheck, lint, build, Knip and
@@ -15,10 +17,18 @@ panel-height adjustment, including signaling reconnection, track replacement, na
 and viewport-bound checks. Local checks used Node 26.11.1; the repository runtime target
 remains Node 26.9.
 
+The host-controls phase passed formatting, typecheck, lint, production build, Knip and
+duplication checks, 508 unit/integration tests with real Postgres, and 49 existing Chromium
+E2E cases. Three dedicated E2E cases passed with the private signaling gate enabled,
+including cached/refreshed JWT rejection, sharing revocation with microphone preservation,
+transfer, terminal closure, reconnection under lock and navigation. Desktop/mobile panels
+were visually checked. CI runs both admission modes. The actual VPS network boundary and
+production rollout remain release validation tasks.
+
 The dependency audit reports one pre-existing high-severity finding in `braces@3.0.3`,
-reachable through the `shadcn` development dependency. The package manifest and lockfile
-are unchanged by this feature work. The advisory lists no patched release; this remains
-a CI audit failure to address independently. [GitHub advisory GHSA vfj7 8cjw p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+reachable through the `shadcn` development dependency. The host-controls phase adds the
+WebSocket transport dependency. The advisory lists no patched release; this remains a
+CI audit failure to address independently. [GitHub advisory GHSA vfj7 8cjw p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
 
 Build the six features in three releases: individual audio controls and sharing profiles;
 host controls and temporary annotations; then permanent rooms and a team workspace. The
@@ -382,7 +392,7 @@ Release C is ready after phases 5–6: an additional 13–19 working days before
 | -------------------------------------- | -------------------------------------------------------------------------- | --------------- |
 | `room_definitions`                     | Public code, kind, name, owner, optional team and archive state            | Host controls   |
 | `room_sessions`                        | One call, media name/SID, host, admission policy, lifecycle and timestamps | Host controls   |
-| `room_session_exclusions`              | Identities refused further application admission to a session              | Host controls   |
+| `room_session_members`                 | Reservations, admissions and identity exclusions per session               | Host controls   |
 | `room_commands`                        | Pending/applied/failed transport operations and retry state                | Host controls   |
 | Session links on participation records | Associate people and shares with a specific call                           | Permanent rooms |
 | `room_favorites`                       | Unique account and room association                                        | Permanent rooms |

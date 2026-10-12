@@ -20,6 +20,7 @@ export type TokenRequest = z.infer<typeof tokenRequestSchema>;
 export const tokenResponseSchema = z.object({
   token: z.string(),
   serverUrl: z.string(),
+  sessionId: z.uuid().optional(),
 });
 
 export type TokenResponse = z.infer<typeof tokenResponseSchema>;
@@ -35,6 +36,9 @@ export const tokenErrorSchema = z.object({
     "invite_invalid",
     "room_full",
     "host_absent",
+    "room_locked",
+    "room_removed",
+    "room_closed",
     "rate_limited",
     "server_error",
   ]),

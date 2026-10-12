@@ -8,6 +8,7 @@ import { roomService } from "@/features/room/server/room-service.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 import { requestLogger } from "@/server/request-log.server";
 import { readJsonBody, SMALL_JSON_MAX_BYTES } from "@/server/body.server";
+import { mediaRoomForCode } from "./session-store.server";
 
 const handSchema = z.object({ room: roomCodeSchema, raised: z.boolean() });
 const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
@@ -32,7 +33,7 @@ export async function setRaisedHand(request: Request) {
   const { room, raised } = parsed.data;
 
   try {
-    await roomService().updateParticipant(room, identity, {
+    await roomService().updateParticipant(await mediaRoomForCode(room), identity, {
       attributes: { [HAND_ATTRIBUTE]: raised ? "1" : "" },
     });
   } catch (error) {

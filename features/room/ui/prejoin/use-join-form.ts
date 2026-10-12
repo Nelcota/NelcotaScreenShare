@@ -105,6 +105,7 @@ export function useJoinForm(options: JoinFormOptions) {
       ...fields,
       token: result.data.token,
       serverUrl: result.data.serverUrl,
+      sessionId: result.data.sessionId,
       ...microphone,
     });
   }

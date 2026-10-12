@@ -1,0 +1,71 @@
+import { and, eq, ne } from "drizzle-orm";
+import type { Database } from "@/server/db/index.server";
+import { getDb } from "@/server/db/index.server";
+import { getEnv } from "@/server/env.server";
+import { roomCommands, roomSessions } from "@/server/db/schema/room-control";
+import { mayShareScreen, roomControlInputSchema } from "@/features/room/domain/host-controls";
+import { roomCaller } from "./room-caller.server";
+import { lockControlRoom, memberInSession, sessionByMediaName } from "./session-store.server";
+import { controlGateway } from "./control-gateway.server";
+import { reconcileSessionPresence } from "./session-presence.server";
+
+export async function readControlState(
+  db: Database,
+  room: string,
+  sessionId: string,
+  identity: string,
+) {
+  return db.transaction(async (tx) => {
+    await lockControlRoom(tx, room);
+    const [initial] = await tx.select().from(roomSessions).where(eq(roomSessions.id, sessionId));
+    if (!initial) return undefined;
+    const definition = await sessionByMediaName(tx, initial.mediaRoomName);
+    if (definition?.code !== room) return undefined;
+    const member = await memberInSession(tx, sessionId, identity);
+    if (!member?.admittedAt) return undefined;
+    const session = await reconcileSessionPresence(
+      tx,
+      initial,
+      await controlGateway.participants(initial.mediaRoomName),
+      new Date(),
+    );
+    const commands = await tx
+      .select({ status: roomCommands.status })
+      .from(roomCommands)
+      .where(and(eq(roomCommands.sessionId, session.id), ne(roomCommands.status, "applied")));
+    return {
+      sessionId,
+      hostIdentity: session.hostUserId,
+      isHost: session.hostUserId === identity && !member.excludedAt,
+      locked: session.admissionLocked,
+      policy: session.sharePolicy,
+      allowed: session.allowedSharers,
+      canShare:
+        !member.excludedAt &&
+        session.status !== "closed" &&
+        mayShareScreen(identity, session.hostUserId, session.sharePolicy, session.allowedSharers),
+      closed: session.status === "closed",
+      removed: Boolean(member.excludedAt),
+      pending: commands.some((command) => command.status === "pending"),
+      failed: commands.some((command) => command.status === "failed"),
+    };
+  });
+}
+
+export async function requestControlState(request: Request) {
+  if (!getEnv().ROOM_HOST_CONTROLS_ENABLED) return new Response(null, { status: 404 });
+  const input = roomControlInputSchema.safeParse(
+    Object.fromEntries(new URL(request.url).searchParams),
+  );
+  if (!input.success) return new Response(null, { status: 400 });
+  const caller = await roomCaller(request);
+  if (!caller) return new Response(null, { status: 401 });
+  const state = await readControlState(
+    getDb(),
+    input.data.room,
+    input.data.sessionId,
+    caller.identity,
+  );
+  if (!state) return new Response(null, { status: 403 });
+  return Response.json(state, { headers: { "Cache-Control": "no-store" } });
+}

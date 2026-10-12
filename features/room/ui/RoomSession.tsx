@@ -83,7 +83,12 @@ export function RoomSession({
     }
     setPhase({
       kind: "room",
-      choices: { ...choices, token: result.data.token, serverUrl: result.data.serverUrl },
+      choices: {
+        ...choices,
+        token: result.data.token,
+        serverUrl: result.data.serverUrl,
+        sessionId: result.data.sessionId,
+      },
       attempt: attempt + 1,
       startedAt,
     });

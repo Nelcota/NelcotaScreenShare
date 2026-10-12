@@ -1,6 +1,6 @@
 # ADR 0006 Room definitions and session authority
 
-- **Status:** accepted design (2026-10-12); server implementation belongs to the host-controls phase.
+- **Status:** implemented behind the host-controls deployment gate (2026-10-12).
 - **Context:** the feature roadmap adds host controls, permanent rooms and team history.
   Today, a public code is also the LiveKit room name. The webhook projection reopens the
   same `rooms` row, and `createdByUserId` is inferred from recent token requests.
@@ -64,6 +64,19 @@ mechanism and its own implementation estimate. An HTTP policy check, a UI check 
 webhook that removes someone after joining cannot be described as immediate exclusion.
 Keep self-hosted infrastructure for the current audio/image release; resolve the admission
 gate before exposing host removal or lock claims to users.
+
+## Enforceable admission gate
+
+The host-controls phase implements a server signaling relay, durable authority/admission
+records and canonical source grants. Every WebSocket handshake checks current session
+state, including original and server-refreshed JWTs. The upstream must be private: remove
+public signaling proxy routes and deny direct signaling ports before enabling
+`ROOM_HOST_CONTROLS_ENABLED`. Media still uses RTC/TURN directly. The flag defaults off;
+local transport checks do not validate the production network boundary. Deployment,
+rollback and lifecycle details are recorded in [host controls](../host-controls.md).
+
+No legacy authority is inferred or backfilled from webhook history. New participation
+records link to their controlled session; legacy records keep a nullable session link.
 
 ## Audio and sharing foundation
 

@@ -1,3 +1,4 @@
+import { purgeTeamInvitations } from "@/features/team/server/retention.server";
 import { and, isNotNull, lt } from "drizzle-orm";
 import { purgeOldFailures } from "@/features/auth/server/lockout.server";
 import type { Database } from "@/server/db/index.server";
@@ -47,6 +48,7 @@ export interface MaintenanceReport {
 export async function runMaintenance(db: Database, now = new Date()): Promise<MaintenanceReport> {
   const before = (days: number) => new Date(now.getTime() - days * DAY_MS);
   await purgeRoomControlHistory(db, now);
+  await purgeTeamInvitations(db, now);
 
   const reprocessed = await reprocessPendingEvents(db, {
     receivedBefore: new Date(now.getTime() - REPROCESS_AFTER_MS),

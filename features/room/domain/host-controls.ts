@@ -30,6 +30,7 @@ export type HostIntent = CommandIntent<HostCommand>;
 export const roomControlStateSchema = z.object({
   sessionId: z.uuid(),
   hostIdentity: z.string().nullable(),
+  permanent: z.boolean(),
   isHost: z.boolean(),
   locked: z.boolean(),
   policy: sharePolicySchema,

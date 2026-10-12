@@ -1,3 +1,4 @@
+import { workspacePersonalData } from "./workspace-export.server";
 import { and, count, desc, eq, gt, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
@@ -69,6 +70,9 @@ export async function personalData(db: DbExecutor, userId: string) {
   const definitions = await db
     .select({
       sala: roomDefinitions.code,
+      nome: roomDefinitions.name,
+      tipo: roomDefinitions.kind,
+      arquivadaEm: roomDefinitions.archivedAt,
       criadaEm: roomDefinitions.createdAt,
       encerradaEm: roomDefinitions.closedAt,
     })
@@ -86,6 +90,7 @@ export async function personalData(db: DbExecutor, userId: string) {
     .innerJoin(roomDefinitions, eq(roomDefinitions.id, roomSessions.definitionId))
     .where(eq(roomSessionMembers.userId, userId));
   return {
+    ...(await workspacePersonalData(db, userId, profile?.email ?? "")),
     gerado_em: new Date().toISOString(),
     aviso: "Dados pessoais guardados pelo Nelcota ligados à sua conta.",
     conta: profile,

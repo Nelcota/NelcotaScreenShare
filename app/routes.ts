@@ -2,6 +2,12 @@ import { index, layout, route, type RouteConfig } from "@react-router/dev/routes
 
 export default [
   index("routes/home.tsx"),
+  route("salas", "routes/workspace/rooms.tsx"),
+  route("salas/:id", "routes/workspace/history.tsx"),
+  route("times", "routes/workspace/teams.tsx"),
+  route("times/convite/:token", "routes/workspace/invitation.tsx"),
+  route("times/:id", "routes/workspace/team.tsx"),
+  route("times/:id/salas/:roomId", "routes/workspace/team-history.tsx"),
   route("conta", "routes/account.tsx"),
   route("privacidade", "routes/privacy.tsx"),
   route("novidades", "routes/changelog.tsx"),
@@ -33,6 +39,7 @@ export default [
     route("admin/salas/:id", "routes/admin/panel/room-detail.tsx"),
     route("admin/compartilhamentos", "routes/admin/panel/shares.tsx"),
     route("admin/auditoria", "routes/admin/panel/audit.tsx"),
+    route("admin/pro", "routes/admin/panel/beta.tsx"),
     route("admin/configuracoes", "routes/admin/panel/settings.tsx"),
     route("admin/conta/seguranca", "routes/admin/panel/security.tsx"),
     route("admin/conta/sessoes", "routes/admin/panel/sessions.tsx"),

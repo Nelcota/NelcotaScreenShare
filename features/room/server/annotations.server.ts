@@ -1,3 +1,4 @@
+import { canHostDefinition } from "@/features/rooms/server/room-access.server";
 import { and, eq, sql } from "drizzle-orm";
 import { DataPacket_Kind, TrackSource } from "livekit-server-sdk";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
@@ -97,7 +98,7 @@ async function admittedSession(tx: DbExecutor, input: Input, identity: string) {
   const definition = await sessionByMediaName(tx, session.mediaRoomName);
   const member = await memberInSession(tx, input.sessionId, identity);
   if (definition?.code !== input.room || !member?.admittedAt || member.excludedAt) return undefined;
-  return { session };
+  return { session, definition: definition.definition };
 }
 async function annotationAccess(
   tx: DbExecutor,
@@ -107,7 +108,7 @@ async function annotationAccess(
 ) {
   const access = await admittedSession(tx, input, caller.identity);
   if (!access) return undefined;
-  const { session } = access;
+  const { session, definition } = access;
   const participants = await controlGateway.participants(session.mediaRoomName);
   const presenter = participants.find((person) =>
     person.tracks.some(
@@ -116,7 +117,10 @@ async function annotationAccess(
   );
   const track = presenter?.tracks.find((publication) => publication.sid === input.trackSid);
   if (!presenter || !track) return undefined;
-  const canClear = presenter.identity === caller.identity || session.hostUserId === caller.identity;
+  const canClear =
+    presenter.identity === caller.identity ||
+    (session.hostUserId === caller.identity &&
+      (await canHostDefinition(tx, definition, caller.identity)));
   if (clearing && !canClear) return undefined;
   return {
     canClear,

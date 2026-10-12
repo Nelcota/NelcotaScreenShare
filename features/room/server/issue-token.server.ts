@@ -1,3 +1,7 @@
+import {
+  assertDefinitionAdmission,
+  definitionByCode,
+} from "@/features/rooms/server/room-access.server";
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
   decideTokenRequest,
@@ -85,6 +89,9 @@ export async function issueRoomToken(
       await log(decision.log);
       return decision;
     }
+    const definition = await definitionByCode(getDb(), decision.grant.room);
+    if (definition)
+      await assertDefinitionAdmission(getDb(), definition, decision.grant.identity, false);
     if (env.ROOM_HOST_CONTROLS_ENABLED) {
       const admission = await reserveAdmission(getDb(), decision.grant, env.MAX_PARTICIPANTS);
       const token = await gateway.signToken({

@@ -1,3 +1,4 @@
+import { ownedTeams } from "@/features/account/server/workspace-privacy.server";
 import { routeLoader } from "@/server/route-loader.server";
 import { useLoaderData } from "react-router";
 
@@ -144,6 +145,7 @@ export const loader = routeLoader(async ({ searchParams }) => {
   const notice = noticeFor(NOTICES, aviso);
   const { name, email, image, emailVerified, twoFactorEnabled } = current.user;
   return {
+    ownedTeamCount: (await ownedTeams(getDb(), current.user.id)).length,
     currentId: current.session.id,
     back,
     sessions,
@@ -159,7 +161,7 @@ export const loader = routeLoader(async ({ searchParams }) => {
  * in anchored sections (/conta#seguranca). Long forms open inline.
  */
 export default function AccountPage() {
-  const { currentId, back, sessions, notice, user, requireEmailVerification } =
+  const { currentId, back, sessions, notice, user, requireEmailVerification, ownedTeamCount } =
     useLoaderData<typeof loader>();
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
@@ -249,7 +251,7 @@ export default function AccountPage() {
               actionLabel="Excluir conta"
               danger
             >
-              <DeleteAccountForm />
+              <DeleteAccountForm ownedTeamCount={ownedTeamCount} />
             </ExpandableRow>
           </SettingsSection>
         </div>

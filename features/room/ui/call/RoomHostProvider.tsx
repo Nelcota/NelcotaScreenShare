@@ -54,7 +54,9 @@ export function RoomHostProvider({
       reason: removed ? "removed" : "ended",
       message: removed
         ? "O anfitrião removeu você desta chamada."
-        : "A sala foi encerrada pelo anfitrião. Crie outra sala para continuar.",
+        : state?.permanent
+          ? "A chamada foi encerrada pelo anfitrião. O link continua disponível."
+          : "A sala foi encerrada pelo anfitrião. Crie outra sala para continuar.",
     });
   });
   const command = useOperation(hostCommandAction, {

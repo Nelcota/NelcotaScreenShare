@@ -26,6 +26,11 @@ const SITE_LINKS = [
   { to: "/novidades", label: "Novidades" },
 ];
 
+const WORKSPACE_LINKS = [
+  { to: "/salas", label: "Minhas salas" },
+  { to: "/times", label: "Times" },
+];
+
 /**
  * A site link. Only a real page can be the current one: hash links share the home page's
  * path, so they never get the mark.
@@ -51,7 +56,7 @@ function SiteLink({
 }
 
 /** Phones: the site links, and "Criar conta" for visitors, behind a menu button. */
-function MobileMenu({ showSignUp }: { showSignUp: boolean }) {
+function MobileMenu({ showSignUp, signedIn }: { showSignUp: boolean; signedIn: boolean }) {
   return (
     <NavPopover
       trigger={<Menu className="size-5" aria-hidden="true" />}
@@ -61,7 +66,7 @@ function MobileMenu({ showSignUp }: { showSignUp: boolean }) {
       className="w-9 justify-center px-0 md:hidden"
     >
       <nav aria-label="Menu" className="flex flex-col gap-1">
-        {SITE_LINKS.map(({ to, label }) => (
+        {(signedIn ? WORKSPACE_LINKS : SITE_LINKS).map(({ to, label }) => (
           <Popover.Close key={to} asChild>
             <SiteLink to={to} label={label} className={cn(navItemClass, "h-11 text-base")} />
           </Popover.Close>
@@ -135,7 +140,7 @@ export function AppHeader({
       <NavBar aria-label="Principal" className="mx-auto max-w-5xl">
         <NavBrand href="/" />
         <NavDivider className="max-md:hidden" />
-        {SITE_LINKS.map(({ to, label }) => (
+        {(account ? WORKSPACE_LINKS : SITE_LINKS).map(({ to, label }) => (
           <SiteLink key={to} to={to} label={label} className={cn(navItemClass, "max-md:hidden")} />
         ))}
         <ThemeToggle className="ml-auto" />
@@ -151,7 +156,7 @@ export function AppHeader({
             {actions}
           </>
         ) : null}
-        <MobileMenu showSignUp={account === null && showAuthLinks} />
+        <MobileMenu signedIn={account !== null} showSignUp={account === null && showAuthLinks} />
       </NavBar>
     </header>
   );

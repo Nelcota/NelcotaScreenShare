@@ -1,3 +1,4 @@
+import { canHostDefinition } from "@/features/rooms/server/room-access.server";
 import { and, eq } from "drizzle-orm";
 import type { ParticipantInfo } from "livekit-server-sdk";
 import type { DbExecutor } from "@/server/db/index.server";
@@ -19,6 +20,12 @@ async function transferHost(
     !(await activeAccount(tx, identity))
   )
     throw new ActionError("Escolha outra pessoa com conta que esteja nesta chamada.");
+  const [definition] = await tx
+    .select()
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.id, session.definitionId));
+  if (!definition || !(await canHostDefinition(tx, definition, identity)))
+    throw new ActionError("Esta pessoa não pode ser anfitriã deste time.");
   const member = await memberInSession(tx, session.id, identity);
   if (!member?.admittedAt || member.excludedAt)
     throw new ActionError("Esta pessoa não pode ser anfitriã.");
@@ -79,7 +86,7 @@ export async function applyHostChange(
   await tx
     .update(roomDefinitions)
     .set({ closedAt: new Date() })
-    .where(eq(roomDefinitions.id, session.definitionId));
+    .where(and(eq(roomDefinitions.id, session.definitionId), eq(roomDefinitions.kind, "ad_hoc")));
   return { kind: "close" };
 }
 

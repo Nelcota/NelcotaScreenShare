@@ -116,16 +116,20 @@ export function HostControlsMenu({ participants }: { participants: Participant[]
             </output>
           ) : null}
           <Button variant="destructive" disabled={disabled} onClick={() => setClosing(true)}>
-            Encerrar sala para todos
+            {state.permanent ? "Encerrar chamada para todos" : "Encerrar sala para todos"}
           </Button>
         </div>
       </NavPopover>
       <ConfirmDialog
         open={closing}
         onOpenChange={setClosing}
-        title="Encerrar sala para todos?"
-        description="Todos serão desconectados e este código ficará encerrado. Crie outra sala para uma nova chamada."
-        confirmLabel="Encerrar sala"
+        title={state.permanent ? "Encerrar chamada para todos?" : "Encerrar sala para todos?"}
+        description={
+          state.permanent
+            ? "Todos serão desconectados. O link continuará disponível para uma nova chamada."
+            : "Todos serão desconectados e este código ficará encerrado. Crie outra sala para uma nova chamada."
+        }
+        confirmLabel={state.permanent ? "Encerrar chamada" : "Encerrar sala"}
         danger
         pending={disabled}
         onConfirm={() => {

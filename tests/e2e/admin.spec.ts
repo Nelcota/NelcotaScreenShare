@@ -159,5 +159,26 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await page.getByRole("button", { name: "Restaurar original" }).click();
   await page.getByRole("button", { name: "Salvar", exact: true }).click();
   await expect(page.locator("html")).toHaveCSS("--mascot-saturation-dark", "1");
+  await page.goto("/admin/pro");
+  await page.getByRole("textbox", { name: "Buscar contas e times" }).fill(participantEmail);
+  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page
+    .getByLabel("Conta ou time")
+    .selectOption({ label: `Pessoa Painel · ${participantEmail}` });
+  await page.getByLabel("Limite de salas permanentes").fill("4");
+  await page.getByLabel("Motivo da alteração").fill("Selected participant pilot");
+  await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
+  await expect(page.getByText("Ativação salva e registrada na auditoria.")).toBeVisible();
+  const provisioning = await sql(
+    "select p.active, p.room_limit from pro_entitlements p join users u on u.id = p.user_id where u.email = $1",
+    [participantEmail],
+  );
+  expect(provisioning.rows[0]).toEqual({ active: true, room_limit: 4 });
+  const provisionAudit = await sql(
+    "select count(*)::int as n from audit_logs a join admin_users u on u.id = a.actor_admin_id where a.action = 'pro.provision' and u.email = $1",
+    [email],
+  );
+  expect(provisionAudit.rows[0]).toEqual({ n: 1 });
+
   await context.close();
 });

@@ -134,6 +134,12 @@ function StoredDataSections() {
             O nome que a pessoa digitou para a sala, quando entrou e saiu, e o IP de acesso, com os
             mesmos prazos dos registros de uso.
           </PrivacyItem>
+          <PrivacyItem icon={UsersRound} title="Salas permanentes e times">
+            Nomes e configurações de salas e times, favoritos, funções dos membros e ativação do Pro
+            beta. O histórico do time mostra data, duração e totais de pessoas e telas, sem IPs ou
+            conteúdo da chamada. Convites guardam o e-mail destinatário, a função e os prazos; o
+            link completo não fica armazenado.
+          </PrivacyItem>
           <PrivacyItem icon={Mail} title="Lista de espera do Pro">
             Só o e-mail de quem pediu para ser avisado, até enviarmos o aviso do lançamento. Para
             sair da lista antes, é só pedir.
@@ -145,7 +151,7 @@ function StoredDataSections() {
         id="o-que-nao-guardamos"
         index={2}
         title="O que não guardamos"
-        description="Não gravamos áudio, vídeo, telas compartilhadas nem mensagens do chat: tudo isso passa ao vivo e some quando a sala acaba."
+        description="Não gravamos áudio, vídeo, telas compartilhadas nem mensagens do chat. Anotações temporárias somem em até 10 segundos e seus desenhos não ficam armazenados."
       >
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {NOT_STORED.map(({ icon: Icon, label }) => (
@@ -166,6 +172,12 @@ function StoredDataSections() {
 function PurposeAndRetentionSections() {
   return (
     <>
+      <p className="text-sm text-ink-muted">
+        Convites de time expiram em 7 dias. Registros de convites expirados, aceitos ou revogados
+        são removidos após 30 dias. Salas arquivadas conservam o histórico para quem mantém acesso.
+        Ao excluir a conta, seus favoritos e vínculos são removidos; você pode transferir seus times
+        ou confirmar a exclusão deles.
+      </p>
       <PrivacySection id="por-que" index={3} title="Por quê">
         <PrivacyList>
           <PrivacyItem icon={Wrench} title="Para você usar o serviço">

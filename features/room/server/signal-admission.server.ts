@@ -1,10 +1,14 @@
+import {
+  assertDefinitionAdmission,
+  lockDefinitionPro,
+} from "@/features/rooms/server/room-access.server";
 import { TokenVerifier } from "livekit-server-sdk";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb, type Database } from "@/server/db/index.server";
 import { appUrl, getEnv } from "@/server/env.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 import { getClientIp } from "@/server/client-ip.server";
-import { roomSessionMembers } from "@/server/db/schema/room-control";
+import { roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { mayShareScreen } from "@/features/room/domain/host-controls";
 import {
@@ -40,14 +44,16 @@ export async function authorizeSignal(
   const initial = await sessionByMediaName(db, claims.video.room);
   if (!initial) throw new AdmissionError("room_closed", "Esta chamada não está disponível.");
   return db.transaction(async (tx) => {
+    await lockDefinitionPro(tx, initial.definition);
     await lockControlRoom(tx, initial.code);
     const resolved = await sessionByMediaName(tx, initial.session.mediaRoomName);
     if (!resolved) throw new AdmissionError("room_closed", "Esta chamada não está disponível.");
+    await assertDefinitionAdmission(tx, resolved.definition, identity, !resolved.session.startedAt);
     const participants = await controlGateway.participants(resolved.session.mediaRoomName);
     const session = await reconcileSessionPresence(tx, resolved.session, participants, new Date());
     const member = await memberInSession(tx, session.id, identity);
     assertAdmission(session, member, Boolean(resolved.definitionClosed));
-    if (!member || (!member.admittedAt && member.reservedUntil.getTime() < Date.now()))
+    if (!member || expiredReservation(member))
       throw new AdmissionError("room_removed", "Solicite uma nova entrada nesta chamada.");
     const account = await activeAccount(tx, identity);
     if (!isGuestIdentity(identity) && !account)
@@ -74,7 +80,15 @@ export async function authorizeSignal(
     url.searchParams.set("protocol", "16");
     url.searchParams.set("auto_subscribe", "1");
     const relay = await connect?.(url, session.mediaRoomName, identity);
-    if (relay)
+    if (relay) {
+      await tx
+        .update(roomSessions)
+        .set({
+          status: "active",
+          startedAt: session.startedAt ?? new Date(),
+          participantCount: sql`${roomSessions.participantCount} + ${Number(!member.admittedAt)}`,
+        })
+        .where(eq(roomSessions.id, session.id));
       await tx
         .update(roomSessionMembers)
         .set({ admittedAt: member.admittedAt ?? new Date() })
@@ -84,6 +98,7 @@ export async function authorizeSignal(
             eq(roomSessionMembers.identity, identity),
           ),
         );
+    }
     return relay;
   });
 }
@@ -159,4 +174,8 @@ function checkSignalRequest(request: Request) {
   if (!attempts.hit(getClientIp(request.headers, env.TRUSTED_PROXY_HOPS)).ok)
     return new Response(null, { status: 429 });
   return undefined;
+}
+
+function expiredReservation(member: { admittedAt: Date | null; reservedUntil: Date }) {
+  return !member.admittedAt && member.reservedUntil.getTime() < Date.now();
 }

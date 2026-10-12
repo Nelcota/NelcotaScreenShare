@@ -1,7 +1,8 @@
+import { canHostDefinition } from "@/features/rooms/server/room-access.server";
 import { eq } from "drizzle-orm";
 import type { ParticipantInfo } from "livekit-server-sdk";
 import type { DbExecutor } from "@/server/db/index.server";
-import { roomCommands, roomSessions } from "@/server/db/schema/room-control";
+import { roomCommands, roomDefinitions, roomSessions } from "@/server/db/schema/room-control";
 import { HOST_RECONNECT_GRACE_MS } from "@/features/room/domain/host-controls";
 import { createAuditRecorder } from "@/server/audit.server";
 import { activeAccount, memberInSession, type ControlSession } from "./session-store.server";
@@ -14,8 +15,8 @@ export async function reconcileSessionPresence(
   now: Date,
 ): Promise<ControlSession> {
   if (session.status === "closed") return session;
-  const present = await hostPresent(tx, session, participants);
-  if (present) {
+  const host = await hostStatus(tx, session, participants);
+  if (host.present) {
     const [updated] = await tx
       .update(roomSessions)
       .set({ status: "active", hostMissingAt: null, emptySince: null })
@@ -23,7 +24,11 @@ export async function reconcileSessionPresence(
       .returning();
     return updated ?? session;
   }
-  const { missingSince, emptySince } = presenceTimes(session, participants.length, now);
+  const times = presenceTimes(session, participants.length, now);
+  const emptySince = times.emptySince;
+  const missingSince = host.ineligible
+    ? new Date(now.getTime() - HOST_RECONNECT_GRACE_MS - 1)
+    : times.missingSince;
   if (emptySince && now.getTime() - emptySince.getTime() >= HOST_RECONNECT_GRACE_MS) {
     const [closed] = await tx
       .update(roomSessions)
@@ -50,9 +55,15 @@ export async function reconcileSessionPresence(
   if (elected) return elected;
   const [waiting] = await tx
     .update(roomSessions)
-    .set({ ...changes, admissionLocked: true })
+    .set({
+      ...changes,
+      admissionLocked: true,
+      hostUserId: host.ineligible ? null : session.hostUserId,
+    })
     .where(eq(roomSessions.id, session.id))
     .returning();
+  if (host.ineligible)
+    await tx.insert(roomCommands).values({ sessionId: session.id, kind: "sync" });
   return waiting ?? session;
 }
 
@@ -68,7 +79,7 @@ async function electHost(
     const member = await memberInSession(tx, session.id, participant.identity);
     if (!member?.admittedAt || member.excludedAt) continue;
     const account = await activeAccount(tx, participant.identity);
-    if (!account) continue;
+    if (!account || !(await eligibleHost(tx, session, account.id))) continue;
     const [elected] = await tx
       .update(roomSessions)
       .set({ ...changes, hostUserId: account.id, hostMissingAt: null })
@@ -86,14 +97,16 @@ async function electHost(
   return undefined;
 }
 
-async function hostPresent(
+async function hostStatus(
   tx: DbExecutor,
   session: ControlSession,
   participants: readonly ParticipantInfo[],
 ) {
-  if (!session.hostUserId || !participants.some((person) => person.identity === session.hostUserId))
-    return false;
-  return Boolean(await activeAccount(tx, session.hostUserId));
+  const eligible = session.hostUserId ? await eligibleHost(tx, session, session.hostUserId) : false;
+  return {
+    present: eligible && participants.some((person) => person.identity === session.hostUserId),
+    ineligible: Boolean(session.hostUserId && !eligible),
+  };
 }
 
 function presenceTimes(session: ControlSession, count: number, now: Date) {
@@ -102,4 +115,12 @@ function presenceTimes(session: ControlSession, count: number, now: Date) {
     missingSince: session.hostMissingAt ?? beginning,
     emptySince: count === 0 ? (session.emptySince ?? beginning) : null,
   };
+}
+
+async function eligibleHost(tx: DbExecutor, session: ControlSession, identity: string) {
+  const [definition] = await tx
+    .select()
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.id, session.definitionId));
+  return Boolean(definition && (await canHostDefinition(tx, definition, identity)));
 }

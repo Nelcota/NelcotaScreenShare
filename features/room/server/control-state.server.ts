@@ -1,3 +1,4 @@
+import { canHostDefinition } from "@/features/rooms/server/room-access.server";
 import { and, eq, ne } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { getDb } from "@/server/db/index.server";
@@ -35,8 +36,12 @@ export async function readControlState(
       .where(and(eq(roomCommands.sessionId, session.id), ne(roomCommands.status, "applied")));
     return {
       sessionId,
+      permanent: definition.definition.kind !== "ad_hoc",
       hostIdentity: session.hostUserId,
-      isHost: session.hostUserId === identity && !member.excludedAt,
+      isHost:
+        session.hostUserId === identity &&
+        !member.excludedAt &&
+        (await canHostDefinition(tx, definition.definition, identity)),
       locked: session.admissionLocked,
       policy: session.sharePolicy,
       allowed: session.allowedSharers,

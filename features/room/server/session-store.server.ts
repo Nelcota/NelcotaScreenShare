@@ -54,6 +54,7 @@ export async function sessionByMediaName(tx: DbExecutor, mediaName: string) {
       session: roomSessions,
       code: roomDefinitions.code,
       definitionClosed: roomDefinitions.closedAt,
+      definition: roomDefinitions,
     })
     .from(roomSessions)
     .innerJoin(roomDefinitions, eq(roomDefinitions.id, roomSessions.definitionId))

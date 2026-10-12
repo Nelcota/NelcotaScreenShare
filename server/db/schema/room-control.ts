@@ -15,6 +15,7 @@ import { id, createdAt, updatedAt, timestamptz } from "./columns";
 import { users } from "./user-auth";
 import { ROOM_CODE_PATTERN } from "@/features/room/domain/room-code";
 import type { SharePolicy } from "@/features/room/domain/host-controls";
+import { teams } from "./workspaces";
 
 /** Application authority, independent of the webhook history projection. */
 export const roomDefinitions = pgTable(
@@ -23,10 +24,26 @@ export const roomDefinitions = pgTable(
     id: id(),
     code: text("code").notNull().unique(),
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "set null" }),
+    kind: text("kind").$type<"ad_hoc" | "personal" | "team">().notNull().default("ad_hoc"),
+    name: text("name"),
+    teamId: uuid("team_id").references(() => teams.id),
+    allowGuests: boolean("allow_guests").notNull().default(true),
+    memberCanHost: boolean("member_can_host").notNull().default(false),
+    archivedAt: timestamptz("archived_at"),
     closedAt: timestamptz("closed_at"),
     createdAt: createdAt(),
   },
-  () => [check("room_definitions_code_check", sql.raw(`code ~ '${ROOM_CODE_PATTERN}'`))],
+  (t) => [
+    check("room_definitions_code_check", sql.raw(`code ~ '${ROOM_CODE_PATTERN}'`)),
+    check("room_definitions_kind_check", sql`${t.kind} in ('ad_hoc', 'personal', 'team')`),
+    check(
+      "room_definitions_name_check",
+      sql`${t.name} is null or length(${t.name}) between 2 and 80`,
+    ),
+    check("room_definitions_team_check", sql`(${t.kind} = 'team') = (${t.teamId} is not null)`),
+    index("room_definitions_owner_idx").on(t.ownerUserId, t.createdAt),
+    index("room_definitions_team_idx").on(t.teamId, t.createdAt),
+  ],
 );
 
 export const roomSessions = pgTable(
@@ -45,6 +62,8 @@ export const roomSessions = pgTable(
     hostMissingAt: timestamptz("host_missing_at"),
     emptySince: timestamptz("empty_since"),
     closedAt: timestamptz("closed_at"),
+    startedAt: timestamptz("started_at"),
+    participantCount: integer("participant_count").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -57,6 +76,7 @@ export const roomSessions = pgTable(
     uniqueIndex("room_sessions_one_open_idx")
       .on(table.definitionId)
       .where(sql`${table.status} <> 'closed'`),
+    index("room_sessions_definition_history_idx").on(table.definitionId, table.createdAt, table.id),
     index("room_sessions_open_idx").on(table.status, table.updatedAt),
   ],
 );

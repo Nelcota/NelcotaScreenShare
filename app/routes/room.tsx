@@ -1,5 +1,10 @@
 import { routeLoader } from "@/server/route-loader.server";
 
+import { AdmissionError } from "@/features/room/server/session-store.server";
+import {
+  definitionByCode,
+  assertDefinitionAdmission,
+} from "@/features/rooms/server/room-access.server";
 import { redirect } from "@/server/http.server";
 import { getUserSession, requireUser } from "@/features/auth/server/participant-session.server";
 import { getAdminSession } from "@/features/auth/server/admin-session.server";
@@ -33,11 +38,17 @@ export const loader = routeLoader(async ({ params, searchParams }) => {
   const user = current ? (await requireUser(roomLink(code.data, invite))).user : null;
   const { ACCESS_PASSWORD, MAX_PARTICIPANTS } = getEnv();
   const passwordRequired = ACCESS_PASSWORD !== undefined;
+  const { unavailable, permanent } = await roomUnavailable(code.data, user?.id);
   // Who is already inside, for the pre-join screen to show.
-  const [roomNow, admin] = await Promise.all([roomPresence(getDb(), code.data), getAdminSession()]);
-  const presence = presenceForGuests(roomNow, passwordRequired || user === null);
+  const [roomNow, admin] = await Promise.all([
+    unavailable ? Promise.resolve(null) : roomPresence(getDb(), code.data),
+    getAdminSession(),
+  ]);
+  const presence = roomNow ? presenceForGuests(roomNow, passwordRequired || user === null) : null;
 
   return {
+    unavailable,
+    permanent,
     invite,
     code: code.data,
     user: user && { name: user.name, image: user.image },
@@ -55,4 +66,16 @@ export const loader = routeLoader(async ({ params, searchParams }) => {
  */
 export default function RoomPage() {
   return null;
+}
+
+async function roomUnavailable(code: string, identity: string | undefined) {
+  const definition = await definitionByCode(getDb(), code);
+  if (!definition) return { unavailable: undefined, permanent: false };
+  try {
+    await assertDefinitionAdmission(getDb(), definition, identity ?? "convidado-prejoin", false);
+    return { unavailable: undefined, permanent: definition.kind !== "ad_hoc" };
+  } catch (error) {
+    if (!(error instanceof AdmissionError)) throw error;
+    return { unavailable: error.message, permanent: definition.kind !== "ad_hoc" };
+  }
 }

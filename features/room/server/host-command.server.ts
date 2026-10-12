@@ -1,3 +1,4 @@
+import { canHostDefinition } from "@/features/rooms/server/room-access.server";
 import { eq } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { roomCommands, roomSessions } from "@/server/db/schema/room-control";
@@ -27,7 +28,10 @@ export async function executeHostCommand(
     const definition = await sessionByMediaName(tx, initial.mediaRoomName);
     if (!definition || definition.code !== input.room)
       throw new ActionError("Esta chamada não está disponível.");
-    if (!(await activeAccount(tx, actor)))
+    if (
+      !(await activeAccount(tx, actor)) ||
+      !(await canHostDefinition(tx, definition.definition, actor))
+    )
       throw new ActionError("Sua conta não pode moderar salas.");
     const participants = await controlGateway.participants(initial.mediaRoomName);
     const session = await reconcileSessionPresence(tx, initial, participants, new Date());

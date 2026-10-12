@@ -71,6 +71,13 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
     label: "Sistema",
     items: [
       {
+        href: "/admin/pro",
+        label: "Pro beta",
+        icon: "settings",
+        permission: { beta: ["read"] },
+        keywords: ["piloto", "ativação", "time"],
+      },
+      {
         href: "/admin/configuracoes",
         label: "Configurações",
         icon: "settings",

@@ -1,3 +1,4 @@
+import { redactTelemetryUrls } from "./telemetry-urls";
 import { isRouteErrorResponse } from "react-router";
 import type * as Sentry from "@sentry/react-router";
 
@@ -24,6 +25,7 @@ async function loadSdk(dsn: string, release?: string): Promise<typeof Sentry | u
         httpBodies: [],
         urlQueryParams: false,
       },
+      beforeSendTransaction: redactTelemetryUrls,
       // Local browser errors; server errors are already recorded in entry.server.
       beforeSend(event) {
         event.user = undefined;
@@ -31,9 +33,8 @@ async function loadSdk(dsn: string, release?: string): Promise<typeof Sentry | u
           event.request.cookies = undefined;
           event.request.data = undefined;
           event.request.headers = undefined;
-          if (event.request.url) event.request.url = event.request.url.split("?")[0];
         }
-        return event;
+        return redactTelemetryUrls(event);
       },
     });
     for (const error of pending.splice(0)) sentry.captureException(error);

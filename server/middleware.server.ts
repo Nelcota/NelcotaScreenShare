@@ -18,7 +18,12 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
   const response = await withResponseCookies(next);
   response.headers.set("x-request-id", requestId);
   response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set(
+    "Referrer-Policy",
+    new URL(request.url).pathname.startsWith("/times/convite/")
+      ? "no-referrer"
+      : "strict-origin-when-cross-origin",
+  );
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
     "Permissions-Policy",

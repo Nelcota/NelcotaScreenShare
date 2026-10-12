@@ -1,3 +1,4 @@
+import { cleanWorkspaceAccount, revokeWorkspaceIdentity } from "./workspace-privacy.server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
@@ -23,6 +24,7 @@ export async function blockParticipants(tx: DbExecutor, ids: string[], reason: s
     .set({ blockedAt: sql`now()`, blockReason: reason })
     .where(and(inArray(users.id, ids), isNull(users.blockedAt), isNull(users.deletedAt)))
     .returning({ id: users.id });
+  for (const row of changed) await revokeWorkspaceIdentity(tx, row.id);
   await revokeParticipantSessions(
     tx,
     changed.map((row) => row.id),
@@ -41,6 +43,11 @@ export async function unblockParticipants(tx: DbExecutor, ids: string[]) {
 
 /** Reversible deletion (gone from lists and can no longer join); anonymizing is something else. */
 export async function softDeleteParticipants(tx: DbExecutor, ids: string[]) {
+  const candidates = await tx
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(and(inArray(users.id, ids), isNull(users.deletedAt)));
+  for (const row of candidates) await cleanWorkspaceAccount(tx, row.id, row.email);
   const changed = await tx
     .update(users)
     .set({ deletedAt: sql`now()` })
@@ -78,13 +85,14 @@ export async function revokeParticipantSessions(tx: DbExecutor, ids: string[]) {
  * The participation IP stays until the 6-month retention (access record
  * required by the Marco Civil, art. 15).
  */
-export async function anonymizeParticipant(tx: DbExecutor, id: string) {
+export async function anonymizeParticipant(tx: DbExecutor, id: string, deleteOwnedTeams = false) {
   const [current] = await tx
     .select({ email: users.email, anonymizedAt: users.anonymizedAt })
     .from(users)
     .where(eq(users.id, id))
     .for("update");
   if (!current || current.anonymizedAt) return false;
+  await cleanWorkspaceAccount(tx, id, current.email, deleteOwnedTeams);
   // The database trigger also redacts stored webhook names and serializes with new events.
   await tx
     .update(users)
@@ -108,7 +116,7 @@ export async function anonymizeParticipant(tx: DbExecutor, id: string) {
   await tx.delete(userSessions).where(eq(userSessions.userId, id));
   await tx
     .update(roomDefinitions)
-    .set({ ownerUserId: null })
+    .set({ ownerUserId: null, name: null })
     .where(eq(roomDefinitions.ownerUserId, id));
   await tx.update(roomSessions).set({ hostUserId: null }).where(eq(roomSessions.hostUserId, id));
   await tx

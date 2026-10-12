@@ -33,7 +33,7 @@ export function RoomView({
   onLeave,
   onRetry,
 }: RoomViewProps) {
-  const { room, connectError, leave } = useRoomConnection(choices, onLeave);
+  const { room, connectError, leave } = useRoomConnection(choices, code, onLeave);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
 
   if (connectError) {

@@ -49,6 +49,50 @@ async function errorOf(statement: string, values: unknown[] = []): Promise<strin
 }
 
 describe("app role in Postgres", () => {
+  it("writes pilot tables and enforces the deferred team-owner constraint as the runtime role", async () => {
+    await client.query("BEGIN");
+    try {
+      const person = await client.query<{ id: string }>(
+        "insert into users(name,email) values ('Workspace runtime','workspace-runtime@example.com') returning id",
+      );
+      const userId = person.rows[0]?.id;
+      const team = await client.query<{ id: string }>(
+        "insert into teams(name) values('Runtime team') returning id",
+      );
+      const teamId = team.rows[0]?.id;
+      await client.query("insert into team_members(team_id,user_id,role) values($1,$2,'owner')", [
+        teamId,
+        userId,
+      ]);
+      await client.query("insert into pro_entitlements(team_id,active) values($1,true)", [teamId]);
+      const room = await client.query<{ id: string }>(
+        "insert into room_definitions(code,kind,name,team_id,allow_guests) values('runtime-workspace','team','Runtime room',$1,false) returning id",
+        [teamId],
+      );
+      const roomId = room.rows[0]?.id;
+      await client.query("insert into room_favorites(user_id,room_id) values($1,$2)", [
+        userId,
+        roomId,
+      ]);
+      const call = await client.query<{ id: string }>(
+        "insert into room_sessions(definition_id,media_room_name,host_user_id) values($1,'runtime-media',$2) returning id",
+        [roomId, userId],
+      );
+      await client.query(
+        "insert into annotation_epochs(session_id,track_sid,epoch,fingerprint) values($1,'TR_runtime',uuidv7(),'1280x720')",
+        [call.rows[0]?.id],
+      );
+      await client.query("SET CONSTRAINTS ALL IMMEDIATE");
+      expect(await errorOf("delete from team_members where team_id = $1", [teamId])).toMatch(
+        /exactly one owner/,
+      );
+      expect(
+        (await client.query("select * from team_members where team_id = $1", [teamId])).rows,
+      ).toHaveLength(1);
+    } finally {
+      await client.query("ROLLBACK");
+    }
+  });
   it("anonymizes webhook names through the trigger without granting event-body updates", async () => {
     await client.query("BEGIN");
     try {

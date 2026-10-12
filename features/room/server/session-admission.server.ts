@@ -1,3 +1,8 @@
+import {
+  assertDefinitionAdmission,
+  definitionByCode,
+  lockDefinitionPro,
+} from "@/features/rooms/server/room-access.server";
 import { and, eq, gt, isNull, ne } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
@@ -23,7 +28,9 @@ export async function reserveAdmission(
   max: number,
   now = new Date(),
 ) {
+  const initial = await definitionByCode(db, grant.room);
   return db.transaction(async (tx) => {
+    await lockDefinitionPro(tx, initial);
     await lockControlRoom(tx, grant.room);
     const guest = isGuestIdentity(grant.identity);
     if (!guest && !(await activeAccount(tx, grant.identity)))
@@ -47,6 +54,12 @@ export async function reserveAdmission(
         await controlGateway.participants(session.mediaRoomName),
         now,
       );
+    await assertDefinitionAdmission(
+      tx,
+      definition,
+      grant.identity,
+      !session || session.status === "closed",
+    );
     if (!session || session.status === "closed") {
       if (guest)
         throw new AdmissionError(

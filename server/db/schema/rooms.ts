@@ -124,6 +124,7 @@ export const roomParticipations = pgTable(
       sql`${table.leftAt} is null or ${table.leftAt} >= ${table.joinedAt}`,
     ),
     index("room_participations_room_idx").on(table.roomId, table.joinedAt.desc()),
+    index("room_participations_session_idx").on(table.sessionId, table.id),
     index("room_participations_user_idx").on(table.userId, table.joinedAt.desc()),
     index("room_participations_online_idx")
       .on(table.roomId)

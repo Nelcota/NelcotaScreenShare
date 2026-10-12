@@ -31,6 +31,28 @@ const messageOf = (decision: Awaited<ReturnType<typeof decideTokenRequest>>) =>
   decision.ok ? "" : decision.message;
 
 describe("who joins the room", () => {
+  it("passes the caller's identity to capacity checks so replacing a connection can join", async () => {
+    const countParticipants = vi.fn(
+      async (_room: string, identity: string) =>
+        ["ana", "bia", "caio"].filter((member) => member !== identity).length,
+    );
+    const decision = await decideTokenRequest(
+      ANA,
+      body({ room: "sala" }),
+      OPEN,
+      deps({ countParticipants }),
+    );
+    expect(decision.ok).toBe(true);
+    expect(countParticipants).toHaveBeenCalledWith("sala", ANA.id);
+    expect(
+      await decideTokenRequest(
+        { ...ANA, id: "nova" },
+        body({ room: "sala" }),
+        OPEN,
+        deps({ countParticipants }),
+      ),
+    ).toMatchObject({ error: "room_full" });
+  });
   it("signed-in account and room with space: joins with the account's identity and name", async () => {
     const decision = await decideTokenRequest(ANA, body({ room: "Sala-Teste" }), OPEN, deps());
     expect(decision).toEqual({
@@ -167,6 +189,22 @@ describe("who joins the room", () => {
 
 describe("guests (no account)", () => {
   const GUEST = { guestId: "4d1f0a3e-8a5b-4c39-9f0e-2b7c1d6e9a10" };
+
+  it("excludes the same guest's signed identity when returning to a full room", async () => {
+    const identity = `convidado-${GUEST.guestId}`;
+    const countParticipants = vi.fn(
+      async (_room: string, caller: string) =>
+        ["ana", "bia", identity].filter((member) => member !== caller).length,
+    );
+    const decision = await decideTokenRequest(
+      GUEST,
+      body({ room: "sala", guestName: "Visita" }),
+      OPEN,
+      deps({ countParticipants }),
+    );
+    expect(decision).toMatchObject({ ok: true, grant: { identity } });
+    expect(countParticipants).toHaveBeenCalledWith("sala", identity);
+  });
 
   it("joins a room with a host, under a marked identity and the chosen name", async () => {
     const decision = await decideTokenRequest(

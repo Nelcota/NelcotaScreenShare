@@ -55,7 +55,8 @@ export interface TokenDeps {
   passwordFailures: { peek: () => LimitResult; fail: () => void; reset: () => void };
   /** Compares with the access password in constant time. */
   passwordMatches: (given: string) => boolean;
-  countParticipants: (room: string) => Promise<number>;
+  /** Other identities already inside; replacing one's own connection consumes no new spot. */
+  countParticipants: (room: string, excludingIdentity: string) => Promise<number>;
   redeemInvite: (invite: string, room: string, accountId: string) => Promise<boolean>;
   /** Is someone with an account connected? Guests only join a room that has a host. */
   hostPresent: (room: string) => Promise<boolean>;
@@ -199,8 +200,8 @@ function parseRequest(body: ReadBody) {
   return parsed.data;
 }
 
-async function checkCapacity(room: string, policy: TokenPolicy, deps: TokenDeps) {
-  if ((await deps.countParticipants(room)) < policy.maxParticipants) return undefined;
+async function checkCapacity(room: string, identity: string, policy: TokenPolicy, deps: TokenDeps) {
+  if ((await deps.countParticipants(room, identity)) < policy.maxParticipants) return undefined;
   return refuse(
     "room_full",
     "room_full",
@@ -242,7 +243,8 @@ async function decideGuest(
     const wrong = checkPassword(password, deps);
     if (wrong) return wrong;
   }
-  const full = await checkCapacity(room, policy, deps);
+  const identity = `${GUEST_IDENTITY_PREFIX}${guest.guestId}`;
+  const full = await checkCapacity(room, identity, policy, deps);
   if (full) return full;
   if (!(await deps.hostPresent(room))) {
     return refuse(
@@ -253,7 +255,7 @@ async function decideGuest(
   }
   return {
     ok: true,
-    grant: { identity: `${GUEST_IDENTITY_PREFIX}${guest.guestId}`, name: guestName, room },
+    grant: { identity, name: guestName, room },
     log: "granted",
   };
 }
@@ -283,7 +285,7 @@ export async function decideTokenRequest(
     if (wrong) return wrong;
   }
 
-  const full = await checkCapacity(room, policy, deps);
+  const full = await checkCapacity(room, checked.id, policy, deps);
   if (full) return full;
   // After the capacity check: a full room does not consume an invite use.
   if (invite !== undefined && !(await deps.redeemInvite(invite, room, checked.id))) {

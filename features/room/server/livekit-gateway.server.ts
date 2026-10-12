@@ -15,7 +15,7 @@ const PUBLISH_SOURCES = [
 
 /** What token issuing needs from LiveKit (an object literal in tests). */
 export interface LiveKitGateway {
-  countParticipants: (room: string) => Promise<number>;
+  countParticipants: (room: string, excludingIdentity: string) => Promise<number>;
   /** Is someone with an account connected? Read from LiveKit, so it has no webhook delay. */
   hostPresent: (room: string) => Promise<boolean>;
   signToken: (grant: TokenGrant) => Promise<string>;
@@ -33,8 +33,8 @@ async function identitiesIn(room: string): Promise<string[]> {
 }
 
 export const liveKitGateway: LiveKitGateway = {
-  async countParticipants(room) {
-    return (await identitiesIn(room)).length;
+  async countParticipants(room, excludingIdentity) {
+    return (await identitiesIn(room)).filter((identity) => identity !== excludingIdentity).length;
   },
 
   async hostPresent(room) {

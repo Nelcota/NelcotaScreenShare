@@ -11,6 +11,8 @@ import {
 } from "@/features/room/domain/share-support";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
 import { reportBrowserError } from "@/lib/telemetry.client";
+import { resolveShareProfile, type ShareProfile } from "@/features/room/domain/share-profile";
+import { savedShareProfile, saveShareProfile } from "@/features/room/client/saved-share-profile";
 
 /**
  * Drops the computer audio when it would carry the room back to everyone (see
@@ -42,6 +44,7 @@ export function useScreenShare() {
   const [busy, setBusy] = useState(false);
   // Sound preference shared by the dock menu and the alone screen.
   const [audioPreferred, setAudioPreferred] = useState(true);
+  const [profile, setProfile] = useState<ShareProfile>(savedShareProfile);
   const support = useShareSupport();
   const sharedSurface = isScreenShareEnabled
     ? localParticipant
@@ -65,10 +68,8 @@ export function useScreenShare() {
   }
 
   async function start({ surface, audio }: ShareChoice) {
-    // Text (screen, window): 15fps leaves bandwidth for every frame to come out sharp.
-    // A tab is usually video or animated slides: 30fps.
-    const preset =
-      surface === "browser" ? ScreenSharePresets.h1080fps30 : ScreenSharePresets.h1080fps15;
+    const options = resolveShareProfile(profile, surface);
+    const preset = ScreenSharePresets[options.preset];
     setBusy(true);
     try {
       const tracks = await localParticipant.createScreenTracks({
@@ -88,7 +89,7 @@ export function useScreenShare() {
         systemAudio: audio && canRestrictOwnAudio() ? "include" : "exclude",
         selfBrowserSurface: "exclude",
         surfaceSwitching: "include",
-        contentHint: surface === "browser" ? "motion" : "detail",
+        contentHint: options.contentHint,
         resolution: preset.resolution,
       });
       await publishScreen(withoutEchoingAudio(tracks), preset.encoding);
@@ -133,6 +134,11 @@ export function useScreenShare() {
     busy,
     audio: audioPreferred,
     setAudio: setAudioPreferred,
+    profile,
+    setProfile: (next: ShareProfile) => {
+      setProfile(next);
+      saveShareProfile(next);
+    },
     start,
     stop,
   };

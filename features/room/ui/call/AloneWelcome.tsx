@@ -29,11 +29,13 @@ function ShareButton({ share }: { share: ScreenShareControl }) {
       <DockPopoverContent
         side="bottom"
         aria-label="Opções de compartilhamento"
-        className="w-[min(22rem,calc(100vw-2rem))] text-left"
+        className="max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain text-left"
       >
         <SharePanel
           audio={share.audio}
+          profile={share.profile}
           onAudioChange={share.setAudio}
+          onProfileChange={share.setProfile}
           onPick={(choice) => {
             setOpen(false);
             void share.start(choice);

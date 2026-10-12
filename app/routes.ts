@@ -8,6 +8,7 @@ export default [
   route("api/pro/interesse", "routes/api/pro-interest.ts"),
   route("robots.txt", "routes/robots.ts"),
   route("sitemap.xml", "routes/sitemap.ts"),
+  route("sala", "routes/room-hidden.tsx"),
   route("sala/:codigo", "routes/room.tsx", { id: "room" }),
   layout("routes/access/layout.tsx", [
     route("entrar", "routes/access/sign-in.tsx"),

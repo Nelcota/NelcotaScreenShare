@@ -21,6 +21,7 @@ import { participantName } from "@/features/room/domain/participant-label";
 import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
 import { NameEditor } from "./NameEditor";
+import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import type { Connection } from "./RoomLayout";
 
 const CONNECTION_LABELS: Record<Connection, string> = {
@@ -109,10 +110,11 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
                 initials(participantName(participant))
               )}
             </span>
-            <span className="truncate">
+            <span className="min-w-0 flex-1 truncate">
               {participantName(participant)}
               {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
             </span>
+            <ParticipantAudioMenu participant={participant} />
           </li>
         ))}
       </ul>

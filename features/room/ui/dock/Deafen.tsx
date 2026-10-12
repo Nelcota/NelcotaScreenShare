@@ -1,10 +1,11 @@
-import { RoomAudioRenderer, useLocalParticipant } from "@livekit/components-react";
+import { useLocalParticipant } from "@livekit/components-react";
 import { Headphones, HeadphoneOff } from "lucide-react";
 import { createContext, use, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { roomMicErrorMessage } from "@/features/room/client/microphone-errors";
 import { MIC_ERROR_TOAST } from "@/features/room/client/toast-ids";
 import { DockButton } from "./DockButton";
+import { RoomAudioProvider } from "@/features/room/ui/call/RoomAudioProvider";
 
 interface DeafenState {
   deafened: boolean;
@@ -64,8 +65,7 @@ export function DeafenProvider({ children }: { children: ReactNode }) {
   };
   return (
     <DeafenContext value={state}>
-      {children}
-      <RoomAudioRenderer muted={deafened} volume={deafened ? 0 : 1} />
+      <RoomAudioProvider deafened={deafened}>{children}</RoomAudioProvider>
     </DeafenContext>
   );
 }

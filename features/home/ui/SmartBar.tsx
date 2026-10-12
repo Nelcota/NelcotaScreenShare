@@ -8,7 +8,15 @@ import {
   Ticket,
   Video,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   celebrateMascot,
   nodMascot,
@@ -18,6 +26,7 @@ import {
 import { roomLink } from "@/features/room/domain/room-code";
 import { parseRoomInput, type RoomInput } from "@/features/room/domain/room-input";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import { cn } from "@/lib/utils";
 
 interface SmartBarProps {
@@ -149,6 +158,12 @@ export function SmartBar({
   mascot,
   focusShortcut = true,
 }: SmartBarProps) {
+  const hydrated = useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  );
+  const disabled = pending || !hydrated;
   const inputId = useId();
   const hintId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -219,6 +234,7 @@ export function SmartBar({
           </label>
           <input
             ref={inputRef}
+            disabled={disabled}
             id={inputId}
             value={text}
             onChange={(event) => handleChange(event.target.value)}
@@ -233,7 +249,7 @@ export function SmartBar({
           />
           <button
             type="submit"
-            disabled={pending}
+            disabled={disabled}
             className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-brand px-5 text-base font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 motion-reduce:active:scale-100"
           >
             <SubmitLabel pending={pending} creating={creating} />

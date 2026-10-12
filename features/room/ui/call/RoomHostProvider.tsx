@@ -12,6 +12,7 @@ import type { LeaveNotice } from "@/features/room/domain/leave";
 import { useOperation } from "@/lib/operations/use-operation";
 
 interface HostControls {
+  roomCode?: string;
   state?: RoomControlState;
   canShare: boolean;
   available: boolean;
@@ -125,6 +126,7 @@ export function RoomHostProvider({
     <RoomHostContext
       value={{
         state,
+        roomCode: code,
         available,
         busy: command.isPending,
         canShare: !sessionId || Boolean(state?.canShare && screenPermission),

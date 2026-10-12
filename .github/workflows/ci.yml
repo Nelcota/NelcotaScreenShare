@@ -25,8 +25,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm lint
       - name: Unused code, exports and dependencies (knip)
         run: pnpm knip
         env:

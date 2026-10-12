@@ -139,6 +139,9 @@ doesn't offer individual exceptions; on managed machines, ask the administrator
 responsible for the application policy. For full validation in CI, run `pnpm lint`,
 `pnpm typecheck`, `pnpm test` and `pnpm build`.
 
+On a clean checkout, run `pnpm typecheck` before `pnpm lint`: the type-aware linter
+requires the generated React Router route types. GitHub and local CI use this order.
+
 > In production and locally, `pnpm start` runs the Hono server built from `app/server.ts` (`build/server/index.js`, port from `PORT`). The Docker image includes only production dependencies, the SSR build, assets and the migration scripts.
 
 ## Common problems

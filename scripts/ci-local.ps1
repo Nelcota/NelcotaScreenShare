@@ -111,8 +111,8 @@ process.stdout.write(process.env.TEST_DATABASE_URL || local.TEST_DATABASE_URL ||
             Key = 'quality'; Context = 'Local CI / quality'
             Commands = @(
                 @{ Program = 'pnpm'; Arguments = @('format:check') },
-                @{ Program = 'pnpm'; Arguments = @('lint') },
                 @{ Program = 'pnpm'; Arguments = @('typecheck') },
+                @{ Program = 'pnpm'; Arguments = @('lint') },
                 @{ Program = 'pnpm'; Arguments = @('knip') },
                 @{ Program = 'pnpm'; Arguments = @('dup') },
                 @{ Program = 'pnpm'; Arguments = @('db:generate') },

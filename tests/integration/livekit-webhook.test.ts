@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { AccessToken } from "livekit-server-sdk";
 import { Pool } from "pg";
 import { afterAll, describe, test } from "vitest";
+import { z } from "zod";
 import { receiveLivekitWebhook } from "@/features/room/server/webhook/route.server";
 import * as schema from "@/server/db/schema";
 import { reprocessPendingEvents } from "@/features/room/server/webhook/projector.server";
@@ -155,6 +156,52 @@ describe("event projection", () => {
     assert.equal(latest?.livekitSid, roomSid);
   });
 
+  test("anonymization redacts raw deliveries and concurrent or later events without losing replay data", async () => {
+    const code = newRoom();
+    const id = await newUser("Original");
+    const participant = { identity: id, name: "Nome Original", joinedAt: T };
+    await send({ event: "participant_joined", room: code, at: T, participant });
+    let release: (() => void) | undefined;
+    let started: (() => void) | undefined;
+    const ready = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const deleting = db.transaction(async (tx) => {
+      await anonymizeParticipant(tx, id);
+      started?.();
+      await hold;
+    });
+    await ready;
+    const incoming = send({ event: "participant_left", room: code, at: T + 10, participant });
+    release?.();
+    await Promise.all([deleting, incoming]);
+    await send({
+      event: "participant_joined",
+      room: code,
+      at: T + 20,
+      participant: {
+        ...participant,
+        sid: `PA_new_${code}`,
+        joinedAt: T + 20,
+      },
+    });
+    const events = await db
+      .select()
+      .from(schema.livekitEvents)
+      .where(eq(schema.livekitEvents.roomName, code));
+    assert.equal(events.length, 3);
+    for (const event of events) {
+      const raw = z.object({ participant: z.record(z.string(), z.unknown()) }).parse(event.payload);
+      assert.equal(raw.participant.name, undefined);
+      assert.equal(raw.participant.identity, id);
+      assert.ok(raw.participant.sid);
+      assert.ok(event.processedAt);
+      assert.equal(event.error, null);
+    }
+  });
   test("audio reconciliation does not rewrite unchanged shares", async () => {
     const code = newRoom();
     const participant = { identity: `audio-write-${code}`, joinedAt: T };

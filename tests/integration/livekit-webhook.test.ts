@@ -52,17 +52,18 @@ interface EventInput {
   };
   track?: { sid: string; source: string };
   id?: string;
+  roomSid?: string;
 }
 
 type TrackDelivery = { event: string; at: number; sid: string; source: string };
 
-function payload({ event, room, at, participant, track, id }: EventInput) {
+function payload({ event, room, at, participant, track, id, roomSid }: EventInput) {
   eventCounter += 1;
   return JSON.stringify({
     id: id ?? `EV_${eventCounter}_${Date.now()}`,
     event,
     createdAt: String(at),
-    room: { name: room, sid: `RM_${room}`, creationTime: String(at) },
+    room: { name: room, sid: roomSid ?? `RM_${room}`, creationTime: String(at) },
     ...(participant
       ? {
           // As LiveKit sends it: track events carry only sid and identity.
@@ -117,6 +118,43 @@ function participationsOf(roomId: string) {
 }
 
 describe("event projection", () => {
+  test("late events cannot resurrect deleted history or corrupt a new opening of the same code", async () => {
+    const code = newRoom();
+    await send({ event: "room_started", room: code, at: T });
+    await send({ event: "room_finished", room: code, at: T + 60 });
+    const old = await roomByCode(code);
+    await db
+      .update(schema.rooms)
+      .set({ deletedAt: new Date((T + 70) * 1000) })
+      .where(eq(schema.rooms.id, old.id));
+    await send({
+      event: "participant_joined",
+      room: code,
+      at: T + 1,
+      participant: { identity: "late-deleted", joinedAt: T + 1 },
+    });
+    assert.equal(
+      (await db.select().from(schema.rooms).where(eq(schema.rooms.code, code))).length,
+      1,
+    );
+    assert.equal((await participationsOf(old.id)).length, 0);
+    const roomSid = `RM_new_${code}`;
+    await send({ event: "room_started", room: code, roomSid, at: T + 100 });
+    const [current] = await db
+      .select()
+      .from(schema.rooms)
+      .where(and(eq(schema.rooms.code, code), sql`${schema.rooms.deletedAt} is null`));
+    assert.ok(current);
+    assert.notEqual(current.id, old.id);
+    // The old SID is rejected even if its event timestamp is later than the deletion.
+    await send({ event: "room_finished", room: code, at: T + 110 });
+    await send({ event: "room_started", room: code, at: T });
+    const latest = await db.query.rooms.findFirst({ where: eq(schema.rooms.id, current.id) });
+    assert.equal(latest?.status, "active");
+    assert.equal(latest?.startedAt.getTime(), (T + 100) * 1000);
+    assert.equal(latest?.livekitSid, roomSid);
+  });
+
   test("audio reconciliation does not rewrite unchanged shares", async () => {
     const code = newRoom();
     const participant = { identity: `audio-write-${code}`, joinedAt: T };

@@ -5,6 +5,7 @@ import { roomParticipations, rooms, shareSessions } from "@/server/db/schema";
 import { leaveReasonFrom, occurredAt, type WebhookPayload } from "./payload";
 import { closeShares, ensureParticipation, ensureRoom, updatePeak } from "./records.server";
 import { reconcileShareAudio } from "./share-audio.server";
+import { isDeletedRoomEvent, lockRoomCodes } from "../room-lifecycle.server";
 
 export type ProjectionResult = "projected" | "ignored";
 
@@ -26,8 +27,8 @@ const roomStarted: Handler = async ({ tx, payload, code, at }) => {
   return "projected";
 };
 
-const roomFinished: Handler = async ({ tx, code, at }) => {
-  const roomId = await ensureRoom(tx, code, at, { reopen: false });
+const roomFinished: Handler = async ({ tx, payload, code, at }) => {
+  const roomId = await ensureRoom(tx, code, at, { reopen: false, sid: payload.room?.sid });
   // Activity after this time (a late event from an already reopened room) keeps the room active.
   await tx
     .update(rooms)
@@ -54,7 +55,7 @@ const roomFinished: Handler = async ({ tx, code, at }) => {
 
 const participantJoined: Handler = async ({ tx, payload, code, at }) => {
   if (!payload.participant) return "ignored";
-  const roomId = await ensureRoom(tx, code, at, { reopen: true });
+  const roomId = await ensureRoom(tx, code, at, { reopen: true, sid: payload.room?.sid });
   await ensureParticipation(tx, roomId, code, payload.participant, at);
   await updatePeak(tx, roomId);
   return "projected";
@@ -63,7 +64,7 @@ const participantJoined: Handler = async ({ tx, payload, code, at }) => {
 const participantLeft: Handler = async ({ tx, payload, code, at }) => {
   const { participant } = payload;
   if (!participant) return "ignored";
-  const roomId = await ensureRoom(tx, code, at, { reopen: false });
+  const roomId = await ensureRoom(tx, code, at, { reopen: false, sid: payload.room?.sid });
   const participation = await ensureParticipation(tx, roomId, code, participant, at);
   const reason =
     payload.event === "participant_connection_aborted"
@@ -90,7 +91,10 @@ const participantLeft: Handler = async ({ tx, payload, code, at }) => {
 /** Audio can arrive before or after its video, including after the share has ended. */
 const screenAudioChanged: Handler = async ({ tx, payload, code, at }) => {
   if (!payload.participant) return "ignored";
-  const roomId = await ensureRoom(tx, code, at, { reopen: payload.event === "track_published" });
+  const roomId = await ensureRoom(tx, code, at, {
+    reopen: payload.event === "track_published",
+    sid: payload.room?.sid,
+  });
   await ensureParticipation(tx, roomId, code, payload.participant, at);
   await reconcileShareAudio(tx, roomId, code);
   return "projected";
@@ -101,7 +105,7 @@ const screenTrack: Handler = async ({ tx, payload, code, at }) => {
   const { participant, track } = payload;
   if (!participant || !track) return "ignored";
   const published = payload.event === "track_published";
-  const roomId = await ensureRoom(tx, code, at, { reopen: published });
+  const roomId = await ensureRoom(tx, code, at, { reopen: published, sid: payload.room?.sid });
   const participation = await ensureParticipation(tx, roomId, code, participant, at);
   await tx
     .insert(shareSessions)
@@ -155,5 +159,10 @@ export async function projectEvent(
   const code = payload.room?.name;
   if (!code || !ROOM_CODE.test(code)) return "ignored";
   const handler = HANDLERS[payload.event];
-  return handler ? handler({ tx, payload, code, at: occurredAt(payload) }) : "ignored";
+  if (!handler) return "ignored";
+  const at = occurredAt(payload);
+  const opening = payload.room?.creationTime ? new Date(payload.room.creationTime * 1000) : at;
+  await lockRoomCodes(tx, [code]);
+  if (await isDeletedRoomEvent(tx, code, opening, payload.room?.sid)) return "ignored";
+  return handler({ tx, payload, code, at });
 }

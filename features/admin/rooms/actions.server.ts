@@ -10,6 +10,7 @@ import { getDb } from "@/server/db/index.server";
 import { rooms } from "@/server/db/schema";
 import { appUrl } from "@/server/env.server";
 import { createRoomInvite, revokeRoomInvite } from "@/features/room/server/invites.server";
+import { lockRoomCodes } from "@/features/room/server/room-lifecycle.server";
 import { bulkChange, bulkSelectionSchema, resolveSelection } from "@/server/table/selection.server";
 import { INVITE_VALIDITY, inviteMaxUsesSchema } from "./domain/invites";
 import { roomIdsForFilter } from "./server/queries.server";
@@ -26,6 +27,14 @@ export const deleteRoomsAction = defineAdminOperation(
     const changed = await bulkChange(
       ctx.audit,
       async (tx) => {
+        const selected = await tx
+          .select({ code: rooms.code })
+          .from(rooms)
+          .where(inArray(rooms.id, ids));
+        await lockRoomCodes(
+          tx,
+          selected.map((room) => room.code),
+        );
         const live = await tx
           .select({ code: rooms.code })
           .from(rooms)

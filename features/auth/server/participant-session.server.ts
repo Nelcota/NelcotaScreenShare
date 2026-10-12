@@ -6,6 +6,7 @@ import { users } from "@/server/db/schema";
 import { safeReturnPath } from "@/features/auth/domain/return-path";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
+import { sessionWithCookies } from "@/server/response-cookies.server";
 import { getUserAuth } from "./participant-auth.server";
 
 export interface UserSession {
@@ -25,7 +26,9 @@ export interface UserSession {
  * no session (blocking in the panel also ends the sessions).
  */
 export const getUserSession = cache(async (): Promise<UserSession | null> => {
-  const result = await getUserAuth().api.getSession({ headers: requestHeaders() });
+  const result = await sessionWithCookies(
+    getUserAuth().api.getSession({ headers: requestHeaders(), returnHeaders: true }),
+  );
   if (!result) return null;
   const { user, session } = result;
   if (user.blockedAt || user.deletedAt) return null;

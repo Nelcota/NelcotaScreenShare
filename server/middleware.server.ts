@@ -3,6 +3,7 @@ import type { MiddlewareFunction } from "react-router";
 import { buildCsp } from "./csp.server";
 import { CLIENT_IP_HEADER, getClientIp } from "./client-ip.server";
 import { getEnv } from "./env.server";
+import { withResponseCookies } from "./response-cookies.server";
 
 const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
@@ -14,7 +15,7 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
   request.headers.set(CLIENT_IP_HEADER, getClientIp(request.headers, env.TRUSTED_PROXY_HOPS));
   const nonce = randomBytes(24).toString("base64");
   request.headers.set("x-nonce", nonce);
-  const response = await next();
+  const response = await withResponseCookies(next);
   response.headers.set("x-request-id", requestId);
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");

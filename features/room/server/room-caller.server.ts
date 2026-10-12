@@ -1,6 +1,7 @@
 import { GUEST_IDENTITY_PREFIX } from "@/features/room/domain/participant-label";
 import { readGuestId } from "@/features/room/server/guest-session.server";
 import { getUserAuth } from "@/features/auth/server/participant-auth.server";
+import { sessionWithCookies } from "@/server/response-cookies.server";
 
 /** Who is calling a room route: an active account or a guest, by their LiveKit identity. */
 export type RoomCaller =
@@ -13,7 +14,9 @@ export type RoomCaller =
  * never on one sent by the browser. Blocked or deleted accounts get none.
  */
 export async function roomCaller(request: Request): Promise<RoomCaller | undefined> {
-  const auth = await getUserAuth().api.getSession({ headers: request.headers });
+  const auth = await sessionWithCookies(
+    getUserAuth().api.getSession({ headers: request.headers, returnHeaders: true }),
+  );
   if (auth) {
     if (auth.user.blockedAt || auth.user.deletedAt) return undefined;
     return { kind: "account", identity: auth.user.id };

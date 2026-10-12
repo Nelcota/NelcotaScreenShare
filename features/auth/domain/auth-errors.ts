@@ -20,6 +20,7 @@ const BY_CODE: Record<string, string> = {
   PASSWORD_TOO_SHORT: "A senha é curta demais.",
   PASSWORD_TOO_LONG: "A senha é longa demais.",
   SESSION_EXPIRED: "Sua sessão expirou. Entre de novo.",
+  SESSION_NOT_FRESH: "Por segurança, saia da sua conta e entre de novo para trocar o e-mail.",
   CROSS_SITE_REQUEST: "Requisição recusada. Atualize a página e tente de novo.",
   ADMIN_DISABLED: "O painel admin está desligado neste servidor.",
 };

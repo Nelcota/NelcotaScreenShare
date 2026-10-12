@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react";
 import { toast } from "sonner";
-import { contentBox } from "@/features/room/domain/content-box";
+import { useVideoContentBox } from "@/features/room/hooks/use-video-content-box";
 import {
   createReceiveThrottle,
   decodeMessage,
@@ -69,36 +69,6 @@ export function usePointers() {
   return { pings, pointAt };
 }
 
-/** Image area inside the <video> (`object-contain` leaves black bars). */
-function useContentBox(videoRef: RefObject<HTMLVideoElement | null>) {
-  const [box, setBox] = useState<ReturnType<typeof contentBox>>();
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const update = () =>
-      setBox(
-        contentBox(
-          { width: video.clientWidth, height: video.clientHeight },
-          { width: video.videoWidth, height: video.videoHeight },
-        ),
-      );
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(video);
-    // "resize" fires when the video resolution changes (e.g. switching windows).
-    video.addEventListener("resize", update);
-    video.addEventListener("loadedmetadata", update);
-    return () => {
-      observer.disconnect();
-      video.removeEventListener("resize", update);
-      video.removeEventListener("loadedmetadata", update);
-    };
-  }, [videoRef]);
-
-  return box;
-}
-
 export function PointerLayer({
   videoRef,
   trackSid,
@@ -112,7 +82,7 @@ export function PointerLayer({
   pointing: boolean;
   onPoint?: (message: PointerMessage) => void;
 }) {
-  const box = useContentBox(videoRef);
+  const box = useVideoContentBox(videoRef);
   const layerRef = useRef<HTMLButtonElement>(null);
   // Keyboard cursor: starts in the middle and only shows on keyboard focus.
   const [cursor, setCursor] = useState<CursorPosition>({ x: 0.5, y: 0.5 });

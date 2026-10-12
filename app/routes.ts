@@ -43,6 +43,7 @@ export default [
   route("api/token", "routes/api/room/token.ts"),
   route("api/sala/mao", "routes/api/room/hand.ts"),
   route("api/sala/nome", "routes/api/room/name.ts"),
+  route("api/sala/anotacoes", "routes/api/room/annotations.ts"),
   route("api/sala/controles", "routes/api/room/controls.ts"),
   route("api/sala/conexao/*", "routes/api/room/connection.ts"),
   route("api/livekit/webhook", "routes/api/room/livekit-webhook.ts"),

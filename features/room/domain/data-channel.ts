@@ -7,6 +7,8 @@ import { z } from "zod";
 export const TOPICS = {
   reaction: "nelcota.reaction",
   pointer: "nelcota.pointer",
+  annotation: "nelcota.annotation.v1",
+  annotationEpoch: "nelcota.annotation.epoch",
   screenStats: "nelcota.screen-stats",
 } as const;
 

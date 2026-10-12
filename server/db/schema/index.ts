@@ -6,3 +6,5 @@ export { roomDefinitions, roomSessions, roomSessionMembers, roomCommands } from 
 export * from "./security";
 export * from "./settings";
 export * from "./user-auth";
+
+export { annotationEpochs } from "./annotations";

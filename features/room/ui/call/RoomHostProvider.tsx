@@ -13,6 +13,7 @@ import { useOperation } from "@/lib/operations/use-operation";
 
 interface HostControls {
   roomCode?: string;
+  sessionId?: string;
   state?: RoomControlState;
   canShare: boolean;
   available: boolean;
@@ -127,6 +128,7 @@ export function RoomHostProvider({
       value={{
         state,
         roomCode: code,
+        sessionId,
         available,
         busy: command.isPending,
         canShare: !sessionId || Boolean(state?.canShare && screenPermission),

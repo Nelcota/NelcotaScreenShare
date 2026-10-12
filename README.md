@@ -35,6 +35,8 @@ Self-hosted, with LiveKit and React Router.
 | Screen with audio    | Shares the screen with tab or system audio, when the browser allows it                                    |
 | Microphone           | Test before joining, device switching and an indicator of who is speaking                                 |
 | In the room          | Chat, reactions, raise your hand and point at someone else's screen (everyone sees the pointer)           |
+| Individual audio     | Adjust each person's voice and shared sound separately, or mute them only for yourself                    |
+| Sharing profiles     | Automatic, Text, Video and Data saver, remembered on this browser for the next share                      |
 | Joining is simple    | Create a room with `Enter` or paste the link you received; optional password and a limit of 2 to 8 people |
 | Accounts             | Sign-up, 2FA, profile picture, connected devices, data export and deletion (LGPD)                         |
 | Admin panel          | Rooms, participants, shares and an immutable audit log, with invitations, mandatory 2FA and permissions   |

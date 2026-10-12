@@ -49,6 +49,38 @@ async function errorOf(statement: string, values: unknown[] = []): Promise<strin
 }
 
 describe("app role in Postgres", () => {
+  it("anonymizes webhook names through the trigger without granting event-body updates", async () => {
+    await client.query("BEGIN");
+    try {
+      const account = await client.query<{ id: string }>(
+        "insert into users (name, email) values ('Original', 'redaction@exemplo.com') returning id",
+      );
+      const id = account.rows[0]?.id;
+      expect(id).toBeDefined();
+      const payload = { participant: { identity: id, sid: "PA_redaction", name: "Original" } };
+      await client.query(
+        "insert into livekit_events (id, event, payload, occurred_at) values ('EV_before_redaction', 'participant_joined', $1, now())",
+        [JSON.stringify(payload)],
+      );
+      await client.query("update users set anonymized_at = now() where id = $1", [id]);
+      await client.query(
+        "insert into livekit_events (id, event, payload, occurred_at) values ('EV_after_redaction', 'participant_left', $1, now())",
+        [JSON.stringify(payload)],
+      );
+      const events = await client.query<{ name: string | null; identity: string }>(
+        "select payload->'participant'->>'name' as name, payload->'participant'->>'identity' as identity from livekit_events where id in ('EV_before_redaction', 'EV_after_redaction')",
+      );
+      expect(events.rows).toEqual([
+        { name: null, identity: id },
+        { name: null, identity: id },
+      ]);
+      expect(await errorOf("update livekit_events set payload = '{}'")).toMatch(
+        /permission denied/,
+      );
+    } finally {
+      await client.query("ROLLBACK");
+    }
+  });
   it("reads and writes regular data", async () => {
     await client.query("BEGIN");
     try {

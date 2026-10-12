@@ -81,6 +81,34 @@ const exportSchema = z.object({
 });
 
 describe("data subject data", () => {
+  test("the export includes the entire history beyond 5,000 rows", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const { code } = await withHistory(participant.id);
+    const room = await db.query.rooms.findFirst({ where: eq(schema.rooms.code, code) });
+    assert.ok(room);
+    await pool.query(
+      `
+      insert into room_participations (room_id, user_id, livekit_identity, livekit_sid, joined_at, left_at)
+      select $1::uuid, $2::uuid, $2::uuid::text, 'PA_export_' || $2::uuid::text || '_' || g,
+        now() - g * interval '1 second', now()
+      from generate_series(1, 5000) as g`,
+      [room.id, participant.id],
+    );
+    await pool.query(
+      `
+      insert into token_requests (room_code, user_id, result, created_at)
+      select $1, $2, 'granted', now() - g * interval '1 second'
+      from generate_series(1, 5000) as g`,
+      [code, participant.id],
+    );
+    requestHeaders.current = new Headers({ cookie: participant.jar.header() });
+    const response = await downloadAccountData();
+    assert.equal(response.status, 200);
+    const data = exportSchema.parse(await response.json());
+    assert.equal(data.participacoes_em_salas.length, 5001);
+    assert.equal(data.pedidos_de_entrada.length, 5001);
+  });
+
   test("deletion invalidates pending recoveries and rejects leftover tokens", async () => {
     const user = await verifiedParticipant(db, handler);
     const auth = await getUserAuth().$context;

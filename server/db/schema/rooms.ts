@@ -255,6 +255,7 @@ export const livekitEvents = pgTable(
       .on(table.occurredAt)
       .where(sql`${table.processedAt} is null`),
     index("livekit_events_received_idx").on(table.receivedAt.desc()),
+    index("livekit_events_identity_idx").on(sql`(${table.payload}->'participant'->>'identity')`),
     // Publications and their ending lookups must not scan every room's raw history.
     index("livekit_events_track_idx").on(
       table.roomName,

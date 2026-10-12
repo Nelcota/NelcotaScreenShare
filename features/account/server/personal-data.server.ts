@@ -53,8 +53,7 @@ export async function personalData(db: DbExecutor, userId: string) {
     .leftJoin(shareSessions, eq(shareSessions.participationId, roomParticipations.id))
     .where(eq(roomParticipations.userId, userId))
     .groupBy(roomParticipations.id, rooms.code)
-    .orderBy(desc(roomParticipations.joinedAt))
-    .limit(5000);
+    .orderBy(desc(roomParticipations.joinedAt));
   const tokenLog = await db
     .select({
       sala: tokenRequests.roomCode,
@@ -64,8 +63,7 @@ export async function personalData(db: DbExecutor, userId: string) {
     })
     .from(tokenRequests)
     .where(eq(tokenRequests.userId, userId))
-    .orderBy(desc(tokenRequests.createdAt))
-    .limit(5000);
+    .orderBy(desc(tokenRequests.createdAt));
 
   return {
     gerado_em: new Date().toISOString(),

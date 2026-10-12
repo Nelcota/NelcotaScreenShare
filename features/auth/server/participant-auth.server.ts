@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { CLIENT_IP_HEADER } from "@/server/client-ip.server";
@@ -16,6 +17,7 @@ import { appUrl, getEnv } from "@/server/env.server";
 import { mailLayout } from "@/server/mail.server";
 import { deliverAccountMail } from "./auth-mail.server";
 import { PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
+import { safeReturnPath } from "@/features/auth/domain/return-path";
 import { hashPassword, verifyPassword } from "./password.server";
 import { AUTH_RATE_LIMIT_RULES, authHooks, FRESH_SESSION_SECONDS } from "./auth-shared.server";
 
@@ -69,12 +71,21 @@ async function sendVerificationMail({ user, url }: { user: MailRecipient; url: s
 }
 
 /** `false` vetoes the session; `undefined` lets Better Auth create it. */
-async function sessionAllowed(db: Database, userId: string): Promise<false | undefined> {
+async function sessionAllowed(
+  db: Database,
+  userId: string,
+  emailVerification: boolean,
+): Promise<false | undefined> {
   const [user] = await db
-    .select({ blockedAt: users.blockedAt, deletedAt: users.deletedAt })
+    .select({
+      blockedAt: users.blockedAt,
+      deletedAt: users.deletedAt,
+      twoFactorEnabled: users.twoFactorEnabled,
+    })
     .from(users)
     .where(eq(users.id, userId));
   if (!user || user.blockedAt || user.deletedAt) return false;
+  if (emailVerification && user.twoFactorEnabled) return false;
   return undefined;
 }
 
@@ -121,7 +132,7 @@ function createUserAuth(db: Database, secret: string) {
       modelName: "userSessions",
       expiresIn: 30 * 24 * 60 * 60,
       updateAge: 24 * 60 * 60,
-      // Changing password/e-mail and deleting the account require a sign-in in the last 10 min.
+      // E-mail changes enforce this window in email-policy.server; other endpoints use passwords.
       freshAge: FRESH_SESSION_SECONDS,
       cookieCache: { enabled: false },
     },
@@ -146,6 +157,16 @@ function createUserAuth(db: Database, secret: string) {
       autoSignInAfterVerification: true,
       expiresIn: 24 * 60 * 60,
       sendVerificationEmail: sendVerificationMail,
+      async afterEmailVerification(user, request) {
+        if (!("twoFactorEnabled" in user) || user.twoFactorEnabled !== true) return;
+        // The address is now verified. Never create a new session from an e-mail link
+        // for a 2FA account; an existing authenticated session can continue normally.
+        const callback = request ? new URL(request.url).searchParams.get("callbackURL") : null;
+        const returnTo = safeReturnPath(callback, "/conta");
+        throw new APIError("FOUND", undefined, {
+          Location: `/entrar?voltar=${encodeURIComponent(returnTo)}`,
+        });
+      },
     },
     rateLimit: {
       enabled: true,
@@ -171,7 +192,8 @@ function createUserAuth(db: Database, secret: string) {
       session: {
         create: {
           // An account blocked by the panel or deleted does not open a session.
-          before: (session) => sessionAllowed(db, session.userId),
+          before: (session, context) =>
+            sessionAllowed(db, session.userId, context?.path === "/verify-email"),
         },
       },
     },

@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { logger } from "@/server/logger.server";
 import { sendMail, type MailMessage } from "@/server/mail.server";
+import { sessionWithCookies } from "@/server/response-cookies.server";
 
 const deliveryContext = new AsyncLocalStorage<{ failed: boolean }>();
 const INTERACTIVE_MAIL_PATHS = new Set([
@@ -24,13 +25,20 @@ export async function handleAuthWithMailDelivery(
   request: Request,
   auth: {
     handler: (request: Request) => Promise<Response>;
-    api: { getSession: (options: { headers: Headers }) => Promise<unknown> };
+    api: {
+      getSession: (options: {
+        headers: Headers;
+        returnHeaders: true;
+      }) => Promise<{ response: unknown; headers: Headers }>;
+    };
   },
 ): Promise<Response> {
   if (request.method !== "POST" || !INTERACTIVE_MAIL_PATHS.has(new URL(request.url).pathname)) {
     return auth.handler(request);
   }
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await sessionWithCookies(
+    auth.api.getSession({ headers: request.headers, returnHeaders: true }),
+  );
   if (!session) return auth.handler(request);
 
   const context = { failed: false };

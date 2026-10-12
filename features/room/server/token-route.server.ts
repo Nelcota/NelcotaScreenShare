@@ -11,6 +11,7 @@ import { newGuestSession, readGuestId } from "@/features/room/server/guest-sessi
 import { clientIpFrom } from "@/server/client-ip.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 import { requestLogger } from "@/server/request-log.server";
+import { sessionWithCookies } from "@/server/response-cookies.server";
 import { readJsonBody, SMALL_JSON_MAX_BYTES } from "@/server/body.server";
 
 // Per-IP excess does not reach the database: a flood does not become a flood of writes.
@@ -72,7 +73,9 @@ export async function requestRoomToken(request: Request) {
   }
 
   const { body, room } = await readBody(request);
-  const session = await getUserAuth().api.getSession({ headers: request.headers });
+  const session = await sessionWithCookies(
+    getUserAuth().api.getSession({ headers: request.headers, returnHeaders: true }),
+  );
   const {
     caller,
     headers,

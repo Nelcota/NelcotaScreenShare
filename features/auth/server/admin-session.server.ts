@@ -1,6 +1,7 @@
 import { requestHeaders, requestMemo as cache } from "@/server/request-context.server";
 import { redirect } from "@/server/http.server";
 import { logger } from "@/server/logger.server";
+import { sessionWithCookies } from "@/server/response-cookies.server";
 import { getAdminAuth } from "./admin-auth.server";
 import { can, type PermissionRequest } from "./permissions.server";
 import { isAdminRole, ROLES_REQUIRING_2FA, type AdminRole } from "@/features/auth/domain/roles";
@@ -27,7 +28,9 @@ export interface AdminSession {
 export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
   const auth = getAdminAuth();
   if (!auth) return null;
-  const result = await auth.api.getSession({ headers: requestHeaders() });
+  const result = await sessionWithCookies(
+    auth.api.getSession({ headers: requestHeaders(), returnHeaders: true }),
+  );
   if (!result) return null;
   const { user, session } = result;
   if (user.banned || !isAdminRole(user.role)) return null;

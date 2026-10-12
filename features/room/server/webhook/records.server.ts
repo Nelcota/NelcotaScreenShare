@@ -45,7 +45,9 @@ export async function ensureRoom(
       set: {
         startedAt: sql`least(${rooms.startedAt}, excluded.started_at)`,
         lastActivityAt: sql`greatest(${rooms.lastActivityAt}, excluded.last_activity_at)`,
-        livekitSid: sid ? sql`excluded.livekit_sid` : sql`${rooms.livekitSid}`,
+        livekitSid: sid
+          ? sql`case when excluded.last_activity_at >= ${rooms.lastActivityAt} then excluded.livekit_sid else ${rooms.livekitSid} end`
+          : sql`${rooms.livekitSid}`,
         status: sql`case when ${reopens} then 'active'::room_status else ${rooms.status} end`,
         finishedAt: sql`case when ${reopens} then null else ${rooms.finishedAt} end`,
       },

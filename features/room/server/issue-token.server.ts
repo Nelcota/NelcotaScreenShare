@@ -72,7 +72,7 @@ export async function issueRoomToken(
           reset: () => passwordFailures.reset(ipKey),
         },
         passwordMatches: (given) => safeEqual(given, env.ACCESS_PASSWORD ?? ""),
-        countParticipants: (room) => gateway.countParticipants(room),
+        countParticipants: (room, identity) => gateway.countParticipants(room, identity),
         redeemInvite: (invite, room, accountId) =>
           redeemRoomInvite(getDb(), { token: invite, roomCode: room, userId: accountId }),
         hostPresent: (room) => gateway.hostPresent(room),

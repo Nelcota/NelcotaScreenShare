@@ -84,6 +84,7 @@ export async function anonymizeParticipant(tx: DbExecutor, id: string) {
     .where(eq(users.id, id))
     .for("update");
   if (!current || current.anonymizedAt) return false;
+  // The database trigger also redacts stored webhook names and serializes with new events.
   await tx
     .update(users)
     .set({

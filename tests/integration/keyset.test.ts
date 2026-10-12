@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import { listAuditLogs } from "@/features/admin/audit/server/queries.server";
-import type { AuditParams } from "@/features/admin/audit/domain/search-params";
+import { loadAuditParams, type AuditParams } from "@/features/admin/audit/domain/search-params";
 import * as schema from "@/server/db/schema";
 import { approximateCount, COUNT_CAP } from "@/server/table/keyset.server";
 import { sql } from "drizzle-orm";
@@ -52,6 +52,11 @@ async function walk(params: AuditParams, limit: number) {
 }
 
 describe("keyset pagination", () => {
+  test("the audit page loads without any query parameters", async () => {
+    const page = await listAuditLogs(db, loadAuditParams(new URLSearchParams()), 10);
+    assert.equal(page.items.length, 10);
+    assert.equal(page.total, 125);
+  });
   for (const ordem of ["asc", "desc"] as const) {
     test(`last seen ${ordem}: walks forward and back across filled and null values`, async () => {
       const q = `nulos-${ordem}`;

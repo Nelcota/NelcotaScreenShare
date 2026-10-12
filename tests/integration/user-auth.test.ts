@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, describe, test, vi } from "vitest";
+import { z } from "zod";
 import {
   ADMIN_AUTH_BASE_PATH,
   createAdminAuthForTests,
@@ -15,6 +16,8 @@ import * as schema from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import { verifiedParticipant } from "./support/accounts";
 import { CookieJar, errorCode, makeCaller } from "./support/http-auth";
+import { totpFromUri } from "./support/totp";
+import { createEmailVerificationToken } from "better-auth/api";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
@@ -179,6 +182,151 @@ const INVALID_IMAGES = [
   "data:image/webp;base64,UklGRxxxxxxxxxxxxxxxxxxx",
   WEBP_WITH_EXIF,
 ];
+
+describe("email change security", () => {
+  test("initial email confirmation verifies a 2FA account without bypassing sign-in or locking it out", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    await db
+      .update(schema.users)
+      .set({ emailVerified: false, twoFactorEnabled: true })
+      .where(eq(schema.users.id, participant.id));
+    const before = await db
+      .select()
+      .from(schema.userSessions)
+      .where(eq(schema.userSessions.userId, participant.id));
+    const token = await createEmailVerificationToken(
+      "segredo-participantes-de-teste-0123456789abcdef",
+      participant.email,
+    );
+    const response = await auth.handler(
+      new Request(
+        `http://localhost:3000/api/auth/verify-email?${new URLSearchParams({ token, callbackURL: "/conta" })}`,
+      ),
+    );
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get("location"), "/entrar?voltar=%2Fconta");
+    assert.equal(
+      response.headers
+        .getSetCookie()
+        .some((cookie) => cookie.includes("session_token=") && !cookie.includes("Max-Age=0")),
+      false,
+    );
+    const current = await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) });
+    assert.equal(current?.emailVerified, true);
+    assert.equal(current?.twoFactorEnabled, true);
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.userSessions)
+          .where(eq(schema.userSessions.userId, participant.id))
+      ).length,
+      before.length,
+    );
+  });
+  test("an old session cannot send an email-change link", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const mail = captureMail();
+    await db
+      .update(schema.userSessions)
+      .set({ createdAt: new Date(Date.now() - 2 * 60 * 60_000) })
+      .where(eq(schema.userSessions.userId, participant.id));
+    const newEmail = `old-session-${crypto.randomUUID()}@exemplo.com`;
+    const response = await newCaller()("/change-email", {
+      body: { newEmail },
+      jar: participant.jar,
+    });
+    assert.equal(response.status, 403);
+    assert.equal(errorCode(response.body), "SESSION_NOT_FRESH");
+    assert.equal(mail.count(newEmail), 0);
+    assert.equal(
+      (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.email,
+      participant.email,
+    );
+  });
+
+  test("a 2FA email-change link resumes only after authenticating the same account", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const call = newCaller();
+    const enabled = await call("/two-factor/enable", {
+      body: { password: participant.password },
+      jar: participant.jar,
+    });
+    assert.equal(enabled.status, 200);
+    const setup = z.object({ totpURI: z.string() }).parse(enabled.body);
+    assert.equal(
+      (
+        await call("/two-factor/verify-totp", {
+          body: { code: totpFromUri(setup.totpURI) },
+          jar: participant.jar,
+        })
+      ).status,
+      200,
+    );
+    const mail = captureMail();
+    const newEmail = `two-factor-${crypto.randomUUID()}@exemplo.com`;
+    assert.equal(
+      (
+        await call("/change-email", {
+          body: { newEmail, callbackURL: "/conta?aviso=email" },
+          jar: participant.jar,
+        })
+      ).status,
+      200,
+    );
+    const link = await vi.waitFor(() => {
+      const found = mail.linkFor(newEmail);
+      assert.ok(found);
+      return found;
+    });
+    const verify = await auth.handler(new Request(link));
+    assert.equal(verify.status, 302);
+    assert.match(verify.headers.get("location") ?? "", /^\/verificar-email\?token=/);
+    assert.equal(
+      verify.headers
+        .getSetCookie()
+        .some((cookie) => cookie.includes("session_token=") && !cookie.includes("Max-Age=0")),
+      false,
+    );
+    assert.equal(
+      (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.email,
+      participant.email,
+    );
+
+    const other = await verifiedParticipant(db, handler);
+    const wrongAccount = await auth.handler(
+      new Request(link, { headers: { cookie: other.jar.header() } }),
+    );
+    assert.equal(wrongAccount.status, 302);
+    assert.match(wrongAccount.headers.get("location") ?? "", /^\/verificar-email\?token=/);
+
+    const jar = new CookieJar();
+    const signIn = await newCaller()("/sign-in/email", {
+      body: { email: participant.email, password: participant.password },
+      jar,
+    });
+    assert.equal(signIn.status, 200);
+    assert.equal(
+      z.object({ twoFactorRedirect: z.boolean() }).parse(signIn.body).twoFactorRedirect,
+      true,
+    );
+    assert.equal(
+      (
+        await newCaller()("/two-factor/verify-totp", {
+          body: { code: totpFromUri(setup.totpURI) },
+          jar,
+        })
+      ).status,
+      200,
+    );
+    const confirmed = await auth.handler(new Request(link, { headers: { cookie: jar.header() } }));
+    assert.equal(confirmed.status, 302);
+    assert.equal(confirmed.headers.get("location"), "/entrar?voltar=%2Fconta%3Faviso%3Demail");
+    const account = await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) });
+    assert.equal(account?.email, newEmail);
+    assert.equal(account?.twoFactorEnabled, true);
+  });
+});
 
 describe("profile photo", () => {
   test("sign-up validates the photo with the same rules as the update", async () => {

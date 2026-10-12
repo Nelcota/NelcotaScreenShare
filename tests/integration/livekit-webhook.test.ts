@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { AccessToken } from "livekit-server-sdk";
 import { Pool } from "pg";
 import { afterAll, describe, test } from "vitest";
+import { z } from "zod";
 import { receiveLivekitWebhook } from "@/features/room/server/webhook/route.server";
 import * as schema from "@/server/db/schema";
 import { reprocessPendingEvents } from "@/features/room/server/webhook/projector.server";
@@ -52,17 +53,18 @@ interface EventInput {
   };
   track?: { sid: string; source: string };
   id?: string;
+  roomSid?: string;
 }
 
 type TrackDelivery = { event: string; at: number; sid: string; source: string };
 
-function payload({ event, room, at, participant, track, id }: EventInput) {
+function payload({ event, room, at, participant, track, id, roomSid }: EventInput) {
   eventCounter += 1;
   return JSON.stringify({
     id: id ?? `EV_${eventCounter}_${Date.now()}`,
     event,
     createdAt: String(at),
-    room: { name: room, sid: `RM_${room}`, creationTime: String(at) },
+    room: { name: room, sid: roomSid ?? `RM_${room}`, creationTime: String(at) },
     ...(participant
       ? {
           // As LiveKit sends it: track events carry only sid and identity.
@@ -117,6 +119,89 @@ function participationsOf(roomId: string) {
 }
 
 describe("event projection", () => {
+  test("late events cannot resurrect deleted history or corrupt a new opening of the same code", async () => {
+    const code = newRoom();
+    await send({ event: "room_started", room: code, at: T });
+    await send({ event: "room_finished", room: code, at: T + 60 });
+    const old = await roomByCode(code);
+    await db
+      .update(schema.rooms)
+      .set({ deletedAt: new Date((T + 70) * 1000) })
+      .where(eq(schema.rooms.id, old.id));
+    await send({
+      event: "participant_joined",
+      room: code,
+      at: T + 1,
+      participant: { identity: "late-deleted", joinedAt: T + 1 },
+    });
+    assert.equal(
+      (await db.select().from(schema.rooms).where(eq(schema.rooms.code, code))).length,
+      1,
+    );
+    assert.equal((await participationsOf(old.id)).length, 0);
+    const roomSid = `RM_new_${code}`;
+    await send({ event: "room_started", room: code, roomSid, at: T + 100 });
+    const [current] = await db
+      .select()
+      .from(schema.rooms)
+      .where(and(eq(schema.rooms.code, code), sql`${schema.rooms.deletedAt} is null`));
+    assert.ok(current);
+    assert.notEqual(current.id, old.id);
+    // The old SID is rejected even if its event timestamp is later than the deletion.
+    await send({ event: "room_finished", room: code, at: T + 110 });
+    await send({ event: "room_started", room: code, at: T });
+    const latest = await db.query.rooms.findFirst({ where: eq(schema.rooms.id, current.id) });
+    assert.equal(latest?.status, "active");
+    assert.equal(latest?.startedAt.getTime(), (T + 100) * 1000);
+    assert.equal(latest?.livekitSid, roomSid);
+  });
+
+  test("anonymization redacts raw deliveries and concurrent or later events without losing replay data", async () => {
+    const code = newRoom();
+    const id = await newUser("Original");
+    const participant = { identity: id, name: "Nome Original", joinedAt: T };
+    await send({ event: "participant_joined", room: code, at: T, participant });
+    let release: (() => void) | undefined;
+    let started: (() => void) | undefined;
+    const ready = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const deleting = db.transaction(async (tx) => {
+      await anonymizeParticipant(tx, id);
+      started?.();
+      await hold;
+    });
+    await ready;
+    const incoming = send({ event: "participant_left", room: code, at: T + 10, participant });
+    release?.();
+    await Promise.all([deleting, incoming]);
+    await send({
+      event: "participant_joined",
+      room: code,
+      at: T + 20,
+      participant: {
+        ...participant,
+        sid: `PA_new_${code}`,
+        joinedAt: T + 20,
+      },
+    });
+    const events = await db
+      .select()
+      .from(schema.livekitEvents)
+      .where(eq(schema.livekitEvents.roomName, code));
+    assert.equal(events.length, 3);
+    for (const event of events) {
+      const raw = z.object({ participant: z.record(z.string(), z.unknown()) }).parse(event.payload);
+      assert.equal(raw.participant.name, undefined);
+      assert.equal(raw.participant.identity, id);
+      assert.ok(raw.participant.sid);
+      assert.ok(event.processedAt);
+      assert.equal(event.error, null);
+    }
+  });
   test("audio reconciliation does not rewrite unchanged shares", async () => {
     const code = newRoom();
     const participant = { identity: `audio-write-${code}`, joinedAt: T };

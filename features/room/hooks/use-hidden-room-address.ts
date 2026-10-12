@@ -1,12 +1,8 @@
 import { useEffect } from "react";
+import { useLocation, useNavigate, useNavigation } from "react-router";
 import { roomLink } from "@/features/room/domain/room-code";
-import { HIDDEN_ROOM_PATH, rememberRoomAddress } from "@/features/room/client/hidden-room-address";
+import { HIDDEN_ROOM_PATH, roomAddressState } from "@/features/room/client/hidden-room-address";
 import { currentStreamerMode, useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-
-function replaceAddress(path: string) {
-  // Keeps the router's history entry (its state) and only swaps what the bar shows.
-  window.history.replaceState(window.history.state, "", path);
-}
 
 /**
  * Streamer mode also hides the code from the address bar: while the room page is open,
@@ -15,16 +11,20 @@ function replaceAddress(path: string) {
  */
 export function useHiddenRoomAddress(code: string, invite: string | undefined, active: boolean) {
   const { enabled } = useStreamerMode();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navigation = useNavigation();
 
   useEffect(() => {
     // During hydration `enabled` still holds the server's cautious default (hidden):
     // wait for the saved choice, or the address would flicker for everyone.
-    if (!active || enabled !== currentStreamerMode()) return;
-    if (enabled) {
-      rememberRoomAddress(code, invite);
-      replaceAddress(HIDDEN_ROOM_PATH);
-      return;
-    }
-    if (window.location.pathname === HIDDEN_ROOM_PATH) replaceAddress(roomLink(code, invite));
-  }, [active, enabled, code, invite]);
+    if (!active || navigation.state !== "idle" || enabled !== currentStreamerMode()) return;
+    const masked = location.mask?.pathname === HIDDEN_ROOM_PATH;
+    if (enabled === masked) return;
+    void navigate(roomLink(code, invite), {
+      replace: true,
+      mask: enabled ? HIDDEN_ROOM_PATH : undefined,
+      state: roomAddressState(location.state, code, invite),
+    });
+  }, [active, enabled, code, invite, location, navigate, navigation.state]);
 }

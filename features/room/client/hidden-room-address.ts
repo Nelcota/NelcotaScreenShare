@@ -1,31 +1,24 @@
 import { roomCodeSchema, roomLink } from "@/features/room/domain/room-code";
 import { INVITE_TOKEN_PATTERN } from "@/features/room/domain/invite-token";
-import { logBrowserWarning } from "@/lib/telemetry.client";
 
 /** What the address bar shows in streamer mode: no room code to read on stream. */
 export const HIDDEN_ROOM_PATH = "/sala";
 
-const STORAGE_KEY = "nelcota:sala-oculta";
+const STATE_KEY = "nelcotaHiddenRoom";
 
-/** Only this tab: a reload under `/sala` finds the room again; other tabs never see it. */
-export function rememberRoomAddress(code: string, invite?: string) {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ code, invite }));
-  } catch (error) {
-    logBrowserWarning("Could not remember the hidden room address", error);
-  }
+/** Each history entry keeps its own room, including when sessionStorage is unavailable. */
+export function roomAddressState(state: unknown, code: string, invite?: string) {
+  const previous = state !== null && typeof state === "object" ? state : {};
+  return { ...previous, [STATE_KEY]: { code, invite } };
 }
 
-/** The room behind `/sala` in this tab, validated again (storage is editable by the page). */
+/** Reloads serve `/sala`; the router's per-entry state still identifies the actual room. */
 export function rememberedRoomAddress(): string | undefined {
-  try {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (!saved) return undefined;
-    return roomAddressFrom(JSON.parse(saved));
-  } catch (error) {
-    logBrowserWarning("Could not read the hidden room address", error);
-    return undefined;
-  }
+  const history: unknown = window.history.state;
+  if (!history || typeof history !== "object" || !("usr" in history)) return undefined;
+  const state = history.usr;
+  if (!state || typeof state !== "object" || !(STATE_KEY in state)) return undefined;
+  return roomAddressFrom(state[STATE_KEY]);
 }
 
 function roomAddressFrom(value: unknown): string | undefined {

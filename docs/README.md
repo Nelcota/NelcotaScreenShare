@@ -48,6 +48,8 @@ The operations mechanism has one place per role: descriptor and hook in `lib/ope
 
 The [historical plans](archive/README.md) preserve the diagnosis and decisions of earlier stages. This guide, the main README and the ADRs describe the current structure.
 
-The proposed [feature implementation plan](feature-roadmap.md) covers individual audio,
+The [feature implementation plan](feature-roadmap.md) covers individual audio,
 sharing profiles, host controls, annotations, permanent rooms and team workspaces, with
-delivery phases, dependencies and acceptance criteria.
+delivery phases, dependencies, acceptance criteria and local implementation evidence.
+[Collaboration workspaces](collaboration-workspaces.md) documents the implemented annotation,
+permanent-room, team and Pro beta behavior and the remaining production/pilot gates.

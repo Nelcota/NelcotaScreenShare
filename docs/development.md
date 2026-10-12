@@ -157,3 +157,19 @@ responsible for the application policy. For full validation in CI, run `pnpm lin
 Host controls use a private signaling admission gate and are disabled by default.
 See [host controls](host-controls.md) for the environment flag, migrations and dedicated
 Playwright command. Local loopback LiveKit is sufficient for functional testing.
+
+## Collaboration pilot
+
+Apply migrations 0013–0015 and enable `ROOM_HOST_CONTROLS_ENABLED=true` only with the private
+LiveKit signaling boundary from [host controls](host-controls.md). Account and team Pro
+allowances are independent and manually provisioned by a platform admin at `/admin/pro`.
+The pilot keeps the existing participant limit. See [collaboration workspaces](collaboration-workspaces.md).
+
+```bash
+pnpm test:e2e
+E2E_HOST_CONTROLS=true pnpm test:e2e tests/e2e/host-controls.spec.ts tests/e2e/annotations.spec.ts tests/e2e/workspaces.spec.ts tests/e2e/collaboration-smoke.spec.ts
+```
+
+Run these sequentially: each E2E invocation recreates the same disposable database.
+The production dependency audit is `pnpm audit --prod --audit-level=high`. The full audit
+including development tooling separately reports the existing `braces`/`shadcn` advisory.

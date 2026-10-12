@@ -1,13 +1,14 @@
 # Nelcota feature implementation plan
 
-Status: proposed implementation plan. Updated: 2026-10-12.
+Status: feature implementation complete locally; production and pilot validation pending. Updated: 2026-10-12.
 
 Implementation started on `feature/room-audio-profiles`. The room/session design and
 local self-hosted admission experiment are recorded in [ADR 0006](adr/0006-room-definitions-and-session-authority.md).
 Individual audio and sharing profiles are implemented and locally validated. Host authority
 and controls are implemented on `feature/room-host-controls`, behind an opt-in private
 signaling gate. See [host controls](host-controls.md) for the required deployment boundary.
-Annotations, permanent rooms and team workspaces remain planned. Real-device media
+Annotations, permanent rooms, team workspaces and audited Pro beta provisioning are implemented
+on `feature/collaborative-room-workspaces`. See [collaboration workspaces](collaboration-workspaces.md). Real-device media
 baselines and pilot rollout remain part of release validation.
 
 Local validation on 2026-10-12 passed formatting, typecheck, lint, build, Knip and
@@ -28,7 +29,8 @@ production rollout remain release validation tasks.
 The dependency audit reports one pre-existing high-severity finding in `braces@3.0.3`,
 reachable through the `shadcn` development dependency. The host-controls phase adds the
 WebSocket transport dependency. The advisory lists no patched release; this remains a
-CI audit failure to address independently. [GitHub advisory GHSA vfj7 8cjw p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
+development-tooling finding to address independently. The production-only audit required
+by CI passes. [GitHub advisory GHSA vfj7 8cjw p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
 
 Build the six features in three releases: individual audio controls and sharing profiles;
 host controls and temporary annotations; then permanent rooms and a team workspace. The
@@ -40,6 +42,14 @@ LiveKit architecture, and incremental pull requests. Implementation, relevant te
 review fixes take an estimated 34–50 working days. A 20% contingency gives approximately
 41–60 working days, or 8–12 weeks. Reestimate after the foundation work and each release;
 these are planning ranges, not delivery commitments.
+
+The remaining collaboration phases passed 531 unit/integration tests in 94 files with
+real Postgres, all 49 default-admission Chromium E2E cases and all 56 cases with private
+admission enabled. The production Docker image built and passed its Node 26.9 startup
+health probe. Formatting, types, lint, Knip, duplication, migration generation and the
+production dependency audit passed. See [local validation evidence](local-collaboration-validation.md)
+for scope, coverage and the remaining production/real-device/pilot gates. The prior
+audio/profile and host checkpoints above are historical results.
 
 ## Scope and product defaults
 

@@ -147,8 +147,8 @@ jobs:
             livekit/livekit-server:v1.13.7 --dev --bind 0.0.0.0 --node-ip 127.0.0.1
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
-      - name: Host controls with private signaling admission
-        run: pnpm test:e2e tests/e2e/host-controls.spec.ts
+      - name: Collaboration with private signaling admission
+        run: pnpm test:e2e tests/e2e/host-controls.spec.ts tests/e2e/annotations.spec.ts tests/e2e/workspaces.spec.ts tests/e2e/collaboration-smoke.spec.ts
         env:
           E2E_HOST_CONTROLS: "true"
       - uses: actions/upload-artifact@v7

@@ -151,6 +151,15 @@ process.stdout.write(process.env.TEST_DATABASE_URL || local.TEST_DATABASE_URL ||
         foreach ($taskStep in $taskJob.Commands) {
             Invoke-LocalCommand $taskStep.Program $taskStep.Arguments
         }
+        if ($taskJob.Key -eq 'e2e') {
+            $taskPreviousHostControls = $env:E2E_HOST_CONTROLS
+            try {
+                $env:E2E_HOST_CONTROLS = 'true'
+                Invoke-LocalCommand 'pnpm' @('test:e2e', 'tests/e2e/host-controls.spec.ts', 'tests/e2e/annotations.spec.ts', 'tests/e2e/workspaces.spec.ts', 'tests/e2e/collaboration-smoke.spec.ts')
+            } finally {
+                $env:E2E_HOST_CONTROLS = $taskPreviousHostControls
+            }
+        }
         if ($taskJob.Key -eq 'quality' -and (& git status --porcelain -- drizzle)) {
             throw 'Schema generation changed drizzle files. Commit the migrations and run CI again.'
         }

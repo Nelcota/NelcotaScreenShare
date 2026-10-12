@@ -16,6 +16,7 @@ Self-hosted, with LiveKit and React Router.
 ![LiveKit 1.13](https://img.shields.io/badge/LiveKit_1.13-1b1f24?style=flat-square&logo=livekit&logoColor=FF6352)
 ![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL_18-1b1f24?style=flat-square&logo=postgresql&logoColor=6B9BF0)
 ![Tailwind CSS 4.3](https://img.shields.io/badge/Tailwind_CSS_4.3-1b1f24?style=flat-square&logo=tailwindcss&logoColor=06B6D4)
+![License Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-1b1f24?style=flat-square)
 
 [Quick start](#quick-start) · [Features](#features) · [Architecture](#architecture) · [Documentation](#documentation)
 
@@ -153,3 +154,7 @@ Collaboration features require the opt-in private signaling gate. Personal and t
 activations are provisioned at `/admin/pro`; no billing or automatic invitation email is
 implemented. See [collaboration workspaces](docs/collaboration-workspaces.md) for setup,
 permissions, privacy, validation and rollout.
+
+## License
+
+Licensed under [Apache 2.0](LICENSE).

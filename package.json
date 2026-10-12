@@ -2,6 +2,7 @@
   "name": "nelcota-screenshare",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "node --conditions=development --env-file-if-exists=.env.local node_modules/@react-router/dev/bin.cjs dev",

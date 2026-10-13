@@ -112,3 +112,24 @@ export const gifFavorites = pgTable(
     check("gif_favorites_slug_check", sql`char_length(${table.slug}) between 1 and 200`),
   ],
 );
+
+/**
+ * Calls started for a whole group: the room they happen in, who started it and when. The
+ * conversation shows "Chamada em andamento" while that room's call is live, and a line in
+ * the timeline. Goes away with the group.
+ */
+export const conversationCalls = pgTable(
+  "conversation_calls",
+  {
+    id: id(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    roomCode: text("room_code").notNull(),
+    startedBy: uuid("started_by").references(() => users.id, { onDelete: "set null" }),
+    startedAt: timestamptz("started_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("conversation_calls_conversation_idx").on(table.conversationId, table.startedAt),
+  ],
+);

@@ -208,19 +208,19 @@ describe("calling a friend", () => {
   });
 });
 
-describe("the caller leaving", () => {
-  async function ringingFriend() {
-    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
-    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
-    await friends(ana.id, bia.id);
-    markOnline(bia.id);
-    const code = await createRoom(db, ana.id);
-    as(ana);
-    await ringing.callFriend({ friendId: bia.id, room: code });
-    const left = { event: "participant_left", participant: { identity: ana.id } };
-    return { ana, bia, code, left: { ...left, room: { name: await mediaRoomIn(db, code) } } };
-  }
+async function ringingFriend() {
+  const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+  const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+  await friends(ana.id, bia.id);
+  markOnline(bia.id);
+  const code = await createRoom(db, ana.id);
+  as(ana);
+  await ringing.callFriend({ friendId: bia.id, room: code });
+  const left = { event: "participant_left", participant: { identity: ana.id } };
+  return { ana, bia, code, left: { ...left, room: { name: await mediaRoomIn(db, code) } } };
+}
 
+describe("the caller leaving", () => {
   test("stops the ring for the friend, with no notice for the caller", async () => {
     const { ana, bia, left } = await ringingFriend();
     expect(incomingRings(bia.id)).toHaveLength(1);

@@ -1,4 +1,9 @@
-import { matchRequestedSlugs, parseKlipyPage, type Gif } from "@/features/messages/domain/klipy";
+import {
+  matchRequestedSlugs,
+  parseKlipyPage,
+  rememberBounded,
+  type Gif,
+} from "@/features/messages/domain/klipy";
 import type { MessagePage, StoredMessage } from "@/features/messages/server/messages.server";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
@@ -20,11 +25,7 @@ function cached(slug: string, now: number) {
 }
 
 function remember(slug: string, gif: Gif | null, now: number) {
-  if (cache.size >= MAX_CACHED) {
-    const oldest = cache.keys().next().value;
-    if (oldest !== undefined) cache.delete(oldest);
-  }
-  cache.set(slug, { gif, at: now });
+  rememberBounded(cache, slug, { gif, at: now }, MAX_CACHED);
 }
 
 async function fetchItems(key: string, slugs: readonly string[]): Promise<Map<string, Gif>> {

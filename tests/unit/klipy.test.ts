@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { matchRequestedSlugs, parseKlipyPage, type Gif } from "@/features/messages/domain/klipy";
+import {
+  matchRequestedSlugs,
+  parseKlipyPage,
+  rememberBounded,
+  type Gif,
+} from "@/features/messages/domain/klipy";
 
 const file = (size: number) => ({
   url: `https://static.klipy.com/${size}.webp`,
@@ -58,5 +63,33 @@ describe("GIFs asked for by slug", () => {
 
   test("a name that only starts the same is not a match", () => {
     expect(matchRequestedSlugs(["cats--x"], [gif("cat")]).size).toBe(0);
+  });
+});
+
+describe("bounded GIF memory", () => {
+  test("drops the entry seen longest ago, and seeing one again keeps it", () => {
+    const memory = new Map<string, number>();
+    rememberBounded(memory, "a", 1, 3);
+    rememberBounded(memory, "b", 2, 3);
+    rememberBounded(memory, "c", 3, 3);
+    rememberBounded(memory, "a", 4, 3);
+    rememberBounded(memory, "d", 5, 3);
+    expect([...memory]).toEqual([
+      ["c", 3],
+      ["a", 4],
+      ["d", 5],
+    ]);
+  });
+
+  test("refreshing a known entry when full drops nothing else", () => {
+    const memory = new Map([
+      ["a", 1],
+      ["b", 2],
+    ]);
+    rememberBounded(memory, "b", 3, 2);
+    expect([...memory]).toEqual([
+      ["a", 1],
+      ["b", 3],
+    ]);
   });
 });

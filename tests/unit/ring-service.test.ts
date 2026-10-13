@@ -53,4 +53,17 @@ describe("the ring timer", () => {
     expect(outgoingRings("eva")).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
   });
+
+  test("a caller who leaves stops their rings into that room and leaves no timer", async () => {
+    const { startRing, cancelRingsFromRoom, incomingRings, outgoingRings } = await service();
+    startRing(call("ana", "bia"));
+    startRing(call("ana", "caio"));
+    startRing({ ...call("ana", "davi"), roomCode: "outra-sala-abc" });
+    expect(cancelRingsFromRoom("ana", "abc-defg-hij")).toHaveLength(2);
+    expect(incomingRings("bia")).toEqual([]);
+    expect(outgoingRings("ana").map((ring) => ring.calleeId)).toEqual(["davi"]);
+    cancelRingsFromRoom("ana", "outra-sala-abc");
+    expect(outgoingRings("ana")).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });

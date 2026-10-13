@@ -53,6 +53,14 @@ export function cancelRing(ringId: string, callerId: string): Ring | null {
   return ring;
 }
 
+/** The caller left before anyone answered: the cards go away, and nobody gets a notice. */
+export function cancelRingsFromRoom(callerId: string, roomCode: string): Ring[] {
+  const stopped = ringStore.cancelFromRoom(callerId, roomCode);
+  scheduleSweep();
+  for (const ring of stopped) nudge([ring.callerId, ring.calleeId]);
+  return stopped;
+}
+
 /** The callee's card goes away and the caller sees "<Nome> recusou" at once. */
 export function declineRing(ringId: string, calleeId: string): Ring | null {
   const ring = ringStore.decline(ringId, calleeId);

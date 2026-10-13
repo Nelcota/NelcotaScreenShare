@@ -82,6 +82,16 @@ export function createRingStore(
     return ring;
   }
 
+  /** The caller left the call: every ring they started into it stops, with no notice. */
+  function cancelFromRoom(callerId: string, roomCode: string): Ring[] {
+    sweep();
+    const stopped = [...rings.values()].filter(
+      (ring) => ring.callerId === callerId && ring.roomCode === roomCode,
+    );
+    for (const ring of stopped) rings.delete(ring.id);
+    return stopped;
+  }
+
   /** The callee says no: the ring ends for both and the caller is told who declined. */
   function decline(ringId: string, calleeId: string): Ring | null {
     sweep();
@@ -135,5 +145,15 @@ export function createRingStore(
     return Math.min(...deadlines);
   }
 
-  return { start, cancel, decline, accept, incomingFor, outgoingFrom, sweep, nextDeadline };
+  return {
+    start,
+    cancel,
+    cancelFromRoom,
+    decline,
+    accept,
+    incomingFor,
+    outgoingFrom,
+    sweep,
+    nextDeadline,
+  };
 }

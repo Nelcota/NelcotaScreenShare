@@ -125,5 +125,15 @@ export function createRingStore(
     return [...ringing, ...gone];
   }
 
-  return { start, cancel, decline, accept, incomingFor, outgoingFrom, sweep };
+  /** When the next ring runs out or the next notice goes away; null when nothing is left. */
+  function nextDeadline(): number | null {
+    const deadlines = [
+      ...[...rings.values()].map((ring) => ring.expiresAt),
+      ...[...notices.values()].map((notice) => notice.until),
+    ];
+    if (deadlines.length === 0) return null;
+    return Math.min(...deadlines);
+  }
+
+  return { start, cancel, decline, accept, incomingFor, outgoingFrom, sweep, nextDeadline };
 }

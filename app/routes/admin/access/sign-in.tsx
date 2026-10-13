@@ -1,10 +1,12 @@
-import { routeLoader } from "@/server/route-loader.server";
+import { routeAction, routeLoader } from "@/server/route-loader.server";
 import { useLoaderData } from "react-router";
 
 import { redirect } from "@/server/http.server";
 import { AdminSignInForm } from "@/features/auth/ui/AdminSignInForm";
 import { AdminDisabled } from "@/features/auth/ui/AdminDisabled";
-import { getAdminAuth } from "@/features/auth/server/admin-auth.server";
+import { ADMIN_AUTH_BASE_PATH, getAdminAuth } from "@/features/auth/server/admin-auth.server";
+import { handleAdminAuth } from "@/features/auth/server/admin-auth-route.server";
+import { signInFromForm } from "@/features/auth/server/native-auth-actions.server";
 import { getAdminSession } from "@/features/auth/server/admin-session.server";
 import { noticeFor } from "@/lib/notice";
 
@@ -22,6 +24,15 @@ export const loader = routeLoader(async ({ searchParams }) => {
 
   return { notice, disabled: false };
 });
+
+/** The form posted without JS (page not hydrated yet, or a script failed to load). */
+export const action = routeAction(({ request }) =>
+  signInFromForm(
+    request,
+    { handle: handleAdminAuth, basePath: ADMIN_AUTH_BASE_PATH },
+    { done: "/admin", secondFactor: "/admin/verificar-2fa" },
+  ),
+);
 
 export default function AdminSignInPage() {
   const { notice, disabled } = useLoaderData<typeof loader>();

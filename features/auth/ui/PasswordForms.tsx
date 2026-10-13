@@ -1,8 +1,9 @@
 import { KeyRound, Loader2, MailCheck } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useActionData, useNavigate } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
 import { AuthCard } from "./AuthCard";
+import { useFormError } from "./use-form-error";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
@@ -66,8 +67,12 @@ function OtherAccountRecovery({ scope }: { scope: Scope }) {
 export function ForgotPasswordForm({ scope }: { scope: Scope }) {
   const client = scope === "admin" ? adminAuthClient : authClient;
   const emailId = useId();
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string>();
+  // A form posted without JS comes back with the route action's answer.
+  const posted = useActionData<{ sent?: boolean; error?: string }>();
+  const [sentHere, setSent] = useState(false);
+  const [clientError, setError] = useState<string>();
+  const sent = sentHere || posted?.sent === true;
+  const error = clientError ?? posted?.error;
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -155,7 +160,7 @@ export function ResetPasswordForm({ scope, token }: { scope: Scope; token: strin
   const navigate = useNavigate();
   const passwordId = useId();
   const confirmId = useId();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useFormError();
   const [pending, setPending] = useState(false);
 
   if (!token) {

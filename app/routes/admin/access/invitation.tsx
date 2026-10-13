@@ -1,6 +1,9 @@
 import { TimerOff } from "lucide-react";
 import { useLoaderData, type LoaderFunctionArgs, Link } from "react-router";
 import { withRequest } from "@/server/request-context.server";
+import { routeAction } from "@/server/route-loader.server";
+import { acceptInvitation } from "@/features/auth/actions.server";
+import { invitationFromForm } from "@/features/auth/server/native-auth-actions.server";
 import { AcceptInvitationForm } from "@/features/auth/ui/AcceptInvitationForm";
 import { AuthCard } from "@/features/auth/ui/AuthCard";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,11 @@ export const loader = ({ request, params, context }: LoaderFunctionArgs) =>
       token,
     };
   });
+
+/** The form posted without JS. */
+export const action = routeAction(({ request, params }) =>
+  invitationFromForm(request, acceptInvitation, { token: params.token ?? "" }),
+);
 
 export default function AcceptInvitationPage() {
   const { invitation, token } = useLoaderData<typeof loader>();

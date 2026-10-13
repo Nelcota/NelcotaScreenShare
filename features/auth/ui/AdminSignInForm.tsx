@@ -3,6 +3,7 @@ import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
 import { AuthCard } from "./AuthCard";
+import { useFormError } from "./use-form-error";
 import { FormNotice } from "./FormNotice";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -20,7 +21,7 @@ export function AdminSignInForm({ notice }: { notice?: string | undefined }) {
   const emailId = useId();
   const passwordId = useId();
   const errorId = useId();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useFormError();
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

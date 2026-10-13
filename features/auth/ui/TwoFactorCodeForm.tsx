@@ -3,6 +3,7 @@ import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
 import { AuthCard } from "./AuthCard";
+import { useFormError } from "./use-form-error";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ export function TwoFactorCodeForm({
   const codeId = useId();
   const errorId = useId();
   const [backup, setBackup] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useFormError();
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -72,6 +73,7 @@ export function TwoFactorCodeForm({
         noValidate
         className="flex flex-col gap-4"
       >
+        <input type="hidden" name="mode" value={backup ? "backup" : "totp"} />
         <div className="flex flex-col gap-2">
           <Label htmlFor={codeId}>{backup ? "Código de backup" : "Código"}</Label>
           <Input

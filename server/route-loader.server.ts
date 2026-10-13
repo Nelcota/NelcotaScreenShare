@@ -13,3 +13,8 @@ export function routeLoader<T>(load: (args: RouteRequest) => T) {
       }),
     );
 }
+
+/** The same scope for a route's `action`: forms posted without JS land here. */
+export function routeAction<T>(act: (args: RouteRequest) => T) {
+  return routeLoader(act);
+}

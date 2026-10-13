@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { twoFactor } from "better-auth/plugins/two-factor";
+import { isolatedTwoFactor } from "./two-factor-plugin.server";
 import { CLIENT_IP_HEADER } from "@/server/client-ip.server";
 import { getDb, type Database } from "@/server/db/index.server";
 import {
@@ -199,7 +199,7 @@ function createUserAuth(db: Database, secret: string) {
     },
     hooks: authHooks(db, secret, "user", { audit: false }),
     plugins: [
-      twoFactor({
+      isolatedTwoFactor({
         issuer: "Nelcota",
         schema: { twoFactor: { modelName: "userTwoFactors" } },
         backupCodeOptions: { amount: 10, length: 10 },

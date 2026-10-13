@@ -23,6 +23,7 @@ import { useScreenWatch } from "@/features/room/hooks/use-screen-watch";
 import { useChatState } from "@/features/room/hooks/use-chat-state";
 import { useHadCompany } from "@/features/room/hooks/use-had-company";
 import { useConnectedOnce } from "@/features/room/hooks/use-connected-once";
+import { useAnnounceCallConnected } from "@/features/ringing/client/call-connection";
 import { othersInCall, peopleView } from "@/features/room/domain/room-company";
 import { ChatPanel } from "@/features/room/ui/dock/Chat";
 import { ControlDock } from "@/features/room/ui/dock/ControlDock";
@@ -232,6 +233,7 @@ export function RoomLayout({
 
   const connection = connectionStatus(connectionState);
   const connectedOnce = useConnectedOnce(connectionState);
+  useAnnounceCallConnected(code, connectedOnce);
   const others = othersInCall(
     localParticipant.identity,
     participants.filter((participant) => !participant.isLocal).map(({ identity }) => identity),

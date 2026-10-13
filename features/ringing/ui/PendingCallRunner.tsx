@@ -10,12 +10,13 @@ import {
   usePendingCall,
   type PendingCall,
 } from "@/features/ringing/client/pending-call";
+import { useConnectedCallRoom } from "@/features/ringing/client/call-connection";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
 /** The spot above "Pronto para entrar?" kept free for notices like this one. */
 const NOTICE_SLOT_ID = "pre-join-notice";
 
-/** While waiting, the room is checked this often: joining sends no message of its own. */
+/** A fallback if the call's signal is missed: the server learns of the join by webhook. */
 const CHECK_MS = 3_000;
 
 async function ring(call: PendingCall) {
@@ -32,13 +33,15 @@ function firstName(name: string) {
 
 /**
  * The call waiting for its caller: shown on the room's page until they are in, rung as soon
- * as they are, and dropped when they leave the room without joining.
+ * as their call connects, and dropped when they leave the room without joining.
  */
 export function PendingCallRunner() {
   const pending = usePendingCall();
   const { pathname } = useLocation();
   const { revalidate } = useRevalidator();
-  const callRoom = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.callRoom ?? null;
+  const serverCallRoom = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.callRoom ?? null;
+  // LiveKit tells this tab first; the server only knows once the webhook arrives.
+  const callRoom = useConnectedCallRoom() ?? serverCallRoom;
   const onRoom = pending !== null && pathname === `/sala/${pending.room}`;
   const arrived = useRef(false);
   const slot = usePageSlot(NOTICE_SLOT_ID, onRoom);

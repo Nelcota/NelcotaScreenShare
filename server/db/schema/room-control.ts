@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { id, createdAt, updatedAt, timestamptz } from "./columns";
 import { users } from "./user-auth";
+import { adminUsers } from "./admin-auth";
 import { ROOM_CODE_PATTERN } from "@/features/room/domain/room-code";
 import type { SharePolicy } from "@/features/room/domain/host-controls";
 import { teams } from "./workspaces";
@@ -92,6 +93,13 @@ export const roomSessionMembers = pgTable(
     admittedAt: timestamptz("admitted_at"),
     reservedUntil: timestamptz("reserved_until").notNull(),
     excludedAt: timestamptz("excluded_at"),
+    // Who removed them: the host, the owner or a moderator, or an admin from the panel.
+    excludedByUserId: uuid("excluded_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    excludedByAdminId: uuid("excluded_by_admin_id").references(() => adminUsers.id, {
+      onDelete: "set null",
+    }),
     createdAt: createdAt(),
   },
   (table) => [

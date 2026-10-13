@@ -1,7 +1,7 @@
 import { useLocalParticipant, useParticipantAttribute } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { Crown, Shield, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { changeRoomRole } from "@/features/room/client/api";

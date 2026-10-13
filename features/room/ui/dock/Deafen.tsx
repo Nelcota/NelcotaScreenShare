@@ -1,7 +1,7 @@
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { Headphones, HeadphoneOff } from "lucide-react";
 import { createContext, use, useEffect, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { setDeafenedInRoom } from "@/features/room/client/api";
 import { roomMicErrorMessage } from "@/features/room/client/microphone-errors";
 import { MIC_ERROR_TOAST } from "@/features/room/client/toast-ids";

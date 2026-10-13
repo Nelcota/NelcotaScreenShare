@@ -1,6 +1,6 @@
 import { useLocalParticipant } from "@livekit/components-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { roomMicErrorMessage } from "@/features/room/client/microphone-errors";
 import { MIC_ERROR_TOAST } from "@/features/room/client/toast-ids";
 import { playCallSound } from "@/features/room/audio/call-sounds";

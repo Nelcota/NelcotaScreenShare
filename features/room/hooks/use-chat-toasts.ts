@@ -1,8 +1,7 @@
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent, type Participant } from "livekit-client";
 import { useCallback, useEffect, useRef } from "react";
-import { toast } from "sonner";
-import { showCallNotice } from "@/features/room/client/call-notices";
+import { callToast as toast, showCallNotice } from "@/features/room/client/call-notices";
 
 interface ChatToast {
   id: string;

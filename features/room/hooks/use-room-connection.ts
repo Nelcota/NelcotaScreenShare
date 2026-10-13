@@ -2,7 +2,7 @@ import { controlledDisconnectNotice } from "@/features/room/client/disconnect-no
 import { useSequentialRoomConnectDisconnect } from "@livekit/components-react";
 import { DisconnectReason, Room, RoomEvent, VideoPresets } from "livekit-client";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { savedAudioProcessing, savedCamera, savedOutput } from "@/features/room/client/saved-media";
 import {
   connectErrorMessage,

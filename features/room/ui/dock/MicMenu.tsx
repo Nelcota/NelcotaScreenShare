@@ -2,7 +2,7 @@ import { useMediaDeviceSelect, useRoomContext } from "@livekit/components-react"
 import { Check, ChevronUp, AudioLines } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { saveMicrophone } from "@/features/room/client/saved-microphone";
 import {
   hasMicrophoneChoice,

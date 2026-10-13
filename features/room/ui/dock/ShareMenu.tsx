@@ -1,7 +1,7 @@
 import { MonitorOff, MonitorUp } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { DockButton } from "./DockButton";
 import { DockPopoverContent } from "./DockPopover";

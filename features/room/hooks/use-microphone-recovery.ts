@@ -1,7 +1,7 @@
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { LocalAudioTrack, RoomEvent, TrackEvent, type Room } from "livekit-client";
 import { useEffect } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { MIC_ERROR_TOAST } from "@/features/room/client/toast-ids";
 import {
   defaultMovedAway,

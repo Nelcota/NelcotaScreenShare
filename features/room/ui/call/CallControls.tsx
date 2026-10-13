@@ -19,7 +19,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { Popover } from "radix-ui";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Hint } from "@/components/Hint";

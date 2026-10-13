@@ -3,7 +3,7 @@ import { Settings, Loader2 } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useId, useState, type FormEvent } from "react";
 import { Link, useRevalidator } from "react-router";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

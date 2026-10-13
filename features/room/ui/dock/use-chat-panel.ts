@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { gsap, MOTION_DURATION, useGSAP } from "@/lib/animation/gsap";
 import type { ChatEntry, ChatState } from "@/features/room/hooks/use-chat-state";
 import { UnexpectedConnectionState } from "livekit-client";

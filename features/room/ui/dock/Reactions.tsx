@@ -9,7 +9,7 @@ import { RoomEvent, type Participant } from "livekit-client";
 import { Hand } from "lucide-react";
 import { Popover } from "radix-ui";
 import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";

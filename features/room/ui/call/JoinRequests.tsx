@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { answerJoin, joinRequests } from "@/features/room/actions";
 import { managesRoomAccess } from "@/features/room/domain/room-access";
 import { useLocalRoomRole } from "@/features/room/hooks/use-room-roles";

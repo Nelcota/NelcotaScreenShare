@@ -1,8 +1,8 @@
 import type { Participant } from "livekit-client";
 import { useRouteLoaderData } from "react-router";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
-import { participantName } from "@/features/room/domain/participant-label";
 import { participantPhotoPath } from "@/features/room/domain/participant-photo";
+import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import type { loader as rootLoader } from "@/app/root";
 
 /**
@@ -18,11 +18,10 @@ export function ParticipantAvatar({
   roomCode: string;
   className?: string;
 }) {
+  const { name } = useParticipantName(participant);
   const account = useRouteLoaderData<typeof rootLoader>("root")?.account;
   const source = participant.isLocal
     ? (account?.image ?? null)
     : participantPhotoPath(roomCode, participant.identity);
-  return (
-    <InitialsAvatar name={participantName(participant)} source={source} className={className} />
-  );
+  return <InitialsAvatar name={name} source={source} className={className} />;
 }

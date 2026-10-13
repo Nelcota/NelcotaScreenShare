@@ -35,6 +35,11 @@ describe("unread count on the tab", () => {
 });
 
 describe("notification preferences", () => {
+  it("plays the call sounds unless they were turned off", () => {
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.callSounds).toBe(true);
+    expect(readNotificationPreferences({ callSounds: false }).callSounds).toBe(false);
+  });
+
   it("keeps valid saved choices and defaults the rest", () => {
     expect(readNotificationPreferences({ ringSound: false, promptSnoozedUntil: "soon" })).toEqual({
       ...DEFAULT_NOTIFICATION_PREFERENCES,

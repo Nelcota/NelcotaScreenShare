@@ -64,7 +64,7 @@ export function MicSetup({
   );
 }
 
-function MicStatus({
+export function MicStatus({
   mic,
   meterRef,
 }: {

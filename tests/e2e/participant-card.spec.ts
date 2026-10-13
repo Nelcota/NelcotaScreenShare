@@ -1,0 +1,55 @@
+import { expect, test } from "@playwright/test";
+import { ownedRoom } from "./support/database";
+import { joinRoom, newParticipant } from "./support/session";
+
+test("the owner's card for someone holds the voice line and the actions as menu items", async ({
+  browser,
+}) => {
+  const owner = await newParticipant(browser, "Dona Cartao");
+  const guest = await newParticipant(browser, "Pessoa Cartao");
+  try {
+    const code = await ownedRoom(`e2e-${Date.now().toString(36)}-cartao`, owner.email);
+    await joinRoom(owner.page, code, { micOn: false });
+    await joinRoom(guest.page, code, { micOn: false });
+
+    await owner.page.getByRole("button", { name: "Ver Pessoa Cartao" }).first().click();
+    const card = owner.page.getByRole("dialog", { name: "Pessoa Cartao" });
+    await expect(card).toBeVisible();
+    await expect(card.getByText("Na chamada", { exact: false })).toHaveCount(0);
+    await expect(card.getByText("Microfone desligado")).toHaveCount(0);
+    for (const action of [
+      "Silenciar tudo",
+      "Adicionar amigo",
+      "Tornar moderador",
+      "Transferir a sala",
+      "Denunciar",
+      "Expulsar",
+    ]) {
+      await expect(card.getByRole("button", { name: action, exact: true })).toBeVisible();
+    }
+
+    // The icon silences only the voice, and brings it back.
+    await card.getByRole("button", { name: "Silenciar voz de Pessoa Cartao" }).click();
+    await expect(card.getByRole("button", { name: "Voltar a voz de Pessoa Cartao" })).toBeVisible();
+    await card.getByRole("button", { name: "Voltar a voz de Pessoa Cartao" }).click();
+
+    await card.getByRole("button", { name: "Tornar moderador", exact: true }).click();
+    await expect(card.getByText("Moderador", { exact: true })).toBeVisible();
+
+    await card.getByRole("button", { name: "Transferir a sala", exact: true }).click();
+    const confirm = card.getByRole("alertdialog", {
+      name: "Transferir a sala para Pessoa Cartao?",
+    });
+    await expect(confirm).toContainText("Você continua moderando.");
+    await confirm.getByRole("button", { name: "Cancelar", exact: true }).click();
+
+    // On my own card, only who I am.
+    await owner.page.keyboard.press("Escape");
+    await owner.page.getByRole("button", { name: "Ver Dona Cartao" }).first().click();
+    const mine = owner.page.getByRole("dialog", { name: "Dona Cartao" });
+    await expect(mine.getByText("Você · Dono", { exact: true })).toBeVisible();
+    await expect(mine.getByRole("button", { name: "Silenciar tudo" })).toHaveCount(0);
+  } finally {
+    await Promise.all([owner.context.close(), guest.context.close()]);
+  }
+});

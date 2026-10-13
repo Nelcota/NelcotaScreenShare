@@ -88,6 +88,13 @@ export function NotificationSettings() {
           onCheckedChange={(ringSound) => updateNotificationPreferences({ ringSound })}
         />
       </SettingsRow>
+      <SettingsRow title="Sons da chamada" description="Ao ligar e desligar o microfone e o som.">
+        <LabeledSwitch
+          label="Sons da chamada"
+          checked={preferences.callSounds}
+          onCheckedChange={(callSounds) => updateNotificationPreferences({ callSounds })}
+        />
+      </SettingsRow>
       <SettingsRow
         title="Notificações do navegador"
         description="Chamadas e mensagens com o Nelcota em outra aba."

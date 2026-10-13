@@ -57,7 +57,7 @@ vi.mock("@livekit/components-react", () => ({
     return { send: capture.publish };
   },
 }));
-vi.mock("@/lib/hooks/use-shortcut", () => ({ useShortcut: () => {} }));
+vi.mock("@/lib/hooks/use-shortcut-keys", () => ({ useRoomShortcut: () => {} }));
 vi.mock("sonner", () => ({ toast: { dismiss: vi.fn() } }));
 
 beforeEach(() => {

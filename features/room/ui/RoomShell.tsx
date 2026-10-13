@@ -45,7 +45,7 @@ export function ScreenShell({
     return (
       <div className="flex min-h-dvh flex-col">
         <AppHeader account={account} accountHref={accountHref} />
-        <main className="flex flex-1 items-center justify-center px-4 py-6 sm:px-8 sm:py-10">
+        <main className="flex flex-1 items-center-safe justify-center-safe px-4 py-6 sm:px-8 sm:py-10">
           {children}
         </main>
       </div>
@@ -56,7 +56,7 @@ export function ScreenShell({
       <AppHeader account={account} accountHref={accountHref} inApp className="shrink-0" />
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 px-3 pt-3 sm:px-6 sm:pb-4">
         {column}
-        <main className="glass flex min-w-0 flex-1 items-center justify-center rounded-3xl px-4 py-6 sm:overflow-y-auto sm:px-8">
+        <main className="glass flex min-w-0 flex-1 items-center-safe justify-center-safe rounded-3xl px-4 py-6 sm:overflow-y-auto sm:px-8">
           {children}
         </main>
       </div>

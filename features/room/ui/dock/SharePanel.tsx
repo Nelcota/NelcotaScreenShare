@@ -4,10 +4,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   sharesAudio,
+  surfaceHasAudio,
   type ShareChoice,
   type ShareSurface,
 } from "@/features/room/domain/share-support";
-import { useShareSupport } from "@/features/room/hooks/use-share-support";
+import { useScreenAudioSupport, useShareSupport } from "@/features/room/hooks/use-share-support";
 import { DockPopoverTitle } from "./DockPopover";
 import { parseShareProfile, type ShareProfile } from "@/features/room/domain/share-profile";
 
@@ -16,29 +17,29 @@ const OPTIONS: {
   title: string;
   description: string;
   icon: typeof Monitor;
-  /** The browser captures audio from this surface. */
-  hasAudio: boolean;
+  /** Why it goes without sound, when the browser does not capture it. */
+  silentNote: string;
 }[] = [
   {
     surface: "monitor",
     title: "Tela inteira",
     description: "O monitor inteiro",
     icon: Monitor,
-    hasAudio: true,
+    silentNote: "Vai sem áudio neste navegador: atualize ou escolha uma aba",
   },
   {
     surface: "window",
     title: "Janela",
     description: "Um aplicativo específico",
     icon: AppWindow,
-    hasAudio: false,
+    silentNote: "Janelas vão sem áudio",
   },
   {
     surface: "browser",
     title: "Aba do navegador",
     description: "Melhor para vídeos e slides",
     icon: Globe,
-    hasAudio: true,
+    silentNote: "",
   },
 ];
 
@@ -66,6 +67,7 @@ export function SharePanel({
   const profileId = useId();
   const support = useShareSupport();
   const withAudio = support !== null && sharesAudio(support);
+  const screenAudio = useScreenAudioSupport();
 
   return (
     <>
@@ -107,7 +109,8 @@ export function SharePanel({
       ) : null}
 
       <ul className="flex flex-col gap-1">
-        {OPTIONS.map(({ surface, title, description, icon: Icon, hasAudio }, index) => {
+        {OPTIONS.map(({ surface, title, description, icon: Icon, silentNote }, index) => {
+          const hasAudio = surfaceHasAudio(surface, screenAudio);
           const silent = withAudio && audio && !hasAudio;
           return (
             <li key={surface}>
@@ -126,7 +129,7 @@ export function SharePanel({
                   {silent ? (
                     <span className="mt-0.5 flex items-center gap-1 text-xs text-warning">
                       <VolumeX className="size-3" aria-hidden="true" />
-                      Janelas vão sem áudio
+                      {silentNote}
                     </span>
                   ) : null}
                 </span>

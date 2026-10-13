@@ -33,6 +33,8 @@ export const screenStatsSchema = z.object({
 
 /** Participant attribute for "raise hand". */
 export const HAND_ATTRIBUTE = "hand";
+/** "1" while the person stopped hearing the room (written by the server, /api/sala/som). */
+export const DEAFENED_ATTRIBUTE = "deafened";
 
 /** Chat limit (LiveKit accepts more; long messages hurt readability). */
 export const CHAT_MAX_LENGTH = 500;

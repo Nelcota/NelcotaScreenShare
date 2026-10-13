@@ -4,14 +4,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { gsap, MOTION_DURATION, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { cn } from "@/lib/utils";
 
-type DockTone = "default" | "active" | "danger" | "muted";
+type DockTone = "default" | "active" | "danger" | "muted" | "testing";
 
 const toneClasses: Record<DockTone, string> = {
-  default: "border-line-strong bg-surface-2 text-ink group-hover:bg-surface-3",
+  // Filled without a border: the dock's groups and separators already organize it.
+  default: "border-transparent bg-control text-ink group-hover:bg-control-hover",
   active: "border-brand bg-brand text-brand-ink group-hover:bg-brand-hover",
   // Leave: solid, so it is not confused with "Mudo" (translucent red).
   danger: "border-danger bg-danger text-canvas group-hover:bg-danger/90",
   muted: "border-danger/25 bg-danger/15 text-danger group-hover:bg-danger/25",
+  // The microphone test: amber, neither on nor off.
+  testing: "border-transparent bg-warning/15 text-warning group-hover:bg-warning/25",
 };
 
 const captionClasses: Record<DockTone, string> = {
@@ -20,6 +23,7 @@ const captionClasses: Record<DockTone, string> = {
   // The red button already says "leave"; neutral text keeps the dock light.
   danger: "text-ink/85 group-hover:text-ink",
   muted: "text-danger",
+  testing: "text-warning",
 };
 
 interface DockButtonProps extends Omit<ComponentProps<"button">, "aria-label"> {

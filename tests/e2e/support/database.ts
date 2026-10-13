@@ -24,3 +24,18 @@ export async function createdRoom(code: string): Promise<string> {
   await sql("insert into room_definitions (code) values ($1) on conflict do nothing", [code]);
   return code;
 }
+
+/** A room owned by the account with `email`, as "Criar sala" leaves it for its creator. */
+export async function ownedRoom(code: string, email: string): Promise<string> {
+  await sql(
+    `with owner as (select id from users where email = $2)
+     insert into room_definitions (code, owner_user_id) select $1, id from owner`,
+    [code, email],
+  );
+  await sql(
+    `insert into room_roles (room_code, user_id, role)
+     select $1, id, 'owner' from users where email = $2`,
+    [code, email],
+  );
+  return code;
+}

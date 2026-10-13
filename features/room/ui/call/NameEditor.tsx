@@ -1,5 +1,5 @@
 import { useLocalParticipant } from "@livekit/components-react";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { Settings, Loader2 } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useId, useState, type FormEvent } from "react";
 import { Link, useRevalidator } from "react-router";
@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { renameInRoom } from "@/features/room/client/api";
+import { showOwnName } from "@/features/room/client/own-name";
 import { displayNameSchema, isGuestIdentity } from "@/features/room/domain/participant-label";
 import { roomPath } from "@/features/room/domain/room-code";
 import { rememberName } from "@/features/room/hooks/use-guest-name";
 import { formText } from "@/lib/utils";
 
 /**
- * Your name in the call, editable without leaving it: everyone sees the new one at once.
+ * Your name in the call, editable without leaving it: you see the new one at once, and
+ * everyone else as soon as the server writes it.
  * An account also keeps it (and links to the full profile, with the call minimized); a
  * guest's stays in this browser for the next invite.
  */
@@ -37,9 +39,15 @@ export function NameEditor({ code }: { code: string }) {
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Confira seu nome.");
     setPending(true);
     setError(undefined);
+    // You see the new name at once; it goes back if the server refuses it.
+    showOwnName(localParticipant, parsed.data);
     const result = await renameInRoom(code, parsed.data);
     setPending(false);
-    if (!result.ok) return setError(result.message);
+    if (!result.ok) {
+      showOwnName(localParticipant, current);
+      return setError(result.message);
+    }
+    showOwnName(localParticipant, result.name);
     setDraft(undefined);
     toast.success("Nome atualizado para todos na sala.");
     if (guest) return rememberName(result.name);
@@ -87,8 +95,8 @@ export function NameEditor({ code }: { code: string }) {
             to={`/conta?voltar=${encodeURIComponent(roomPath(code))}`}
             className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-brand-soft underline-offset-4 hover:underline"
           >
-            Editar perfil
-            <ArrowRight className="icon-nudge size-4" aria-hidden="true" />
+            <Settings className="size-4" aria-hidden="true" />
+            Configurações
           </Link>
         </Popover.Close>
       )}

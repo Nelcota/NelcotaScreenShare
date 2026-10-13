@@ -1,13 +1,19 @@
 import { RoomContext } from "@livekit/components-react";
 import { useState } from "react";
+import { useAnnounceCall } from "@/features/room/hooks/use-call-tabs";
 import { useRoomConnection } from "@/features/room/hooks/use-room-connection";
+import { useApplyMediaSettings } from "@/features/room/hooks/use-apply-media-settings";
+import { OTHER_TAB_TOOK_OVER } from "@/features/room/domain/room-switch";
 import { DeafenProvider } from "@/features/room/ui/dock/Deafen";
+import { MicTestProvider } from "@/features/room/ui/dock/MicTest";
+import { ScreenWatchProvider } from "@/features/room/hooks/use-screen-watch";
 import { ReactionsProvider } from "@/features/room/ui/dock/Reactions";
 import type { JoinChoices } from "@/features/room/domain/join";
 import type { LeaveNotice } from "@/features/room/domain/leave";
 import { ShortcutScope, ShortcutSettings } from "@/lib/hooks/use-shortcut";
 import { ConnectError } from "./ConnectError";
 import { MinimizedCall } from "./MinimizedCall";
+import { CallToaster } from "./CallToaster";
 import { RoomLayout } from "./RoomLayout";
 import { RoomHostProvider } from "./RoomHostProvider";
 
@@ -36,7 +42,10 @@ export function RoomView({
   onRetry,
 }: RoomViewProps) {
   const { room, connectError, leave } = useRoomConnection(choices, code, onLeave);
+  useApplyMediaSettings(room);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
+  // Another tab of this browser joined a call: this one leaves, with the reason on screen.
+  useAnnounceCall(code, () => leave(OTHER_TAB_TOOK_OVER));
 
   if (connectError) {
     return (
@@ -59,24 +68,30 @@ export function RoomView({
   return (
     <RoomContext.Provider value={room}>
       <RoomHostProvider code={code} sessionId={choices.sessionId} onLeave={onLeave}>
-        <DeafenProvider>
-          <ShortcutSettings value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}>
-            <ShortcutScope value={!minimized}>
-              <div hidden={minimized}>
-                <ReactionsProvider>
-                  <RoomLayout
-                    code={code}
-                    maxParticipants={maxParticipants}
-                    roomName={roomName}
-                    isAdmin={isAdmin}
-                    onLeave={leave}
-                  />
-                </ReactionsProvider>
-              </div>
-            </ShortcutScope>
-          </ShortcutSettings>
-          {minimized ? <MinimizedCall code={code} /> : null}
-        </DeafenProvider>
+        <ScreenWatchProvider>
+          <DeafenProvider>
+            <MicTestProvider>
+              <ShortcutSettings
+                value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}
+              >
+                <ShortcutScope value={!minimized}>
+                  <div hidden={minimized}>
+                    <ReactionsProvider>
+                      <RoomLayout
+                        code={code}
+                        maxParticipants={maxParticipants}
+                        roomName={roomName}
+                        isAdmin={isAdmin}
+                        onLeave={() => leave()}
+                      />
+                    </ReactionsProvider>
+                  </div>
+                </ShortcutScope>
+              </ShortcutSettings>
+              {minimized ? <MinimizedCall code={code} onLeave={() => leave()} /> : <CallToaster />}
+            </MicTestProvider>
+          </DeafenProvider>
+        </ScreenWatchProvider>
       </RoomHostProvider>
     </RoomContext.Provider>
   );

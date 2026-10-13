@@ -11,6 +11,12 @@ import { ChangePasswordForm } from "@/features/account/ui/ChangePasswordForm";
 import { DeleteAccountForm } from "@/features/account/ui/DeleteAccountForm";
 import { ProfileForm } from "@/features/account/ui/ProfileForm";
 import { ProfilePhotoForm } from "@/features/account/ui/ProfilePhotoForm";
+import {
+  CameraChoice,
+  MicrophoneTest,
+  OutputChoice,
+  ProcessingChoice,
+} from "@/features/room/ui/settings/MediaChoices";
 import { ExpandableRow } from "@/features/account/ui/settings/ExpandableRow";
 import {
   SettingsBlock,
@@ -203,6 +209,25 @@ export default function AccountPage() {
             >
               <ChangeEmailForm email={user.email} />
             </ExpandableRow>
+          </SettingsSection>
+
+          <SettingsSection
+            id="audio-e-video"
+            title="Áudio e vídeo"
+            description="Vale neste navegador e na chamada aberta."
+          >
+            <SettingsRow title="Microfone">
+              <MicrophoneTest />
+            </SettingsRow>
+            <SettingsRow title="Saída de som">
+              <OutputChoice />
+            </SettingsRow>
+            <SettingsRow title="Câmera">
+              <CameraChoice />
+            </SettingsRow>
+            <SettingsRow title="Limpeza do microfone">
+              <ProcessingChoice />
+            </SettingsRow>
           </SettingsSection>
 
           <SecuritySection twoFactorEnabled={user.twoFactorEnabled} />

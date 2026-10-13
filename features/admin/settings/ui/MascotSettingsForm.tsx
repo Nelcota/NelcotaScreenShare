@@ -26,7 +26,7 @@ const THEMES = [
   {
     field: "saturationLight",
     title: "Tema claro",
-    swatch: "bg-[#f4f2ee] text-[#1f2023]",
+    swatch: "bg-[#e7ebe6] text-[#1f2023]",
   },
 ] as const;
 

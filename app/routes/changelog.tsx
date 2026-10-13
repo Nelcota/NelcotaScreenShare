@@ -27,7 +27,7 @@ export default function ChangelogPage() {
           <span className="block text-ink-subtle">O que mudou por aqui.</span>
         </h1>
         <p className="mt-6 text-base leading-relaxed text-pretty text-ink-muted sm:text-lg">
-          Recursos novos, correções e melhorias, das mais recentes para as mais antigas.
+          Recursos novos, correções e melhorias.
         </p>
         <div className="mt-10 flex flex-col gap-14">
           {RELEASES.map((release) => (

@@ -7,8 +7,8 @@ import { roomPath } from "@/features/room/domain/room-code";
 import { roomUrl, useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
 
 /**
- * Empty room invite: the link in plain sight (the person sees what they are copying), the
- * copy button and, on desktop, a QR code to join from a phone.
+ * Empty room invite, small and near the dock: the link in plain sight (the person sees what
+ * they are copying), the copy button and, on desktop, a QR code to join from a phone.
  */
 export function InviteCard({ code }: { code: string }) {
   const { enabled } = useStreamerMode();
@@ -29,18 +29,16 @@ export function InviteCard({ code }: { code: string }) {
   return (
     <section
       aria-labelledby={titleId}
-      className="flex w-full items-center gap-5 rounded-2xl border border-line bg-surface p-4 text-left sm:p-5"
+      className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface-2 p-3 text-left"
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 id={titleId} className="text-base font-semibold">
-              Convide o time
-            </h2>
-            <p className="mt-0.5 text-sm text-ink-muted">
-              Mande o link<span className="max-sm:hidden"> ou aponte a câmera do celular</span>.
-            </p>
-          </div>
+      <div className="shrink-0 rounded-lg bg-white p-1 max-sm:hidden">
+        <QrCode value={url} label="QR code para entrar na sala pelo celular" size={85} />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 id={titleId} className="text-sm font-semibold">
+            Chame o time
+          </h2>
           {/* Other features add a way to invite here, e.g. ringing friends. */}
           <div id="room-invite-actions" className="empty:hidden" />
         </div>
@@ -54,11 +52,11 @@ export function InviteCard({ code }: { code: string }) {
             readOnly
             value={shown}
             onFocus={(event) => event.currentTarget.select()}
-            className="h-10 min-w-0 flex-1 truncate rounded-xl border border-line bg-surface-2 px-3 font-sans text-sm text-ink tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="h-9 min-w-0 flex-1 truncate rounded-xl border border-line bg-surface px-3 font-sans text-sm text-ink tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           />
           <Button
             type="button"
-            variant="outline"
+            size="sm"
             onClick={() => void copy()}
             aria-live="polite"
             className="shrink-0"
@@ -71,9 +69,6 @@ export function InviteCard({ code }: { code: string }) {
             {copied ? "Copiado" : "Copiar"}
           </Button>
         </div>
-      </div>
-      <div className="shrink-0 max-sm:hidden">
-        <QrCode value={url} label="QR code para entrar na sala pelo celular" size={104} />
       </div>
     </section>
   );

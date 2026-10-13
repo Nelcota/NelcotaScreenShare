@@ -39,6 +39,10 @@ test("individual playback survives track replacement, deafening and navigation",
     if (!identity) throw new Error("Missing sender track identity");
     await joinRoom(other.page, code);
     await shareScreen(sender.page);
+    // A shared screen, and its sound, wait for "Assistir" (watch to view).
+    for (const viewer of [listener, other]) {
+      await viewer.page.getByRole("button", { name: "Assistir à tela de Audio Remetente" }).click();
+    }
     await expect(
       listener.page.getByRole("region", { name: "Tela compartilhada por Audio Remetente" }),
     ).toBeVisible();
@@ -89,17 +93,18 @@ test("individual playback survives track replacement, deafening and navigation",
     await sender.page.getByRole("button", { name: /^Parar de compartilhar/ }).click();
     await expect(sound).toHaveCount(0);
     await shareScreen(sender.page);
+    await listener.page.getByRole("button", { name: "Assistir à tela de Audio Remetente" }).click();
     await expect(sound).toHaveCount(1);
     await expect(sound).toHaveJSProperty("volume", 0.25);
 
     await listener.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await listener.page.getByRole("link", { name: "Editar perfil" }).click();
+    await listener.page.getByRole("link", { name: "Configurações" }).click();
     await expect(
       listener.page.getByRole("complementary", { name: "Chamada em andamento" }),
     ).toBeVisible();
     await expect(voice).toHaveJSProperty("volume", 0.4);
     await expect(sound).toHaveJSProperty("volume", 0.25);
-    await listener.page.getByRole("link", { name: "Voltar à sala", exact: true }).click();
+    await listener.page.getByRole("link", { name: "Voltar à chamada", exact: true }).click();
 
     // The top-bar entry stays reachable when the participant strip is hidden on a short viewport.
     await listener.page.setViewportSize({ width: 640, height: 320 });

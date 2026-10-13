@@ -11,6 +11,12 @@ test("signed in, the friends column stays on the room's screens, as the rail in 
     const column = page.getByRole("complementary", { name: "Amigos" });
     await expect(column).toBeVisible();
     await expect(column.getByRole("button", { name: "Recolher amigos" })).toBeVisible();
+    // On a short window the panel scrolls, and its top is not cut off.
+    await page.setViewportSize({ width: 800, height: 600 });
+    const heading = page.getByRole("heading", { name: "Pronto para entrar?" });
+    const panelTop = (await page.getByRole("main").boundingBox())?.y ?? 0;
+    expect((await heading.boundingBox())?.y ?? -1).toBeGreaterThan(panelTop);
+    await page.setViewportSize({ width: 1280, height: 720 });
     await expect(page.getByRole("link", { name: "Voltar ao início" })).toHaveAttribute(
       "href",
       "/inicio",

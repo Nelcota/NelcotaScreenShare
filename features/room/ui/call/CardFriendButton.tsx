@@ -1,26 +1,26 @@
+import { UserCheck, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { answerFriendRequest, friendRelation, sendFriendRequest } from "@/features/friends/actions";
 import type { FriendRelation } from "@/features/friends/domain/friend-lists";
 import { useOperation } from "@/lib/operations/use-operation";
-
-const BUTTON =
-  "flex h-11 items-center justify-center gap-2 rounded-xl bg-brand text-base font-medium text-brand-ink transition-colors hover:bg-brand-hover disabled:opacity-60";
+import { CardMenuItem } from "./CardMenuItem";
 
 function showError(result: { error: { serverError?: string } }) {
   toast.error(result.error.serverError ?? "Não foi possível agora. Tente de novo.");
 }
 
-/** Friendship with someone in the call, from their card. Guests and visitors see nothing. */
-export function CardFriendButton({ userId }: { userId: string }) {
+/** Friendship with someone in the call; `null` while loading, and for guests (no account). */
+export function useFriendRelation(userId: string | null) {
   const [relation, setRelation] = useState<FriendRelation | null>(null);
   useEffect(() => {
+    if (userId === null) return;
     let active = true;
-    async function load() {
-      const result = await friendRelation({ userId });
+    async function load(id: string) {
+      const result = await friendRelation({ userId: id });
       if (active && result.data) setRelation(result.data.relation);
     }
-    void load();
+    void load(userId);
     return () => {
       active = false;
     };
@@ -34,32 +34,44 @@ export function CardFriendButton({ userId }: { userId: string }) {
     onSuccess: () => setRelation("friends"),
     onError: showError,
   });
+  return { relation, send, answer };
+}
 
-  if (relation === "friends") return <p className="text-center text-sm text-ink-muted">Amigos</p>;
+/** The friendship action on the card: add, accept, or a quiet "Pedido enviado". */
+export function CardFriendItem({
+  userId,
+  friendship,
+}: {
+  userId: string;
+  friendship: ReturnType<typeof useFriendRelation>;
+}) {
+  const { relation, send, answer } = friendship;
   if (relation === "sent") {
-    return <p className="text-center text-sm text-ink-muted">Pedido de amizade enviado</p>;
+    return (
+      <CardMenuItem icon={<UserCheck />} disabled>
+        Pedido enviado
+      </CardMenuItem>
+    );
   }
   if (relation === "received") {
     return (
-      <button
-        type="button"
+      <CardMenuItem
+        icon={<UserCheck />}
         disabled={answer.isPending}
         onClick={() => answer.execute({ userId, accept: true })}
-        className={BUTTON}
       >
         Aceitar pedido de amizade
-      </button>
+      </CardMenuItem>
     );
   }
   if (relation !== "none") return null;
   return (
-    <button
-      type="button"
+    <CardMenuItem
+      icon={<UserPlus />}
       disabled={send.isPending}
       onClick={() => send.execute({ userId })}
-      className={BUTTON}
     >
       Adicionar amigo
-    </button>
+    </CardMenuItem>
   );
 }

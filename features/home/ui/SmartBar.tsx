@@ -262,7 +262,7 @@ export function SmartBar({
             type="submit"
             disabled={disabled}
             className={cn(
-              "disabled:bg-disabled disabled:text-disabled-ink inline-flex shrink-0 items-center gap-2 rounded-full bg-brand font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] motion-reduce:active:scale-100",
+              "inline-flex shrink-0 items-center gap-2 rounded-full bg-brand font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] disabled:bg-disabled disabled:text-disabled-ink motion-reduce:active:scale-100",
               compact ? "h-10 px-4 text-sm" : "h-12 px-5 text-base",
             )}
           >

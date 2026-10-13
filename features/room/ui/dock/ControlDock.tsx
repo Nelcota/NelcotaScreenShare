@@ -1,20 +1,17 @@
-import { useIsSpeaking, useLocalParticipant } from "@livekit/components-react";
-import { MessageSquare, Mic, MicOff } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { MessageSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { cn } from "@/lib/utils";
 import type { ChatState } from "@/features/room/hooks/use-chat-state";
-import { DeafenButton, useDeafen } from "./Deafen";
+import { CameraButton } from "./CameraButton";
+import { DeafenButton } from "./Deafen";
 import { DockButton } from "./DockButton";
 import { LeaveMenu } from "./LeaveMenu";
-import { MicMenu } from "./MicMenu";
+import { MicControl } from "./MicControl";
 import { ReactionsMenu } from "./Reactions";
 import { ShareMenu } from "./ShareMenu";
-import { roomMicErrorMessage } from "@/features/room/client/microphone-errors";
-import { MIC_ERROR_TOAST } from "@/features/room/client/toast-ids";
 import type { ScreenShareControl } from "@/features/room/hooks/use-screen-share";
+import { useShareSupport } from "@/features/room/hooks/use-share-support";
 
 interface ControlDockProps {
   chat: ChatState;
@@ -23,30 +20,27 @@ interface ControlDockProps {
 }
 
 /**
+ * Phones cannot share a screen: the camera takes that place. A narrow computer window
+ * keeps sharing and leaves the camera out, so the dock fits in 320px.
+ */
+function CameraAndShare({ share }: { share: ScreenShareControl }) {
+  const onPhone = useShareSupport() === "mobile";
+  return (
+    <>
+      <div className={cn(!onPhone && "max-sm:hidden")}>
+        <CameraButton />
+      </div>
+      {onPhone ? null : <ShareMenu share={share} />}
+    </>
+  );
+}
+
+/**
  * Controls grouped by function: audio/screen, interaction and leave.
  * The device picker is part of the microphone control, on phones too.
  */
 export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
-  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
-  const [micBusy, setMicBusy] = useState(false);
-  const deafen = useDeafen();
-  // Microphone sign of life: alone in the room, nobody confirms you are being heard.
-  const speaking = useIsSpeaking(localParticipant) && isMicrophoneEnabled;
-
-  async function toggleMic() {
-    setMicBusy(true);
-    try {
-      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
-      // Talking again means hearing again: nobody speaks to a room they cannot hear.
-      if (!isMicrophoneEnabled) deafen.hearAgain();
-    } catch (error) {
-      toast.error(roomMicErrorMessage(error), { id: MIC_ERROR_TOAST });
-    } finally {
-      setMicBusy(false);
-    }
-  }
-
-  useShortcut("m", () => void toggleMic(), !micBusy);
+  const chatKey = useShortcutLabel("chat");
 
   return (
     <div
@@ -64,57 +58,10 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
         className="glass pointer-events-auto flex items-start gap-0.5 rounded-3xl border-line-strong bg-surface/90 p-2 max-[360px]:gap-0 max-[360px]:p-1 sm:gap-2 sm:p-3 max-[360px]:[&_[data-dock-surface]]:size-9 max-[360px]:[&_button[data-anim=dock-item]]:min-w-0"
       >
         <fieldset aria-label="Áudio e compartilhamento" className="flex items-start gap-1 sm:gap-2">
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className={cn(
-                // Each half has matching corners; keyboard focus can extend beyond the pair.
-                "flex rounded-xl ring-1 transition-[background-color,box-shadow] duration-200 ring-inset",
-                !isMicrophoneEnabled
-                  ? "bg-danger/10 ring-danger/25"
-                  : speaking
-                    ? "bg-brand/12 shadow-[0_0_0_3px_color-mix(in_oklch,var(--color-brand)_45%,transparent)] ring-brand"
-                    : "bg-surface-2 ring-line-strong",
-              )}
-            >
-              <DockButton
-                label={isMicrophoneEnabled ? "Desligar microfone" : "Ligar microfone"}
-                tone={isMicrophoneEnabled ? "default" : "muted"}
-                pressed={!isMicrophoneEnabled}
-                shortcut="M"
-                disabled={micBusy}
-                busy={micBusy}
-                // Square on the right: the hover fill reaches the divider instead of floating inside.
-                iconClassName="rounded-l-xl rounded-r-none border-0 bg-transparent sm:w-13"
-                onClick={() => void toggleMic()}
-              >
-                {isMicrophoneEnabled ? (
-                  <Mic className="icon-pop size-5" aria-hidden="true" />
-                ) : (
-                  <MicOff className="icon-pop size-5" aria-hidden="true" />
-                )}
-              </DockButton>
-              <MicMenu disabled={micBusy} />
-            </div>
-            <span
-              aria-hidden="true"
-              className={cn(
-                "text-xs leading-4 font-medium whitespace-nowrap sm:text-[0.8125rem] [@media(max-height:32rem)]:hidden",
-                isMicrophoneEnabled ? "text-ink/85" : "text-danger",
-              )}
-            >
-              {isMicrophoneEnabled ? (
-                <>
-                  <span className="sm:hidden">Mic</span>
-                  <span className="max-sm:hidden">Microfone</span>
-                </>
-              ) : (
-                "Mudo"
-              )}
-            </span>
-          </div>
+          <MicControl />
 
           <DeafenButton />
-          <ShareMenu share={share} />
+          <CameraAndShare share={share} />
         </fieldset>
 
         <Separator
@@ -134,7 +81,7 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
             tone={chat.open ? "active" : "default"}
             caption="Chat"
             pressed={chat.open}
-            shortcut="C"
+            shortcut={chatKey}
             onClick={() => chat.setOpen(!chat.open)}
           >
             <MessageSquare className="size-5" aria-hidden="true" />

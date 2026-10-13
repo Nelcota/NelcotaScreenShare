@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { joinRoom, newParticipant, newRoomCode, newVisitor } from "./support/session";
+import {
+  joinRoom,
+  newParticipant,
+  newRoomCode,
+  newVisitor,
+  setJoinMicrophone,
+} from "./support/session";
 import { E2E_ACCESS_PASSWORD } from "./support/env";
 
 test("edit the profile during a call and return without joining again", async ({ browser }) => {
@@ -12,7 +18,7 @@ test("edit the profile during a call and return without joining again", async ({
   await expect(
     page.getByText("Nome atualizado para todos na sala.", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Editar perfil" }).click();
+  await page.getByRole("link", { name: "Configurações" }).click();
   await expect(page).toHaveURL(new RegExp(`/conta\\?voltar=%2Fsala%2F${code}$`));
   await expect(page.getByLabel("Seu nome na sala", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
@@ -36,7 +42,7 @@ test("a guest's mobile rename reaches others and is remembered for the next invi
     await guest.page.setViewportSize({ width: 390, height: 844 });
     await guest.page.goto(`/sala/${code}`);
     await guest.page.getByLabel("Seu nome na sala", { exact: true }).fill("Visitante Original");
-    await guest.page.getByRole("switch").first().click();
+    await setJoinMicrophone(guest.page, false);
     await guest.page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await guest.page.getByRole("button", { name: "Entrar só ouvindo", exact: true }).click();
     await expect(
@@ -45,9 +51,14 @@ test("a guest's mobile rename reaches others and is remembered for the next invi
     await guest.page.getByRole("button", { name: "Mais opções", exact: true }).click();
     await guest.page.getByLabel("Seu nome na sala", { exact: true }).fill("Visitante Renomeado");
     await guest.page.getByRole("button", { name: "Salvar", exact: true }).click();
+    // Your own tile changes at once; the others get it once the server writes it.
+    await expect(guest.page.getByText(/^Visitante Renomeado \(convidado\)/).first()).toBeVisible();
+    await expect(
+      guest.page.getByText("Nome atualizado para todos na sala.", { exact: true }),
+    ).toBeVisible();
     await expect(
       observer.page.getByText("Visitante Renomeado (convidado)", { exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     await expect(
       observer.page.getByText("Visitante Original (convidado)", { exact: true }),
     ).toBeHidden();

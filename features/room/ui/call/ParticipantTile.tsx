@@ -1,20 +1,32 @@
-import { useIsMuted, useIsSpeaking, useParticipantAttribute } from "@livekit/components-react";
+import {
+  useIsMuted,
+  useIsSpeaking,
+  useParticipantAttribute,
+  useParticipantTracks,
+  VideoTrack,
+  type TrackReference,
+} from "@livekit/components-react";
 import { Track, type Participant } from "livekit-client";
-import { Hand, MicOff, MonitorUp } from "lucide-react";
+import { Hand, MonitorUp } from "lucide-react";
 import { HAND_ATTRIBUTE } from "@/features/room/domain/data-channel";
 import { useRef, type RefObject } from "react";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
-import { participantLabel, participantName } from "@/features/room/domain/participant-label";
+import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { ParticipantAvatar } from "./ParticipantAvatar";
 import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
-import { HostBadge } from "./HostBadge";
 import { ParticipantCard } from "./ParticipantCard";
+import { SwitchCameraButton } from "./SwitchCameraButton";
+import { cn } from "@/lib/utils";
+import { HostBadge } from "./HostBadge";
+import { SoundBadge, useIsDeafened } from "./SoundBadge";
 
 interface ParticipantTileProps {
   participant: Participant;
   roomCode: string;
   isSharing: boolean;
   compact: boolean;
+  /** Enlarges this person's camera on the stage (only while it is on). */
+  onEnlarge?: () => void;
 }
 
 /** Soft pulse on the border of whoever is speaking. */
@@ -58,17 +70,118 @@ function useSpeakingPulse(
   );
 }
 
+/** The person's camera while it is on and arriving; none means their initials show. */
+function useCamera(participant: Participant): TrackReference | undefined {
+  const camera = useParticipantTracks([Track.Source.Camera], participant.identity)[0];
+  const muted = useIsMuted({ participant, source: Track.Source.Camera });
+  if (!camera?.publication.track || muted) return undefined;
+  return camera;
+}
+
+/** Your own camera shows mirrored, as in a mirror; everyone else sees it the right way round. */
+function CameraVideo({ camera, className }: { camera: TrackReference; className: string }) {
+  return (
+    <VideoTrack
+      trackRef={camera}
+      aria-hidden="true"
+      className={cn(className, "object-cover", camera.participant.isLocal && "-scale-x-100")}
+    />
+  );
+}
+
+/** Over a camera: clicking the person's card enlarges it on the stage. */
+function EnlargeButton({
+  name,
+  rounded,
+  onEnlarge,
+}: {
+  name: string;
+  rounded: string;
+  onEnlarge: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Ampliar a câmera de ${name}`}
+      onClick={onEnlarge}
+      className={cn(
+        "absolute inset-0 z-20 cursor-zoom-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        rounded,
+      )}
+    />
+  );
+}
+
+const FACE_STYLES = {
+  compact: {
+    video: "size-14 rounded-full ring-1 ring-line",
+    // The app's mint, in both themes: not white on a white tile.
+    avatar: "size-14 bg-brand/15 text-lg font-medium text-brand-soft ring-1 ring-brand/20",
+    rounded: "rounded-full",
+  },
+  large: {
+    video: "absolute inset-0 size-full",
+    avatar:
+      "size-20 bg-brand/15 text-2xl font-medium text-brand-soft ring-1 ring-brand/20 sm:size-24 sm:text-3xl",
+    rounded: "rounded-3xl",
+  },
+} as const;
+
+/**
+ * The camera when it is on, which can be enlarged; otherwise the photo, which opens the
+ * person's card.
+ */
+function PersonFace({
+  participant,
+  name,
+  roomCode,
+  camera,
+  variant,
+  onEnlarge,
+}: {
+  participant: Participant;
+  name: string;
+  roomCode: string;
+  camera: TrackReference | undefined;
+  variant: keyof typeof FACE_STYLES;
+  onEnlarge: (() => void) | undefined;
+}) {
+  const styles = FACE_STYLES[variant];
+  if (!camera) {
+    return (
+      <ParticipantCard participant={participant} roomCode={roomCode}>
+        <ParticipantAvatar
+          participant={participant}
+          roomCode={roomCode}
+          className={styles.avatar}
+        />
+      </ParticipantCard>
+    );
+  }
+  return (
+    <>
+      <CameraVideo camera={camera} className={styles.video} />
+      {onEnlarge ? (
+        <EnlargeButton name={name} rounded={styles.rounded} onEnlarge={onEnlarge} />
+      ) : null}
+    </>
+  );
+}
+
 export function ParticipantTile({
   participant,
   roomCode,
   isSharing,
   compact,
+  onEnlarge,
 }: ParticipantTileProps) {
   const scope = useRef<HTMLDivElement>(null);
   const isSpeaking = useIsSpeaking(participant);
   const isMuted = useIsMuted({ participant, source: Track.Source.Microphone });
-  const name = participantName(participant);
+  const isDeafened = useIsDeafened(participant);
+  const { name, label } = useParticipantName(participant);
   const handRaised = useParticipantAttribute(HAND_ATTRIBUTE, { participant }) === "1";
+  const camera = useCamera(participant);
   useSpeakingPulse(scope, isSpeaking, compact);
 
   if (compact) {
@@ -88,24 +201,20 @@ export function ParticipantTile({
             aria-hidden="true"
             className="pointer-events-none absolute -inset-1.5 -z-10 rounded-full bg-brand/40 opacity-0 blur-md"
           />
-          <ParticipantCard participant={participant} roomCode={roomCode} isSharing={isSharing}>
-            <ParticipantAvatar
-              participant={participant}
-              roomCode={roomCode}
-              className="size-14 bg-surface-3 text-lg font-medium text-ink ring-1 ring-line"
-            />
-          </ParticipantCard>
+          <PersonFace
+            participant={participant}
+            name={name}
+            roomCode={roomCode}
+            camera={camera}
+            variant="compact"
+            onEnlarge={onEnlarge}
+          />
           <div
             data-ring
             aria-hidden="true"
             className="pointer-events-none absolute -inset-0.5 rounded-full opacity-0 ring-3 ring-brand-soft"
           />
-          {isMuted ? (
-            <span className="absolute -right-1 -bottom-1 grid size-6 place-items-center rounded-full bg-danger text-canvas ring-2 ring-canvas">
-              <MicOff className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">microfone desligado</span>
-            </span>
-          ) : null}
+          <SoundBadge deafened={isDeafened} muted={isMuted} variant="compact" />
           {isSharing ? (
             <span className="absolute -top-1 -right-1 grid size-6 place-items-center rounded-full bg-brand text-brand-ink ring-2 ring-canvas">
               <MonitorUp className="size-3.5" aria-hidden="true" />
@@ -121,7 +230,7 @@ export function ParticipantTile({
           <ParticipantAudioMenu participant={participant} className="absolute -bottom-1 -left-1" />
         </div>
         <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
-          {participantLabel(participant)}
+          {label}
           <HostBadge identity={participant.identity} />
         </span>
         {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
@@ -142,7 +251,7 @@ export function ParticipantTile({
         aria-hidden="true"
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
-      <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
+      <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-tile-line bg-tile shadow-soft">
         <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3" />
         {handRaised ? (
           <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
@@ -154,20 +263,31 @@ export function ParticipantTile({
         <div
           data-ring
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 ring-3 ring-brand-soft ring-inset"
+          className="pointer-events-none absolute inset-0 z-10 rounded-3xl opacity-0 ring-3 ring-brand-soft ring-inset"
         />
         <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgb(255_255_255/0.04),transparent)]" />
 
-        <ParticipantCard participant={participant} roomCode={roomCode} isSharing={isSharing}>
-          <ParticipantAvatar
-            participant={participant}
-            roomCode={roomCode}
-            className="size-20 bg-surface-3 text-2xl font-medium text-ink ring-1 ring-line sm:size-24 sm:text-3xl"
-          />
-        </ParticipantCard>
+        <PersonFace
+          participant={participant}
+          name={name}
+          roomCode={roomCode}
+          camera={camera}
+          variant="large"
+          onEnlarge={onEnlarge}
+        />
+        {camera && participant.isLocal ? <SwitchCameraButton /> : null}
 
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-          <span className="glass inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium">
+          <span className="glass relative z-30 inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium">
+            {camera ? (
+              <ParticipantCard participant={participant} roomCode={roomCode}>
+                <ParticipantAvatar
+                  participant={participant}
+                  roomCode={roomCode}
+                  className="-ml-1.5 size-6 text-[0.625rem]"
+                />
+              </ParticipantCard>
+            ) : null}
             <HostBadge identity={participant.identity} />
             <span className="truncate">
               {name}
@@ -183,12 +303,7 @@ export function ParticipantTile({
                 <span className="sr-only">compartilhando a tela</span>
               </span>
             ) : null}
-            {isMuted ? (
-              <span className="grid size-8 place-items-center rounded-full bg-danger text-canvas">
-                <MicOff className="size-4" aria-hidden="true" />
-                <span className="sr-only">microfone desligado</span>
-              </span>
-            ) : null}
+            <SoundBadge deafened={isDeafened} muted={isMuted} variant="large" />
           </span>
         </div>
         {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}

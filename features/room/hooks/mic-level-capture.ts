@@ -9,6 +9,7 @@ import {
   type MicrophoneCheck,
 } from "@/features/room/domain/microphone-check";
 import { logBrowserWarning } from "@/lib/telemetry.client";
+import type { AudioProcessing } from "@/features/room/domain/audio-processing";
 
 /** The analyser reads normal speech low on its 0–1 scale: the gain spreads it over the meter. */
 const METER_GAIN = 2.5;
@@ -29,6 +30,8 @@ interface MicLevelOptions {
   meterStyle: CSSStyleDeclaration;
   mediaDevices: MediaDevices;
   deviceId: string | undefined;
+  /** The clean-up the call will use, so the test sounds like the call. */
+  processing: AudioProcessing;
   levelRef: RefObject<number>;
   events: MicLevelEvents;
 }
@@ -147,16 +150,11 @@ function runMeter(capture: MicLevelCapture, analyser: MicrophoneAnalyser, revisi
 }
 
 async function startCapture(capture: MicLevelCapture) {
-  const { state, deviceId } = capture;
+  const { state, deviceId, processing } = capture;
   const revision = ++state.captureRevision;
   stopCapture(capture);
   try {
-    const track = await captureMicrophone({
-      deviceId,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    });
+    const track = await captureMicrophone({ deviceId, ...processing });
     if (isStale(capture, revision)) {
       track.stop();
       return;

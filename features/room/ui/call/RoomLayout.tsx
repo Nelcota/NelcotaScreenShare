@@ -1,23 +1,34 @@
 import {
   useAudioPlayback,
   useConnectionState,
+  useLocalParticipant,
   useParticipants,
   useTracks,
+  type TrackReference,
 } from "@livekit/components-react";
 import { ConnectionState, Track, type Participant } from "livekit-client";
 import { Loader2, Volume2, WifiOff } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/features/mascot/ui/Mascot";
+import type { MascotActivity } from "@/features/mascot/domain/personality";
 import { useRoomAnimations } from "@/features/room/hooks/use-room-animations";
 import { useRoomNotices } from "@/features/room/hooks/use-room-notices";
 import { useScreenShare } from "@/features/room/hooks/use-screen-share";
+import { useCallCaptureHandle } from "@/features/room/hooks/use-call-capture-handle";
+import { useEnlargedCamera } from "@/features/room/hooks/use-enlarged-camera";
+import { useMicrophoneRecovery } from "@/features/room/hooks/use-microphone-recovery";
 import { useStageFocus } from "@/features/room/hooks/use-stage-focus";
+import { useScreenWatch } from "@/features/room/hooks/use-screen-watch";
 import { useChatState } from "@/features/room/hooks/use-chat-state";
 import { useHadCompany } from "@/features/room/hooks/use-had-company";
+import { useConnectedOnce } from "@/features/room/hooks/use-connected-once";
+import { othersInCall, peopleView } from "@/features/room/domain/room-company";
 import { ChatPanel } from "@/features/room/ui/dock/Chat";
 import { ControlDock } from "@/features/room/ui/dock/ControlDock";
+import { CameraStage } from "@/features/room/ui/stage/CameraStage";
 import { ScreenStage } from "@/features/room/ui/stage/ScreenStage";
+import { ShareInvites } from "@/features/room/ui/stage/ShareInvites";
 import { cn } from "@/lib/utils";
 import { AloneWelcome } from "./AloneWelcome";
 import { JoinRequests } from "./JoinRequests";
@@ -33,6 +44,12 @@ function connectionStatus(state: ConnectionState): Connection {
   return state === ConnectionState.Connecting ? "connecting" : "connected";
 }
 
+/** Waiting while it connects, worried while the connection drops; the call decides once in. */
+const CONNECTION_ACTIVITY: Partial<Record<Connection, MascotActivity>> = {
+  connecting: "waiting",
+  reconnecting: "worried",
+};
+
 /** Stacked notices: reconnection and blocked audio can appear together. */
 function ConnectionNotices({ connection }: { connection: Connection }) {
   const { canPlayAudio, startAudio } = useAudioPlayback();
@@ -42,7 +59,12 @@ function ConnectionNotices({ connection }: { connection: Connection }) {
       {connection !== "connected" ? (
         <output aria-live="polite">
           <span className="glass flex items-center gap-2.5 rounded-full px-5 py-3 text-base font-medium">
-            <Mascot className="size-14" sizes="168px" canSleep={false} activity="waiting" />
+            <Mascot
+              className="size-14"
+              sizes="168px"
+              canSleep={false}
+              activity={reconnecting ? "worried" : "waiting"}
+            />
             {reconnecting ? <WifiOff className="size-5 text-warning" aria-hidden="true" /> : null}
             <Loader2 className="size-5 animate-spin text-ink-muted" aria-hidden="true" />
             {reconnecting ? "Conexão instável. Reconectando…" : "Conectando…"}
@@ -74,7 +96,7 @@ function CornerMascot({
   hasStage: boolean;
   alone: boolean;
 }) {
-  const activity = connection !== "connected" ? "waiting" : hasStage ? "presenting" : "idle";
+  const activity = CONNECTION_ACTIVITY[connection] ?? (hasStage ? "presenting" : "idle");
   return (
     <div
       hidden={alone}
@@ -103,11 +125,13 @@ function PeopleArea({
   roomCode,
   sharingIds,
   hasStage,
+  onEnlarge,
 }: {
   participants: Participant[];
   roomCode: string;
   sharingIds: Set<string>;
   hasStage: boolean;
+  onEnlarge: (identity: string) => void;
 }) {
   return (
     <div
@@ -118,7 +142,8 @@ function PeopleArea({
               // Phone on its side: the strip would leave the stage a sliver; the top bar lists people.
               "max-lg:[@media(max-height:32rem)]:hidden",
             )
-          : "grid w-full max-w-5xl content-center gap-4",
+          : // More air between tiles; each keeps 16:9 instead of filling the height.
+            "grid w-full max-w-5xl content-center gap-x-8 gap-y-6",
         !hasStage && participants.length <= 2 && "max-w-4xl grid-cols-1 sm:grid-cols-2",
         !hasStage && participants.length >= 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
       )}
@@ -130,9 +155,37 @@ function PeopleArea({
           roomCode={roomCode}
           isSharing={sharingIds.has(participant.identity)}
           compact={hasStage}
+          onEnlarge={() => onEnlarge(participant.identity)}
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * An enlarged camera takes the stage; otherwise the focused screen. Without either, the
+ * screens nobody here watches yet wait for "Assistir".
+ */
+function Stage({
+  enlargedCamera,
+  onCloseCamera,
+  stage,
+  invites,
+}: {
+  enlargedCamera: TrackReference | undefined;
+  onCloseCamera: () => void;
+  stage: ReturnType<typeof useStageFocus>;
+  invites: TrackReference[];
+}) {
+  if (enlargedCamera) return <CameraStage camera={enlargedCamera} onClose={onCloseCamera} />;
+  if (!stage.focused) return <ShareInvites invites={invites} />;
+  return (
+    <ScreenStage
+      shares={stage.shares}
+      invites={invites}
+      focused={stage.focused}
+      onFocus={stage.focus}
+    />
   );
 }
 
@@ -153,27 +206,41 @@ export function RoomLayout({
   const scope = useRef<HTMLDivElement>(null);
   const connectionState = useConnectionState();
   const participants = useParticipants();
+  const { localParticipant } = useLocalParticipant();
+  const watch = useScreenWatch();
+  const published = useTracks([Track.Source.ScreenShare], { onlySubscribed: false });
+  const watching = (trackReference: TrackReference) =>
+    trackReference.participant.isLocal || watch.isWatching(trackReference.publication.trackSid);
   // Only goes on stage once the video is available (avoids a black stage).
-  const screenShares = useTracks([Track.Source.ScreenShare]).filter(
-    (trackReference) => trackReference.publication.track !== undefined,
+  const screenShares = published.filter(
+    (trackReference) => watching(trackReference) && trackReference.publication.track !== undefined,
   );
+  const invites = published.filter((trackReference) => !watching(trackReference));
   const chat = useChatState();
   const share = useScreenShare();
+  useCallCaptureHandle();
+  useMicrophoneRecovery();
   useRoomNotices();
 
   const stage = useStageFocus(screenShares);
   const focused = stage.focused;
-  const hasStage = focused !== undefined;
+  const enlarged = useEnlargedCamera();
+  const hasStage = focused !== undefined || enlarged.camera !== undefined;
   const sharingIds = new Set(
-    screenShares.map((trackReference) => trackReference.participant.identity),
+    published.map((trackReference) => trackReference.participant.identity),
   );
 
   const connection = connectionStatus(connectionState);
-  const alone =
-    !hasStage && participants.length === 1 && connectionState === ConnectionState.Connected;
-  const hadCompany = useHadCompany(participants.length);
+  const connectedOnce = useConnectedOnce(connectionState);
+  const others = othersInCall(
+    localParticipant.identity,
+    participants.filter((participant) => !participant.isLocal).map(({ identity }) => identity),
+  );
+  const view = peopleView({ connectedOnce, hasStage, others });
+  const alone = view === "alone";
+  const hadCompany = useHadCompany({ connectedOnce, others });
 
-  const layoutKey = `${hasStage ? "stage" : alone ? "alone" : "grid"}|${participants.map((participant) => participant.identity).join(",")}|chat:${chat.open}`;
+  const layoutKey = `${hasStage ? "stage" : view}|${participants.map((participant) => participant.identity).join(",")}|chat:${chat.open}`;
   useRoomAnimations(scope, layoutKey);
 
   return (
@@ -216,20 +283,37 @@ export function RoomLayout({
           chat.open && "lg:pr-[26.5rem]",
         )}
       >
-        {focused ? (
-          <ScreenStage shares={stage.shares} focused={focused} onFocus={stage.focus} />
-        ) : null}
+        <Stage
+          enlargedCamera={enlarged.camera}
+          onCloseCamera={enlarged.close}
+          stage={stage}
+          invites={invites}
+        />
 
         {alone ? (
-          <AloneWelcome code={code} share={share} everyoneLeft={hadCompany} />
-        ) : (
+          <AloneWelcome
+            code={code}
+            everyoneLeft={hadCompany}
+            tile={
+              <ParticipantTile
+                participant={localParticipant}
+                roomCode={code}
+                isSharing={sharingIds.has(localParticipant.identity)}
+                compact={false}
+                onEnlarge={() => enlarged.enlarge(localParticipant.identity)}
+              />
+            }
+          />
+        ) : null}
+        {view === "grid" ? (
           <PeopleArea
             participants={participants}
             roomCode={code}
             sharingIds={sharingIds}
             hasStage={hasStage}
+            onEnlarge={enlarged.enlarge}
           />
-        )}
+        ) : null}
       </main>
 
       <CornerMascot connection={connection} hasStage={hasStage} alone={alone} />

@@ -6,6 +6,7 @@ import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import type { JoinChoices } from "@/features/room/domain/join";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { roomLink } from "@/features/room/domain/room-code";
+import { useOtherTabCall } from "@/features/room/hooks/use-call-tabs";
 import { useGuestName } from "@/features/room/hooks/use-guest-name";
 import { useMicSetup } from "@/features/room/hooks/use-mic-setup";
 import { useAutoJoin } from "@/features/room/hooks/use-auto-join";
@@ -14,6 +15,7 @@ import { GuestNameRow } from "./GuestNameRow";
 import { MicSetup } from "./MicSetup";
 import { NameRow } from "./NameRow";
 import { PasswordField } from "./PasswordField";
+import { OtherTabCallDialog } from "./OtherTabCallDialog";
 import { JoinActions, PreJoinHeader } from "./PreJoinSections";
 import { useJoinForm } from "./use-join-form";
 
@@ -21,6 +23,8 @@ interface PreJoinProps {
   code: string;
   /** Signed-in account name: how the person appears in the room. Null for a guest. */
   userName: string | null;
+  /** Signed-in account photo (null: none, or a guest). */
+  userImage: string | null;
   passwordRequired: boolean;
   /** Dashboard invite: replaces the access password. */
   invite?: string;
@@ -37,6 +41,7 @@ interface PreJoinProps {
 /** Who joins: the account's name (editable), or a guest's name field. */
 function IdentityRow({
   userName,
+  userImage,
   guestName,
   guestNameRef,
   error,
@@ -44,6 +49,7 @@ function IdentityRow({
   onGuestEdit,
 }: {
   userName: string | null;
+  userImage: string | null;
   guestName: ReturnType<typeof useGuestName>;
   guestNameRef: RefObject<HTMLInputElement | null>;
   error: { message: string; field?: string } | undefined;
@@ -52,7 +58,9 @@ function IdentityRow({
   onGuestEdit: () => void;
 }) {
   const [accountName, setAccountName] = useState(userName);
-  if (accountName !== null) return <NameRow name={accountName} onChange={setAccountName} />;
+  if (accountName !== null) {
+    return <NameRow name={accountName} image={userImage} onChange={setAccountName} />;
+  }
   return (
     <GuestNameRow
       inputRef={guestNameRef}
@@ -119,6 +127,7 @@ function WaitingApproval({ onCancel }: { onCancel: () => void }) {
 export function PreJoin({
   code,
   userName,
+  userImage,
   passwordRequired,
   invite,
   presence,
@@ -132,19 +141,22 @@ export function PreJoin({
   const guestNameRef = useRef<HTMLInputElement>(null);
   const guest = userName === null;
   const guestName = useGuestName();
-  const { formError, submitting, waitingApproval, cancelWaiting, clearError, handleSubmit } =
-    useJoinForm({
-      code,
-      invite,
-      passwordRequired,
-      guest,
-      guestName,
-      scope,
-      passwordRef,
-      guestNameRef,
-      onJoin,
-      onPrepareJoin,
-    });
+  const otherTabCall = useOtherTabCall();
+  const form = useJoinForm({
+    code,
+    invite,
+    passwordRequired,
+    guest,
+    guestName,
+    scope,
+    passwordRef,
+    guestNameRef,
+    onJoin,
+    onPrepareJoin,
+    otherTabCall: otherTabCall.code,
+    onLeaveOtherTab: otherTabCall.leaveOtherTabs,
+  });
+  const { formError, submitting, waitingApproval, cancelWaiting, clearError, handleSubmit } = form;
   const joinDisabled = useJoinDisabled(submitting);
   const meterRef = useRef<HTMLDivElement>(null);
   const mic = useMicSetup(submitting, meterRef);
@@ -163,69 +175,78 @@ export function PreJoin({
   }, [guest]);
 
   return (
-    <form
-      ref={scope}
-      method="post"
-      onSubmit={(event) =>
-        void handleSubmit(event, {
-          // Microphone blocked: join listen-only instead of failing inside.
-          micEnabled: !mic.joinsMuted,
-          audioDeviceId: mic.deviceId,
-        })
-      }
-      noValidate
-      className="flex w-full max-w-lg flex-col items-center gap-5"
-    >
-      <PreJoinHeader
-        code={code}
-        invite={invite}
-        presence={presence}
-        maxParticipants={maxParticipants}
-        guest={guest}
-        mic={mic}
-        submitting={submitting}
-      />
-
-      <div
-        data-anim="row"
-        className="w-full divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface"
+    <>
+      <form
+        ref={scope}
+        method="post"
+        onSubmit={(event) =>
+          void handleSubmit(event, {
+            // Microphone blocked: join listen-only instead of failing inside.
+            micEnabled: !mic.joinsMuted,
+            audioDeviceId: mic.deviceId,
+          })
+        }
+        noValidate
+        className="flex w-full max-w-lg flex-col items-center gap-5"
       >
-        <IdentityRow
-          userName={userName}
-          guestName={guestName}
-          guestNameRef={guestNameRef}
-          error={formError}
-          signInHref={`/entrar?voltar=${encodeURIComponent(roomLink(code, invite))}`}
-          onGuestEdit={clearError}
-        />
-        <MicSetup mic={mic} meterRef={meterRef} />
-      </div>
-
-      {passwordRequired ? (
-        <PasswordField
-          inputRef={passwordRef}
-          error={formError?.field === "password" ? formError.message : undefined}
-          onChange={clearError}
-        />
-      ) : null}
-
-      {formError && !formError.field ? (
-        <p className="-mt-2 w-full text-center text-base text-danger" role="alert">
-          {formError.message}
-        </p>
-      ) : null}
-
-      {waitingApproval ? (
-        <WaitingApproval onCancel={cancelWaiting} />
-      ) : (
-        <JoinActions
-          signedIn={userName !== null}
+        <PreJoinHeader
+          code={code}
+          invite={invite}
+          presence={presence}
+          maxParticipants={maxParticipants}
+          guest={guest}
           mic={mic}
           submitting={submitting}
-          joinDisabled={joinDisabled}
-          onPrepareJoin={onPrepareJoin}
         />
-      )}
-    </form>
+
+        <div
+          data-anim="row"
+          className="w-full divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface"
+        >
+          <IdentityRow
+            userName={userName}
+            userImage={userImage}
+            guestName={guestName}
+            guestNameRef={guestNameRef}
+            error={formError}
+            signInHref={`/entrar?voltar=${encodeURIComponent(roomLink(code, invite))}`}
+            onGuestEdit={clearError}
+          />
+          <MicSetup mic={mic} meterRef={meterRef} />
+        </div>
+
+        {passwordRequired ? (
+          <PasswordField
+            inputRef={passwordRef}
+            error={formError?.field === "password" ? formError.message : undefined}
+            onChange={clearError}
+          />
+        ) : null}
+
+        {formError && !formError.field ? (
+          <p className="-mt-2 w-full text-center text-base text-danger" role="alert">
+            {formError.message}
+          </p>
+        ) : null}
+
+        {waitingApproval ? (
+          <WaitingApproval onCancel={cancelWaiting} />
+        ) : (
+          <JoinActions
+            signedIn={userName !== null}
+            mic={mic}
+            submitting={submitting}
+            joinDisabled={joinDisabled}
+            onPrepareJoin={onPrepareJoin}
+          />
+        )}
+      </form>
+      {/* Outside the form: the dialog has its own form, and React events bubble through portals. */}
+      <OtherTabCallDialog
+        code={form.pendingOtherTabCall}
+        onConfirm={form.confirmPendingJoin}
+        onCancel={form.cancelPendingJoin}
+      />
+    </>
   );
 }

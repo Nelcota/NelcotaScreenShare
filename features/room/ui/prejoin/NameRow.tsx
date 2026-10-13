@@ -6,8 +6,47 @@ import { authClient } from "@/features/auth/client/participant-auth-client";
 import { displayNameSchema } from "@/features/room/domain/participant-label";
 import { initials } from "@/lib/initials";
 
+/** The account photo; without one (or if it fails to load), the name's initials. */
+function AccountPicture({ name, image }: { name: string; image: string | null }) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  if (image && image !== failedImage) {
+    return (
+      <img
+        key={image}
+        src={image}
+        alt=""
+        aria-hidden="true"
+        referrerPolicy="no-referrer"
+        ref={(element) => {
+          // The SSR image may have failed before hydration installed onError.
+          if (!element?.complete || element.naturalWidth > 0) return;
+          setFailedImage(image);
+        }}
+        onError={() => setFailedImage(image)}
+        className="size-10 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-medium text-brand-soft"
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
 /** Edits the account name without leaving the pre-join screen. */
-export function NameRow({ name, onChange }: { name: string; onChange: (name: string) => void }) {
+export function NameRow({
+  name,
+  image,
+  onChange,
+}: {
+  name: string;
+  image: string | null;
+  onChange: (name: string) => void;
+}) {
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -105,12 +144,7 @@ export function NameRow({ name, onChange }: { name: string; onChange: (name: str
 
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <span
-        aria-hidden="true"
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-medium text-brand-soft"
-      >
-        {initials(name)}
-      </span>
+      <AccountPicture name={name} image={image} />
       <p className="min-w-0 flex-1">
         <span className="block text-sm text-ink-muted">Você vai entrar como</span>
         <strong className="block truncate text-lg font-medium">{name}</strong>

@@ -7,7 +7,6 @@ import {
   type RemoteTrackPublication,
 } from "livekit-client";
 import { useEffect } from "react";
-import { toast } from "sonner";
 import {
   addToNoticeGroup,
   noticeGroupMessage,
@@ -15,19 +14,15 @@ import {
   type NoticeGroup,
 } from "@/features/room/domain/notice-grouping";
 import { participantName } from "@/features/room/domain/participant-label";
-
-const NOTICE_DURATION_MS = 3000;
-
-// Bottom right keeps room notices away from the top bar; the Toaster offset lifts them above the dock.
-const NOTICE_OPTIONS = { duration: NOTICE_DURATION_MS, position: "bottom-right" } as const;
+import { showCallNotice } from "@/features/room/client/call-notices";
 
 function showRoomNotice(message: string) {
-  toast(message, NOTICE_OPTIONS);
+  showCallNotice(message);
 }
 
 /** One toast per kind: a newer group replaces the visible one instead of stacking another. */
 function showGroupedNotice(group: NoticeGroup) {
-  toast(noticeGroupMessage(group), { ...NOTICE_OPTIONS, id: `room-notice-${group.kind}` });
+  showCallNotice(noticeGroupMessage(group), { id: `room-notice-${group.kind}` });
 }
 
 /**

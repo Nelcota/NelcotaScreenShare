@@ -1,67 +1,45 @@
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-import { ArrowLeft, Check, Home, Link2, Lock, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Home, Plus, RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link, useLocation, useViewTransitionState } from "react-router";
 import { Button } from "@/components/ui/button";
 import type { Expression } from "@/features/mascot/domain/face";
 import { Mascot } from "@/features/mascot/ui/Mascot";
 import { formatCallDuration, type LeaveReason } from "@/features/room/domain/leave";
-import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
 import { startPath } from "@/features/room/domain/start-path";
 import { gsap, MOTION_DURATION, MOTION_QUERIES, useGSAP } from "@/lib/animation/gsap";
 
 /** Title, mascot mood and what can be done for each leave reason. */
-const COPY: Record<
-  LeaveReason,
-  { title: string; expression: Expression; rejoin: string | null; copyLink: boolean }
-> = {
-  self: {
-    title: "Você saiu da sala",
-    expression: "happy",
-    rejoin: "Voltar para a sala",
-    copyLink: true,
-  },
-  dropped: {
-    title: "A conexão caiu",
-    expression: "worried",
-    rejoin: "Voltar para a sala",
-    copyLink: true,
-  },
-  failed: {
-    title: "Não foi possível entrar",
-    expression: "worried",
-    rejoin: "Tentar de novo",
-    copyLink: false,
-  },
-  // Rejoining here drops the other tab: it stays an option, not the main action.
-  elsewhere: {
-    title: "Você está na sala em outro lugar",
-    expression: "surprised",
-    rejoin: "Usar esta aba",
-    copyLink: false,
-  },
-  ended: { title: "A sala foi encerrada", expression: "neutral", rejoin: null, copyLink: false },
-  removed: {
-    title: "Você foi removido da sala",
-    expression: "neutral",
-    rejoin: null,
-    copyLink: false,
-  },
-};
-
-function CopyRoomLink({ code }: { code: string }) {
-  const { copied, copy } = useCopyRoomLink(code);
-  return (
-    <Button variant="outline" size="lg" aria-live="polite" onClick={() => void copy()}>
-      {copied ? (
-        <Check className="text-success" aria-hidden="true" />
-      ) : (
-        <Link2 aria-hidden="true" />
-      )}
-      {copied ? "Link copiado" : "Copiar link"}
-    </Button>
-  );
-}
+const COPY: Record<LeaveReason, { title: string; expression: Expression; rejoin: string | null }> =
+  {
+    self: {
+      title: "Você saiu da sala",
+      expression: "happy",
+      rejoin: "Voltar para a sala",
+    },
+    dropped: {
+      title: "A conexão caiu",
+      expression: "worried",
+      rejoin: "Voltar para a sala",
+    },
+    failed: {
+      title: "Não foi possível entrar",
+      expression: "worried",
+      rejoin: "Tentar de novo",
+    },
+    // Rejoining here drops the other tab: it stays an option, not the main action.
+    elsewhere: {
+      title: "Você está na sala em outro lugar",
+      expression: "surprised",
+      rejoin: "Usar esta aba",
+    },
+    ended: { title: "A sala foi encerrada", expression: "neutral", rejoin: null },
+    removed: {
+      title: "Tiraram você da sala",
+      expression: "neutral",
+      rejoin: null,
+    },
+  };
 
 /** A guest who took part sees how to open their own rooms. */
 function GuestSignUp({ guest, joined }: { guest: boolean; joined: boolean }) {
@@ -123,7 +101,6 @@ export function LeftScreen({
 }) {
   const scope = useRef<HTMLElement>(null);
   const copy = leaveCopy(reason, permanent);
-  const { enabled: streamerMode } = useStreamerMode();
   const transitioning = useViewTransitionState(useLocation().pathname);
   const joined = durationMs !== undefined;
   // Room ended or person removed: the way forward is the home page, not the same room.
@@ -193,7 +170,6 @@ export function LeftScreen({
               </Link>
             </Button>
           )}
-          {copy.copyLink && !streamerMode ? <CopyRoomLink code={code} /> : null}
           {copy.rejoin && !rejoinIsPrimary ? (
             <Button variant="outline" size="lg" onClick={onRejoin}>
               <RotateCcw aria-hidden="true" />
@@ -214,16 +190,6 @@ export function LeftScreen({
       </div>
 
       <GuestSignUp guest={guest} joined={joined} />
-
-      {joined ? (
-        <p
-          data-anim="left"
-          className="flex items-center gap-1.5 text-sm text-pretty text-ink-subtle"
-        >
-          <Lock className="size-3.5 shrink-0" aria-hidden="true" />
-          O chat da sala foi apagado.
-        </p>
-      ) : null}
     </section>
   );
 }
@@ -234,7 +200,6 @@ function leaveCopy(reason: LeaveReason, permanent: boolean | undefined) {
       ...COPY.ended,
       title: "A chamada foi encerrada",
       rejoin: "Iniciar nova chamada",
-      copyLink: true,
     };
   return COPY[reason];
 }

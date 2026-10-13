@@ -1,6 +1,6 @@
 import { Phone } from "lucide-react";
 import { useEffect, useEffectEvent, useRef } from "react";
-import { useNavigate, useRouteLoaderData } from "react-router";
+import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { toast } from "sonner";
 import type { loader as rootLoader } from "@/app/root";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
@@ -14,7 +14,9 @@ import {
 } from "@/features/notifications/client/notify";
 import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { acceptCall, declineCall } from "@/features/ringing/actions";
+import { useConnectedCallRoom } from "@/features/ringing/client/call-connection";
 import { usePushedRing } from "@/features/ringing/client/pushed-ring";
+import { showCallNotice } from "@/features/room/client/call-notices";
 import { PendingCallRunner } from "@/features/ringing/ui/PendingCallRunner";
 import {
   ringSoundLeft,
@@ -96,23 +98,37 @@ function IncomingCard({ ring }: { ring: IncomingRing }) {
   );
 }
 
-function showEndNotice(ring: OutgoingRing) {
+function showEndNotice(ring: OutgoingRing, inCall: boolean) {
   const id = `toque-${ring.id}`;
-  if (ring.state === "declined") return toast(`${firstName(ring.calleeName)} recusou`, { id });
+  const name = firstName(ring.calleeName);
+  // In the call, the room's own pill under the top bar; elsewhere, the app's toast.
+  if (inCall)
+    return showCallNotice(ring.state === "declined" ? `${name} recusou` : `${name} não atendeu`, {
+      id,
+    });
+  if (ring.state === "declined") return toast(`${name} recusou`, { id });
   toast(ring.calleeName, { description: "Ninguém atendeu", id });
+}
+
+/** Whether this page shows the call itself, where notices use the call's toaster. */
+function useOnCallPage(): boolean {
+  const { pathname } = useLocation();
+  const connectedRoom = useConnectedCallRoom();
+  return connectedRoom !== null && pathname === `/sala/${connectedRoom}`;
 }
 
 /** "Ninguém atendeu" or "Bia recusou", once per ring that ended without an answer. */
 function useEndNotices(outgoing: readonly OutgoingRing[]) {
   const shown = useRef(new Set<string>());
+  const inCall = useOnCallPage();
   useEffect(() => {
     for (const ring of outgoing) {
       if (ring.state === "ringing" || shown.current.has(ring.id)) continue;
       shown.current.add(ring.id);
-      showEndNotice(ring);
+      showEndNotice(ring, inCall);
       playCallEndSound("missed");
     }
-  }, [outgoing]);
+  }, [outgoing, inCall]);
 }
 
 /** Your first Chamar is a good moment to offer notifications, with the tab in front. */

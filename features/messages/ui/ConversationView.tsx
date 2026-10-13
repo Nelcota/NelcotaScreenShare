@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { LogOut, MoreHorizontal, UserRound } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
@@ -27,7 +26,9 @@ import {
   type ConversationProfile,
 } from "@/features/messages/ui/ConversationProfile";
 import { GroupCallButton, IconCallButton } from "@/features/ringing/ui/CallButton";
+import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { useOperation } from "@/lib/operations/use-operation";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABEL = { online: "Online", away: "Ausente", busy: "Ocupado", offline: "Offline" };
 
@@ -199,6 +200,8 @@ export function ConversationView({
   const latestId = data.messages.at(-1)?.id;
   const older = useOlder(conversation.id, data.messages[0]?.id, data.hasMore);
   useMarkRead(conversation.id, latestId);
+  // Opening a conversation is a good moment to offer notifications, with the tab in front.
+  useEffect(() => offerNotifications(), []);
   const scroller = useStickToBottom(latestId);
   const profilePanel = useProfileOpen();
   const showProfile = profile !== undefined && profilePanel.open;

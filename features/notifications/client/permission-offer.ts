@@ -15,7 +15,7 @@ const OFFER_EVENT = "nelcota-notification-offer";
 let askedAt: number | null = null;
 
 /**
- * The moments to offer notifications, with the tab in front: opening Mensagens, the first
+ * The moments to offer notifications, with the tab in front: opening a conversation, the first
  * Chamar. Shows the offer only if the browser would still ask and it is not snoozed.
  */
 export function offerNotifications() {

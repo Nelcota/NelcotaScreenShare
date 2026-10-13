@@ -1,5 +1,5 @@
-import { Check, UsersRound } from "lucide-react";
-import { useId, useState } from "react";
+import { Check, Plus, UsersRound } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
@@ -15,8 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { friendPhotoPath } from "@/features/friends/domain/friend-lists";
 import { createGroupConversation } from "@/features/messages/actions";
-import { firstName, joinNames } from "@/features/messages/domain/conversation-display";
-import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME_LENGTH } from "@/features/messages/domain/conversation";
+import { MAX_GROUP_MEMBERS } from "@/features/messages/domain/conversation";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
 
@@ -92,40 +91,21 @@ function useStart(onDone: () => void) {
   return { group, pending: group.isPending };
 }
 
-/** "Criar grupo": pick two or more friends and, if you like, a name. */
+/** "Criar grupo": pick two or more friends; the group is named after them. */
 function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: () => void }) {
-  const nameId = useId();
   const [picked, setPicked] = useState<string[]>([]);
-  const [name, setName] = useState("");
   const start = useStart(onDone);
-  const pickedFriends = friends.filter((friend) => picked.includes(friend.id));
-  const isGroup = picked.length > 1;
   const pickedEnough = picked.length >= MIN_PICKED;
   const toggle = (id: string) =>
     setPicked((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
-  const submit = () => start.group.execute({ memberIds: picked, name: name.trim() || null });
+  const submit = () => start.group.execute({ memberIds: picked, name: null });
   return (
     <div className="flex min-h-0 flex-col gap-4">
-      {isGroup ? (
-        <label htmlFor={nameId} className="flex flex-col gap-2 text-sm font-medium">
-          Nome do grupo
-          <input
-            id={nameId}
-            value={name}
-            maxLength={MAX_GROUP_NAME_LENGTH}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={`${joinNames(pickedFriends.map((friend) => firstName(friend.name)))} e você`}
-            className="h-11 rounded-xl border border-line-strong bg-surface-2 px-3 text-base font-normal outline-none placeholder:text-ink-subtle focus:border-brand-soft"
-          />
-        </label>
-      ) : null}
       <p className="flex justify-between px-2 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
         <span>Amigos</span>
-        <span>
-          {picked.length} de {MAX_PICKED}
-        </span>
+        <span>Até {MAX_PICKED} amigos</span>
       </p>
       {friends.length === 0 ? (
         <p className="px-2 text-sm text-ink-muted">Adicione amigos para conversar.</p>
@@ -164,7 +144,10 @@ export function CreateGroupDialog({ friends }: { friends: PickableFriend[] }) {
           aria-label="Criar grupo"
           className="grid size-9 shrink-0 place-items-center rounded-full border border-brand-soft/70 text-brand-soft transition-colors hover:border-brand hover:bg-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-brand"
         >
-          <UsersRound className="size-4" aria-hidden="true" />
+          <span aria-hidden="true" className="relative">
+            <UsersRound className="size-4" />
+            <Plus className="absolute -top-1 -right-1.5 size-2.5" strokeWidth={3.5} />
+          </span>
         </DialogTrigger>
       </Hint>
       <DialogContent className="max-w-md rounded-3xl" showCloseButton>

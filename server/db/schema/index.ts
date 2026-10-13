@@ -1,5 +1,6 @@
 export * from "./admin-auth";
 export * from "./audit";
+export * from "./friends";
 export * from "./mail";
 export * from "./errors";
 export * from "./marketing";

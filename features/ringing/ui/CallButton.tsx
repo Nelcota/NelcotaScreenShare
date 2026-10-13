@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { toast } from "sonner";
 import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
+import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { createRoomAction } from "@/features/room/actions";
 import { callFriend, callGroup, cancelCall } from "@/features/ringing/actions";
 import { savePendingCall, type PendingCall } from "@/features/ringing/client/pending-call";
@@ -53,7 +54,8 @@ function useOpenRoom() {
       return;
     }
     savePendingCall({ ...waiting, room });
-    void navigate(created.data.path, { viewTransition: true });
+    // Whoever pressed Chamar already chose to call: the new room joins without the pre-join.
+    void navigate(answeredCallPath(created.data.path), { viewTransition: true });
   };
 }
 

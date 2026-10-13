@@ -41,6 +41,39 @@ export function parseOffset(raw: string | null): CardOffset | undefined {
   }
 }
 
+/** The corners keep this far from the sides, as the card's first place does. */
+const CORNER_MARGIN = 16;
+/** Bottom corners stay above a page's message box, like the card's first place (6rem). */
+const BOTTOM_CORNER_CLEARANCE = 96;
+/** Dropped inside the middle of the screen (this share of each side), it stays put. */
+const CENTER_SHARE = 0.4;
+
+function inCenter(position: number, size: number): boolean {
+  const margin = (size * (1 - CENTER_SHARE)) / 2;
+  return position >= margin && position <= size - margin;
+}
+
+/**
+ * Where a dropped card settles: the nearest corner (below the top bar, above a message
+ * box), or right where it was when dropped in the middle of the screen.
+ */
+export function snapToCorner(offset: CardOffset, card: Size, viewport: Size): CardOffset {
+  const centerX = viewport.width - offset.right - card.width / 2;
+  const centerY = viewport.height - offset.bottom - card.height / 2;
+  if (inCenter(centerX, viewport.width) && inCenter(centerY, viewport.height)) {
+    return clampOffset(offset, card, viewport);
+  }
+  const corner = {
+    right:
+      centerX < viewport.width / 2 ? viewport.width - card.width - CORNER_MARGIN : CORNER_MARGIN,
+    bottom:
+      centerY < viewport.height / 2
+        ? viewport.height - card.height - TOP_CLEARANCE
+        : BOTTOM_CORNER_CLEARANCE,
+  };
+  return clampOffset(corner, card, viewport);
+}
+
 const STEP = 16;
 const LARGE_STEP = 64;
 

@@ -63,6 +63,10 @@ describe("live stream", () => {
     expect(await readUntil(body, ": keep-alive")).toContain("retry: 5000");
     bus.notify([ana.id], "friends");
     expect(await readUntil(body, "data: friends")).toContain("event: nudge");
+    bus.notify([ana.id], "ring", { id: "toque" });
+    expect(await readUntil(body, "toque")).toContain(
+      `event: data\ndata: {"topic":"ring","data":{"id":"toque"}}`,
+    );
     expect(bus.streamCount(ana.id)).toBe(1);
     abort.abort();
     expect(bus.streamCount(ana.id)).toBe(0);

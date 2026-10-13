@@ -48,3 +48,9 @@ export function isRinging(ring: Pick<Ring, "expiresAt">, now: number): boolean {
 export function ringSoundLeft(ring: Pick<Ring, "startedAt">, now: number): number {
   return Math.max(0, ring.startedAt + RING_SOUND_MS - now);
 }
+
+/** The ring as the callee sees it: never who else was rung or the conversation. */
+export function incomingView(ring: Ring): IncomingRing {
+  const { id, callerId, callerName, roomCode, startedAt, expiresAt } = ring;
+  return { id, callerId, callerName, roomCode, startedAt, expiresAt };
+}

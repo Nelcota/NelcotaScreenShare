@@ -14,6 +14,7 @@ import {
 } from "@/features/notifications/client/notify";
 import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { acceptCall, declineCall } from "@/features/ringing/actions";
+import { usePushedRing } from "@/features/ringing/client/pushed-ring";
 import { PendingCallRunner } from "@/features/ringing/ui/PendingCallRunner";
 import {
   ringSoundLeft,
@@ -127,7 +128,9 @@ export function RingRuntime() {
   const ringing = useRouteLoaderData<typeof rootLoader>("root")?.ringing ?? null;
   useEndNotices(ringing?.outgoing ?? []);
   useOfferAfterFirstCall(ringing?.outgoing ?? []);
-  const [incoming] = ringing?.incoming ?? [];
+  const pushed = usePushedRing();
+  // The loaders decide; the ring that came with the nudge only fills the gap until they reload.
+  const incoming = ringing?.incoming[0] ?? pushed;
   if (!ringing) return null;
   return (
     <>

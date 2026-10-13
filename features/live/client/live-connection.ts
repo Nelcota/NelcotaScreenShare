@@ -1,5 +1,6 @@
-import { NUDGE_EVENT } from "@/features/live/domain/live-topics";
+import { DATA_EVENT, liveWindowEvent, NUDGE_EVENT } from "@/features/live/domain/live-topics";
 import { createNudgeBatcher } from "@/features/live/client/nudge-batcher";
+import { logBrowserWarning } from "@/lib/telemetry.client";
 
 const LIVE_URL = "/api/eventos";
 const BATCH_MS = 300;
@@ -7,6 +8,26 @@ const BATCH_MS = 300;
 const FALLBACK_MS = 60_000;
 
 const isVisible = () => document.visibilityState === "visible";
+
+/** `{ topic, data }` from the server; null when it cannot be read. */
+function parseDataMessage(raw: unknown): { topic: string; data: unknown } | null {
+  if (typeof raw !== "string") return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    if (!("topic" in parsed) || typeof parsed.topic !== "string") return null;
+    return { topic: parsed.topic, data: "data" in parsed ? parsed.data : null };
+  } catch (error) {
+    logBrowserWarning("Could not read a live message", error);
+    return null;
+  }
+}
+
+/** Lets features react to a topic at once, before the loaders reload. */
+function announce(topic: unknown, data: unknown) {
+  if (typeof topic !== "string") return;
+  window.dispatchEvent(new CustomEvent(liveWindowEvent(topic), { detail: data }));
+}
 
 /**
  * Keeps one live stream open for this tab and calls `refresh` when the server says
@@ -43,7 +64,15 @@ export function startLiveConnection(refresh: () => void): () => void {
   function open() {
     if (source) return;
     const next = new EventSource(LIVE_URL);
-    next.addEventListener(NUDGE_EVENT, batcher.nudge);
+    next.addEventListener(NUDGE_EVENT, (event) => {
+      announce(event.data, null);
+      batcher.nudge();
+    });
+    next.addEventListener(DATA_EVENT, (event) => {
+      const message = parseDataMessage(event.data);
+      if (message) announce(message.topic, message.data);
+      batcher.nudge();
+    });
     next.addEventListener("open", () => {
       stopFallback();
       if (missed) batcher.nudge();

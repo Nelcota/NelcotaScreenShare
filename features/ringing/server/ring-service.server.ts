@@ -1,6 +1,6 @@
-import type { Ring } from "@/features/ringing/domain/ring";
+import { incomingView, type Ring } from "@/features/ringing/domain/ring";
 import { createRingStore } from "@/features/ringing/server/ring-store.server";
-import { notifyUsers } from "@/features/live/server/live-bus.server";
+import { notifyUserWithData, notifyUsers } from "@/features/live/server/live-bus.server";
 
 /** Both sides reload: the card appears, changes or goes away. */
 function nudge(userIds: readonly string[]) {
@@ -21,10 +21,12 @@ function scheduleEnd(ring: Ring) {
   timer.unref?.();
 }
 
+/** The callee's nudge carries the card, so it shows before their page reloads. */
 export function startRing(input: RingInput): Ring {
   const ring = ringStore.start(input);
   scheduleEnd(ring);
-  nudge([ring.callerId, ring.calleeId]);
+  nudge([ring.callerId]);
+  notifyUserWithData(ring.calleeId, "ring", incomingView(ring));
   return ring;
 }
 

@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
+  incomingView,
+  type IncomingRing,
   isRinging,
   MISSED_NOTICE_MS,
   RING_DURATION_MS,
-  type IncomingRing,
   type OutgoingRing,
   type Ring,
 } from "@/features/ringing/domain/ring";
@@ -18,11 +19,6 @@ interface EndNotice {
   calleeName: string;
   state: "missed" | "declined";
   until: number;
-}
-
-function incomingView(ring: Ring): IncomingRing {
-  const { id, callerId, callerName, roomCode, startedAt, expiresAt } = ring;
-  return { id, callerId, callerName, roomCode, startedAt, expiresAt };
 }
 
 /**

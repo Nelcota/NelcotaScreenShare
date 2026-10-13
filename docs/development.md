@@ -90,6 +90,14 @@ The app's variables are validated with Zod in `server/env.server.ts`. If somethi
 
 `LIVEKIT_URL` is read at runtime by the server and returned to the browser along with the token. So changing the URL doesn't require a rebuild, and no variable needs to exist at build time.
 
+## In-memory state (single instance)
+
+Some state lives in the Node process, not in Postgres. It holds for a single replica (the Coolify default); running more than one needs a shared store such as Redis first.
+
+- **Rate limits** (`server/rate-limit.server.ts`).
+- **Presence** (`features/friends/server/online-presence.server.ts`): who sent a beat in the last 2 minutes.
+- **Live updates** (`features/live/server/live-bus.server.ts`): the open `GET /api/eventos` streams (SSE), by account. Actions nudge only the accounts involved after the commit, and the browser reloads its loaders. The stream skips compression (`text/event-stream`, `no-transform`) and asks proxies not to buffer it (`X-Accel-Buffering: no`).
+
 ## Tests
 
 - `tests/unit`: no database (pure domain: token decision, mascot rules, room protocol…).

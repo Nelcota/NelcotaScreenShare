@@ -45,6 +45,11 @@ favorite and archived rooms. Creation, renaming, link copying, favorites, archiv
 restoration are available according to the current server permissions. Favorites never
 grant admission or access to history. All links keep their original public code.
 
+`/salas` and `/salas/:id` render inside the signed-in app layout. The column's Salas tab
+lists the same rooms with search and the active, favorite and archived filters; picking a
+room opens its history in the middle. Like the rest of the workspace, these pages do not
+require a confirmed e-mail.
+
 Every call uses a separate `room_sessions` row and private media name. Closing a permanent
 call closes only that session; the owner or an eligible team member can start another
 call through the same link. Explicitly closing an ad-hoc room still makes its code
@@ -66,6 +71,9 @@ renaming, archive and membership maintenance remain available.
 `/times` lists current memberships. Personal Pro beta permits owning up to three teams;
 each team needs its own entitlement for room creation, new starts and invitations.
 The initial team cap is 100 members and 200 unredeemed, unrevoked, unexpired invitations.
+`/times`, `/times/:id` and team room history also render inside the app layout; the
+column's Times tab lists the memberships. Invitation links (`/times/convite/:token`) keep
+their standalone page.
 
 | Capability                                                 | Owner                    | Manager | Member                                  |
 | ---------------------------------------------------------- | ------------------------ | ------- | --------------------------------------- |

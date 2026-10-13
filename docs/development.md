@@ -81,6 +81,7 @@ Open two tabs (or a private window), join the same room and share your screen.
 | `MAIL_FROM`                  | with mail  | Sender, e.g. `Nelcota <no-reply@yourdomain.com>`. Production requires a provider and sender when verification is enabled; without delivery, dev logs the content  |
 | `SENTRY_DSN`                 | no         | Enables Sentry on the server (no personal data)                                                                                                                   |
 | `PUBLIC_SENTRY_DSN`          | no         | Enables browser error capture; loaded at runtime, no rebuild needed                                                                                               |
+| `SENTRY_ISSUES_URL`          | no         | Sentry issues page (e.g. `https://org.sentry.io/issues/?project=123`); the panel links each recent error there by its request id                                  |
 | `LOG_LEVEL`                  | no         | Log level (default `info` in production, `debug` in dev)                                                                                                          |
 | `APP_VERSION`                | no         | Set by the image (commit SHA); shown in `/api/ready` and in Sentry                                                                                                |
 | `TEST_DATABASE_URL`          | tests      | **Disposable** database for integration tests; Vitest recreates databases from it. Not read by the app                                                            |

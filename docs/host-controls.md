@@ -15,6 +15,23 @@ but do not count as admission. A session has its own internal LiveKit name.
 The host badge comes from server state. The crown menu locks new entrants, selects screen
 sharing policy (Everyone, Host, Specific people), and closes the room for everyone. The
 people list offers transfer to another connected account and removal, with confirmation.
+
+Saved room roles ([ADR 0007](adr/0007-room-ownership-and-host.md)) extend this authority.
+The room owner may give every host command without holding the host role, and becomes host
+once connected and admitted. A moderator is a co-host: lock, sharing policy and removal of
+participants, but not transfer, closing, or removing the host, the owner or another
+moderator. The control state lists the commands each person may give; menus show only those.
+A transfer given by the owner also hands over the room: the target becomes owner and the
+former owner a moderator. The owner does this from the person's card ("Transferir a sala").
+Sync commands also publish each person's saved room role, so badges follow the change.
+
+The person's card keeps two actions for the owner and moderators. "Expulsar" disconnects
+without excluding: the person may rejoin. "Banir desta chamada" is the session exclusion,
+recorded with who did it (`excluded_by_user_id` or, from the admin panel,
+`excluded_by_admin_id`), followed by a durable `remove` command. With the flag off there is
+no session; bans stay in `room_bans` for the LiveKit call. The admin panel reads both through
+`listCallRemovals` and lifts a ban with `readmitToSession`
+(`features/room/server/call-removals.server.ts`); the panel audits the change.
 Screen and screen-audio permissions change together; microphone and data permissions remain.
 LiveKit removes already published tracks of revoked sources. See its
 [SetPermission implementation](https://github.com/livekit/livekit/blob/v1.13.7/pkg/rtc/participant.go).
@@ -23,11 +40,14 @@ Locks allow identities already admitted through the signaling gate to reconnect,
 excluded. A prefetched token alone does not confer this exception. Removal excludes an
 identity from this session. A guest who clears their signed cookie can obtain another
 identity; locking new entrants supplies the room-level control. Closing from the host menu
-makes the public code terminal. A naturally empty call expires after 60 seconds, keeping
-the definition available for a new call with a new internal media name.
+makes the public code terminal only for an ad hoc room without an owner. A room with an
+owner, a permanent room or a team room keeps its code for a new call. A naturally empty
+call expires after 60 seconds, keeping the definition available for a new call with a new
+internal media name.
 
-The host retains authority for 60 seconds after disappearing. After that, the oldest
-connected, admitted, nonexcluded active account becomes host. Guests alone cannot claim
+The host retains authority for 60 seconds after disappearing. After that, the connected,
+admitted, nonexcluded active accounts are ranked: the owner, then moderators, then everyone
+else, each group by join time. The first becomes host. Guests alone cannot claim
 authority and new admission stays locked. Presence checks use the LiveKit service API;
 webhooks project history and never grant roles. Calls persist when navigating within the app.
 

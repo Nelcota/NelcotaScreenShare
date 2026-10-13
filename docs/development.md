@@ -161,6 +161,11 @@ Host controls use a private signaling admission gate and are disabled by default
 See [host controls](host-controls.md) for the environment flag, migrations and dedicated
 Playwright command. Local loopback LiveKit is sufficient for functional testing.
 
+With the flag on, "Banir desta chamada" is the session exclusion (`room_session_members`);
+with it off, bans stay in `room_bans`, keyed by the LiveKit room sid. Drop `room_bans` and
+its flag-off path once production runs with the flag on
+([ADR 0007](adr/0007-room-ownership-and-host.md)).
+
 ## Collaboration pilot
 
 Apply migrations 0013–0015 and enable `ROOM_HOST_CONTROLS_ENABLED=true` only with the private

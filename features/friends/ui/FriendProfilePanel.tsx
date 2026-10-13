@@ -59,7 +59,7 @@ export function FriendProfilePanel({
       <div className="flex justify-end">
         <FriendMenu
           person={friend}
-          onDone={() => void navigate("/mensagens", { replace: true, viewTransition: true })}
+          onDone={() => void navigate("/amigos", { replace: true, viewTransition: true })}
         />
       </div>
       <div className="-mt-6 flex flex-col items-center text-center">

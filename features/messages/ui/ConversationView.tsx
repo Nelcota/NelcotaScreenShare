@@ -45,7 +45,7 @@ export interface OpenConversation {
 function MoreMenu({ conversation }: { conversation: OpenConversation["conversation"] }) {
   const navigate = useNavigate();
   const leave = useOperation(leaveGroup, {
-    onSuccess: () => void navigate("/mensagens", { replace: true, viewTransition: true }),
+    onSuccess: () => void navigate("/amigos", { replace: true, viewTransition: true }),
     onError: () => toast.error("Não foi possível sair agora."),
   });
   const [other] = conversation.others;

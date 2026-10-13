@@ -9,7 +9,7 @@ import { unreadSummary } from "@/features/messages/server/conversation-list.serv
 import { getDb } from "@/server/db/index.server";
 import { pageUrl } from "@/server/page-url.server";
 import { routeLoader } from "@/server/route-loader.server";
-import { columnTabs, PhoneTabs, TabContent } from "./column-parts";
+import { columnExtras, columnTabs, PhoneTabs, TabContent } from "./column-parts";
 import { columnTabOf, workspaceColumn } from "./workspace-column.server";
 
 /** Open before the e-mail is confirmed: /conta to fix the address, and main's workspace. */
@@ -48,10 +48,9 @@ export default function AppLayout() {
           data={data}
           tabs={columnTabs(counts)}
           activeTab={data.workspace.tab}
+          extras={columnExtras(data)}
           tabContent={
-            data.workspace.tab === "amigos" ? undefined : (
-              <TabContent column={data.workspace} friends={data.friends} selfId={data.selfId} />
-            )
+            data.workspace.tab === "amigos" ? undefined : <TabContent column={data.workspace} />
           }
         />
         <main className="glass min-w-0 flex-1 rounded-3xl has-[[data-phone-fill]]:overflow-hidden sm:overflow-y-auto">

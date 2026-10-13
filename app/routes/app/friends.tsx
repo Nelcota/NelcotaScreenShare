@@ -3,6 +3,8 @@ import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
+import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
+import { CreateGroupDialog } from "@/features/messages/ui/CreateGroupDialog";
 import { AppEmptyState } from "./empty-state";
 import type { loader as appLoader } from "./layout";
 
@@ -17,6 +19,7 @@ function PhoneFriends() {
       <div className="flex items-center gap-3 px-1">
         <h1 className="flex-1 text-2xl font-semibold tracking-tight">Amigos</h1>
         <RequestsButton count={app.requests} />
+        <CreateGroupDialog friends={app.friends} />
         <AddFriendDialog code={app.code} linkPath={app.linkPath} />
       </div>
       <div className="glass overflow-hidden rounded-2xl [&>div]:border-t-0">
@@ -28,7 +31,11 @@ function PhoneFriends() {
             Você ainda não tem amigos aqui. Passe seu código para alguém.
           </p>
         ) : (
-          <FriendGroups friends={app.friends} />
+          <FriendGroups
+            friends={app.friends}
+            unreadByFriend={app.unreadByFriend}
+            before={<ColumnGroups groups={app.groups} />}
+          />
         )}
       </nav>
     </div>

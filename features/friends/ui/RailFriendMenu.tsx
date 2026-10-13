@@ -70,7 +70,7 @@ function CallItem({ friend }: { friend: FriendStatus }) {
  * A friend on the rail: the avatar opens Chamar, Mensagem and their card, so a call can start
  * without opening the column (in a room it rings into that room).
  */
-export function RailFriendMenu({ friend }: { friend: FriendStatus }) {
+export function RailFriendMenu({ friend, unread }: { friend: FriendStatus; unread: number }) {
   const openMessages = useOpenMessages(friend.id);
   const { calling } = useCalling(friend.id);
   const label = calling ? `Chamando ${firstName(friend.name)}…` : friend.name;
@@ -88,7 +88,7 @@ export function RailFriendMenu({ friend }: { friend: FriendStatus }) {
                 "ring-2 ring-brand ring-offset-2 ring-offset-surface motion-safe:animate-pulse",
             )}
           >
-            <FriendAvatar friend={friend} />
+            <FriendAvatar friend={friend} unread={unread} />
           </span>
         </DropdownMenuTrigger>
       </Hint>

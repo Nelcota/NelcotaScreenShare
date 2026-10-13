@@ -1,30 +1,34 @@
-import { Home, MessageCircle, Users, UsersRound, Video } from "lucide-react";
+import { Home, Users, UsersRound, Video } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { WorkspaceColumnList } from "@/components/workspace/WorkspaceColumnList";
 import type { ColumnTab } from "@/features/friends/ui/FriendsColumn";
-import type { PickableFriend } from "@/features/messages/ui/NewConversationDialog";
-import { ConversationList } from "@/features/messages/ui/ConversationList";
+import type { ColumnGroup } from "@/features/messages/server/conversation-list.server";
+import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
+import { CreateGroupDialog, type PickableFriend } from "@/features/messages/ui/CreateGroupDialog";
 import type { WorkspaceColumn } from "./workspace-column.server";
 
 /**
  * The column's tabs. Each tab owns a path: the tab's own route (no item picked) fills the
- * middle (AppEmptyState for Amigos and Mensagens, main's cards for Salas and Times), and each
- * picked item is a child route drawn in the middle.
+ * middle (AppEmptyState for Amigos, main's cards for Salas and Times), and each picked item is
+ * a child route drawn in the middle. Messages live in Amigos: on each friend's photo and in
+ * Grupos, so the tab counts requests and unread messages together.
  */
 export function columnTabs(counts: { requests: number; unread: number }): ColumnTab[] {
+  const badge = counts.requests + counts.unread;
   return [
-    { id: "amigos", label: "Amigos", href: "/amigos", icon: Users, badge: counts.requests },
-    {
-      id: "mensagens",
-      label: "Mensagens",
-      href: "/mensagens",
-      icon: MessageCircle,
-      badge: counts.unread,
-    },
+    { id: "amigos", label: "Amigos", href: "/amigos", icon: Users, badge },
     { id: "salas", label: "Salas", href: "/salas", icon: Video },
     { id: "times", label: "Times", href: "/times", icon: UsersRound },
   ];
+}
+
+/** What the messages add to the friends column: "Criar grupo" and the "Grupos" section. */
+export function columnExtras(data: { friends: PickableFriend[]; groups: ColumnGroup[] }) {
+  return {
+    actions: <CreateGroupDialog friends={data.friends} />,
+    groups: <ColumnGroups groups={data.groups} />,
+  };
 }
 
 const TAB =
@@ -72,13 +76,7 @@ export function PhoneTabs({ requests, unread }: { requests: number; unread: numb
         to="/amigos"
         icon={<Users className={icon} aria-hidden="true" />}
         label="Amigos"
-        count={requests}
-      />
-      <PhoneTab
-        to="/mensagens"
-        icon={<MessageCircle className={icon} aria-hidden="true" />}
-        label="Mensagens"
-        count={unread}
+        count={requests + unread}
       />
       <PhoneTab to="/salas" icon={<Video className={icon} aria-hidden="true" />} label="Salas" />
       <PhoneTab
@@ -91,20 +89,7 @@ export function PhoneTabs({ requests, unread }: { requests: number; unread: numb
 }
 
 /** The list of the open tab in the column; Amigos keeps the friends. */
-export function TabContent({
-  column,
-  friends,
-  selfId,
-}: {
-  column: WorkspaceColumn;
-  friends: PickableFriend[];
-  selfId: string;
-}) {
-  if (column.tab === "mensagens") {
-    return (
-      <ConversationList conversations={column.conversations} friends={friends} selfId={selfId} />
-    );
-  }
+export function TabContent({ column }: { column: WorkspaceColumn }) {
   if (column.tab === "salas") {
     const items = column.rooms.map((room) => ({ ...room, href: `/salas/${room.id}` }));
     return (

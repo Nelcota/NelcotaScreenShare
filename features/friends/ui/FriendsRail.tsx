@@ -8,10 +8,10 @@ import { RailFriendMenu } from "@/features/friends/ui/RailFriendMenu";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
 
-function RailFriend({ friend }: { friend: FriendStatus }) {
+function RailFriend({ friend, unread }: { friend: FriendStatus; unread: number }) {
   return (
     <li>
-      <RailFriendMenu friend={friend} />
+      <RailFriendMenu friend={friend} unread={unread} />
     </li>
   );
 }
@@ -19,6 +19,7 @@ function RailFriend({ friend }: { friend: FriendStatus }) {
 /** The collapsed column: open it, requests, "Adicionar amigo" and who is online. */
 export function FriendsRail({
   friends,
+  unreadByFriend,
   requests,
   code,
   linkPath,
@@ -27,6 +28,8 @@ export function FriendsRail({
   onExpand,
 }: {
   friends: FriendStatus[];
+  /** Unread messages by friend, shown on their photo. */
+  unreadByFriend: Readonly<Record<string, number>>;
   requests: number;
   code: string;
   linkPath: string;
@@ -59,7 +62,7 @@ export function FriendsRail({
         className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto pb-2"
       >
         {online.map((friend) => (
-          <RailFriend key={friend.id} friend={friend} />
+          <RailFriend key={friend.id} friend={friend} unread={unreadByFriend[friend.id] ?? 0} />
         ))}
       </ul>
       <StatusStrip account={account} status={ownStatus} compact />

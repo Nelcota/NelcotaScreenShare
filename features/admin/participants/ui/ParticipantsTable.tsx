@@ -104,7 +104,10 @@ function Filters({ exportHref }: { exportHref: string | null }) {
 function NameCell({ row }: { row: ParticipantRow }) {
   return (
     <Link viewTransition to={`/admin/usuarios/${row.id}`} className="group flex flex-col">
-      <span className="font-medium group-hover:underline">{row.name}</span>
+      <span className="flex items-center gap-1.5">
+        <span className="font-medium group-hover:underline">{row.name}</span>
+        {row.twoFactorEnabled ? <StatusBadge tone="neutral">2FA</StatusBadge> : null}
+      </span>
       <span className="text-xs text-ink-muted">{row.email}</span>
     </Link>
   );

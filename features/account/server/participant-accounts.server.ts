@@ -81,6 +81,22 @@ export async function revokeParticipantSessions(tx: DbExecutor, ids: string[]) {
 }
 
 /**
+ * Turns off 2FA for someone who lost their authenticator: the secret and backup codes
+ * are deleted and every session ends, so the next sign-in asks only for the password.
+ * Returns null when the account had no 2FA (nothing changed).
+ */
+export async function disableParticipantTwoFactor(tx: DbExecutor, id: string) {
+  const [changed] = await tx
+    .update(users)
+    .set({ twoFactorEnabled: false })
+    .where(and(eq(users.id, id), eq(users.twoFactorEnabled, true), isNull(users.deletedAt)))
+    .returning({ id: users.id });
+  if (!changed) return null;
+  await tx.delete(userTwoFactors).where(eq(userTwoFactors.userId, id));
+  return { sessions: await revokeParticipantSessions(tx, [id]) };
+}
+
+/**
  * Permanent anonymization (LGPD): e-mail and name become values without personal
  * data, credentials and sessions are removed, the name leaves the room history and the
  * account stops owning or moderating rooms.

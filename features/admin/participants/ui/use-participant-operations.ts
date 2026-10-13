@@ -5,6 +5,9 @@ import {
   anonymizeParticipantAction,
   blockParticipantsAction,
   deleteParticipantsAction,
+  disableParticipantTwoFactorAction,
+  removeParticipantPhotoAction,
+  resetParticipantNameAction,
   resendVerificationAction,
   restoreParticipantsAction,
   revokeParticipantSessionsAction,
@@ -56,7 +59,47 @@ export function useParticipantOperations(closeDialog: () => void) {
     },
     onError: toastError("Não foi possível anonimizar."),
   });
-  return { block, unblock, revoke, resend, restore, remove, anonymize };
+  const disableTwoFactor = useOperation(disableParticipantTwoFactorAction, {
+    onSuccess: () => {
+      closeDialog();
+      toast.success("2FA desligado. Sessões encerradas.");
+    },
+    onError: toastError("Não foi possível desligar o 2FA."),
+  });
+  const removePhoto = useOperation(removeParticipantPhotoAction, {
+    onSuccess: ({ data }) => {
+      closeDialog();
+      toast.success(
+        data.mailed
+          ? "Foto removida. A pessoa recebeu o motivo por e-mail."
+          : "Foto removida. O e-mail não saiu.",
+      );
+    },
+    onError: toastError("Não foi possível remover a foto."),
+  });
+  const resetName = useOperation(resetParticipantNameAction, {
+    onSuccess: ({ data }) => {
+      closeDialog();
+      toast.success(
+        data.mailed
+          ? `Nome trocado para ${data.name}. A pessoa recebeu o motivo por e-mail.`
+          : `Nome trocado para ${data.name}. O e-mail não saiu.`,
+      );
+    },
+    onError: toastError("Não foi possível redefinir o nome."),
+  });
+  return {
+    block,
+    unblock,
+    revoke,
+    resend,
+    restore,
+    remove,
+    anonymize,
+    disableTwoFactor,
+    removePhoto,
+    resetName,
+  };
 }
 
 export type ParticipantOperations = ReturnType<typeof useParticipantOperations>;

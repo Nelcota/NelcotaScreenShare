@@ -8,18 +8,21 @@ const mail = vi.hoisted(() => ({
   send: vi.fn(),
   createTransport: vi.fn(),
   fetch: vi.fn(),
+  record: vi.fn(),
 }));
 
 vi.mock("@/server/logger.server", () => ({
   logger: { warn: mail.warn, info: mail.info, error: mail.error },
 }));
 vi.mock("nodemailer", () => ({ createTransport: mail.createTransport }));
+vi.mock("@/server/mail-deliveries.server", () => ({ recordMailDelivery: mail.record }));
 vi.mock("node:timers/promises", () => ({ setTimeout: mail.sleep }));
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   mail.sleep.mockResolvedValue(undefined);
+  mail.record.mockResolvedValue(undefined);
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("DATABASE_URL", "postgres://app:password@localhost/nelcota");
   vi.stubEnv("LIVEKIT_API_KEY", "test-key");
@@ -78,6 +81,17 @@ describe("production mail configuration", () => {
     expect(getEnv().REQUIRE_EMAIL_VERIFICATION).toBe(true);
   });
 
+  test.each([
+    ['"Nelcota <no-reply@example.com>"', "Nelcota <no-reply@example.com>"],
+    [" 'no-reply@example.com' ", "no-reply@example.com"],
+    ['"Nelcota" <no-reply@example.com>', '"Nelcota" <no-reply@example.com>'],
+  ])("normalizes the sender %s", async (configured, sender) => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", configured);
+    const { getEnv } = await import("@/server/env.server");
+    expect(getEnv().MAIL_FROM).toBe(sender);
+  });
+
   test("rejects Resend without a sender", async () => {
     vi.stubEnv("RESEND_API_KEY", "re_test_key");
     const { getEnv } = await import("@/server/env.server");
@@ -131,6 +145,30 @@ describe("mail delivery", () => {
       { mail: { subject: message.subject } },
       "e-mail not sent (no provider)",
     );
+  });
+
+  test("accepts a valid sender on boot without logging", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota <no-reply@example.com>");
+    const { checkMailSender } = await import("@/server/mail.server");
+    checkMailSender();
+    expect(mail.error).not.toHaveBeenCalled();
+  });
+
+  test("boots with an invalid sender, logs its domain and refuses to send", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota no-reply@example.com");
+    const { checkMailSender, sendMail } = await import("@/server/mail.server");
+    checkMailSender();
+    const misconfigured = [
+      { event: "mail.misconfigured", senderDomain: "example.com" },
+      'MAIL_FROM must be "no-reply@domain.com" or "Name <no-reply@domain.com>"',
+    ];
+    expect(mail.error).toHaveBeenCalledExactlyOnceWith(...misconfigured);
+    await expect(sendMail(message)).rejects.toThrow("MAIL_FROM is not a valid sender");
+    expect(mail.error).toHaveBeenLastCalledWith(...misconfigured);
+    expect(mail.fetch).not.toHaveBeenCalled();
+    expect(JSON.stringify(mail.error.mock.calls)).not.toMatch(/no-reply@example/);
   });
 
   test("preserves configured SMTP delivery", async () => {
@@ -203,7 +241,12 @@ describe("mail delivery", () => {
     const { sendMail } = await import("@/server/mail.server");
     await expect(sendMail(message)).rejects.toThrow("Resend rejected e-mail delivery (HTTP 403)");
     expect(mail.error).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "mail.failed", status: 403, reason: "validation_error" }),
+      expect.objectContaining({
+        event: "mail.failed",
+        status: 403,
+        reason: "validation_error",
+        senderDomain: "example.com",
+      }),
       "e-mail delivery failed",
     );
     expect(JSON.stringify(mail.error.mock.calls)).not.toMatch(/recipient|testing emails/);
@@ -322,5 +365,104 @@ describe("transactional mail layout", () => {
     expect(content.html).not.toContain("<a ");
     expect(content.html).not.toMatch(/undefined|null/);
     expect(content.text).toContain("Account notice");
+  });
+});
+
+describe("delivery history", () => {
+  const message = {
+    to: "Ana <ana@Example.com>",
+    subject: "Confirme seu e-mail no Nelcota",
+    text: "https://app.example.com/verify?token=private-token",
+  };
+
+  test("records an accepted delivery with only the recipient's domain", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.fetch.mockResolvedValue(new Response('{"id":"email-id"}', { status: 200 }));
+    const { sendMail } = await import("@/server/mail.server");
+    await sendMail(message);
+    expect(mail.record).toHaveBeenCalledExactlyOnceWith({
+      subject: "Confirme seu e-mail no Nelcota",
+      recipientDomain: "example.com",
+      provider: "resend",
+      status: "accepted",
+      reason: null,
+      attempts: 1,
+      providerMessageId: "email-id",
+    });
+  });
+
+  test("records the provider's error code when it refuses", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.fetch.mockResolvedValue(
+      Response.json({ name: "validation_error", message: "ana@example.com" }, { status: 403 }),
+    );
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow("HTTP 403");
+    expect(mail.record).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ status: "failed", reason: "validation_error", attempts: 1 }),
+    );
+    expect(JSON.stringify(mail.record.mock.calls)).not.toMatch(/ana@|private-token/);
+  });
+
+  test("records the HTTP status when the error code is unknown", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.fetch.mockResolvedValue(new Response("not json", { status: 401 }));
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow();
+    expect(mail.record).toHaveBeenCalledWith(expect.objectContaining({ reason: "HTTP 401" }));
+  });
+
+  test("records SMTP refusals by their fixed error code", async () => {
+    vi.stubEnv("SMTP_URL", "smtps://localhost:465");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.send.mockRejectedValue(
+      Object.assign(new Error("Invalid login: ana@example.com"), { code: "EAUTH" }),
+    );
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow("SMTP rejected e-mail delivery");
+    expect(mail.record).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ provider: "smtp", status: "failed", reason: "EAUTH" }),
+    );
+  });
+
+  test("records that nothing was sent without a provider", async () => {
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow("E-mail delivery is not configured");
+    expect(mail.record).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ provider: "none", status: "not_sent", reason: "no_provider" }),
+    );
+  });
+});
+
+describe("sender and SMTP failures", () => {
+  const message = { to: "ana@example.com", subject: "Teste", text: "corpo" };
+
+  test("a malformed MAIL_FROM is recorded as not sent and nothing is tried", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("MAIL_FROM", "Nelcota no-reply");
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow("MAIL_FROM is not a valid sender address");
+    expect(mail.fetch).not.toHaveBeenCalled();
+    expect(mail.record).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ provider: "resend", status: "not_sent", reason: "invalid_sender" }),
+    );
+  });
+
+  test("an SMTP refusal is logged with its code only", async () => {
+    vi.stubEnv("SMTP_URL", "smtps://localhost:465");
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    mail.send.mockRejectedValue(
+      Object.assign(new Error("Invalid login: ana@example.com"), { code: "EAUTH" }),
+    );
+    const { sendMail } = await import("@/server/mail.server");
+    await expect(sendMail(message)).rejects.toThrow();
+    expect(mail.error).toHaveBeenCalledWith(
+      { event: "mail.failed", provider: "smtp", reason: "EAUTH" },
+      "e-mail delivery failed",
+    );
+    expect(JSON.stringify(mail.error.mock.calls)).not.toContain("ana@");
   });
 });

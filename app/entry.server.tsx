@@ -44,7 +44,7 @@ export default function handleRequest(
         },
         onError(error: unknown) {
           didError = true;
-          reportServerError(error, request.headers.get("x-request-id"));
+          reportServerError(error, request);
           logger.error(
             { err: error, request_id: request.headers.get("x-request-id") },
             "failed to render page",
@@ -67,7 +67,7 @@ export default function handleRequest(
 
 export const handleError: HandleErrorFunction = (error, { request }) => {
   if (!request.signal.aborted) {
-    reportServerError(error, request.headers.get("x-request-id"));
+    reportServerError(error, request);
     logger.error({ err: error, request_id: request.headers.get("x-request-id") }, "request failed");
   }
 };

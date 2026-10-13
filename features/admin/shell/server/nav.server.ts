@@ -11,7 +11,12 @@ export type NavIcon =
   | "rooms"
   | "users"
   | "shares"
+  | "entries"
+  | "waitlist"
   | "audit"
+  | "status"
+  | "mail"
+  | "errors"
   | "settings"
   | "security"
   | "sessions";
@@ -61,6 +66,20 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
         permission: { shareSession: ["read"] },
         keywords: ["tela", "share"],
       },
+      {
+        href: "/admin/entradas",
+        label: "Entradas negadas",
+        icon: "entries",
+        permission: { room: ["read"] },
+        keywords: ["negada", "recusada", "senha", "sala cheia", "token"],
+      },
+      {
+        href: "/admin/lista-pro",
+        label: "Lista de espera do Pro",
+        icon: "waitlist",
+        permission: { participant: ["read"] },
+        keywords: ["pro", "espera", "lançamento", "e-mail"],
+      },
     ],
   },
   {
@@ -78,6 +97,27 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
   {
     label: "Sistema",
     items: [
+      {
+        href: "/admin/status",
+        label: "Status",
+        icon: "status",
+        permission: { system: ["status"] },
+        keywords: ["saúde", "banco", "livekit", "e-mail", "versão", "deploy", "erro"],
+      },
+      {
+        href: "/admin/emails",
+        label: "E-mails",
+        icon: "mail",
+        permission: { mail: ["read"] },
+        keywords: ["e-mail", "envio", "resend", "smtp", "teste", "confirmação"],
+      },
+      {
+        href: "/admin/erros",
+        label: "Erros",
+        icon: "errors",
+        permission: { audit: ["read"] },
+        keywords: ["erro", "falha", "sentry", "exceção"],
+      },
       {
         href: "/admin/pro",
         label: "Pro beta",

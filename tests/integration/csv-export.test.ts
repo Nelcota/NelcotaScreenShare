@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import * as schema from "@/server/db/schema";
 
 /**
- * The admin panel's four CSV exports: header, BOM, separator, auditing
+ * The admin panel CSV exports: header, BOM, separator, auditing
  * of the export and rejection without a session or permission.
  */
 const requestHeaders = { current: new Headers() };
@@ -21,6 +21,7 @@ const routes = {
   usuarios: await import("@/features/admin/participants/server/csv-export.server"),
   compartilhamentos: await import("@/features/admin/shares/server/csv-export.server"),
   auditoria: await import("@/features/admin/audit/server/csv-export.server"),
+  "lista-pro": await import("@/features/admin/waitlist/server/csv-export.server"),
 };
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -82,6 +83,11 @@ const EXPECTED = {
     header: "quando;acao;descricao;autor;email_autor;recurso;id_recurso;ip;request_id;mudancas",
     action: "audit.export",
     filename: /^attachment; filename="auditoria-/,
+  },
+  "lista-pro": {
+    header: "email;entrou_em",
+    action: "pro_interest.export",
+    filename: /^attachment; filename="lista-de-espera-pro-/,
   },
 } as const;
 
@@ -145,6 +151,6 @@ describe("CSV export", () => {
       ),
     );
     // The viewer sees the tables but cannot export any of them.
-    expect(forbidden).toEqual([403, 403, 403, 403]);
+    expect(forbidden.every((status) => status === 403)).toBe(true);
   });
 });

@@ -1,4 +1,15 @@
-import { Ban, LockOpen, LogOut, MailCheck, RotateCcw, ShieldX, Trash2 } from "lucide-react";
+import {
+  Ban,
+  ImageOff,
+  UserPen,
+  LockOpen,
+  LogOut,
+  MailCheck,
+  RotateCcw,
+  ShieldOff,
+  ShieldX,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +18,17 @@ import { availableActions } from "@/features/admin/participants/domain/available
 import { BLOCK_DESCRIPTION } from "@/features/admin/participants/domain/labels";
 import { useParticipantOperations, type ParticipantOperations } from "./use-participant-operations";
 
-type Dialog = "block" | "delete" | "anonymize" | null;
+type Dialog =
+  | "block"
+  | "delete"
+  | "anonymize"
+  | "disableTwoFactor"
+  | "removePhoto"
+  | "resetName"
+  | null;
+
+/** The reason goes to the person by e-mail and stays in the audit. */
+const NOTICE_REASON = { label: "Motivo (vai no e-mail)", maxLength: 300 };
 
 interface ParticipantSelection {
   kind: "ids";
@@ -66,6 +87,24 @@ function ActionButtons({
           Reenviar verificação
         </Button>
       ) : null}
+      {show.disableTwoFactor ? (
+        <Button variant="outline" onClick={() => openDialog("disableTwoFactor")}>
+          <ShieldOff aria-hidden="true" />
+          Desligar 2FA
+        </Button>
+      ) : null}
+      {show.removePhoto ? (
+        <Button variant="outline" onClick={() => openDialog("removePhoto")}>
+          <ImageOff aria-hidden="true" />
+          Remover foto
+        </Button>
+      ) : null}
+      {show.resetName ? (
+        <Button variant="outline" onClick={() => openDialog("resetName")}>
+          <UserPen aria-hidden="true" />
+          Redefinir nome
+        </Button>
+      ) : null}
       {show.restore ? (
         <Button
           variant="outline"
@@ -105,7 +144,7 @@ function ConfirmDialogs({
   setDialog: (dialog: Dialog) => void;
   operations: ParticipantOperations;
 }) {
-  const { block, remove, anonymize } = operations;
+  const { block, remove, anonymize, disableTwoFactor, removePhoto, resetName } = operations;
   return (
     <>
       <ConfirmDialog
@@ -118,6 +157,38 @@ function ConfirmDialogs({
         pending={block.isPending}
         reason={{ label: "Motivo (fica no histórico)", maxLength: 300 }}
         onConfirm={(reason) => block.execute({ selection, reason })}
+      />
+      <ConfirmDialog
+        open={dialog === "disableTwoFactor"}
+        onOpenChange={(open) => setDialog(open ? "disableTwoFactor" : null)}
+        title="Desligar o 2FA desta conta?"
+        description="A pessoa passa a entrar só com a senha e pode ativar o 2FA de novo. As sessões dela são encerradas."
+        confirmLabel="Desligar 2FA"
+        danger
+        pending={disableTwoFactor.isPending}
+        reason={{ label: "Motivo", maxLength: 300 }}
+        onConfirm={(reason) => disableTwoFactor.execute({ id, reason })}
+      />
+      <ConfirmDialog
+        open={dialog === "removePhoto"}
+        onOpenChange={(open) => setDialog(open ? "removePhoto" : null)}
+        title="Remover a foto?"
+        description="A foto sai da conta. A pessoa recebe um e-mail com o motivo e pode enviar outra."
+        confirmLabel="Remover"
+        danger
+        pending={removePhoto.isPending}
+        reason={NOTICE_REASON}
+        onConfirm={(reason) => removePhoto.execute({ id, reason })}
+      />
+      <ConfirmDialog
+        open={dialog === "resetName"}
+        onOpenChange={(open) => setDialog(open ? "resetName" : null)}
+        title="Redefinir o nome?"
+        description="O nome vira Pessoa e 4 números. A pessoa recebe um e-mail com o motivo e pode escolher outro nome depois."
+        confirmLabel="Redefinir"
+        pending={resetName.isPending}
+        reason={NOTICE_REASON}
+        onConfirm={(reason) => resetName.execute({ id, reason })}
       />
       <ConfirmDialog
         open={dialog === "delete"}
@@ -150,6 +221,8 @@ export function ParticipantActions({
   status,
   verified,
   anonymized,
+  twoFactor,
+  photo,
   sessions,
   can,
 }: {
@@ -157,14 +230,24 @@ export function ParticipantActions({
   status: ParticipantStatus;
   verified: boolean;
   anonymized: boolean;
+  twoFactor: boolean;
+  photo: boolean;
   sessions: number;
-  can: { update: boolean; delete: boolean; anonymize: boolean };
+  can: { update: boolean; delete: boolean; anonymize: boolean; disableTwoFactor: boolean };
 }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const selection: ParticipantSelection = { kind: "ids", ids: [id] };
   const operations = useParticipantOperations(() => setDialog(null));
 
-  const show = availableActions({ status, verified, anonymized, sessions, can });
+  const show = availableActions({
+    status,
+    verified,
+    anonymized,
+    twoFactor,
+    photo,
+    sessions,
+    can,
+  });
   return (
     <div className="flex flex-wrap gap-2">
       <ActionButtons

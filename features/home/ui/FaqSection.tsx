@@ -36,12 +36,12 @@ function faqItems(maxParticipants: number): { question: string; answer: string }
     },
     {
       question: "As chamadas ficam gravadas?",
-      answer: "Não. Áudio, vídeo, telas e chat passam ao vivo e não são guardados.",
+      answer: "Não. Áudio, vídeo, telas e o chat da sala passam ao vivo e não são guardados.",
     },
     {
       question: "O que vocês guardam sobre mim?",
       answer:
-        "Só o necessário para a conta e para o histórico de acesso às salas. Na página da conta você baixa esses dados ou exclui a conta, como prevê a LGPD.",
+        "O necessário para a conta, o histórico de acesso às salas e as mensagens que você envia aos amigos. Na página da conta você baixa esses dados ou exclui a conta, como prevê a LGPD.",
     },
   ];
 }

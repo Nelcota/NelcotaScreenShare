@@ -72,7 +72,11 @@ export default function AdminHomePage() {
           value={summary.newParticipants}
           label="Contas novas nos últimos 7 dias"
         />
-        <Stat value={summary.proInterests} label="Pessoas na lista de espera do Pro" />
+        <Stat
+          href="/admin/lista-pro"
+          value={summary.proInterests}
+          label="Pessoas na lista de espera do Pro"
+        />
       </ul>
     </>
   );

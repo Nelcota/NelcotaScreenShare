@@ -1,6 +1,8 @@
 import { validateEnvOnBoot, getEnv } from "@/server/env.server";
 import { closeDb, getDb } from "@/server/db/index.server";
 import { logger } from "@/server/logger.server";
+import { checkMailSender } from "@/server/mail.server";
+import { recordAppError } from "@/server/app-errors.server";
 import { scheduleMaintenance } from "@/features/runtime/server/maintenance.server";
 import type * as Sentry from "@sentry/react-router";
 import { scheduleRoomControls } from "@/features/room/server/control-maintenance.server";
@@ -17,6 +19,7 @@ export function initializeRuntime(): Promise<void> {
   return (runtime.nelcotaRuntime ??= (async () => {
     const started = performance.now();
     validateEnvOnBoot();
+    checkMailSender();
     runtime.nelcotaStopMaintenance = scheduleMaintenance(getDb, logger);
     if (getEnv().ROOM_HOST_CONTROLS_ENABLED)
       runtime.nelcotaStopRoomControls = scheduleRoomControls(getDb);
@@ -41,7 +44,10 @@ export function initializeRuntime(): Promise<void> {
   })());
 }
 
-export function reportServerError(error: unknown, requestId?: string | null) {
+/** Sends the error to Sentry (when on) and keeps a safe summary for the admin panel. */
+export function reportServerError(error: unknown, request: Request) {
+  const requestId = request.headers.get("x-request-id");
+  void recordAppError(error, request);
   runtime.nelcotaSentry?.captureException(error, { tags: { request_id: requestId ?? undefined } });
 }
 

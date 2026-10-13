@@ -166,6 +166,26 @@ test("transport failure preserves policy/audit and retry applies current state",
   expect(applied?.status).toBe("applied");
 });
 
+test("one room failing in maintenance does not hold up the others", async () => {
+  const broken = await controlledRoom();
+  const room = await controlledRoom();
+  vi.spyOn(controlGateway, "sync").mockRejectedValueOnce(new Error("unavailable"));
+  const failed = await room.command({ kind: "lock", locked: true });
+  expect(failed.status).toBe("failed");
+  vi.spyOn(controlGateway, "participants").mockImplementation(async (media) => {
+    if (media === broken.mediaRoomName) throw new Error("LiveKit down for this room");
+    return online.get(media) ?? [];
+  });
+  await expect(
+    maintainRoomControls(getDb(), new Date(Date.now() + 6_000)),
+  ).resolves.toBeUndefined();
+  const [applied] = await getDb()
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, failed.commandId));
+  expect(applied?.status).toBe("applied");
+});
+
 test("host absence respects grace and elects oldest admitted active account", async () => {
   const room = await controlledRoom();
   const db = getDb();

@@ -20,6 +20,7 @@ import { useEnlargedCamera } from "@/features/room/hooks/use-enlarged-camera";
 import { useMicrophoneRecovery } from "@/features/room/hooks/use-microphone-recovery";
 import { useStageFocus } from "@/features/room/hooks/use-stage-focus";
 import { useScreenWatch } from "@/features/room/hooks/use-screen-watch";
+import { useBroadcastScreenPreview } from "@/features/room/hooks/use-screen-preview";
 import { useChatState } from "@/features/room/hooks/use-chat-state";
 import { useHadCompany } from "@/features/room/hooks/use-had-company";
 import { useConnectedOnce } from "@/features/room/hooks/use-connected-once";
@@ -29,7 +30,6 @@ import { ChatPanel } from "@/features/room/ui/dock/Chat";
 import { ControlDock } from "@/features/room/ui/dock/ControlDock";
 import { CameraStage } from "@/features/room/ui/stage/CameraStage";
 import { ScreenStage } from "@/features/room/ui/stage/ScreenStage";
-import { ShareInvites } from "@/features/room/ui/stage/ShareInvites";
 import { cn } from "@/lib/utils";
 import { AloneWelcome } from "./AloneWelcome";
 import { JoinRequests } from "./JoinRequests";
@@ -125,12 +125,15 @@ function PeopleArea({
   participants,
   roomCode,
   sharingIds,
+  invites,
   hasStage,
   onEnlarge,
 }: {
   participants: Participant[];
   roomCode: string;
   sharingIds: Set<string>;
+  /** Screens not watched here yet, by their sharer. */
+  invites: ReadonlyMap<string, string>;
   hasStage: boolean;
   onEnlarge: (identity: string) => void;
 }) {
@@ -155,6 +158,7 @@ function PeopleArea({
           participant={participant}
           roomCode={roomCode}
           isSharing={sharingIds.has(participant.identity)}
+          screenInvite={invites.get(participant.identity)}
           compact={hasStage}
           onEnlarge={() => onEnlarge(participant.identity)}
         />
@@ -165,7 +169,7 @@ function PeopleArea({
 
 /**
  * An enlarged camera takes the stage; otherwise the focused screen. Without either, the
- * screens nobody here watches yet wait for "Assistir".
+ * screens nobody here watches yet wait for "Assistir" on their sharer's tile.
  */
 function Stage({
   enlargedCamera,
@@ -179,7 +183,7 @@ function Stage({
   invites: TrackReference[];
 }) {
   if (enlargedCamera) return <CameraStage camera={enlargedCamera} onClose={onCloseCamera} />;
-  if (!stage.focused) return <ShareInvites invites={invites} />;
+  if (!stage.focused) return null;
   return (
     <ScreenStage
       shares={stage.shares}
@@ -222,6 +226,7 @@ export function RoomLayout({
   useCallCaptureHandle();
   useMicrophoneRecovery();
   useRoomNotices();
+  useBroadcastScreenPreview(published.find((trackReference) => trackReference.participant.isLocal));
 
   const stage = useStageFocus(screenShares);
   const focused = stage.focused;
@@ -312,6 +317,11 @@ export function RoomLayout({
             participants={participants}
             roomCode={code}
             sharingIds={sharingIds}
+            invites={
+              new Map(
+                invites.map((invite) => [invite.participant.identity, invite.publication.trackSid]),
+              )
+            }
             hasStage={hasStage}
             onEnlarge={enlarged.enlarge}
           />

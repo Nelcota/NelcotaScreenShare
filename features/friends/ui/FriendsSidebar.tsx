@@ -15,6 +15,19 @@ import { cn } from "@/lib/utils";
 
 const ASIDE = "glass hidden shrink-0 flex-col overflow-hidden rounded-3xl sm:flex";
 
+/** The rail's width (w-16). */
+const RAIL_WIDTH = 64;
+
+const GLIDE =
+  "motion-safe:data-gliding:transition-[width] motion-safe:data-gliding:duration-(--motion-layout) motion-safe:data-gliding:ease-(--ease-out-smooth)";
+
+/** A little over --motion-layout (450 ms). */
+const GLIDE_MAX_MS = 600;
+
+/** The new content fades in while the width glides. */
+const CONTENT =
+  "animate-in fade-in-0 duration-(--motion-surface) ease-(--ease-out-smooth) motion-reduce:animate-none";
+
 /**
  * The friends column on the left of every signed-in page: open with a width you drag, or
  * collapsed into a rail. Both stay in this browser. Phones use the bottom tabs instead.
@@ -41,51 +54,74 @@ export function FriendsSidebar({
     saveColumnLayout(next);
   }
 
-  const toggle = () => commit({ ...layout, collapsed: !layout.collapsed });
+  // The width only glides when the column opens or closes; dragging the edge stays immediate.
+  const [gliding, setGliding] = useState(false);
+  const toggle = () => {
+    setGliding(true);
+    // No transitionend when nothing moves (reduced motion, a hidden column): stop anyway.
+    window.setTimeout(() => setGliding(false), GLIDE_MAX_MS);
+    commit({ ...layout, collapsed: !layout.collapsed });
+  };
   useShortcut(COLUMN_SHORTCUT, toggle);
 
-  if (layout.collapsed) {
-    return (
-      <>
-        <aside aria-label="Amigos" className={cn(ASIDE, "w-16")}>
-          <FriendsRail
-            friends={data.friends}
-            unreadByFriend={data.unreadByFriend}
-            requests={data.requests}
-            code={data.code}
-            linkPath={data.linkPath}
-            account={data.account}
-            ownStatus={data.ownStatus}
-            onExpand={toggle}
-          />
-        </aside>
-        <span aria-hidden="true" className="hidden w-3 shrink-0 sm:block" />
-      </>
-    );
-  }
+  const content = layout.collapsed ? (
+    <FriendsRail
+      friends={data.friends}
+      unreadByFriend={data.unreadByFriend}
+      requests={data.requests}
+      code={data.code}
+      linkPath={data.linkPath}
+      account={data.account}
+      ownStatus={data.ownStatus}
+      onExpand={toggle}
+    />
+  ) : (
+    <>
+      <FriendsColumn
+        tabs={tabs}
+        activeTab={activeTab}
+        friends={data.friends}
+        extras={{ ...extras, unreadByFriend: data.unreadByFriend }}
+        requests={data.requests}
+        code={data.code}
+        linkPath={data.linkPath}
+        onCollapse={toggle}
+      >
+        {tabContent}
+      </FriendsColumn>
+      <StatusStrip account={data.account} status={data.ownStatus} />
+    </>
+  );
 
   return (
     <>
-      <aside aria-label="Amigos" className={ASIDE} style={{ width: layout.width }}>
-        <FriendsColumn
-          tabs={tabs}
-          activeTab={activeTab}
-          friends={data.friends}
-          extras={{ ...extras, unreadByFriend: data.unreadByFriend }}
-          requests={data.requests}
-          code={data.code}
-          linkPath={data.linkPath}
-          onCollapse={toggle}
+      <aside
+        aria-label="Amigos"
+        data-gliding={gliding || undefined}
+        onTransitionEnd={(event) => {
+          if (event.target === event.currentTarget) setGliding(false);
+        }}
+        className={cn(ASIDE, GLIDE)}
+        style={{ width: layout.collapsed ? RAIL_WIDTH : layout.width }}
+      >
+        {/* Laid out at its final width, so the column is revealed instead of squeezed. */}
+        <div
+          key={layout.collapsed ? "rail" : "column"}
+          className={cn("flex min-h-0 flex-1 flex-col", gliding && CONTENT)}
+          style={{ minWidth: layout.collapsed ? RAIL_WIDTH : layout.width }}
         >
-          {tabContent}
-        </FriendsColumn>
-        <StatusStrip account={data.account} status={data.ownStatus} />
+          {content}
+        </div>
       </aside>
-      <ColumnResizeHandle
-        width={layout.width}
-        onChange={(width) => setLayout({ ...layout, width })}
-        onCommit={(width) => commit({ ...layout, width })}
-      />
+      {layout.collapsed ? (
+        <span aria-hidden="true" className="hidden w-3 shrink-0 sm:block" />
+      ) : (
+        <ColumnResizeHandle
+          width={layout.width}
+          onChange={(width) => setLayout({ ...layout, width })}
+          onCommit={(width) => commit({ ...layout, width })}
+        />
+      )}
     </>
   );
 }

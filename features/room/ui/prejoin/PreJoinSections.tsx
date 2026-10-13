@@ -7,6 +7,7 @@ import type { MicSetupState } from "@/features/room/hooks/use-mic-setup";
 import { ShareSupportNote } from "@/features/room/ui/ShareSupportNote";
 import { InviteLinkButton } from "./InviteLinkButton";
 import { PresenceLine } from "./PresenceLine";
+import { startPath } from "@/features/room/domain/start-path";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 
 /** Mascot, title, room code, presence and the invite badge. */
@@ -70,11 +71,13 @@ export function JoinActions({
   submitting,
   joinDisabled,
   onPrepareJoin,
+  signedIn,
 }: {
   mic: MicSetupState;
   submitting: boolean;
   joinDisabled: boolean;
   onPrepareJoin?: () => void;
+  signedIn: boolean;
 }) {
   return (
     <div data-anim="row" className="flex w-full flex-col items-center gap-2.5">
@@ -92,7 +95,7 @@ export function JoinActions({
       </Button>
       <Link
         viewTransition
-        to="/"
+        to={startPath(signedIn)}
         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />

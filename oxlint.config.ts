@@ -104,7 +104,7 @@ export default defineConfig({
       },
     },
     // Feature UI and hooks: data via props/loaders, mutations via actions; from another
-    // feature's UI, only what is public (mascot and screen share notice).
+    // feature's UI, only what is public (mascot, screen share notice and report dialog).
     ...FEATURES.map((feature): OxlintOverride => ({
       files: [
         `features/${feature}/ui/**`,
@@ -140,10 +140,11 @@ export default defineConfig({
                   `!@/features/${feature}/*/ui/**`,
                   "!@/features/mascot/ui/*",
                   "!@/features/room/ui/ShareSupportNote",
+                  "!@/features/reports/ui/ReportDialog",
                 ],
                 allowTypeImports: true,
                 message:
-                  "Another feature's UI is not public (only the mascot and the screen share notice).",
+                  "Another feature's UI is not public (only the mascot, the screen share notice and the report dialog).",
               },
             ],
           },

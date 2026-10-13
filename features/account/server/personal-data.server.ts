@@ -1,5 +1,9 @@
 import { visibleFriendshipTo } from "@/features/friends/server/friend-list.server";
+import { messageData } from "@/features/messages/server/message-privacy.server";
 import type { DbExecutor } from "@/server/db/index.server";
+import { FRIENDSHIP_STATUS_IN_EXPORT } from "@/features/friends/domain/friendship";
+import { OWN_STATUS_LABEL } from "@/features/friends/domain/presence-status";
+import { reportsFiledBy } from "@/features/reports/server/personal-data.server";
 import { profileChangesOf } from "@/features/admin/participants/server/moderation-export.server";
 import { and, count, desc, eq, gt, or, sql } from "drizzle-orm";
 import { workspacePersonalData } from "./workspace-export.server";
@@ -24,19 +28,21 @@ import {
 /** The chosen status, the friend code and the link's version, if any. */
 async function friendSettings(db: DbExecutor, userId: string) {
   const [code] = await db
-    .select({ codigo: friendCodes.code, criadoEm: friendCodes.createdAt })
+    .select({ codigo: friendCodes.code, criado_em: friendCodes.createdAt })
     .from(friendCodes)
     .where(eq(friendCodes.userId, userId));
   const [link] = await db
-    .select({ versao: friendLinks.version, criadoEm: friendLinks.createdAt })
+    .select({ versao: friendLinks.version, criado_em: friendLinks.createdAt })
     .from(friendLinks)
     .where(eq(friendLinks.userId, userId));
   const [presence] = await db
-    .select({ status: userPresence.status, atualizadoEm: userPresence.updatedAt })
+    .select({ status: userPresence.status, atualizado_em: userPresence.updatedAt })
     .from(userPresence)
     .where(eq(userPresence.userId, userId));
   return {
-    status_escolhido: presence ?? null,
+    status_escolhido: presence
+      ? { status: OWN_STATUS_LABEL[presence.status], atualizado_em: presence.atualizado_em }
+      : null,
     codigo_de_amigo: code ?? null,
     link_de_amigo: link ?? null,
   };
@@ -44,7 +50,7 @@ async function friendSettings(db: DbExecutor, userId: string) {
 
 /**
  * "Baixar meus dados" (download my data; LGPD, art. 18): everything we store linked to the account.
- * The Portuguese keys are the format of the file the person receives.
+ * The Portuguese snake_case keys and values are the format of the file the person receives.
  */
 export async function personalData(db: DbExecutor, userId: string) {
   const [profile] = await db
@@ -53,18 +59,18 @@ export async function personalData(db: DbExecutor, userId: string) {
       nome: users.name,
       foto: users.image,
       email: users.email,
-      emailConfirmado: users.emailVerified,
-      duasEtapasAtiva: users.twoFactorEnabled,
-      criadaEm: users.createdAt,
-      ultimoAcesso: users.lastSeenAt,
+      email_confirmado: users.emailVerified,
+      duas_etapas_ativa: users.twoFactorEnabled,
+      criada_em: users.createdAt,
+      ultimo_acesso: users.lastSeenAt,
     })
     .from(users)
     .where(eq(users.id, userId));
   const sessions = await db
     .select({
-      criadaEm: userSessions.createdAt,
-      ultimoUso: userSessions.updatedAt,
-      expiraEm: userSessions.expiresAt,
+      criada_em: userSessions.createdAt,
+      ultimo_uso: userSessions.updatedAt,
+      expira_em: userSessions.expiresAt,
       ip: userSessions.ipAddress,
       navegador: userSessions.userAgent,
     })
@@ -102,9 +108,9 @@ export async function personalData(db: DbExecutor, userId: string) {
     .select({
       pessoa: users.name,
       situacao: friendships.status,
-      pedidoFeitoPorVoce: sql<boolean>`${friendships.requestedBy} = ${userId}`,
+      pedido_feito_por_voce: sql<boolean>`${friendships.requestedBy} = ${userId}`,
       desde: friendships.createdAt,
-      aceitaEm: friendships.acceptedAt,
+      aceita_em: friendships.acceptedAt,
     })
     .from(friendships)
     .innerJoin(
@@ -174,13 +180,18 @@ export async function personalData(db: DbExecutor, userId: string) {
       ...attempt,
       resultado: TOKEN_RESULT_IN_EXPORT[attempt.resultado],
     })),
-    amizades: friendRows,
+    amizades: friendRows.map((row) => ({
+      ...row,
+      situacao: FRIENDSHIP_STATUS_IN_EXPORT[row.situacao],
+    })),
     pessoas_bloqueadas: blocked,
     ...(await friendSettings(db, userId)),
     salas_criadas: roomsCreated,
     papeis_em_salas: roles.map((role) => ({ ...role, papel: ROOM_ROLE_IN_EXPORT[role.papel] })),
     // Kept for a week after each ban.
     banimentos_de_chamadas: bans,
+    ...(await messageData(db, userId)),
+    denuncias_feitas: await reportsFiledBy(db, userId),
     alteracoes_feitas_pela_equipe: await profileChangesOf(db, userId),
     salas_permanentes: definitions,
     admissoes_em_chamadas: admissions,

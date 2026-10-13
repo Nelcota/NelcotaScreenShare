@@ -1,7 +1,9 @@
 import {
   Activity,
+  ChartColumn,
   Bug,
   Gauge,
+  Flag,
   History,
   KeyRound,
   Mail,
@@ -20,11 +22,13 @@ import type { NavIcon } from "@/features/admin/shell/server/nav.server";
 export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   home: Gauge,
   live: Radio,
+  usage: ChartColumn,
   rooms: Video,
   users: Users,
   shares: MonitorUp,
   entries: ShieldX,
   waitlist: Sparkles,
+  reports: Flag,
   audit: History,
   status: Activity,
   mail: Mail,

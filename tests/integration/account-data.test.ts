@@ -68,7 +68,7 @@ async function withHistory(userId: string) {
 }
 
 const exportSchema = z.object({
-  conta: z.object({ id: z.string() }),
+  conta: z.object({ id: z.string(), email_confirmado: z.boolean(), criada_em: z.string() }),
   participacoes_em_salas: z.array(
     z.object({
       sala: z.string(),

@@ -1,3 +1,11 @@
+/** KLIPY's API and media hosts (docs.klipy.com/network-requirements). */
+const KLIPY_API = "https://api.klipy.com";
+const KLIPY_MEDIA = [
+  "https://static.klipy.com",
+  "https://static1.klipy.com",
+  "https://static2.klipy.com",
+];
+
 /**
  * The app's Content-Security-Policy. The LiveKit origin is only known at runtime
  * (LIVEKIT_URL), so the header is built in the server middleware.
@@ -5,7 +13,7 @@
  * Scripts only with the request nonce + 'strict-dynamic' (whatever they
  * load inherits the trust): a script injected via XSS does not run. Styles
  * keep 'unsafe-inline' because a nonce does not cover `style` attributes (React,
- * Radix and GSAP use them). Connections only to the app itself and LiveKit.
+ * Radix and GSAP use them). Connections only to the app itself, LiveKit and, with GIFs on, KLIPY.
  */
 export function buildCsp({
   livekitUrl,
@@ -13,6 +21,7 @@ export function buildCsp({
   nonce,
   sentryDsn,
   devWebSocketOrigin,
+  gifs = false,
 }: {
   livekitUrl: string;
   dev: boolean;
@@ -20,6 +29,8 @@ export function buildCsp({
   /** With Sentry enabled, the browser sends errors to the DSN's origin. */
   sentryDsn?: string | undefined;
   devWebSocketOrigin?: string;
+  /** With KLIPY on, the browser searches GIFs and loads them straight from KLIPY. */
+  gifs?: boolean;
 }): string {
   const livekit = new URL(livekitUrl);
   const secure = livekit.protocol === "wss:";
@@ -37,14 +48,15 @@ export function buildCsp({
       ...(dev ? ["'unsafe-eval'"] : []),
     ],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "blob:", "data:"],
+    "img-src": ["'self'", "blob:", "data:", ...(gifs ? KLIPY_MEDIA : [])],
     "font-src": ["'self'"],
-    "media-src": ["'self'", "blob:", "mediastream:"],
+    "media-src": ["'self'", "blob:", "mediastream:", ...(gifs ? KLIPY_MEDIA : [])],
     "connect-src": [
       "'self'",
       livekitWs,
       livekitHttp,
       ...(sentryDsn ? [new URL(sentryDsn).origin] : []),
+      ...(gifs ? [KLIPY_API] : []),
       ...(dev && devWebSocketOrigin ? [devWebSocketOrigin] : []),
     ],
     "worker-src": ["'self'", "blob:"],

@@ -93,17 +93,18 @@ test("back, forward and reload preserve each hidden room without adding history 
     await page.getByLabel("Link ou código da sala", { exact: true }).first().press("Enter");
     await expectHiddenRoom(page, first);
     expect(await historyIndex(page)).toBe(startIndex + 1);
+    // Signed in, the way back leads to the app's start.
     await page.getByRole("link", { name: "Voltar ao início", exact: true }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.getByLabel("Link ou código da sala", { exact: true }).first().fill(second);
     await page.getByLabel("Link ou código da sala", { exact: true }).first().press("Enter");
     await expectHiddenRoom(page, second);
     await page.getByRole("link", { name: "Voltar ao início", exact: true }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.goBack();
     await expectHiddenRoom(page, second);
     await page.goBack();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.goBack();
     await expectHiddenRoom(page, first);
     await page.reload();
@@ -114,7 +115,7 @@ test("back, forward and reload preserve each hidden room without adding history 
     await page.goForward();
     await expectHiddenRoom(page, first);
     await page.goForward();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.goForward();
     await expectHiddenRoom(page, second);
   } finally {

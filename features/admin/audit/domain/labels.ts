@@ -46,6 +46,8 @@ const ACTION_LABELS: Record<string, string> = {
   "room.participant_kick": "Removeu pessoa da chamada",
   "room.participant_ban": "Baniu pessoa da chamada",
   "room.participant_unban": "Deixou pessoa voltar à chamada",
+  "report.resolve": "Resolveu denúncia",
+  "message.delete": "Apagou mensagem",
   "friend.request": "Pediu amizade",
   "friend.accept": "Aceitou amizade",
   "friend.decline": "Recusou amizade",
@@ -73,6 +75,8 @@ const RESOURCE_LABELS: Record<string, string> = {
   share_session: "Compartilhamento",
   mail: "E-mail",
   pro_interest: "Lista de espera do Pro",
+  report: "Denúncia",
+  message: "Mensagem",
 };
 
 export function actionLabel(action: string): string {

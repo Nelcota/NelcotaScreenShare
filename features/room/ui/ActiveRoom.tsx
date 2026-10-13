@@ -1,6 +1,6 @@
 import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
 import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-address";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { RoomSession } from "./RoomSession";
 
@@ -32,7 +32,14 @@ function HiddenRoomAddress({ entry, active }: { entry: RoomEntry; active: boolea
  * until the person comes back. Outside a call, leaving the page discards it.
  * `room`: the room page's data when it is the current page.
  */
-export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
+export function ActiveRoom({
+  room,
+  renderColumn,
+}: {
+  room: RoomEntry | undefined;
+  /** The app's friends column (signed in), drawn by the app: the room has no friends UI. */
+  renderColumn?: (inCall: boolean) => ReactNode;
+}) {
   const [call, setCall] = useState<RoomEntry>();
   const entry = room ?? call;
   if (entry === undefined) return null;
@@ -55,6 +62,7 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
         presence={entry.presence}
         isAdmin={entry.isAdmin}
         minimized={room === undefined}
+        renderColumn={room === undefined ? undefined : renderColumn}
         onCallChange={(inCall) => setCall(inCall ? entry : undefined)}
       />
     </StreamerModeProvider>

@@ -66,6 +66,8 @@ export function startLiveConnection(refresh: () => void): () => void {
     const next = new EventSource(LIVE_URL);
     next.addEventListener(NUDGE_EVENT, (event) => {
       announce(event.data, null);
+      // A ring that ends ("Bia recusou") or starts shows without the batch delay.
+      if (event.data === "ring") return batcher.now();
       batcher.nudge();
     });
     next.addEventListener(DATA_EVENT, (event) => {

@@ -18,5 +18,11 @@ export function createNudgeBatcher(run: () => void, delayMs: number) {
     timer = undefined;
   }
 
-  return { nudge, cancel };
+  /** Reloads right away, taking any waiting reload with it: a ring must not wait. */
+  function now() {
+    cancel();
+    run();
+  }
+
+  return { nudge, now, cancel };
 }

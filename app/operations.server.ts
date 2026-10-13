@@ -35,6 +35,15 @@ import { searchPanelAction } from "@/features/admin/search/actions.server";
 import { saveMascotSettings } from "@/features/admin/settings/actions.server";
 import { acceptInvitation } from "@/features/auth/actions.server";
 import {
+  sendFriendRequest,
+  answerFriendRequest,
+  cancelFriendRequest,
+  removeFriend,
+  blockUser,
+  unblockUser,
+  friendRelation,
+} from "@/features/friends/actions.server";
+import {
   answerJoin,
   createRoomAction,
   hostCommandAction,
@@ -42,6 +51,8 @@ import {
   roomAccess,
   setRoomAccess,
 } from "@/features/room/actions.server";
+import { addFriend, newFriendCode } from "@/features/friends/code-actions.server";
+import { setPresenceStatus } from "@/features/friends/status-actions.server";
 
 /**
  * Everything the browser can call through `/api/operations/:id`. The id follows
@@ -80,13 +91,24 @@ export const operations: OperationHandlers = {
   "admin-settings-saveMascotSettings": saveMascotSettings,
   "auth-acceptInvitation": acceptInvitation,
   "room-createRoomAction": createRoomAction,
+  "friends-sendFriendRequest": sendFriendRequest,
+  "friends-answerFriendRequest": answerFriendRequest,
+  "friends-cancelFriendRequest": cancelFriendRequest,
+  "friends-removeFriend": removeFriend,
+  "friends-blockUser": blockUser,
+  "friends-unblockUser": unblockUser,
+  "friends-friendRelation": friendRelation,
   "room-roomAccess": roomAccess,
   "room-setRoomAccess": setRoomAccess,
   "room-joinRequests": joinRequests,
   "room-answerJoin": answerJoin,
+  "friends-addFriend": addFriend,
+  "friends-newFriendCode": newFriendCode,
+  "friends-setPresenceStatus": setPresenceStatus,
 };
 export const readOperations = new Set([
   "admin-search-searchPanelAction",
+  "friends-friendRelation",
   "room-roomAccess",
   "room-joinRequests",
 ]);

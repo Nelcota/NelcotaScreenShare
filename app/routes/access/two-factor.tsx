@@ -5,13 +5,13 @@ import { secondFactorFromForm } from "@/features/auth/server/native-auth-actions
 import { useLoaderData } from "react-router";
 
 import { TwoFactorCodeForm } from "@/features/auth/ui/TwoFactorCodeForm";
-import { safeReturnPath } from "@/features/auth/domain/return-path";
+import { APP_START, safeReturnPath } from "@/features/auth/domain/return-path";
 
 export const meta = () => [{ title: "Verificação em duas etapas · Nelcota" }];
 
 export const loader = routeLoader(async ({ searchParams }) => {
   const { voltar } = searchParams;
-  const returnTo = safeReturnPath(voltar);
+  const returnTo = safeReturnPath(voltar, APP_START);
 
   return { returnTo };
 });
@@ -21,7 +21,7 @@ export const action = routeAction(({ request, searchParams }) =>
   secondFactorFromForm(
     request,
     { handle: handleParticipantAuth, basePath: USER_AUTH_BASE_PATH },
-    { done: safeReturnPath(searchParams.voltar) },
+    { done: safeReturnPath(searchParams.voltar, APP_START) },
   ),
 );
 

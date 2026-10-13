@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import type { SocialCounts } from "@/features/admin/participants/server/social-counts.server";
 import { Facts, Section } from "@/components/Section";
 import { LEAVE_REASON_LABELS } from "@/features/admin/rooms/domain/labels";
 import type { getParticipantDetail } from "@/features/admin/participants/server/queries.server";
@@ -8,7 +9,13 @@ import { describeUserAgent } from "@/lib/user-agent";
 type ParticipantDetail = NonNullable<Awaited<ReturnType<typeof getParticipantDetail>>>;
 
 /** Account data: sign-up, access, 2FA, blocking and anonymization. */
-export function ParticipantAccount({ account }: { account: ParticipantDetail["account"] }) {
+export function ParticipantAccount({
+  account,
+  social,
+}: {
+  account: ParticipantDetail["account"];
+  social: SocialCounts;
+}) {
   return (
     <Section title="Conta">
       <Facts
@@ -18,6 +25,11 @@ export function ParticipantAccount({ account }: { account: ParticipantDetail["ac
           ["E-mail confirmado", account.emailVerified ? "Sim" : "Não"],
           ["Verificação em 2 etapas", account.twoFactorEnabled ? "Ativa" : "Desligada"],
           ["Participações", formatNumber(account.participations)],
+          ["Amigos", formatNumber(social.friends)],
+          [
+            "Bloqueios",
+            `Fez ${formatNumber(social.blocksMade)} · Recebeu ${formatNumber(social.blocksReceived)}`,
+          ],
           ...(account.blockedAt
             ? ([
                 ["Bloqueada em", formatDateTime(account.blockedAt)],

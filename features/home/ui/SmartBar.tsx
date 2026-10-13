@@ -39,6 +39,8 @@ interface SmartBarProps {
   mascot: ReactNode;
   /** Whether "/" focuses this bar; only one bar on the page should answer it. */
   focusShortcut?: boolean;
+  /** Shorter bar and button, for the start of the app. */
+  compact?: boolean;
 }
 
 /** Key drawn like a real key (thicker bottom border). */
@@ -157,6 +159,7 @@ export function SmartBar({
   onCreateRoom,
   mascot,
   focusShortcut = true,
+  compact = false,
 }: SmartBarProps) {
   const hydrated = useSyncExternalStore(
     subscribeNothing,
@@ -228,7 +231,8 @@ export function SmartBar({
         <div className="relative z-20 flex justify-center">{mascot}</div>
         <div
           className={cn(
-            "relative z-10 flex h-16 items-center gap-2 rounded-full border border-line bg-surface pr-2 pl-5 shadow-[0_12px_32px_-20px_rgb(0_0_0/0.45)] transition-colors focus-within:border-brand/60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+            "relative z-10 flex items-center gap-2 rounded-full border border-line bg-surface pr-2 pl-5 shadow-[0_12px_32px_-20px_rgb(0_0_0/0.45)] transition-colors focus-within:border-brand/60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+            compact ? "h-13" : "h-16",
             hint.tone === "error" && "border-danger/60 focus-within:border-danger/70",
           )}
         >
@@ -249,12 +253,18 @@ export function SmartBar({
             enterKeyHint="go"
             aria-describedby={hintId}
             aria-invalid={hint.tone === "error" || undefined}
-            className="h-full min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-subtle sm:text-lg"
+            className={cn(
+              "h-full min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-subtle",
+              !compact && "sm:text-lg",
+            )}
           />
           <button
             type="submit"
             disabled={disabled}
-            className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-brand px-5 text-base font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 motion-reduce:active:scale-100"
+            className={cn(
+              "disabled:bg-disabled disabled:text-disabled-ink inline-flex shrink-0 items-center gap-2 rounded-full bg-brand font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] motion-reduce:active:scale-100",
+              compact ? "h-10 px-4 text-sm" : "h-12 px-5 text-base",
+            )}
           >
             <SubmitLabel pending={pending} creating={creating} />
           </button>

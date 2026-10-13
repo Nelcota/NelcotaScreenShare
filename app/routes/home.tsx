@@ -23,6 +23,7 @@ const NOTICES: Record<string, string> = {
   "conta-excluida": "Sua conta foi excluída. Obrigado por usar o Nelcota.",
 };
 
+/** Open to everyone: signed-in people reach the app from the bar's "Abrir". */
 export const loader = routeLoader(async ({ searchParams }) => {
   const { erro, aviso, criar } = searchParams;
   const current = await getUserSession();

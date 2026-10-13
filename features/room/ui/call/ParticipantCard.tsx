@@ -8,6 +8,7 @@ import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { timeInCallLabel } from "@/features/room/domain/time-in-call";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { CardFriendButton } from "./CardFriendButton";
 import { ListeningControls } from "./CardListening";
 import { CardModeration } from "./CardModeration";
 import { CardRoles } from "./CardRoles";
@@ -133,6 +134,9 @@ function CardBody({
         ) : null}
       </div>
       <StateChips participant={participant} isSharing={isSharing} />
+      {participant.isLocal || isGuestIdentity(participant.identity) ? null : (
+        <CardFriendButton userId={participant.identity} />
+      )}
       {participant.isLocal ? null : <ListeningControls participant={participant} />}
       <CardRoles participant={participant} roomCode={roomCode} />
       <CardModeration participant={participant} roomCode={roomCode} onRemoved={onClose} />

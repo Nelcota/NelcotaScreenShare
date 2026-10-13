@@ -17,10 +17,8 @@ import {
   SettingsRow,
   SettingsSection,
 } from "@/features/account/ui/settings/Settings";
-import { UserSignOutButton } from "@/features/account/ui/UserSignOutButton";
-import { AppHeader } from "@/components/shell/AppHeader";
+import { PanelClose } from "@/features/friends/ui/PanelClose";
 import { BackLink } from "@/components/shell/BackLink";
-import { SiteFooter } from "@/components/shell/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { SessionList } from "@/features/security/ui/SessionList";
 import { TwoFactorSettings } from "@/features/security/ui/TwoFactorSettings";
@@ -156,7 +154,7 @@ export const loader = routeLoader(async ({ searchParams }) => {
 });
 
 /**
- * Account home, in a single column: who you are (card with the photo), what is
+ * Account home, in the middle of the app, in a single column: who you are (card with the photo), what is
  * left to secure the account (checklist with the action alongside) and the settings
  * in anchored sections (/conta#seguranca). Long forms open inline.
  */
@@ -164,20 +162,14 @@ export default function AccountPage() {
   const { currentId, back, sessions, notice, user, requireEmailVerification, ownedTeamCount } =
     useLoaderData<typeof loader>();
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas">
-      <AppHeader
-        account={{ name: user.name, image: user.image }}
-        accountCurrent
-        actions={<UserSignOutButton />}
-      />
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8 sm:py-12">
+    <div className="relative">
+      <PanelClose className="absolute top-3 right-3" />
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:py-12">
         {back ? (
           <BackLink to={back} className="self-start">
             Voltar para a sala
           </BackLink>
-        ) : (
-          <BackLink className="self-start" />
-        )}
+        ) : null}
         {notice ? (
           <output className="flex items-center gap-2.5 rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm">
             <CircleCheck className="size-4 shrink-0 text-brand-soft" aria-hidden="true" />
@@ -255,8 +247,7 @@ export default function AccountPage() {
             </ExpandableRow>
           </SettingsSection>
         </div>
-      </main>
-      <SiteFooter />
+      </div>
     </div>
   );
 }

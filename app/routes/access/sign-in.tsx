@@ -8,7 +8,7 @@ import { useLoaderData } from "react-router";
 import { redirect } from "@/server/http.server";
 import { SignInForm } from "@/features/auth/ui/SignInForm";
 import { accessContext } from "@/features/auth/domain/access-context";
-import { safeReturnPath } from "@/features/auth/domain/return-path";
+import { APP_START, safeReturnPath } from "@/features/auth/domain/return-path";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { noticeFor } from "@/lib/notice";
 
@@ -22,7 +22,7 @@ const NOTICES: Record<string, string> = {
 
 export const loader = routeLoader(async ({ searchParams }) => {
   const { voltar, aviso } = searchParams;
-  const returnTo = safeReturnPath(voltar);
+  const returnTo = safeReturnPath(voltar, APP_START);
   if (await getUserSession()) redirect(returnTo);
 
   return { aviso, returnTo };
@@ -30,7 +30,7 @@ export const loader = routeLoader(async ({ searchParams }) => {
 
 /** The form posted without JS (page not hydrated yet, or a script failed to load). */
 export const action = routeAction(({ request, searchParams }) => {
-  const returnTo = safeReturnPath(searchParams.voltar);
+  const returnTo = safeReturnPath(searchParams.voltar, APP_START);
   return signInFromForm(
     request,
     { handle: handleParticipantAuth, basePath: USER_AUTH_BASE_PATH },

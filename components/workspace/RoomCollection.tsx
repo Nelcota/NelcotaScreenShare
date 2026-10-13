@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMatches, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/FormError";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { RoomEditor } from "./RoomEditor";
 import { RoomCard, type WorkspaceRoom } from "./RoomCard";
+import { isRoomFilter, roomFilterFrom, withRoomFilter } from "./room-filter";
 import type { RoomWorkspaceCommand } from "@/features/rooms/domain/commands";
 
 export function RoomCollection({
@@ -32,7 +34,22 @@ export function RoomCollection({
   onCommand: (input: RoomWorkspaceCommand) => void;
 }) {
   const [creating, setCreating] = useState(false);
-  const [tab, setTab] = useState("active");
+  const [ownTab, setTab] = useState("active");
+  // Inside the app the personal room filter lives in the address (?filtro=), shared with the
+  // column: this row hides where the column shows the same three filters and stays on
+  // phones. Team pages and the standalone page keep their own state.
+  const [params, setParams] = useSearchParams();
+  const inApp = useMatches().some((match) => match.id === "app");
+  const columnFilter = inApp && !teamId;
+  const tab = columnFilter ? roomFilterFrom(params) : ownTab;
+  const choose = (next: string) => {
+    if (!columnFilter) return setTab(next);
+    if (!isRoomFilter(next)) return;
+    setParams((current) => withRoomFilter(current, next), {
+      replace: true,
+      preventScrollReset: true,
+    });
+  };
   const visible = rooms.filter((room) => {
     if (tab === "favorites") return room.favorite && !room.archivedAt;
     if (tab === "archived") return Boolean(room.archivedAt);
@@ -69,7 +86,10 @@ export function RoomCollection({
         </p>
       ) : null}
       <FormError message={error} />
-      <fieldset aria-label="Filtrar salas" className="flex flex-wrap gap-2">
+      <fieldset
+        aria-label="Filtrar salas"
+        className={columnFilter ? "flex flex-wrap gap-2 sm:hidden" : "flex flex-wrap gap-2"}
+      >
         {[
           { id: "active", label: "Minhas salas" },
           { id: "favorites", label: "Favoritas" },
@@ -79,7 +99,7 @@ export function RoomCollection({
             key={item.id}
             variant={tab === item.id ? "secondary" : "ghost"}
             aria-pressed={tab === item.id}
-            onClick={() => setTab(item.id)}
+            onClick={() => choose(item.id)}
           >
             {item.label}
           </Button>

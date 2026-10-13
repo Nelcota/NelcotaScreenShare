@@ -24,6 +24,8 @@ import { THEME_COLOR, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { useNavigationRecovery } from "@/lib/navigation-recovery";
 import { requestMiddleware } from "@/server/middleware.server";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
+import { pendingReceivedCount } from "@/features/friends/server/friend-list.server";
+import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { publicOrigin } from "@/server/seo.server";
 import { isIndexable } from "@/lib/seo";
@@ -31,6 +33,8 @@ import { configureBrowserTelemetry } from "@/lib/telemetry.client";
 import { ErrorScreen } from "@/components/shell/ErrorScreen";
 import { Mascot } from "@/features/mascot/ui/Mascot";
 import { NavigationProgress } from "@/components/shell/NavigationProgress";
+import { usePresenceBeat } from "@/features/friends/client/use-presence-beat";
+import { useLiveUpdates } from "@/features/live/client/use-live-updates";
 import { ActiveRoom } from "@/features/room/ui/ActiveRoom";
 import type { loader as roomLoader } from "./routes/room";
 import "./fonts.css";
@@ -52,11 +56,14 @@ export const meta = () => [
 export const loader = ({ request, context }: LoaderFunctionArgs) =>
   withRequest(request, context, async () => {
     const [mascot, current] = await Promise.all([getSetting(mascotSettings), getUserSession()]);
+    const friendRequests = current ? await pendingReceivedCount(getDb(), current.user.id) : 0;
     return {
       nonce: request.headers.get("x-nonce") ?? undefined,
       origin: publicOrigin(request),
       mascot,
-      account: current ? { name: current.user.name, image: current.user.image } : null,
+      account: current
+        ? { name: current.user.name, image: current.user.image, friendRequests }
+        : null,
       telemetry: { dsn: getEnv().PUBLIC_SENTRY_DSN, release: getEnv().APP_VERSION },
     };
   });
@@ -113,6 +120,9 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function App() {
   const revalidator = useRevalidator();
+  const signedIn = Boolean(useLoaderData<typeof loader>()?.account);
+  usePresenceBeat(signedIn);
+  useLiveUpdates(signedIn);
   useNavigationRecovery();
   useEffect(() => {
     const revalidate = () => {

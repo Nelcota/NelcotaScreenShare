@@ -7,7 +7,7 @@ import { z } from "zod";
 import { verifyJWT } from "better-auth/crypto";
 import { VerifyEmailPanel } from "@/features/auth/ui/VerifyEmailPanel";
 import { ConfirmEmailPanel } from "@/features/auth/ui/ConfirmEmailPanel";
-import { safeReturnPath } from "@/features/auth/domain/return-path";
+import { APP_START, safeReturnPath } from "@/features/auth/domain/return-path";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { getEnv } from "@/server/env.server";
 
@@ -15,7 +15,7 @@ export const meta = () => [{ title: "Confirme seu e-mail · Nelcota" }];
 
 export const loader = routeLoader(async ({ searchParams }) => {
   const { voltar, email, token } = searchParams;
-  const returnTo = safeReturnPath(voltar);
+  const returnTo = safeReturnPath(voltar, APP_START);
   const current = await getUserSession();
   if (typeof token === "string" && token.length <= 4096) {
     const payload = await verifyJWT<Record<string, unknown>>(token, getEnv().AUTH_SECRET);

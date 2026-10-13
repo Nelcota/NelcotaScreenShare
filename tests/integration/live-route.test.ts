@@ -1,0 +1,70 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { afterAll, describe, expect, test, vi } from "vitest";
+import * as schema from "@/server/db/schema";
+import { verifiedParticipant } from "./support/accounts";
+
+/** GET /api/eventos: the live stream of a signed-in tab. */
+const requestHeaders = { current: new Headers() };
+vi.mock("@/server/request-context.server", () => ({
+  requestMemo: (load: () => unknown) => load,
+  requestHeaders: () => requestHeaders.current,
+}));
+
+const { openLiveStream } = await import("@/features/live/server/live-route.server");
+const { createLiveBus } = await import("@/features/live/server/live-bus.server");
+const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const db = drizzle(pool, { schema });
+afterAll(() => pool.end());
+const handler = (request: Request) => getUserAuth().handler(request);
+
+function open(cookie: string | null, bus = createLiveBus(), keepAliveMs = 20) {
+  requestHeaders.current = new Headers({ "user-agent": "vitest", ...(cookie ? { cookie } : {}) });
+  const abort = new AbortController();
+  const response = openLiveStream(
+    new Request("http://localhost:3000/api/eventos", { signal: abort.signal }),
+    bus,
+    keepAliveMs,
+  );
+  return { response, abort, bus };
+}
+
+/** Reads the stream until `expected` shows up. */
+async function readUntil(body: ReadableStream<Uint8Array>, expected: string) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  while (!text.includes(expected)) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+  }
+  reader.releaseLock();
+  return text;
+}
+
+describe("live stream", () => {
+  test("refuses visitors", async () => {
+    expect((await open(null).response).status).toBe(401);
+  });
+
+  test("streams nudges and keep-alives without compression or buffering", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const { response, abort, bus } = open(ana.jar.header());
+    const stream = await response;
+    expect(stream.status).toBe(200);
+    expect(stream.headers.get("content-type")).toMatch(/^text\/event-stream/);
+    expect(stream.headers.get("cache-control")).toContain("no-transform");
+    expect(stream.headers.get("x-accel-buffering")).toBe("no");
+    const body = stream.body;
+    if (!body) throw new Error("no body");
+    expect(await readUntil(body, ": keep-alive")).toContain("retry: 5000");
+    bus.notify([ana.id], "friends");
+    expect(await readUntil(body, "data: friends")).toContain("event: nudge");
+    expect(bus.streamCount(ana.id)).toBe(1);
+    abort.abort();
+    expect(bus.streamCount(ana.id)).toBe(0);
+  });
+});

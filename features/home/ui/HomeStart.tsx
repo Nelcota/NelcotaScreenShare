@@ -8,8 +8,11 @@ import { SmartBar } from "./SmartBar";
 export function HomeStart({
   invalidCode,
   focusShortcut,
+  compact = false,
 }: {
   invalidCode: boolean;
+  /** The start of the app: smaller mascots and bar. */
+  compact?: boolean;
   /** Off for a second bar on the page, so "/" keeps going to the first. */
   focusShortcut?: boolean;
 }) {
@@ -29,8 +32,9 @@ export function HomeStart({
       pending={pending}
       onNavigate={openRoom}
       onCreateRoom={creating.createRoom}
-      mascot={<MascotPair pending={pending} />}
+      mascot={<MascotPair pending={pending} compact={compact} />}
       focusShortcut={focusShortcut}
+      compact={compact}
     />
   );
 }

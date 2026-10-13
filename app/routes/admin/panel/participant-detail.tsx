@@ -14,6 +14,7 @@ import {
 } from "@/features/admin/participants/ui/ParticipantDetailSections";
 import { AdminHistory } from "@/features/admin/audit/ui/AdminHistory";
 import { getParticipantDetail } from "@/features/admin/participants/server/queries.server";
+import { socialCounts } from "@/features/admin/participants/server/social-counts.server";
 import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { can } from "@/features/auth/server/permissions.server";
 import { getDb } from "@/server/db/index.server";
@@ -28,6 +29,7 @@ export const loader = routeLoader(async ({ params }) => {
   const detail = await getParticipantDetail(db, id);
   if (!detail) notFound();
   const { account, sessions, timeline, history } = detail;
+  const social = await socialCounts(db, id);
   const role = admin.user.role;
   const status = STATUS_LABELS[account.status];
 
@@ -36,6 +38,7 @@ export const loader = routeLoader(async ({ params }) => {
     sessions,
     timeline,
     history,
+    social,
     status,
     permissions: {
       update: can(role, { participant: ["update"] }),
@@ -47,7 +50,7 @@ export const loader = routeLoader(async ({ params }) => {
 });
 
 export default function ParticipantPage() {
-  const { account, sessions, timeline, history, status, permissions } =
+  const { account, sessions, timeline, history, social, status, permissions } =
     useLoaderData<typeof loader>();
   return (
     <>
@@ -78,7 +81,7 @@ export default function ParticipantPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ParticipantAccount account={account} />
+        <ParticipantAccount account={account} social={social} />
         <ParticipantSessions sessions={sessions} />
       </div>
 

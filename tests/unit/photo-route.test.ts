@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
+import type * as PhotoModule from "@/features/room/server/participant-photo.server";
 
 const deps = vi.hoisted(() => ({
   caller: vi.fn(),
@@ -10,7 +11,8 @@ vi.mock("@/features/room/server/room-caller.server", () => ({ roomCaller: deps.c
 vi.mock("@/features/room/server/livekit-gateway.server", () => ({
   identitiesIn: deps.identitiesIn,
 }));
-vi.mock("@/features/room/server/participant-photo.server", () => ({
+vi.mock("@/features/room/server/participant-photo.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof PhotoModule>()),
   profilePhotoOf: deps.profilePhotoOf,
 }));
 vi.mock("@/server/db/index.server", () => ({ getDb: () => ({}) }));

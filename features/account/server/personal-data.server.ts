@@ -1,19 +1,45 @@
-import { workspacePersonalData } from "./workspace-export.server";
-import { and, count, desc, eq, gt, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { profileChangesOf } from "@/features/admin/participants/server/moderation-export.server";
+import { and, count, desc, eq, gt, or, sql } from "drizzle-orm";
+import { workspacePersonalData } from "./workspace-export.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import { ROOM_ROLE_IN_EXPORT, TOKEN_RESULT_IN_EXPORT } from "@/features/room/domain/export-labels";
 import {
+  friendCodes,
+  friendLinks,
+  friendships,
   roomBans,
   roomParticipations,
   roomRoles,
   rooms,
   shareSessions,
   tokenRequests,
+  userBlocks,
+  userPresence,
   users,
   userSessions,
 } from "@/server/db/schema";
+
+/** The chosen status, the friend code and the link's version, if any. */
+async function friendSettings(db: DbExecutor, userId: string) {
+  const [code] = await db
+    .select({ codigo: friendCodes.code, criadoEm: friendCodes.createdAt })
+    .from(friendCodes)
+    .where(eq(friendCodes.userId, userId));
+  const [link] = await db
+    .select({ versao: friendLinks.version, criadoEm: friendLinks.createdAt })
+    .from(friendLinks)
+    .where(eq(friendLinks.userId, userId));
+  const [presence] = await db
+    .select({ status: userPresence.status, atualizadoEm: userPresence.updatedAt })
+    .from(userPresence)
+    .where(eq(userPresence.userId, userId));
+  return {
+    status_escolhido: presence ?? null,
+    codigo_de_amigo: code ?? null,
+    link_de_amigo: link ?? null,
+  };
+}
 
 /**
  * "Baixar meus dados" (download my data; LGPD, art. 18): everything we store linked to the account.
@@ -71,6 +97,27 @@ export async function personalData(db: DbExecutor, userId: string) {
     .where(eq(tokenRequests.userId, userId))
     .orderBy(desc(tokenRequests.createdAt));
 
+  const friendRows = await db
+    .select({
+      pessoa: users.name,
+      situacao: friendships.status,
+      pedidoFeitoPorVoce: sql<boolean>`${friendships.requestedBy} = ${userId}`,
+      desde: friendships.createdAt,
+      aceitaEm: friendships.acceptedAt,
+    })
+    .from(friendships)
+    .innerJoin(
+      users,
+      sql`${users.id} = case when ${friendships.userLowId} = ${userId} then ${friendships.userHighId} else ${friendships.userLowId} end`,
+    )
+    .where(or(eq(friendships.userLowId, userId), eq(friendships.userHighId, userId)))
+    .orderBy(desc(friendships.createdAt));
+  const blocked = await db
+    .select({ pessoa: users.name, desde: userBlocks.createdAt })
+    .from(userBlocks)
+    .innerJoin(users, eq(users.id, userBlocks.blockedId))
+    .where(eq(userBlocks.blockerId, userId))
+    .orderBy(desc(userBlocks.createdAt));
   const roomsCreated = await db
     .select({ sala: roomDefinitions.code, criada_em: roomDefinitions.createdAt })
     .from(roomDefinitions)
@@ -121,6 +168,9 @@ export async function personalData(db: DbExecutor, userId: string) {
       ...attempt,
       resultado: TOKEN_RESULT_IN_EXPORT[attempt.resultado],
     })),
+    amizades: friendRows,
+    pessoas_bloqueadas: blocked,
+    ...(await friendSettings(db, userId)),
     salas_criadas: roomsCreated,
     papeis_em_salas: roles.map((role) => ({ ...role, papel: ROOM_ROLE_IN_EXPORT[role.papel] })),
     // Kept for a week after each ban.

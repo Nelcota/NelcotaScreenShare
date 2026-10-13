@@ -1,8 +1,11 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { roomCodeSchema } from "@/features/room/domain/room-code";
 import { identitiesIn } from "@/features/room/server/livekit-gateway.server";
-import { profilePhotoOf } from "@/features/room/server/participant-photo.server";
+import {
+  noPhotoResponse,
+  photoResponse,
+  profilePhotoOf,
+} from "@/features/room/server/participant-photo.server";
 import { roomCaller } from "@/features/room/server/room-caller.server";
 import { getDb } from "@/server/db/index.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
@@ -13,17 +16,8 @@ const photoQuerySchema = z.object({ sala: roomCodeSchema, pessoa: z.uuid() });
 /** A call shows at most a few dozen avatars; this only stops scraping. */
 const limiter = createRateLimiter({ limit: 120, windowMs: 60_000 });
 
-/** Long enough to avoid refetching while the layout reflows, short enough to see a new photo. */
-const PHOTO_CACHE = "private, max-age=300";
-/** "This person has no photo" is cached briefly too, so each tile does not ask LiveKit again. */
-const NO_PHOTO_CACHE = "private, max-age=60";
-
-function fail(message: string, status: number, cache = "no-store") {
-  return Response.json({ message }, { status, headers: { "Cache-Control": cache } });
-}
-
-function etagOf(bytes: Uint8Array<ArrayBuffer>): string {
-  return `"${createHash("sha256").update(bytes).digest("base64url").slice(0, 22)}"`;
+function fail(message: string, status: number) {
+  return Response.json({ message }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
 /** Both people are connected to the same call right now (one's own photo always is). */
@@ -50,24 +44,11 @@ export async function participantPhoto(request: Request) {
   const { sala, pessoa } = parsed.data;
 
   try {
-    if (!(await sharesCall(caller.identity, pessoa, sala))) return fail("Sem foto.", 404);
+    if (!(await sharesCall(caller.identity, pessoa, sala))) return noPhotoResponse();
   } catch (error) {
     requestLogger({ route: "api/sala/foto" }).error({ err: error }, "failed to list room");
     return fail("Não foi possível agora. Tente de novo.", 502);
   }
 
-  const photo = await profilePhotoOf(getDb(), pessoa);
-  if (!photo) return fail("Sem foto.", 404, NO_PHOTO_CACHE);
-
-  const etag = etagOf(photo);
-  const headers = {
-    "Cache-Control": PHOTO_CACHE,
-    ETag: etag,
-    "Content-Type": "image/webp",
-    "X-Content-Type-Options": "nosniff",
-  };
-  if (request.headers.get("If-None-Match") === etag) {
-    return new Response(null, { status: 304, headers });
-  }
-  return new Response(photo, { status: 200, headers });
+  return photoResponse(request, await profilePhotoOf(getDb(), pessoa));
 }

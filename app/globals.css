@@ -37,6 +37,8 @@
   --color-info: #60a5fa;
   --color-violet: #a78bfa;
   --color-warning: #fbbf24;
+  /* Status dots (Ausente): a graphic next to its label, so yellow even in the light theme. */
+  --color-status-away: #fbbf24;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
@@ -179,6 +181,7 @@
   --color-danger: #a32626;
   --color-success: #146432;
   --color-warning: #7a4f08;
+  --color-status-away: #ca8a04;
   --color-info: #1c4fb5;
   --color-violet: #6236b8;
 

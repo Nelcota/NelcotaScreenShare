@@ -72,8 +72,8 @@ test.describe("room access", () => {
     await page.getByLabel("E-mail").fill(`rafa.${Date.now()}@exemplo.dev`);
     await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Senha", { exact: true }).press("Enter");
-    await expect(page).toHaveURL(`${E2E_URL}/`);
-    await expect(page.getByRole("link", { name: "Minha conta" })).toContainText("Rafa Nova");
+    await expect(page).toHaveURL(`${E2E_URL}/inicio`);
+    await expect(page.getByRole("button", { name: "Rafa Nova" }).first()).toBeVisible();
 
     const creating = page.waitForRequest(/\/api\/operations\/room-createRoomAction/);
     await page.getByRole("button", { name: "Criar sala", exact: true }).first().click();

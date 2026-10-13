@@ -1,6 +1,7 @@
 import {
   matchRequestedSlugs,
   parseKlipyPage,
+  rememberBounded,
   type Gif,
   type GifPage,
 } from "@/features/messages/domain/klipy";
@@ -11,8 +12,15 @@ const PER_PAGE = 24;
 /** The strictest content filter: the app is for everyone. */
 const CONTENT_FILTER = "high";
 
+/** Enough for the picker's pages and the open conversations; older ones are fetched again. */
+const MAX_KNOWN = 500;
+
 /** GIFs already seen on this page, so a slug is fetched once. */
 const known = new Map<string, Gif>();
+
+function remember(slug: string, gif: Gif) {
+  rememberBounded(known, slug, gif, MAX_KNOWN);
+}
 
 function endpoint(key: string, path: string, params: Record<string, string>) {
   const url = new URL(`${KLIPY_API}/${encodeURIComponent(key)}/gifs${path}`);
@@ -24,7 +32,7 @@ async function getPage(url: URL): Promise<GifPage> {
   const response = await fetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) throw new Error(`KLIPY answered ${response.status}`);
   const page = parseKlipyPage(await response.json());
-  for (const gif of page.gifs) known.set(gif.slug, gif);
+  for (const gif of page.gifs) remember(gif.slug, gif);
   return page;
 }
 
@@ -44,7 +52,7 @@ export function createKlipy(key: string) {
       const missing = slugs.filter((slug) => !known.has(slug));
       if (missing.length > 0) {
         const page = await getPage(endpoint(key, "/items", { slugs: missing.join(",") }));
-        for (const [slug, gif] of matchRequestedSlugs(missing, page.gifs)) known.set(slug, gif);
+        for (const [slug, gif] of matchRequestedSlugs(missing, page.gifs)) remember(slug, gif);
       }
       const found = slugs.flatMap((slug) => {
         const gif = known.get(slug);

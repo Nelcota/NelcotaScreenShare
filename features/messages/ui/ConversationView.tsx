@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { LogOut, MoreHorizontal, UserRound } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
@@ -247,12 +248,18 @@ export function ConversationView({
             </p>
           )}
         </div>
-        {showProfile ? (
+        {profile ? (
+          // Stays mounted so it can slide open and closed; closed, it is out of reach.
           <aside
             aria-label="Perfil"
-            className="hidden w-72 shrink-0 overflow-y-auto border-l border-line lg:block"
+            aria-hidden={!showProfile}
+            inert={!showProfile}
+            className={cn(
+              "hidden shrink-0 overflow-hidden border-line transition-[width,opacity] duration-(--motion-surface) ease-(--ease-out-smooth) motion-reduce:transition-none lg:block",
+              showProfile ? "w-72 border-l opacity-100" : "w-0 opacity-0",
+            )}
           >
-            {profile.panel}
+            <div className="h-full w-72 overflow-y-auto">{profile.panel}</div>
           </aside>
         ) : null}
       </div>

@@ -46,7 +46,8 @@ describe("message timeline", () => {
       NOW,
     );
     expect(days.map((day) => day.label)).toEqual(["Ontem", "Hoje"]);
-    expect(days[1]?.runs.map((run) => run.messages.map((item) => item.id))).toEqual([
+    const runs = days[1]?.runs.flatMap((run) => (run.type === "messages" ? [run] : [])) ?? [];
+    expect(runs.map((run) => run.messages.map((item) => item.id))).toEqual([
       ["b", "c"],
       ["d"],
       ["e"],

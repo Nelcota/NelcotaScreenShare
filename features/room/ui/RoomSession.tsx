@@ -10,6 +10,7 @@ import type { JoinChoices } from "@/features/room/domain/join";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { callDuration, type LeaveNotice, type LeaveReason } from "@/features/room/domain/leave";
 import { roomLink } from "@/features/room/domain/room-code";
+import { useAnsweredCall } from "@/features/room/hooks/use-answered-call";
 import { PreJoin } from "@/features/room/ui/prejoin/PreJoin";
 import { LeftScreen } from "./LeftScreen";
 import { logBrowserWarning } from "@/lib/telemetry.client";
@@ -75,6 +76,9 @@ export function RoomSession({
   renderColumn,
 }: RoomSessionProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "prejoin" });
+  // Only the first pre-join after accepting a ring joins on its own.
+  const answered = useAnsweredCall();
+  const [autoJoin, setAutoJoin] = useState(answered);
   const inCall = phase.kind === "room";
   const reportCall = useEffectEvent(onCallChange);
 
@@ -173,9 +177,11 @@ export function RoomSession({
           invite={invite}
           presence={presence}
           maxParticipants={maxParticipants}
-          onJoin={(choices) =>
-            setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() })
-          }
+          autoJoin={autoJoin}
+          onJoin={(choices) => {
+            setAutoJoin(false);
+            setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() });
+          }}
         />
       ) : (
         <LeftScreen

@@ -78,7 +78,10 @@ export function NotificationSettings() {
       title="Notificações"
       description="Valem para este navegador."
     >
-      <SettingsRow title="Som de toque" description="Toca quando alguém te chama.">
+      <SettingsRow
+        title="Som de toque"
+        description="Toca quando alguém te chama e, baixinho, quando uma chamada acaba."
+      >
         <LabeledSwitch
           label="Som de toque"
           checked={preferences.ringSound}

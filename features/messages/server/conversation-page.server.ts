@@ -5,6 +5,7 @@ import { othersByConversation } from "@/features/messages/server/conversation-li
 import { gifFavoriteSlugs } from "@/features/messages/server/gif-favorites.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { listMessages } from "@/features/messages/server/messages.server";
+import { groupCallLines, liveGroupCall } from "@/features/ringing/server/group-calls.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { conversations } from "@/server/db/schema";
 
@@ -30,6 +31,14 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
     gifFavoriteSlugs(db, userId),
   ]);
   const otherId = membership.otherId;
+  const group = membership.kind === "group";
+  const oldest = page.messages[0]?.createdAt ?? new Date(0);
+  const [groupCall, callLines] = group
+    ? await Promise.all([
+        liveGroupCall(db, conversationId),
+        groupCallLines(db, conversationId, page.hasMore ? oldest : new Date(0)),
+      ])
+    : [null, []];
   const statuses = otherId ? await shownStatuses(db, [otherId]) : null;
   const canSend =
     membership.kind === "group" || (otherId !== null && (await canMessage(db, userId, otherId)));
@@ -45,5 +54,12 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
     hasMore: page.hasMore,
     canSend,
     gifFavorites,
+    groupCall,
+    calls: callLines.map((line) => ({
+      type: "call" as const,
+      id: line.id,
+      starterName: line.starterName ?? "Alguém",
+      createdAt: line.startedAt,
+    })),
   };
 }

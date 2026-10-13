@@ -25,6 +25,7 @@ import { useNavigationRecovery } from "@/lib/navigation-recovery";
 import { requestMiddleware } from "@/server/middleware.server";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { pendingReceivedCount } from "@/features/friends/server/friend-list.server";
+import { ringingState } from "@/features/ringing/server/ringing-state.server";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { publicOrigin } from "@/server/seo.server";
@@ -42,6 +43,7 @@ import "./fonts.css";
 import manrope from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
 import "./globals.css";
 import { NotificationsRuntime } from "@/features/notifications/ui/NotificationsRuntime";
+import { RingRuntime } from "@/features/ringing/ui/RingRuntime";
 
 export const middleware = [requestMiddleware];
 export const links: LinksFunction = () => [
@@ -59,6 +61,7 @@ export const loader = ({ request, context }: LoaderFunctionArgs) =>
   withRequest(request, context, async () => {
     const [mascot, current] = await Promise.all([getSetting(mascotSettings), getUserSession()]);
     const friendRequests = current ? await pendingReceivedCount(getDb(), current.user.id) : 0;
+    const ringing = current ? await ringingState(getDb(), current.user.id) : null;
     return {
       nonce: request.headers.get("x-nonce") ?? undefined,
       origin: publicOrigin(request),
@@ -67,6 +70,7 @@ export const loader = ({ request, context }: LoaderFunctionArgs) =>
         ? { name: current.user.name, image: current.user.image, friendRequests }
         : null,
       telemetry: { dsn: getEnv().PUBLIC_SENTRY_DSN, release: getEnv().APP_VERSION },
+      ringing,
     };
   });
 
@@ -147,6 +151,7 @@ export default function App() {
         }
       />
       <NotificationsRuntime />
+      <RingRuntime />
     </>
   );
 }

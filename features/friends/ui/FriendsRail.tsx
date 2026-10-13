@@ -1,31 +1,21 @@
 import { PanelLeftOpen } from "lucide-react";
-import { NavLink } from "react-router";
+import { useRouteLoaderData } from "react-router";
+import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
 import { splitByPresence, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import type { PresenceStatus } from "@/features/friends/domain/presence-status";
-import { useToggleLink } from "@/features/friends/hooks/use-app-panel";
 import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
-import { FriendAvatar } from "@/features/friends/ui/FriendAvatar";
 import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
+import { RailFriendMenu } from "@/features/friends/ui/RailFriendMenu";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
 
 function RailFriend({ friend }: { friend: FriendStatus }) {
-  const path = `/amigos/${friend.id}`;
-  const toggle = useToggleLink(path);
+  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
+  const ringing = outgoing.find((ring) => ring.calleeId === friend.id && ring.state === "ringing");
   return (
     <li>
-      <Hint text={friend.name}>
-        <NavLink
-          viewTransition
-          to={path}
-          onClick={toggle.onClick}
-          aria-label={friend.name}
-          className="grid size-11 place-items-center rounded-2xl transition-colors hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-brand aria-[current=page]:bg-surface-3"
-        >
-          <FriendAvatar friend={friend} />
-        </NavLink>
-      </Hint>
+      <RailFriendMenu friend={friend} ringId={ringing?.id ?? null} />
     </li>
   );
 }

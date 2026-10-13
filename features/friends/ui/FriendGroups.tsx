@@ -3,6 +3,7 @@ import { Mascot } from "@/features/mascot/ui/Mascot";
 import { splitByPresence, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import { FriendAvatar, presenceLabel } from "@/features/friends/ui/FriendAvatar";
 import { FriendMenu } from "@/features/friends/ui/FriendMenu";
+import { IconCallButton } from "@/features/ringing/ui/CallButton";
 import { cn } from "@/lib/utils";
 
 const GROUP_TITLE = "px-2 pt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase";
@@ -25,7 +26,8 @@ function FriendLine({ friend }: { friend: FriendStatus }) {
           <span className="block text-xs text-ink-muted">{presenceLabel(friend)}</span>
         </span>
       </NavLink>
-      <span className="flex items-center pr-1.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
+      <span className="hidden items-center gap-1 pr-1.5 group-focus-within:flex group-hover:flex has-[[data-state=open]]:flex pointer-coarse:flex">
+        {friend.status === "offline" ? null : <IconCallButton friend={friend} />}
         <FriendMenu person={friend} />
       </span>
     </li>

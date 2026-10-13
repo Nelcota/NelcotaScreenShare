@@ -39,6 +39,8 @@ export function PreJoinHeader({
         voiceLevelRef={mic.levelRef}
       />
       <div className="flex flex-col items-center gap-2">
+        {/* Other features show a short notice here, e.g. who will be called on joining. */}
+        <div id="pre-join-notice" className="empty:hidden" />
         <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
           Pronto para entrar?
         </h1>

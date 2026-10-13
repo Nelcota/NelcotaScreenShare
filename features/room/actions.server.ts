@@ -16,11 +16,11 @@ import { executeHostCommand } from "./server/host-command.server";
 /** Rooms per account: plenty for real use, too few to fill the table with codes. */
 const roomsPerAccount = createRateLimiter({ limit: 10, windowMs: 10 * 60_000 });
 
-/** "Criar sala": the account that creates the room is its owner. */
+/** "Criar sala": the account that creates the room is its owner, optionally choosing the access. */
 export const createRoomAction = defineUserOperation(
   { name: "room.create", audit: "none" },
-  z.undefined(),
-  async ({ ctx }) => {
+  z.object({ access: roomAccessSchema.optional() }).optional(),
+  async ({ parsedInput, ctx }) => {
     const userId = ctx.current.user.id;
     if (getEnv().REQUIRE_EMAIL_VERIFICATION && !ctx.current.user.emailVerified) {
       throw new ActionError(
@@ -30,7 +30,7 @@ export const createRoomAction = defineUserOperation(
     if (!roomsPerAccount.hit(userId).ok) {
       throw new ActionError("Você criou muitas salas agora. Aguarde alguns minutos.");
     }
-    const code = await createRoom(getDb(), userId);
+    const code = await createRoom(getDb(), userId, parsedInput?.access);
     return { path: roomPath(code) };
   },
 );

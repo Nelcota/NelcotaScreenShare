@@ -32,13 +32,17 @@ export function InviteCard({ code }: { code: string }) {
       className="flex w-full items-center gap-5 rounded-2xl border border-line bg-surface p-4 text-left sm:p-5"
     >
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div>
-          <h2 id={titleId} className="text-base font-semibold">
-            Convide o time
-          </h2>
-          <p className="mt-0.5 text-sm text-ink-muted">
-            Mande o link<span className="max-sm:hidden"> ou aponte a câmera do celular</span>.
-          </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 id={titleId} className="text-base font-semibold">
+              Convide o time
+            </h2>
+            <p className="mt-0.5 text-sm text-ink-muted">
+              Mande o link<span className="max-sm:hidden"> ou aponte a câmera do celular</span>.
+            </p>
+          </div>
+          {/* Other features add a way to invite here, e.g. ringing friends. */}
+          <div id="room-invite-actions" className="empty:hidden" />
         </div>
         <div className="flex min-w-0 gap-2">
           <label htmlFor={`${titleId}-link`} className="sr-only">

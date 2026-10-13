@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  CALL_END_SOUNDS,
+  RING_VOLUME,
+  soundLength,
+} from "@/features/notifications/domain/call-end-sounds";
+import {
   createNotifier,
   RING_TIMEOUT_MS,
   shouldOfferPermission,
@@ -180,5 +185,21 @@ describe("notifications worker", () => {
     const source = await response.text();
     expect(source).toContain(`addEventListener("notificationclick"`);
     expect(source).not.toContain(`addEventListener("fetch"`);
+  });
+});
+
+describe("call end sounds", () => {
+  it("are short and quieter than the ring", () => {
+    for (const sound of Object.values(CALL_END_SOUNDS)) {
+      expect(soundLength(sound.notes)).toBeLessThanOrEqual(0.4);
+      expect(sound.volume).toBeLessThan(RING_VOLUME);
+    }
+  });
+
+  it("falls for nobody answered and clicks once for Recusar", () => {
+    const [first, second] = CALL_END_SOUNDS.missed.notes;
+    expect(second?.frequency).toBeLessThan(first?.frequency ?? 0);
+    expect(CALL_END_SOUNDS.declined.notes).toHaveLength(1);
+    expect(soundLength(CALL_END_SOUNDS.declined.notes)).toBeLessThanOrEqual(0.06);
   });
 });

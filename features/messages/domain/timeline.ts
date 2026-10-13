@@ -47,15 +47,24 @@ export interface TimelineMessage {
 }
 
 export interface MessageRun {
+  type: "messages";
   authorId: string;
   authorName: string;
   messages: TimelineMessage[];
 }
 
+/** "Bruno começou uma chamada", in a group's timeline. */
+export interface TimelineCall {
+  type: "call";
+  id: string;
+  starterName: string;
+  createdAt: Date;
+}
+
 export interface TimelineDay {
   key: string;
   label: string;
-  runs: MessageRun[];
+  runs: (MessageRun | TimelineCall)[];
 }
 
 /** "2026-10-12" in São Paulo. */
@@ -94,33 +103,44 @@ export function dayLabel(date: Date, now: Date): string {
   return (sameYear ? longDate : longDateWithYear).format(date);
 }
 
-function continuesRun(run: MessageRun | undefined, message: TimelineMessage): boolean {
-  if (!run || run.authorId !== message.authorId) return false;
+function continuesRun(run: MessageRun | TimelineCall | undefined, message: TimelineMessage) {
+  if (run?.type !== "messages" || run.authorId !== message.authorId) return false;
   const previous = run.messages.at(-1);
   if (!previous) return false;
   return message.createdAt.getTime() - previous.createdAt.getTime() < RUN_GAP_MS;
 }
 
-/** Oldest first: split by day, then into runs of the same person. */
-export function groupTimeline(messages: readonly TimelineMessage[], now: Date): TimelineDay[] {
+function dayOf(days: TimelineDay[], date: Date, now: Date): TimelineDay {
+  const key = dayKey(date);
+  const last = days.at(-1);
+  if (last?.key === key) return last;
+  const day = { key, label: dayLabel(date, now), runs: [] };
+  days.push(day);
+  return day;
+}
+
+function place(day: TimelineDay, item: TimelineMessage | TimelineCall) {
+  if ("type" in item) return void day.runs.push(item);
+  const run = day.runs.at(-1);
+  if (run?.type === "messages" && continuesRun(run, item)) return void run.messages.push(item);
+  day.runs.push({
+    type: "messages",
+    authorId: item.authorId,
+    authorName: item.authorName,
+    messages: [item],
+  });
+}
+
+/** Oldest first: split by day, then into runs of the same person; call lines break runs. */
+export function groupTimeline(
+  messages: readonly TimelineMessage[],
+  now: Date,
+  calls: readonly TimelineCall[] = [],
+): TimelineDay[] {
+  const items = [...messages, ...calls].toSorted(
+    (one, other) => one.createdAt.getTime() - other.createdAt.getTime(),
+  );
   const days: TimelineDay[] = [];
-  for (const message of messages) {
-    const key = dayKey(message.createdAt);
-    let day = days.at(-1);
-    if (!day || day.key !== key) {
-      day = { key, label: dayLabel(message.createdAt, now), runs: [] };
-      days.push(day);
-    }
-    const run = day.runs.at(-1);
-    if (continuesRun(run, message)) {
-      run?.messages.push(message);
-      continue;
-    }
-    day.runs.push({
-      authorId: message.authorId,
-      authorName: message.authorName,
-      messages: [message],
-    });
-  }
+  for (const item of items) place(dayOf(days, item.createdAt, now), item);
   return days;
 }

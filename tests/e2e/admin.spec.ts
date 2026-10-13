@@ -1,28 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { Client } from "pg";
 import { totpFromUri } from "../integration/support/totp";
+import { sql } from "./support/database";
 import { newVisitor } from "./support/session";
 
 const PASSWORD = "senha-forte-do-dono-e2e";
-
-function e2eDatabaseUrl(): string {
-  const base = process.env.TEST_DATABASE_URL;
-  if (!base) throw new Error("Set TEST_DATABASE_URL to run the E2E tests.");
-  const url = new URL(base);
-  url.pathname = "/nelcota_e2e";
-  return url.toString();
-}
-
-async function sql(text: string, values: unknown[] = []) {
-  const client = new Client({ connectionString: e2eDatabaseUrl() });
-  await client.connect();
-  try {
-    return await client.query(text, values);
-  } finally {
-    await client.end();
-  }
-}
 
 /** Owner invitation written straight to the database (as create-owner does). */
 async function ownerInvitation(email: string): Promise<string> {
@@ -152,7 +134,7 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await saturation.focus();
   await page.keyboard.press("ArrowLeft");
   await page.getByRole("button", { name: "Salvar", exact: true }).click();
-  await expect(page.getByText("Salvo. Novas páginas já abrem com a saturação nova.")).toBeVisible();
+  await expect(page.getByText("Salvo. Vale para as próximas páginas.")).toBeVisible();
   await expect(page.locator("html")).toHaveCSS("--mascot-saturation-dark", "0.95");
   await page.reload();
   await expect(saturation).toHaveAttribute("aria-valuenow", "0.95");

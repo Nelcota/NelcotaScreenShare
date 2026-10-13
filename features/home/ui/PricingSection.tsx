@@ -59,36 +59,24 @@ function Plan({
  * puts its action right under the price, before the list; side by side, the cards share
  * rows (subgrid), so both lists start at the same height.
  */
-export function PricingSection({
-  maxParticipants,
-  signedIn,
-}: {
-  maxParticipants: number;
-  signedIn: boolean;
-}) {
+export function PricingSection({ maxParticipants }: { maxParticipants: number }) {
   return (
     <section id="precos" aria-labelledby="pricing-title" className="w-full max-w-5xl scroll-mt-28">
-      <SectionIntro
-        id="pricing-title"
-        title="Preços."
-        subtitle="Comece grátis, hoje."
-        align="center"
-      />
+      <SectionIntro id="pricing-title" title="Preços." subtitle="Comece grátis." align="center" />
 
       <ul data-fx className="mt-12 grid gap-4 sm:mt-16 md:grid-cols-2 md:gap-y-8">
         <Plan
           name="Grátis"
           price="R$ 0"
           unit="para sempre"
-          summary="Tudo o que você precisa para mostrar a tela ao time hoje."
+          summary="Para mostrar a tela ao time."
           features={[
             `Salas de até ${maxParticipants} pessoas`,
-            "Convidados entram pelo link, sem criar conta",
+            "Convidados entram só com o link",
             "Som do computador, ponteiro, chat e reações",
-            "Nada é gravado",
           ]}
         >
-          <CreateRoomButton signedIn={signedIn} className="w-full" />
+          <CreateRoomButton className="w-full" />
         </Plan>
         <Plan
           name="Pro"

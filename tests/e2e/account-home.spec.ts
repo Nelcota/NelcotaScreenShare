@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createdRoom } from "./support/database";
 import { E2E_URL } from "./support/env";
 import {
   expectNoHorizontalScroll,
@@ -107,7 +108,7 @@ test("profile photo: preview, persistence on the account and avatar on the home 
   await serverPage.goto("/");
   await expect(serverPage.locator('a[href="/conta"] [data-slot=avatar-image]')).toBeVisible();
   await serverOnly.close();
-  await joinRoom(page, newRoomCode(), { micOn: false });
+  await joinRoom(page, await newRoomCode(), { micOn: false });
   const roomPhoto = page
     .getByRole("navigation", { name: "Sala", exact: true })
     .locator("[data-slot=avatar-image]");
@@ -186,6 +187,7 @@ test("a failure sending links does not show as success", async ({ browser }) => 
 });
 
 test('home: "/" focuses the room field and a valid code opens the room', async ({ browser }) => {
+  await createdRoom("abc-defg-hij");
   const { page, context } = await newVisitor(browser);
   await page.goto("/");
   // The top bar; the closing one repeats it lower on the page and leaves "/" to it.

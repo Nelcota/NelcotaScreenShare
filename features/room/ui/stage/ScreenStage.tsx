@@ -203,8 +203,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
           <div className="flex max-w-sm flex-col gap-1.5">
             <p className="font-medium tracking-tight">Todos na sala estão vendo sua tela</p>
             <p className="text-sm text-ink-subtle">
-              A prévia fica pequena para evitar o efeito espelho. Quando alguém apontar algo, o
-              ponto aparece aqui.
+              A prévia fica pequena para evitar o efeito espelho. Os pontos aparecem aqui.
             </p>
           </div>
         </div>
@@ -275,7 +274,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
 
       {pointing ? (
         <p className="glass pointer-events-none absolute top-14 right-3 rounded-xl px-3 py-1.5 text-xs font-medium">
-          Clique na tela (ou use as setas e Enter) para apontar. Todos veem o ponto.
+          Clique na tela para apontar. Todos veem o ponto.
         </p>
       ) : null}
 

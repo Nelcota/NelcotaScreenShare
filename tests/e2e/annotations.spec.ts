@@ -12,7 +12,7 @@ test("annotations reach real clients, preserve authorship, clear by authority an
   const presenter = await newParticipant(browser, "Apresentador Marcas");
   const viewer = await newParticipant(browser, "Autor Marcas");
   try {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await fakeScreenCapture(presenter.page);
     await joinRoom(presenter.page, code);
     await joinRoom(viewer.page, code);

@@ -16,7 +16,7 @@ export function connectErrorMessage(error: unknown): string {
       case ConnectionErrorReason.WebSocket:
         return "Não foi possível conectar à sala. Verifique sua internet e tente de novo.";
       case ConnectionErrorReason.Timeout:
-        return "A conexão demorou mais que o esperado. Tente de novo; se continuar, tente usar outra rede.";
+        return "A conexão demorou demais. Tente de novo ou use outra rede.";
       default:
         break;
     }
@@ -28,14 +28,14 @@ export function connectErrorMessage(error: unknown): string {
 export function disconnectMessage(reason: DisconnectReason | undefined): string | undefined {
   switch (reason) {
     case DisconnectReason.DUPLICATE_IDENTITY:
-      return "Você entrou nesta sala em outra aba ou dispositivo, então esta conexão foi encerrada.";
+      return "Você entrou nesta sala em outra aba ou dispositivo.";
     case DisconnectReason.PARTICIPANT_REMOVED:
-      return "Você foi removido da sala. Fale com quem enviou o convite antes de entrar de novo.";
+      return "Quem cuida da sala tirou você da chamada.";
     case DisconnectReason.ROOM_DELETED:
     case DisconnectReason.ROOM_CLOSED:
       return "A sala foi encerrada. Volte ao início para criar uma nova sala.";
     case DisconnectReason.SERVER_SHUTDOWN:
-      return "A sala ficou indisponível por um instante. Aguarde alguns segundos e entre de novo.";
+      return "A sala ficou indisponível. Entre de novo em alguns segundos.";
     case DisconnectReason.JOIN_FAILURE:
     case DisconnectReason.SIGNAL_CLOSE:
     case DisconnectReason.CONNECTION_TIMEOUT:

@@ -24,6 +24,7 @@ export const hostCommandSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export type HostCommand = z.infer<typeof hostCommandSchema>;
+export const hostCommandKindSchema = z.enum(["lock", "sharing", "remove", "transfer", "close"]);
 type CommandIntent<T> = T extends HostCommand ? Omit<T, "room" | "sessionId"> : never;
 export type HostIntent = CommandIntent<HostCommand>;
 
@@ -32,6 +33,10 @@ export const roomControlStateSchema = z.object({
   hostIdentity: z.string().nullable(),
   permanent: z.boolean(),
   isHost: z.boolean(),
+  /** Host commands this person may give: all for the host or owner, some for a moderator. */
+  commands: z.array(hostCommandKindSchema),
+  /** Whether ending the call also closes the room for good (an ownerless ad hoc room). */
+  endsRoom: z.boolean(),
   locked: z.boolean(),
   policy: sharePolicySchema,
   allowed: z.array(z.string()),

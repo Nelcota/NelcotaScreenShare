@@ -53,6 +53,7 @@ describe("email verification off", () => {
     const [user] = await db.select().from(schema.users).where(eq(schema.users.email, email));
     assert.equal(user?.emailVerified, false);
 
+    await db.insert(schema.roomDefinitions).values({ code: "sala-sem-confirmar" });
     const response = await requestRoomToken(
       new Request("http://localhost:3000/api/token", {
         method: "POST",

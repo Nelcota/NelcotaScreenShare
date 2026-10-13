@@ -29,7 +29,7 @@ test("host lock rejects prefetched admission and guests; sharing restriction pre
   const waiting = await newParticipant(browser, "Pessoa Esperando");
   const guest = await newVisitor(browser);
   try {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await fakeScreenCapture(member.page, { withSound: true, safeAudio: true });
     const credentials = await joinControlled(host, code);
     const csp = (await host.context.request.get("/")).headers()["content-security-policy"];
@@ -104,7 +104,7 @@ test("transfer removes old host authority; exclusion and closure reject original
   const next = await newParticipant(browser, "Proximo Host");
   const member = await newParticipant(browser, "Pessoa Removida");
   try {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     const hostCredentials = await joinControlled(host, code);
     await joinRoom(next.page, code);
     const refreshes = refreshedCredentials(member);
@@ -158,7 +158,7 @@ test("admitted participant reconnects under lock and host authority survives nav
       socket.connectToServer();
       interrupt = () => socket.close({ code: 1012, reason: "Test reconnection" });
     });
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await joinRoom(host.page, code);
     await joinRoom(member.page, code);
     await host.page.getByRole("button", { name: "Controles do anfitrião" }).click();

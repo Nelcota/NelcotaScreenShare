@@ -4,19 +4,19 @@ import { BugArt, PairingArt, ReviewArt } from "./UseCaseArt";
 const CASES: { title: string; text: string; uses: string; art: ReactNode }[] = [
   {
     title: "Mostrar um bug.",
-    text: "Reproduza o erro ao vivo, com o som do computador junto, enquanto o time vê exatamente o que você vê. Sem gravar vídeo e sem “aqui funciona”.",
+    text: "Reproduza o erro ao vivo, com o som do computador, e o time vê o mesmo que você.",
     uses: "Som do computador · Tela, janela ou aba",
     art: <BugArt />,
   },
   {
     title: "Revisar uma tela.",
-    text: "Design e produto apontam direto no que querem mudar, com o ponteiro na tela de quem apresenta. Cada um vê o nome de quem está apontando.",
+    text: "Design e produto apontam o que querem mudar na tela de quem apresenta, com o nome de cada um no ponteiro.",
     uses: "Ponteiro compartilhado · Reações e mão levantada",
     art: <ReviewArt />,
   },
   {
     title: "Parear num problema.",
-    text: "Uma pessoa conduz e a outra acompanha numa janela flutuante por cima do editor, sem ficar trocando de aba.",
+    text: "Uma pessoa conduz e a outra acompanha numa janela flutuante por cima do editor.",
     uses: "Janela flutuante · Atalhos de teclado",
     art: <PairingArt />,
   },
@@ -34,9 +34,9 @@ export function UseCasesScene() {
           id="use-cases-title"
           className="page-column text-[clamp(2.25rem,6vw,5rem)] leading-[1] font-semibold tracking-[-0.045em]"
         >
-          Feito para o dia a dia
+          No dia a dia
           <br />
-          <span className="text-ink-subtle">do seu time.</span>
+          <span className="text-ink-subtle">do time.</span>
         </h2>
         <ol data-cases-track className="page-column flex flex-col gap-20 md:gap-24">
           {CASES.map(({ title, text, uses, art }, index) => (

@@ -8,41 +8,40 @@ function faqItems(maxParticipants: number): { question: string; answer: string }
   return [
     {
       question: "Preciso instalar alguma coisa?",
-      answer:
-        "Não. A sala abre no navegador, tanto no computador quanto no celular. Nada de programa ou extensão.",
+      answer: "Não. A sala abre no navegador, no computador ou no celular.",
     },
     {
       question: "Quem eu convido precisa criar conta?",
       answer:
-        "Não. Quem recebe o link entra só com o nome, como convidado, e aparece na sala marcado assim. A conta grátis é só para quem abre a sala.",
+        "Não. Quem recebe o link entra só com o nome, como convidado. A conta é só para quem abre a sala.",
     },
     {
       question: "Quanto custa?",
       answer:
-        "O plano Grátis não tem prazo nem cartão. O Pro, para times que usam todo dia, vai custar R$ 19 por pessoa por mês; deixe seu e-mail na seção de preços para saber quando abrir.",
+        "O plano Grátis não tem prazo nem pede cartão. O Pro vai custar R$ 19 por pessoa por mês. Deixe seu e-mail na seção de preços para saber quando abrir.",
     },
     {
       question: "O som do computador vai junto com a tela?",
       answer:
-        "No Chrome e no Edge, sim: é só compartilhar com som. No Firefox e no Safari, a tela vai sem o som do computador.",
+        "No Chrome e no Edge, sim. No Firefox e no Safari, a tela vai sem o som do computador.",
     },
     {
       question: "Funciona no celular?",
       answer:
-        "Funciona para assistir, falar e usar o chat. Para compartilhar a sua tela, entre pelo computador.",
+        "Para assistir, falar e usar o chat, sim. Para compartilhar a tela, use o computador.",
     },
     {
       question: "Quantas pessoas cabem numa sala?",
-      answer: `Até ${maxParticipants}. O Nelcota é feito para conversas pequenas, em que todo mundo participa.`,
+      answer: `Até ${maxParticipants} pessoas.`,
     },
     {
       question: "As chamadas ficam gravadas?",
-      answer: "Não. Áudio, vídeo, telas e mensagens do chat passam ao vivo e não são guardados.",
+      answer: "Não. Áudio, vídeo, telas e chat passam ao vivo e não são guardados.",
     },
     {
       question: "O que vocês guardam sobre mim?",
       answer:
-        "Só o necessário para a conta e para o histórico de acesso às salas. Na página da conta você baixa tudo isso ou exclui a conta quando quiser, como manda a LGPD.",
+        "Só o necessário para a conta e para o histórico de acesso às salas. Na página da conta você baixa esses dados ou exclui a conta, como prevê a LGPD.",
     },
   ];
 }

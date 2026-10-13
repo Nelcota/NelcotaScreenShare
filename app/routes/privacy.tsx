@@ -60,7 +60,7 @@ const HIGHLIGHTS: { icon: LucideIcon; title: string; text: string }[] = [
   {
     icon: UserRoundCheck,
     title: "Você no controle",
-    text: "Baixe seus dados ou exclua a conta quando quiser.",
+    text: "Baixe seus dados ou exclua a conta.",
   },
 ];
 
@@ -224,7 +224,7 @@ function RightsSection() {
       id="seus-direitos"
       index={5}
       title="Seus direitos"
-      description="Em Minha conta você baixa todos os seus dados e pode excluir a conta a qualquer momento."
+      description="Em Minha conta você baixa todos os seus dados e exclui a conta."
     >
       <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2">

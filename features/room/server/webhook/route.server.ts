@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
 import { WebhookReceiver } from "livekit-server-sdk";
 import { z } from "zod";
-import { getDb } from "@/server/db/index.server";
+import { getDb, type Database } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
+import { liveKitGateway, type LiveKitGateway } from "@/features/room/server/livekit-gateway.server";
+import { removeBannedJoin } from "@/features/room/server/webhook/ban-enforcement.server";
+import { webhookPayloadSchema } from "@/features/room/server/webhook/payload";
 import { ingestEvent } from "@/features/room/server/webhook/projector.server";
 import { logger } from "@/server/logger.server";
 import { BodyTooLargeError, readBodyText } from "@/server/body.server";
@@ -16,6 +19,8 @@ const LOGGED_EVENTS = new Set([
 ]);
 
 let receiver: WebhookReceiver | undefined;
+
+type BanGateway = Pick<LiveKitGateway, "removeParticipant">;
 
 /** The serialized event is always a JSON object (the SDK type is wider). */
 const eventObject = z.record(z.string(), z.unknown());
@@ -65,7 +70,32 @@ async function verifiedEvent(
   }
 }
 
-export async function receiveLivekitWebhook(request: Request) {
+/**
+ * Disconnects a banned person who joined with a token issued before the ban. A failure is
+ * only logged: the event is already stored, and LiveKit must not redeliver it for this.
+ */
+async function enforceBans(db: Database, gateway: BanGateway, event: Record<string, unknown>) {
+  const parsed = webhookPayloadSchema.safeParse(event);
+  if (!parsed.success) return;
+  try {
+    if (!(await removeBannedJoin(db, gateway, parsed.data))) return;
+    logger.info(
+      {
+        source: "livekit-webhook",
+        room: parsed.data.room?.name,
+        participant: { identity: parsed.data.participant?.identity },
+      },
+      "banned participant removed on join",
+    );
+  } catch (error) {
+    logger.error({ err: error, source: "livekit-webhook" }, "failed to enforce a room ban");
+  }
+}
+
+export async function receiveLivekitWebhook(
+  request: Request,
+  gateway: BanGateway = liveKitGateway,
+) {
   const env = getEnv();
   receiver ??= new WebhookReceiver(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET);
 
@@ -92,8 +122,9 @@ export async function receiveLivekitWebhook(request: Request) {
   const db = getDb();
   // LiveKit always sends an id; the body hash covers a delivery without one.
   const id = event.id || `sha256:${createHash("sha256").update(body).digest("hex")}`;
+  const stored = eventObject.parse(event.toJson());
   try {
-    const result = await ingestEvent(db, id, eventObject.parse(event.toJson()));
+    const result = await ingestEvent(db, id, stored);
     if (result === "failed") {
       logger.warn({ source: "livekit-webhook", id, event: event.event }, "event not projected");
     }
@@ -101,5 +132,6 @@ export async function receiveLivekitWebhook(request: Request) {
     logger.error({ err: error, source: "livekit-webhook", id }, "failed to store event");
     return Response.json({ error: "unavailable" }, { status: 503 });
   }
+  await enforceBans(db, gateway, stored);
   return new Response(null, { status: 204 });
 }

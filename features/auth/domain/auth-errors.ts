@@ -3,6 +3,9 @@
  * the same sentence for a nonexistent e-mail and a wrong password (they do not
  * reveal who has an account).
  */
+/** Any operation called without a session answers this (operation-policies.server). */
+export const SESSION_EXPIRED_MESSAGE = "Sua sessão expirou. Entre de novo.";
+
 const BY_CODE: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: "E-mail ou senha incorretos.",
   EMAIL_NOT_VERIFIED: "Confirme seu e-mail antes de entrar. Enviamos um novo link agora.",
@@ -19,7 +22,7 @@ const BY_CODE: Record<string, string> = {
   INVALID_TOKEN: "Este link não vale mais. Peça um novo.",
   PASSWORD_TOO_SHORT: "A senha é curta demais.",
   PASSWORD_TOO_LONG: "A senha é longa demais.",
-  SESSION_EXPIRED: "Sua sessão expirou. Entre de novo.",
+  SESSION_EXPIRED: SESSION_EXPIRED_MESSAGE,
   SESSION_NOT_FRESH: "Por segurança, saia da sua conta e entre de novo para trocar o e-mail.",
   CROSS_SITE_REQUEST: "Requisição recusada. Atualize a página e tente de novo.",
   ADMIN_DISABLED: "O painel admin está desligado neste servidor.",

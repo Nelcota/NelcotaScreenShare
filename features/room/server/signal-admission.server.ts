@@ -20,6 +20,7 @@ import {
   sessionByMediaName,
 } from "./session-store.server";
 import { liveKitGateway } from "./livekit-gateway.server";
+import { roomRoleOf } from "./room-roles.server";
 import { controlGateway } from "./control-gateway.server";
 import { reconcileSessionPresence } from "./session-presence.server";
 import { SignalRelay } from "./signal-relay.server";
@@ -62,10 +63,15 @@ export async function authorizeSignal(
       participants.filter((person) => person.identity !== identity).length >= env.MAX_PARTICIPANTS
     )
       throw new AdmissionError("room_full", "A sala está cheia.");
+    // The saved role, not the one in the old token: it may have changed since.
+    const role = account
+      ? await roomRoleOf(tx, { roomCode: resolved.code, userId: identity })
+      : "participant";
     const freshToken = await liveKitGateway.signToken({
       room: session.mediaRoomName,
       identity,
       name: account?.name ?? claims.name ?? "Convidado",
+      role,
       canShare: mayShareScreen(
         identity,
         session.hostUserId,

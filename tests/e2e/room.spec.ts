@@ -1,18 +1,87 @@
 import { fakeScreenCapture } from "./support/screen-capture";
 import { expect, test } from "@playwright/test";
-import { joinRoom, newParticipant, newRoomCode, newVisitor } from "./support/session";
+import { joinRoom, newParticipant, newRoomCode, newVisitor, PASSWORD } from "./support/session";
+import { createdRoom } from "./support/database";
 import { E2E_ACCESS_PASSWORD, E2E_URL } from "./support/env";
 
 test.describe("room access", () => {
   test("without an account opens as a guest; signing in comes back to the room", async ({
     browser,
   }) => {
+    await createdRoom("abc-defg-hij");
     const { page, context } = await newVisitor(browser);
     await page.goto("/sala/ABC-DEFG-HIJ");
     await expect(page).toHaveURL(/\/sala\/abc-defg-hij$/);
     await expect(page.getByLabel("Seu nome na sala")).toBeFocused();
     await page.getByRole("link", { name: "Já tenho conta" }).click();
     await expect(page).toHaveURL(/\/entrar\?voltar=%2Fsala%2Fabc-defg-hij/);
+    await context.close();
+  });
+
+  test("a code nobody created shows that the room does not exist", async ({ browser }) => {
+    const { page, context } = await newVisitor(browser);
+    const response = await page.goto("/sala/bzk-i123-askjndjkaw");
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: "Esta sala não existe" })).toBeVisible();
+    await expect(page.getByText("Confira o link.")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Entrar na sala/ })).toHaveCount(0);
+    await context.close();
+  });
+
+  test("an account creates a room from the home page and owns its pre-join", async ({
+    browser,
+  }) => {
+    const { page, context } = await newParticipant(browser, "Rui Criador");
+    await page.goto("/");
+    await page.getByRole("button", { name: "Criar sala", exact: true }).first().click();
+    await expect(page).toHaveURL(/\/sala\/[a-z0-9]{3}-[a-z0-9]{4}-[a-z0-9]{3}$/);
+    await expect(
+      page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }),
+    ).toBeVisible();
+    await context.close();
+  });
+
+  test("a visitor's Criar sala goes through sign-up and lands in the new room", async ({
+    browser,
+  }) => {
+    const { page, context } = await newVisitor(browser);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Criar sala", exact: true }).first().click();
+    await expect(page).toHaveURL(/\/cadastro\?voltar=%2F%3Fcriar%3Dsala$/);
+    await page.getByLabel("Seu nome").fill("Lia Nova");
+    await page.getByLabel("E-mail").fill(`lia.${Date.now()}@exemplo.dev`);
+    await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
+    // Enter in the password field, as people usually submit it.
+    await page.getByLabel("Senha", { exact: true }).press("Enter");
+    await expect(page).toHaveURL(/\/sala\/[a-z0-9]{3}-[a-z0-9]{4}-[a-z0-9]{3}$/);
+    await expect(
+      page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }),
+    ).toBeVisible();
+    // The room replaced the return address: going back does not create another room.
+    await page.goBack();
+    await expect(page).not.toHaveURL(/criar=sala/);
+    await context.close();
+  });
+
+  test("right after signing up, Criar sala opens a new room without reloading", async ({
+    browser,
+  }) => {
+    const { page, context } = await newVisitor(browser);
+    await page.goto("/cadastro");
+    await page.getByLabel("Seu nome").fill("Rafa Nova");
+    await page.getByLabel("E-mail").fill(`rafa.${Date.now()}@exemplo.dev`);
+    await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
+    await page.getByLabel("Senha", { exact: true }).press("Enter");
+    await expect(page).toHaveURL(`${E2E_URL}/`);
+    await expect(page.getByRole("link", { name: "Minha conta" })).toContainText("Rafa Nova");
+
+    const creating = page.waitForRequest(/\/api\/operations\/room-createRoomAction/);
+    await page.getByRole("button", { name: "Criar sala", exact: true }).first().click();
+    await creating;
+    await expect(page).toHaveURL(/\/sala\/[a-z0-9]{3}-[a-z0-9]{4}-[a-z0-9]{3}$/);
+    await expect(
+      page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }),
+    ).toBeVisible();
     await context.close();
   });
 
@@ -35,12 +104,12 @@ test.describe("pre-join", () => {
       javaScriptEnabled: false,
     });
     const page = await context.newPage();
-    const path = `/sala/${newRoomCode()}`;
+    const path = `/sala/${await newRoomCode()}`;
     await page.goto(path);
     await expect(page.getByRole("button", { name: /Entrar na sala/ })).toBeDisabled();
     await expect(page.locator("form")).toHaveAttribute("method", "post");
-    await page.getByLabel("Senha da sala (quem te convidou sabe)").fill(E2E_ACCESS_PASSWORD);
-    await page.getByLabel("Senha da sala (quem te convidou sabe)").press("Enter");
+    await page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
+    await page.getByLabel("Senha da sala").press("Enter");
     await expect(page).toHaveURL(`${E2E_URL}${path}`);
     await context.close();
     await person.context.close();
@@ -48,18 +117,20 @@ test.describe("pre-join", () => {
 
   test("a wrong password shows the error on the field", async ({ browser }) => {
     const ana = await newParticipant(browser, "Ana Teste");
-    const response = await ana.page.goto(`/sala/${newRoomCode()}`);
+    const response = await ana.page.goto(`/sala/${await newRoomCode()}`);
     expect(await response?.text()).not.toContain(E2E_ACCESS_PASSWORD);
     await expect(ana.page.getByText(/Captando áudio|Microfone testado/)).toBeVisible();
-    await ana.page.getByLabel("Senha da sala (quem te convidou sabe)").fill("errada");
+    await ana.page.getByLabel("Senha da sala").fill("errada");
     await ana.page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
-    await expect(ana.page.getByText("Essa senha não confere")).toBeVisible();
+    await expect(
+      ana.page.getByText("Senha incorreta. Confira com quem enviou o convite."),
+    ).toBeVisible();
     await ana.context.close();
   });
 
   test("with the microphone off, joins listen-only", async ({ browser }) => {
     const bia = await newParticipant(browser, "Bia Teste");
-    await bia.page.goto(`/sala/${newRoomCode()}`);
+    await bia.page.goto(`/sala/${await newRoomCode()}`);
     await bia.page.getByRole("switch").first().click();
     await expect(bia.page.getByRole("button", { name: /Entrar só ouvindo/ })).toBeVisible();
     await bia.context.close();
@@ -73,7 +144,7 @@ test.describe("in the room", () => {
     const sender = await newParticipant(browser, "Avisos Remetente");
     const reader = await newParticipant(browser, "Avisos Leitor");
     try {
-      const code = newRoomCode();
+      const code = await newRoomCode();
       await fakeScreenCapture(sender.page);
       await joinRoom(sender.page, code, { micOn: false });
       await sender.page
@@ -128,7 +199,7 @@ test.describe("in the room", () => {
     const listener = await newParticipant(browser, "Audio Leitor");
     const speaker = await newParticipant(browser, "Audio Falante");
     const newcomer = await newParticipant(browser, "Audio Novo");
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await fakeScreenCapture(speaker.page, { withSound: true, safeAudio: true });
     await joinRoom(listener.page, code);
     await joinRoom(speaker.page, code);
@@ -171,7 +242,7 @@ test.describe("in the room", () => {
   }) => {
     const sender = await newParticipant(browser, "Historico Remetente");
     const reader = await newParticipant(browser, "Historico Leitor");
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await joinRoom(sender.page, code, { micOn: false });
     await joinRoom(reader.page, code, { micOn: false });
     await sender.page.getByRole("button", { name: /^Chat/ }).click();
@@ -206,7 +277,7 @@ test.describe("in the room", () => {
     const { page, context } = await newParticipant(browser, "Aline Teste");
     await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
     await fakeScreenCapture(page);
-    await joinRoom(page, newRoomCode(), { micOn: false });
+    await joinRoom(page, await newRoomCode(), { micOn: false });
     await expect(page.getByText("Você é a primeira pessoa aqui")).toBeVisible();
 
     const dock = page.getByRole("navigation", { name: "Controles da chamada", exact: true });
@@ -275,7 +346,7 @@ test.describe("in the room", () => {
   test("computer audio that would echo the room is left out of the share", async ({ browser }) => {
     const participant = await newParticipant(browser, "Bia Teste");
     await fakeScreenCapture(participant.page, { withSound: true });
-    await joinRoom(participant.page, newRoomCode(), { micOn: false });
+    await joinRoom(participant.page, await newRoomCode(), { micOn: false });
 
     await participant.page.getByRole("button", { name: "Compartilhar minha tela" }).click();
     await participant.page.getByRole("button", { name: /^Tela inteira/ }).click();
@@ -287,7 +358,7 @@ test.describe("in the room", () => {
 
   test("alone: welcome; leave and join again", async ({ browser }) => {
     const caio = await newParticipant(browser, "Caio Teste");
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await joinRoom(caio.page, code);
     await expect(caio.page.getByText("Você é a primeira pessoa aqui")).toBeVisible();
 
@@ -298,12 +369,12 @@ test.describe("in the room", () => {
       .click();
     await expect(caio.page.getByText("Você saiu da sala")).toBeVisible();
     await caio.page.getByRole("button", { name: "Voltar para a sala" }).click();
-    await expect(caio.page.getByLabel("Senha da sala (quem te convidou sabe)")).toBeVisible();
+    await expect(caio.page.getByLabel("Senha da sala")).toBeVisible();
     await caio.context.close();
   });
 
   test("two people: join notice, chat, reaction, hand and shared screen", async ({ browser }) => {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     const dani = await newParticipant(browser, "Dani Souza");
     const edu = await newParticipant(browser, "Edu Lima");
     await fakeScreenCapture(dani.page);
@@ -383,14 +454,14 @@ test.describe("in the room", () => {
   test("a guest joins through the link once someone with an account is inside", async ({
     browser,
   }) => {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     const gil = await newParticipant(browser, "Gil Anfitriao");
     const { page: iris, context } = await newVisitor(browser);
     const join = iris.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ });
 
     await iris.goto(`/sala/${code}`);
     await iris.getByLabel("Seu nome na sala").fill("Iris Convidada");
-    await iris.getByLabel("Senha da sala (quem te convidou sabe)").fill(E2E_ACCESS_PASSWORD);
+    await iris.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await join.click();
     await expect(iris.getByText(/A sala ainda não começou/)).toBeVisible();
 
@@ -420,8 +491,8 @@ test.describe("in the room", () => {
       const body = (await response.json()) as { token: string };
       await route.fulfill({ response, json: { ...body, serverUrl: "ws://127.0.0.1:9" } });
     });
-    await fia.page.goto(`/sala/${newRoomCode()}`);
-    await fia.page.getByLabel("Senha da sala (quem te convidou sabe)").fill(E2E_ACCESS_PASSWORD);
+    await fia.page.goto(`/sala/${await newRoomCode()}`);
+    await fia.page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await fia.page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
     await expect(fia.page.getByText("Não deu para conectar")).toBeVisible({ timeout: 30_000 });
     await expect(fia.page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();

@@ -15,6 +15,7 @@ interface RoomViewProps {
   code: string;
   choices: JoinChoices;
   maxParticipants: number;
+  roomName: string | null;
   /** Shows the link to the admin panel. */
   isAdmin: boolean;
   /** Another page is open: the call goes on hidden, with a card to go back. */
@@ -28,6 +29,7 @@ export function RoomView({
   code,
   choices,
   maxParticipants,
+  roomName,
   isAdmin,
   minimized,
   onLeave,
@@ -65,6 +67,7 @@ export function RoomView({
                   <RoomLayout
                     code={code}
                     maxParticipants={maxParticipants}
+                    roomName={roomName}
                     isAdmin={isAdmin}
                     onLeave={leave}
                   />

@@ -91,10 +91,7 @@ function CreateInviteDialog({
           <div className="flex flex-col gap-4">
             <DialogHeader>
               <DialogTitle>Convite criado</DialogTitle>
-              <DialogDescription>
-                Copie o link agora: por segurança, ele não aparece de novo. Quem entra por ele não
-                precisa da senha de acesso.
-              </DialogDescription>
+              <DialogDescription>Copie o link agora. Ele não aparece de novo.</DialogDescription>
             </DialogHeader>
             <div className="flex gap-2">
               <Label htmlFor={ids.link} className="sr-only">
@@ -148,8 +145,8 @@ function CreateInviteDialog({
             <DialogHeader>
               <DialogTitle>Novo convite</DialogTitle>
               <DialogDescription>
-                Defina validade e/ou limite de pessoas. Voltar à sala com o mesmo convite não gasta
-                outro uso.
+                Defina validade, limite de pessoas ou os dois. Voltar à sala com o mesmo convite não
+                gasta outro uso.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-1.5">

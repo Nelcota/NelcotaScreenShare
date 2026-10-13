@@ -191,7 +191,7 @@ function BulkActions({
         open={open}
         onOpenChange={setOpen}
         title={count === 1 ? "Excluir 1 sala?" : `Excluir ${formatNumber(count)} salas?`}
-        description="As salas somem das listas (o histórico continua no banco). Salas ao vivo não podem ser excluídas."
+        description="As salas somem das listas. Salas ao vivo não podem ser excluídas."
         confirmLabel="Excluir"
         danger
         pending={remove.isPending}

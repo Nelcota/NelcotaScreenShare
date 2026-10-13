@@ -40,7 +40,7 @@ test("pre-join keeps the return from the account page and the call uses only the
 }) => {
   const { page, context } = await newParticipant(browser, "Navegacao Teste");
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const code = newRoomCode();
+  const code = await newRoomCode();
   await page.goto(`/sala/${code}`);
   const navbar = page.getByRole("navigation", { name: "Principal", exact: true });
   const account = navbar.getByRole("link", { name: "Minha conta", exact: true });

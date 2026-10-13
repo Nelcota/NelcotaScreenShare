@@ -23,11 +23,7 @@ export function InviteCard({ code }: { code: string }) {
   });
 
   if (enabled) {
-    return (
-      <p className="text-sm text-ink-muted">
-        Convites ocultos pelo modo streamer. Você ainda pode copiar o link pelo botão da sala.
-      </p>
-    );
+    return <p className="text-sm text-ink-muted">Convites ocultos pelo modo streamer.</p>;
   }
 
   return (

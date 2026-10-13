@@ -19,7 +19,7 @@ export function micErrorMessage(error: unknown): string {
       return "Nenhum microfone encontrado. Conecte um microfone ou fone com microfone.";
     case "NotReadableError":
     case "TrackStartError":
-      return "O microfone está em uso por outro programa (outra chamada, por exemplo). Feche esse programa e tente de novo.";
+      return "O microfone está em uso por outro programa. Feche o programa e tente de novo.";
     default:
       return "Não deu para usar o microfone. Confira se ele está conectado e tente de novo.";
   }

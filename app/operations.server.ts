@@ -2,7 +2,6 @@ import { roomWorkspaceAction } from "@/features/rooms/actions.server";
 import { teamWorkspaceAction } from "@/features/team/actions.server";
 import { provisionBetaAction } from "@/features/admin/beta/actions.server";
 import type { OperationHandlers } from "@/server/operations/dispatch.server";
-import { hostCommandAction } from "@/features/room/actions.server";
 import {
   revokeMySession,
   revokeMyOtherSessions,
@@ -24,10 +23,21 @@ import {
   updateRoomNoteAction,
   createInviteAction,
   revokeInviteAction,
+  removeParticipantAction,
+  readmitParticipantAction,
 } from "@/features/admin/rooms/actions.server";
+import { closeGhostRoomAction } from "@/features/admin/live/actions.server";
 import { searchPanelAction } from "@/features/admin/search/actions.server";
 import { saveMascotSettings } from "@/features/admin/settings/actions.server";
 import { acceptInvitation } from "@/features/auth/actions.server";
+import {
+  answerJoin,
+  createRoomAction,
+  hostCommandAction,
+  joinRequests,
+  roomAccess,
+  setRoomAccess,
+} from "@/features/room/actions.server";
 
 /**
  * Everything the browser can call through `/api/operations/:id`. The id follows
@@ -43,6 +53,7 @@ export const operations: OperationHandlers = {
   "account-deleteMyAccount": deleteMyAccount,
   "admin-account-revokeOwnSession": revokeOwnSession,
   "admin-account-revokeOtherOwnSessions": revokeOtherOwnSessions,
+  "admin-live-closeGhostRoomAction": closeGhostRoomAction,
   "admin-participants-blockParticipantsAction": blockParticipantsAction,
   "admin-participants-unblockParticipantsAction": unblockParticipantsAction,
   "admin-participants-deleteParticipantsAction": deleteParticipantsAction,
@@ -55,8 +66,19 @@ export const operations: OperationHandlers = {
   "admin-rooms-updateRoomNoteAction": updateRoomNoteAction,
   "admin-rooms-createInviteAction": createInviteAction,
   "admin-rooms-revokeInviteAction": revokeInviteAction,
+  "admin-rooms-removeParticipantAction": removeParticipantAction,
+  "admin-rooms-readmitParticipantAction": readmitParticipantAction,
   "admin-search-searchPanelAction": searchPanelAction,
   "admin-settings-saveMascotSettings": saveMascotSettings,
   "auth-acceptInvitation": acceptInvitation,
+  "room-createRoomAction": createRoomAction,
+  "room-roomAccess": roomAccess,
+  "room-setRoomAccess": setRoomAccess,
+  "room-joinRequests": joinRequests,
+  "room-answerJoin": answerJoin,
 };
-export const readOperations = new Set(["admin-search-searchPanelAction"]);
+export const readOperations = new Set([
+  "admin-search-searchPanelAction",
+  "room-roomAccess",
+  "room-joinRequests",
+]);

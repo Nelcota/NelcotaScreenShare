@@ -103,8 +103,8 @@ export function PrivacyScene() {
         </h2>
 
         <p data-privacy-in className="max-w-xl text-lg text-pretty text-ink-muted sm:text-xl">
-          Tudo passa ao vivo e some quando a sala acaba. Você baixa ou apaga os seus dados quando
-          quiser, como manda a LGPD.
+          Tudo passa ao vivo e some quando a sala acaba. Você baixa ou apaga seus dados, como prevê
+          a LGPD.
         </p>
 
         <ul

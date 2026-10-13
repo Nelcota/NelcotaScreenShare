@@ -25,7 +25,7 @@ export default function AccountSecurityPage() {
       </div>
       {mustSetUp ? (
         <output className="block rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-          Para usar o painel, ative a verificação em duas etapas. Leva um minuto.
+          Para usar o painel, ative a verificação em duas etapas.
         </output>
       ) : null}
       <TwoFactorSettings

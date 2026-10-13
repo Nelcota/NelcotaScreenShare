@@ -5,14 +5,46 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { isGuestIdentity, participantName } from "@/features/room/domain/participant-label";
+import { useLocalParticipant, useParticipantAttribute } from "@livekit/components-react";
+import { canModerate } from "@/features/room/domain/moderation";
+import { parseRoomRole, ROLE_ATTRIBUTE, type RoomRole } from "@/features/room/domain/room-role";
+import type { RoomControlState } from "@/features/room/domain/host-controls";
 import { useRoomHost } from "./RoomHostProvider";
+
+/** What I may do to this person: the host and the owner anything; a moderator, participants only. */
+function commandsOn(
+  state: RoomControlState,
+  participant: Participant,
+  roles: { mine: RoomRole; theirs: RoomRole },
+) {
+  const fullHost = state.commands.includes("transfer");
+  const theirRole = roles.theirs;
+  const coHostMayRemove =
+    canModerate("moderator", theirRole) && participant.identity !== state.hostIdentity;
+  return {
+    // The owner hands over the whole room from the card ("Transferir a sala").
+    mayTransfer: fullHost && roles.mine !== "owner" && !isGuestIdentity(participant.identity),
+    mayRemove: state.commands.includes("remove") && (fullHost || coHostMayRemove),
+  };
+}
 
 export function HostParticipantMenu({ participant }: { participant: Participant }) {
   const host = useRoomHost();
   const [confirmation, setConfirmation] = useState<"remove" | "transfer">();
   const [open, setOpen] = useState(false);
   const name = participantName(participant);
-  if (!host.state?.isHost || participant.isLocal) return null;
+  const theirRole = parseRoomRole(useParticipantAttribute(ROLE_ATTRIBUTE, { participant }));
+  const { localParticipant } = useLocalParticipant();
+  const myRole = parseRoomRole(
+    useParticipantAttribute(ROLE_ATTRIBUTE, { participant: localParticipant }),
+  );
+  const state = host.state;
+  if (!state || participant.isLocal) return null;
+  const { mayTransfer, mayRemove } = commandsOn(state, participant, {
+    mine: myRole,
+    theirs: theirRole,
+  });
+  if (!mayTransfer && !mayRemove) return null;
   return (
     <>
       <Popover.Root open={open} onOpenChange={setOpen}>
@@ -30,7 +62,7 @@ export function HostParticipantMenu({ participant }: { participant: Participant 
             collisionPadding={16}
             className="glass z-50 flex w-[min(18rem,calc(100vw-2rem))] flex-col gap-2 rounded-2xl p-3"
           >
-            {!isGuestIdentity(participant.identity) ? (
+            {mayTransfer ? (
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -41,15 +73,17 @@ export function HostParticipantMenu({ participant }: { participant: Participant 
                 Transferir anfitrião
               </Button>
             ) : null}
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setOpen(false);
-                setConfirmation("remove");
-              }}
-            >
-              Remover da chamada
-            </Button>
+            {mayRemove ? (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setOpen(false);
+                  setConfirmation("remove");
+                }}
+              >
+                Remover da chamada
+              </Button>
+            ) : null}
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>

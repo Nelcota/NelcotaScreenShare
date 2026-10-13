@@ -22,7 +22,7 @@ export function PasswordField({
     >
       <Label htmlFor={passwordId} className="inline-flex items-center gap-1.5">
         <Lock className="size-3.5 text-ink-subtle" aria-hidden="true" />
-        Senha da sala (quem te convidou sabe)
+        Senha da sala
       </Label>
       <Input
         ref={inputRef}

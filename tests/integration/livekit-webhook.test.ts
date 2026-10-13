@@ -86,7 +86,10 @@ function payload({ event, room, at, participant, track, id, roomSid }: EventInpu
   });
 }
 
-async function send(input: EventInput | string) {
+async function send(
+  input: EventInput | string,
+  gateway?: Parameters<typeof receiveLivekitWebhook>[1],
+) {
   const body = typeof input === "string" ? input : payload(input);
   assert.ok(KEY && SECRET, "file-setup sets the LiveKit keys");
   const token = new AccessToken(KEY, SECRET);
@@ -100,6 +103,7 @@ async function send(input: EventInput | string) {
       },
       body,
     }),
+    gateway,
   );
   assert.equal(response.status, 204);
 }
@@ -546,7 +550,8 @@ describe("event projection", () => {
     const code = newRoom();
     const ana = await newUser("Ana");
     const bia = await newUser("Bia");
-    // Token request that let Ana in (IP and "who created it").
+    await db.insert(schema.roomDefinitions).values({ code, ownerUserId: ana });
+    // Token request that let Ana in (her IP).
     await db.insert(schema.tokenRequests).values({
       roomCode: code,
       userId: ana,
@@ -763,5 +768,49 @@ describe("event projection", () => {
       .from(schema.livekitEvents)
       .where(eq(schema.livekitEvents.roomName, code));
     assert.ok(event?.processedAt);
+  });
+});
+
+/** LiveKit for ban enforcement: records who the webhook disconnects. */
+function recordingGateway() {
+  const removed: string[] = [];
+  return {
+    removed,
+    removeParticipant: (_room: string, identity: string) => {
+      removed.push(identity);
+      return Promise.resolve(true);
+    },
+  };
+}
+
+describe("bans on join", () => {
+  test("someone banned from this call who joins with an old token is removed again", async () => {
+    const code = newRoom();
+    const identity = "convidado-banido-webhook";
+    // The test payload uses `RM_<code>` as the call's sid.
+    await db
+      .insert(schema.roomBans)
+      .values({ roomCode: code, identity, livekitRoomSid: `RM_${code}` });
+    const gateway = recordingGateway();
+    await send(
+      { event: "participant_joined", room: code, at: T, participant: { identity, joinedAt: T } },
+      gateway,
+    );
+    assert.deepEqual(gateway.removed, [identity]);
+  });
+
+  test("a ban from another call, or another person, is not removed", async () => {
+    const code = newRoom();
+    await db
+      .insert(schema.roomBans)
+      .values({ roomCode: code, identity: "banido-antes", livekitRoomSid: "RM_chamada-antiga" });
+    const gateway = recordingGateway();
+    for (const identity of ["banido-antes", "outra-pessoa"]) {
+      await send(
+        { event: "participant_joined", room: code, at: T, participant: { identity, joinedAt: T } },
+        gateway,
+      );
+    }
+    assert.deepEqual(gateway.removed, []);
   });
 });

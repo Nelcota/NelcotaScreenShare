@@ -57,7 +57,7 @@ export function HomeScene({
         </p>
 
         <div data-anim="card" className="mt-10 w-full max-w-2xl will-change-transform sm:mt-12">
-          <HomeStart invalidCode={invalidCode} signedIn={account !== null} />
+          <HomeStart invalidCode={invalidCode} />
         </div>
         <ul
           data-anim="subtitle"
@@ -80,7 +80,7 @@ export function HomeScene({
         </span>
       </div>
 
-      <HomeSections maxParticipants={maxParticipants} signedIn={account !== null} />
+      <HomeSections maxParticipants={maxParticipants} />
 
       <SiteFooter className="mt-8" />
     </HomeEntrance>

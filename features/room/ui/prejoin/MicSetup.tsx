@@ -97,8 +97,8 @@ function MicStatus({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-base text-ink">
-        Para os outros te ouvirem, o navegador vai pedir para usar o microfone. Clique em{" "}
-        <strong className="text-ink">Permitir</strong> quando aparecer.
+        O navegador vai pedir acesso ao microfone. Clique em{" "}
+        <strong className="text-ink">Permitir</strong>.
       </p>
       <Button
         type="button"
@@ -134,7 +134,7 @@ function BlockedSteps() {
         <li>Volte ao teste de microfone. Se a barra não aparecer, recarregue a página.</li>
       </ol>
       <p className="pl-6 text-sm text-ink-muted">
-        Se preferir, entre assim mesmo: você ouve tudo e liga o microfone depois.
+        Você também pode entrar só ouvindo e ligar o microfone depois.
       </p>
     </div>
   );

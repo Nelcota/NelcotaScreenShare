@@ -39,6 +39,7 @@ interface RoomSessionProps {
   passwordRequired: boolean;
   invite?: string;
   maxParticipants: number;
+  roomName: string | null;
   /** People in the room now (null: unknown). */
   presence: RoomPresence | null;
   /** Shows the link to the admin panel inside the call. */
@@ -64,6 +65,7 @@ export function RoomSession({
   passwordRequired,
   invite,
   maxParticipants,
+  roomName,
   presence,
   isAdmin,
   minimized,
@@ -127,6 +129,7 @@ export function RoomSession({
           code={code}
           choices={phase.choices}
           maxParticipants={maxParticipants}
+          roomName={roomName}
           isAdmin={isAdmin}
           minimized={minimized}
           onLeave={(notice) => leave(notice, phase.startedAt)}

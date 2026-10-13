@@ -23,8 +23,11 @@ const ACTION_LABELS: Record<string, string> = {
   "user.anonymize": "Anonimizou participante (LGPD)",
   "user.export": "Exportou participantes",
   "room.update": "Alterou a nota da sala",
+  "room.access_update": "Mudou a entrada da sala",
+  "room.join_answer": "Respondeu um pedido para entrar",
   "room.delete": "Excluiu sala",
   "room.restore": "Restaurou sala",
+  "room.close_ghost": "Fechou sala fantasma",
   "room.export": "Exportou salas",
   "room.host_claim": "Assumiu como anfitrião",
   "room.host_transfer": "Elegeu novo anfitrião por ausência",
@@ -36,6 +39,12 @@ const ACTION_LABELS: Record<string, string> = {
   "share_session.export": "Exportou compartilhamentos",
   "room_invite.create": "Criou convite de sala",
   "room_invite.revoke": "Revogou convite de sala",
+  "room.participant_kick": "Removeu pessoa da chamada",
+  "room.participant_ban": "Baniu pessoa da chamada",
+  "room.participant_unban": "Deixou pessoa voltar à chamada",
+  "room.moderator_grant": "Tornou moderador na sala",
+  "room.moderator_revoke": "Tirou moderador da sala",
+  "room.owner_transfer": "Passou a sala para outra pessoa",
 };
 
 const RESOURCE_LABELS: Record<string, string> = {

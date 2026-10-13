@@ -31,7 +31,7 @@ export function ProfileForm({ name }: { name: string }) {
     const { error: failure } = await callAuth(() => authClient.updateUser({ name: parsed.data }));
     setPending(false);
     if (failure) return setError(authErrorMessage(failure));
-    toast.success("Nome atualizado. Ele vale a partir da próxima sala em que você entrar.");
+    toast.success("Nome atualizado. Vale a partir da próxima sala.");
     void revalidator.revalidate();
   }
 

@@ -37,9 +37,7 @@ export default function ParticipantsPage() {
     <>
       <div>
         <h1 className="text-2xl font-semibold tracking-[-0.025em]">Participantes</h1>
-        <p className="mt-1 text-ink-muted">
-          Contas de quem entra nas salas. O painel nunca vê nem define a senha de ninguém.
-        </p>
+        <p className="mt-1 text-ink-muted">Contas de quem entra nas salas.</p>
       </div>
       <ParticipantsTable
         rows={page.items}

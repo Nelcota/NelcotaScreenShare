@@ -1,20 +1,24 @@
+import { afterAll } from "vitest";
 import { adminQuery, ident, testDatabases } from "./db";
 
 /**
- * Before each test file: a clean copy of the template database for this worker
- * (CREATE DATABASE … TEMPLATE is fast and isolates files from each other).
+ * Before each test file: a clean copy of the template database (CREATE DATABASE …
+ * TEMPLATE is fast and isolates files from each other). The name carries a per-file run
+ * id besides the worker: under load a replacement worker can get the same pool id while
+ * the old one is still running, and two files must never drop each other's copy.
  */
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error("Integration tests require TEST_DATABASE_URL");
 
+const run = crypto.randomUUID().slice(0, 8);
 const { adminUrl, template, worker, workerUrl } = testDatabases(
   url,
-  process.env.VITEST_POOL_ID ?? "0",
+  `${process.env.VITEST_POOL_ID ?? "0"}_${run}`,
 );
-await adminQuery(adminUrl, [
-  `DROP DATABASE IF EXISTS ${ident(worker)} WITH (FORCE)`,
-  `CREATE DATABASE ${ident(worker)} TEMPLATE ${ident(template)}`,
-]);
+await adminQuery(adminUrl, [`CREATE DATABASE ${ident(worker)} TEMPLATE ${ident(template)}`]);
+
+// Runs after the file's own hooks have closed their pools; FORCE ends any left open.
+afterAll(() => adminQuery(adminUrl, [`DROP DATABASE IF EXISTS ${ident(worker)} WITH (FORCE)`]));
 
 // The app code reads the database and keys from here.
 Object.assign(process.env, {

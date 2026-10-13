@@ -10,6 +10,15 @@ import { controlGateway } from "./control-gateway.server";
 import { reconcileSessionPresence } from "./session-presence.server";
 import { applyRoomCommand } from "./control-commands.server";
 import { applyHostChange, hostAuditMetadata } from "./host-changes.server";
+import { roomRoleOf } from "./room-roles.server";
+import { canRunHostCommand, type HostCommandKind } from "@/features/room/domain/room-host";
+
+/** A moderator who tries to hand over or end the call is told who can. */
+function refusalFor(kind: HostCommandKind) {
+  if (kind === "transfer" || kind === "close")
+    return "Só o anfitrião ou o dono da sala pode fazer isso.";
+  return "Só o anfitrião, o dono ou um moderador pode alterar esta sala.";
+}
 
 /** Authorization is repeated under the same lock as admission and host transfer. */
 export async function executeHostCommand(
@@ -35,14 +44,18 @@ export async function executeHostCommand(
       throw new ActionError("Sua conta não pode moderar salas.");
     const participants = await controlGateway.participants(initial.mediaRoomName);
     const session = await reconcileSessionPresence(tx, initial, participants, new Date());
-    if (session.hostUserId !== actor)
-      throw new ActionError("Só o anfitrião pode alterar esta sala.");
+    const actorRole = await roomRoleOf(tx, { roomCode: input.room, userId: actor });
+    if (!canRunHostCommand({ isHost: session.hostUserId === actor, role: actorRole }, input.kind))
+      throw new ActionError(refusalFor(input.kind));
     if (session.status !== "closed" && !participants.some((person) => person.identity === actor))
       throw new ActionError("Entre nesta chamada para moderá-la.");
     if (session.status === "closed" && input.kind !== "close")
       throw new ActionError("Esta chamada já foi encerrada.");
 
-    const { kind, targetIdentity } = await applyHostChange(tx, session, input, participants, actor);
+    const { kind, targetIdentity } = await applyHostChange(tx, session, input, participants, {
+      identity: actor,
+      role: actorRole,
+    });
     const [command] = await tx
       .insert(roomCommands)
       .values({ sessionId: session.id, kind, targetIdentity })

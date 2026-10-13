@@ -22,7 +22,7 @@ test("five participants, two screens, three annotators and an empty newcomer sta
       throw new Error("Participants missing");
     await fakeScreenCapture(host.page);
     await fakeScreenCapture(second.page);
-    const code = newRoomCode();
+    const code = await newRoomCode();
     for (const person of people.slice(0, 4)) {
       const before = Date.now();
       await joinRoom(person.page, code);

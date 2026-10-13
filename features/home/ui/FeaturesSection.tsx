@@ -229,7 +229,7 @@ export function FeaturesSection({ maxParticipants }: { maxParticipants: number }
       <SectionIntro
         id="features-title"
         title="Os detalhes."
-        subtitle="Que fazem diferença."
+        subtitle="Inclusos em toda sala."
         align="center"
       />
 
@@ -250,16 +250,12 @@ export function FeaturesSection({ maxParticipants }: { maxParticipants: number }
         </Tile>
         <Tile
           title={`Até ${maxParticipants} pessoas.`}
-          rest="Pequenas de propósito: todo mundo vê, ouve e participa."
+          rest="Salas pequenas, em que todo mundo participa."
           className="md:col-span-2"
         >
           <People max={maxParticipants} />
         </Tile>
-        <Tile
-          title="Tudo no teclado."
-          rest="Uma tecla para cada ação, que não dispara enquanto você digita."
-          className="md:col-span-3"
-        >
+        <Tile title="Tudo no teclado." rest="Uma tecla para cada ação." className="md:col-span-3">
           <Keyboard />
         </Tile>
       </ul>

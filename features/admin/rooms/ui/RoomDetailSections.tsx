@@ -1,8 +1,12 @@
 import { Link } from "react-router";
 import { Facts, Section } from "@/components/Section";
-import { LEAVE_REASON_LABELS } from "@/features/admin/rooms/domain/labels";
+import { ACCESS_LABELS, LEAVE_REASON_LABELS } from "@/features/admin/rooms/domain/labels";
+import { RemoveParticipant } from "@/features/admin/rooms/ui/RemoveParticipant";
 import type { getRoomDetail } from "@/features/admin/rooms/server/queries.server";
-import { formatDateTime, formatSpan } from "@/lib/format";
+import type { RemovedBy, RemovedPerson } from "@/features/admin/rooms/server/room-removals.server";
+import type { RoomStaff } from "@/features/admin/rooms/server/room-staff.server";
+import { ReadmitButton } from "@/features/admin/rooms/ui/ReadmitButton";
+import { formatDateTime, formatRelative, formatSpan } from "@/lib/format";
 
 type RoomDetail = NonNullable<Awaited<ReturnType<typeof getRoomDetail>>>;
 
@@ -53,8 +57,111 @@ export function RoomSummary({
   );
 }
 
-/** Who joined, when, and why they left. */
-export function RoomParticipants({ participants }: { participants: RoomDetail["participants"] }) {
+function StaffLink({ member }: { member: { id: string; name: string } }) {
+  return (
+    <Link viewTransition to={`/admin/usuarios/${member.id}`} className="hover:underline">
+      {member.name}
+    </Link>
+  );
+}
+
+function Moderators({ moderators }: { moderators: RoomStaff["moderators"] }) {
+  if (moderators.length === 0) return "—";
+  return moderators.map((member, index) => (
+    <span key={member.id}>
+      {index > 0 ? ", " : null}
+      <StaffLink member={member} />
+    </span>
+  ));
+}
+
+/** Owner, moderators and how people get in, for rooms created with "Criar sala". */
+export function RoomStaffSection({ staff }: { staff: RoomStaff }) {
+  return (
+    <Section title="Dono e moderadores">
+      <Facts
+        items={[
+          ["Dono", staff.owner ? <StaffLink key="dono" member={staff.owner} /> : "—"],
+          ["Moderadores", <Moderators key="moderadores" moderators={staff.moderators} />],
+          ["Entrada", ACCESS_LABELS[staff.access]],
+        ]}
+      />
+    </Section>
+  );
+}
+
+function removedByLabel(removedBy: RemovedBy): string {
+  if (!removedBy) return "";
+  if (removedBy.kind === "panel") return " pelo painel";
+  return ` por ${removedBy.name}`;
+}
+
+/**
+ * Who was banned from the call happening now; with `canReadmit`, each one can be let back.
+ * `null` removals: LiveKit did not answer.
+ */
+export function RoomRemovals({
+  roomId,
+  removals,
+  canReadmit,
+}: {
+  roomId: string;
+  removals: RemovedPerson[] | null;
+  canReadmit: boolean;
+}) {
+  if (removals === null) {
+    return (
+      <Section title="Removidos desta chamada" description="O LiveKit não respondeu agora.">
+        {null}
+      </Section>
+    );
+  }
+  if (removals.length === 0) return null;
+  return (
+    <Section title="Removidos desta chamada" description="Não voltam até a chamada acabar.">
+      <ul className="flex flex-col divide-y divide-line text-sm">
+        {removals.map((person) => (
+          <li
+            key={person.identity}
+            className="flex flex-wrap items-center justify-between gap-2 py-2"
+          >
+            <span>
+              <span className="font-medium">
+                {person.userId ? (
+                  <Link
+                    viewTransition
+                    to={`/admin/usuarios/${person.userId}`}
+                    className="hover:underline"
+                  >
+                    {person.name}
+                  </Link>
+                ) : (
+                  person.name
+                )}
+              </span>
+              <span className="text-ink-muted" title={formatDateTime(person.removedAt)}>
+                {" "}
+                ·{removedByLabel(person.removedBy)} {formatRelative(person.removedAt)}
+              </span>
+            </span>
+            {canReadmit ? (
+              <ReadmitButton roomId={roomId} identity={person.identity} name={person.name} />
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+/** Who joined, when, and why they left; with `canRemove`, those still in the call can be removed. */
+export function RoomParticipants({
+  participants,
+  canRemove,
+}: {
+  participants: RoomDetail["participants"];
+  canRemove: boolean;
+}) {
   return (
     <Section
       title="Participantes"
@@ -70,6 +177,11 @@ export function RoomParticipants({ participants }: { participants: RoomDetail["p
                 <th className="py-2 pr-4 font-medium">Saiu</th>
                 <th className="py-2 pr-4 font-medium">Duração</th>
                 <th className="py-2 font-medium">Saída</th>
+                {canRemove ? (
+                  <th className="py-2 font-medium">
+                    <span className="sr-only">Ações</span>
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -102,6 +214,17 @@ export function RoomParticipants({ participants }: { participants: RoomDetail["p
                       ? (LEAVE_REASON_LABELS[participant.leaveReason] ?? "—")
                       : "Na sala"}
                   </td>
+                  {canRemove ? (
+                    <td className="py-1 pl-4">
+                      {participant.leftAt === null ? (
+                        <RemoveParticipant
+                          participationId={participant.id}
+                          name={participant.name}
+                          guest={participant.userId === null}
+                        />
+                      ) : null}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

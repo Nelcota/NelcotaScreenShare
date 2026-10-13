@@ -1,5 +1,6 @@
 import { cleanWorkspaceAccount, revokeWorkspaceIdentity } from "./workspace-privacy.server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { forgetRoomLinks } from "@/features/room/server/account-room-links.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import {
@@ -81,7 +82,8 @@ export async function revokeParticipantSessions(tx: DbExecutor, ids: string[]) {
 
 /**
  * Permanent anonymization (LGPD): e-mail and name become values without personal
- * data, credentials and sessions are removed and the name leaves the room history.
+ * data, credentials and sessions are removed, the name leaves the room history and the
+ * account stops owning or moderating rooms.
  * The participation IP stays until the 6-month retention (access record
  * required by the Marco Civil, art. 15).
  */
@@ -114,6 +116,7 @@ export async function anonymizeParticipant(tx: DbExecutor, id: string, deleteOwn
   await tx.delete(userAccounts).where(eq(userAccounts.userId, id));
   await tx.delete(userTwoFactors).where(eq(userTwoFactors.userId, id));
   await tx.delete(userSessions).where(eq(userSessions.userId, id));
+  await forgetRoomLinks(tx, id);
   await tx
     .update(roomDefinitions)
     .set({ ownerUserId: null, name: null })
@@ -123,6 +126,10 @@ export async function anonymizeParticipant(tx: DbExecutor, id: string, deleteOwn
     .update(roomSessionMembers)
     .set({ userId: null, excludedAt: sql`now()` })
     .where(eq(roomSessionMembers.userId, id));
+  await tx
+    .update(roomSessionMembers)
+    .set({ excludedByUserId: null })
+    .where(eq(roomSessionMembers.excludedByUserId, id));
   // Password recovery: identifier = reset-password:<token>, value = user.id.
   await tx
     .delete(userVerifications)

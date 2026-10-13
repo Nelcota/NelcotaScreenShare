@@ -86,7 +86,7 @@ export function SignInForm({
       title="Entre na sua conta"
       description={
         context.kind === "room"
-          ? "Depois de entrar, você volta direto para a sala."
+          ? "Depois de entrar, você volta para a sala."
           : "Para criar salas e compartilhar a tela."
       }
       top={<AccessTabs current="entrar" returnTo={returnTo} />}

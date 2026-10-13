@@ -89,7 +89,7 @@ export function useRoomConnection(
           await room.localParticipant.setMicrophoneEnabled(true).catch((error: unknown) => {
             logBrowserWarning("Could not turn on the microphone on join", error);
             toast.error(
-              "Você entrou com o microfone desligado. Confira as permissões deste site e tente ligá-lo nos controles da sala.",
+              "Você entrou com o microfone desligado. Confira as permissões do site e ligue pelos controles da sala.",
               { id: MIC_ERROR_TOAST },
             );
           });

@@ -1,4 +1,5 @@
 import { ActionError } from "@/server/operations/action-error";
+import { SESSION_EXPIRED_MESSAGE } from "@/features/auth/domain/auth-errors";
 import { defineOperation, type BasePolicy } from "@/server/operations/define-operation.server";
 import { createAuditRecorder, type AuditRecorder } from "@/server/audit.server";
 import { requestHeaders } from "@/server/request-context.server";
@@ -33,7 +34,7 @@ function checkFresh(createdAt: Date, policy: Policy) {
 
 export const defineAdminOperation = defineOperation<Policy, AdminContext>(async (policy) => {
   const admin = await getAdminSession();
-  if (!admin) throw new ActionError("Sua sessão expirou. Entre de novo.");
+  if (!admin) throw new ActionError(SESSION_EXPIRED_MESSAGE);
   if (!policy.allowWithoutTwoFactor && needsTwoFactorSetup(admin)) {
     throw new ActionError("Ative a verificação em duas etapas para continuar.");
   }
@@ -46,7 +47,7 @@ export const defineAdminOperation = defineOperation<Policy, AdminContext>(async 
 
 export const defineUserOperation = defineOperation<Policy, UserContext>(async (policy) => {
   const current = await getUserSession();
-  if (!current) throw new ActionError("Sua sessão expirou. Entre de novo.");
+  if (!current) throw new ActionError(SESSION_EXPIRED_MESSAGE);
   checkFresh(current.session.createdAt, policy);
   return { current, audit: createAuditRecorder({ userId: current.user.id }) };
 });

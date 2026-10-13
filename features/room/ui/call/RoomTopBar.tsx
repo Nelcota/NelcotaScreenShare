@@ -3,9 +3,7 @@ import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { Check, Copy, LayoutDashboard, MoreHorizontal } from "lucide-react";
-import { Link, useRouteLoaderData } from "react-router";
-import type { loader as rootLoader } from "@/app/root";
-import { UserAvatar } from "@/components/UserAvatar";
+import { Link } from "react-router";
 import { Hint } from "@/components/Hint";
 import {
   NavBar,
@@ -18,12 +16,15 @@ import { navItemClass } from "@/components/shell/nav-item-class";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
 import { participantName } from "@/features/room/domain/participant-label";
-import { initials } from "@/lib/initials";
+import { useRoomName } from "@/features/room/hooks/use-room-roles";
 import { cn } from "@/lib/utils";
 import { NameEditor } from "./NameEditor";
-import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
+import { ParticipantAvatar } from "./ParticipantAvatar";
+import { RoleBadge } from "./RoleBadge";
+import { RoomAccessChip } from "./RoomAccessChip";
 import { HostBadge } from "./HostBadge";
 import { HostParticipantMenu } from "./HostParticipantMenu";
+import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { HostControlsMenu } from "./HostControlsMenu";
 import type { Connection } from "./RoomLayout";
 
@@ -33,8 +34,11 @@ const CONNECTION_LABELS: Record<Connection, string> = {
   reconnecting: "Reconectando",
 };
 
-/** "Sala abc-defg-hij" that copies the link; the confirmation appears on the button itself. */
-function RoomCodeButton({ code }: { code: string }) {
+/**
+ * "Sala de Ana · abc-defg-hij" that copies the link; the confirmation appears on the button
+ * itself. In streamer mode only the name shows; a room without an owner shows the code.
+ */
+function RoomCodeButton({ code, name }: { code: string; name: string | null }) {
   const { copied, copy } = useCopyRoomLink(code);
   const { enabled } = useStreamerMode();
 
@@ -44,15 +48,12 @@ function RoomCodeButton({ code }: { code: string }) {
       onClick={() => void copy()}
       aria-label={
         enabled
-          ? "Código oculto. Copiar link para convidar"
-          : `Sala ${code}. Copiar link para convidar`
+          ? `${name ?? "Código oculto"}. Copiar link para convidar`
+          : `${name ?? "Sala"} ${code}. Copiar link para convidar`
       }
       className="group flex h-10 min-w-0 items-center gap-2 rounded-xl px-3 transition-colors hover:bg-surface-3"
     >
-      <span className="truncate text-base font-medium tracking-tight">
-        <span className="font-normal text-ink-muted max-sm:hidden">Sala </span>
-        <span className="font-sans tabular-nums">{enabled ? "Código oculto" : code}</span>
-      </span>
+      <RoomLabel code={code} name={name} hideCode={enabled} />
       {copied ? (
         <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-success">
           <Check className="size-4" aria-hidden="true" />
@@ -68,9 +69,48 @@ function RoomCodeButton({ code }: { code: string }) {
   );
 }
 
+/** The room's name, the code next to it, or only the name when the code must stay hidden. */
+function RoomLabel({
+  code,
+  name,
+  hideCode,
+}: {
+  code: string;
+  name: string | null;
+  hideCode: boolean;
+}) {
+  if (name && hideCode) {
+    return <span className="truncate text-base font-medium tracking-tight">{name}</span>;
+  }
+  if (name) {
+    return (
+      <span className="truncate text-base font-medium tracking-tight">
+        {name}
+        <span className="font-sans font-normal text-ink-muted tabular-nums max-sm:hidden">
+          {" "}
+          · {code}
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className="truncate text-base font-medium tracking-tight">
+      <span className="font-normal text-ink-muted max-sm:hidden">Sala </span>
+      <span className="font-sans tabular-nums">{hideCode ? "Código oculto" : code}</span>
+    </span>
+  );
+}
+
 /** Stacked avatars + "N pessoas"; on tap, the list and the room limit. */
-function PeopleButton({ participants, max }: { participants: Participant[]; max: number }) {
-  const account = useRouteLoaderData<typeof rootLoader>("root")?.account;
+function PeopleButton({
+  participants,
+  max,
+  roomCode,
+}: {
+  participants: Participant[];
+  max: number;
+  roomCode: string;
+}) {
   const shown = participants.slice(0, 3);
   const count = participants.length;
   return (
@@ -81,16 +121,12 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
         <>
           <span className="flex -space-x-2" aria-hidden="true">
             {shown.map((participant) => (
-              <span
+              <ParticipantAvatar
                 key={participant.identity}
-                className="grid size-8 place-items-center rounded-full bg-brand/20 text-sm font-medium text-brand-soft ring-2 ring-surface"
-              >
-                {participant.isLocal && account?.image ? (
-                  <UserAvatar image={account.image} className="size-8" />
-                ) : (
-                  initials(participantName(participant))
-                )}
-              </span>
+                participant={participant}
+                roomCode={roomCode}
+                className="size-8 bg-brand/20 text-sm font-medium text-brand-soft ring-2 ring-surface"
+              />
             ))}
           </span>
           <span className="text-sm font-medium text-ink">
@@ -103,20 +139,16 @@ function PeopleButton({ participants, max }: { participants: Participant[]; max:
       <ul className="mt-3 flex flex-col gap-2.5">
         {participants.map((participant) => (
           <li key={participant.identity} className="flex items-center gap-3 text-base">
-            <span
-              aria-hidden="true"
-              className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/20 text-sm font-medium text-brand-soft"
-            >
-              {participant.isLocal && account?.image ? (
-                <UserAvatar image={account.image} className="size-9" />
-              ) : (
-                initials(participantName(participant))
-              )}
-            </span>
-            <span className="min-w-0 flex-1 truncate">
+            <ParticipantAvatar
+              participant={participant}
+              roomCode={roomCode}
+              className="size-9 shrink-0 bg-brand/20 text-sm font-medium text-brand-soft"
+            />
+            <span className="truncate">
               {participantName(participant)}
               {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
             </span>
+            <RoleBadge participant={participant} />
             <HostBadge identity={participant.identity} />
             <ParticipantAudioMenu participant={participant} />
             <HostParticipantMenu participant={participant} />
@@ -135,23 +167,28 @@ export function RoomTopBar({
   code,
   participants,
   maxParticipants,
+  roomName,
   isAdmin,
   connection,
 }: {
   code: string;
   participants: Participant[];
   maxParticipants: number;
+  /** "Sala de Ana" as the page loaded it; follows a new owner live. */
+  roomName: string | null;
   /** Admins open the panel without leaving: the call goes on minimized. */
   isAdmin: boolean;
   connection: Connection;
 }) {
   const streamer = useStreamerMode();
   const streamerId = useId();
+  const name = useRoomName(participants, roomName);
   return (
     <NavBar aria-label="Sala" className="mx-auto max-w-5xl">
       <NavBrand showName={false} className="max-sm:hidden" />
       <NavDivider className="max-sm:hidden" />
-      <RoomCodeButton code={code} />
+      <RoomCodeButton code={code} name={name} />
+      <RoomAccessChip code={code} />
       {/* Just a dot: green when connected, pulsing yellow while (re)connecting (the
           written notice appears in the middle of the screen). */}
       <span className="flex shrink-0 items-center">
@@ -166,7 +203,7 @@ export function RoomTopBar({
       </span>
 
       <span className="ml-auto" />
-      <PeopleButton participants={participants} max={maxParticipants} />
+      <PeopleButton participants={participants} max={maxParticipants} roomCode={code} />
       <HostControlsMenu participants={participants} />
       {isAdmin ? (
         <Hint text="Painel admin (a chamada continua)">

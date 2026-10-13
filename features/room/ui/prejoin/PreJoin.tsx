@@ -1,4 +1,6 @@
+import { Loader2 } from "lucide-react";
 import { useLocation, useViewTransitionState } from "react-router";
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import type { JoinChoices } from "@/features/room/domain/join";
@@ -94,6 +96,23 @@ function useEntranceAnimation(scope: RefObject<HTMLFormElement | null>) {
 }
 
 /** Pre-join: confirms who is joining, tests the microphone, asks for the password and the token. */
+/** In a room with approval: the request is out and the owner or a moderator decides. */
+function WaitingApproval({ onCancel }: { onCancel: () => void }) {
+  return (
+    <output className="flex w-full flex-col items-center gap-3 rounded-2xl border border-line bg-surface p-5 text-center">
+      <Loader2
+        className="size-6 animate-spin text-brand-soft motion-reduce:animate-none"
+        aria-hidden="true"
+      />
+      <p className="text-base font-medium">Pedido enviado</p>
+      <p className="text-sm text-ink-muted">Aguarde quem cuida da sala aceitar.</p>
+      <Button type="button" variant="ghost" onClick={onCancel}>
+        Cancelar
+      </Button>
+    </output>
+  );
+}
+
 export function PreJoin({
   code,
   userName,
@@ -109,18 +128,19 @@ export function PreJoin({
   const guestNameRef = useRef<HTMLInputElement>(null);
   const guest = userName === null;
   const guestName = useGuestName();
-  const { formError, submitting, clearError, handleSubmit } = useJoinForm({
-    code,
-    invite,
-    passwordRequired,
-    guest,
-    guestName,
-    scope,
-    passwordRef,
-    guestNameRef,
-    onJoin,
-    onPrepareJoin,
-  });
+  const { formError, submitting, waitingApproval, cancelWaiting, clearError, handleSubmit } =
+    useJoinForm({
+      code,
+      invite,
+      passwordRequired,
+      guest,
+      guestName,
+      scope,
+      passwordRef,
+      guestNameRef,
+      onJoin,
+      onPrepareJoin,
+    });
   const joinDisabled = useJoinDisabled(submitting);
   const meterRef = useRef<HTMLDivElement>(null);
   const mic = useMicSetup(submitting, meterRef);
@@ -188,12 +208,16 @@ export function PreJoin({
         </p>
       ) : null}
 
-      <JoinActions
-        mic={mic}
-        submitting={submitting}
-        joinDisabled={joinDisabled}
-        onPrepareJoin={onPrepareJoin}
-      />
+      {waitingApproval ? (
+        <WaitingApproval onCancel={cancelWaiting} />
+      ) : (
+        <JoinActions
+          mic={mic}
+          submitting={submitting}
+          joinDisabled={joinDisabled}
+          onPrepareJoin={onPrepareJoin}
+        />
+      )}
     </form>
   );
 }

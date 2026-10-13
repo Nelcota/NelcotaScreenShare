@@ -8,6 +8,7 @@ import {
   tokenRequests,
   users,
 } from "@/server/db/schema";
+import { roomDefinitions } from "@/server/db/schema/room-control";
 import type { WebhookParticipant } from "./payload";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -35,13 +36,9 @@ export async function ensureRoom(
       livekitSid: sid,
       startedAt: at,
       lastActivityAt: at,
-      // Whoever requested the first token for this code "created" the room.
+      // The room's owner: the account that created it through "Criar sala", or its heir.
       createdByUserId: sql`(
-        select ${tokenRequests.userId} from ${tokenRequests}
-        where ${tokenRequests.roomCode} = ${code} and ${tokenRequests.result} = 'granted'
-          and ${tokenRequests.createdAt} between ${at}::timestamptz - ${TOKEN_WINDOW}
-          and ${at}::timestamptz + interval '1 minute'
-        order by ${tokenRequests.createdAt} limit 1)`,
+        select ${roomDefinitions.ownerUserId} from ${roomDefinitions} where ${roomDefinitions.code} = ${code})`,
     })
     .onConflictDoUpdate({
       target: rooms.code,

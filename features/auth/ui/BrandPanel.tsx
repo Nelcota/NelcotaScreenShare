@@ -32,7 +32,7 @@ export function BrandPanel({ scope = "user" }: { scope?: "user" | "admin" }) {
         <div className="mt-6 hidden max-w-72 flex-col gap-1 lg:flex">
           <p className="text-sm font-medium">Área da equipe</p>
           <p className="text-sm leading-relaxed text-ink-muted">
-            Salas, participantes e os ajustes do Nelcota em um só lugar.
+            Salas, participantes e ajustes do Nelcota.
           </p>
         </div>
       ) : (

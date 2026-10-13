@@ -296,4 +296,46 @@ describe("list", () => {
     const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
     assert.equal(user?.participationsCount, 2);
   });
+
+  test("the counter follows bulk inserts, deletes and a change of account", async () => {
+    const [first, second] = await people("Lote", 2);
+    assert.ok(first && second);
+    const [room] = await db
+      .insert(schema.rooms)
+      .values({ code: `sala-lote-${Date.now().toString(36)}` })
+      .returning();
+    assert.ok(room);
+    const owners = [first, first, first, second, second, null];
+    const inserted = await db
+      .insert(schema.roomParticipations)
+      .values(
+        owners.map((userId, n) => ({
+          roomId: room.id,
+          userId,
+          livekitIdentity: userId ?? `convidado-${n}`,
+          livekitSid: `PA_${crypto.randomUUID()}`,
+          joinedAt: new Date(Date.now() + n),
+        })),
+      )
+      .returning({ id: schema.roomParticipations.id });
+    const counts = async () => {
+      const rows = await db
+        .select({ id: schema.users.id, count: schema.users.participationsCount })
+        .from(schema.users)
+        .where(inArray(schema.users.id, [first, second]));
+      return Object.fromEntries(rows.map((row) => [row.id, row.count]));
+    };
+    assert.deepEqual(await counts(), { [first]: 3, [second]: 2 });
+
+    const moved = inserted[0]?.id;
+    assert.ok(moved);
+    await db
+      .update(schema.roomParticipations)
+      .set({ userId: second })
+      .where(eq(schema.roomParticipations.id, moved));
+    assert.deepEqual(await counts(), { [first]: 2, [second]: 3 });
+
+    await db.delete(schema.roomParticipations).where(eq(schema.roomParticipations.roomId, room.id));
+    assert.deepEqual(await counts(), { [first]: 0, [second]: 0 });
+  });
 });

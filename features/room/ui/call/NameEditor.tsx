@@ -79,9 +79,7 @@ export function NameEditor({ code }: { code: string }) {
       </div>
       <FormError message={error} />
       {guest ? (
-        <p className="text-sm text-ink-muted">
-          Vale para esta chamada e para os próximos convites.
-        </p>
+        <p className="text-sm text-ink-muted">Vale para esta chamada e as próximas.</p>
       ) : (
         <Popover.Close asChild>
           <Link
@@ -89,7 +87,7 @@ export function NameEditor({ code }: { code: string }) {
             to={`/conta?voltar=${encodeURIComponent(roomPath(code))}`}
             className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-brand-soft underline-offset-4 hover:underline"
           >
-            Foto, e-mail e senha na sua conta (a chamada continua)
+            Editar perfil
             <ArrowRight className="icon-nudge size-4" aria-hidden="true" />
           </Link>
         </Popover.Close>

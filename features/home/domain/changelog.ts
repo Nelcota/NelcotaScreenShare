@@ -29,7 +29,7 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: "new",
-        text: "Quem recebe o link entra na sala só com o nome, sem precisar criar conta.",
+        text: "Quem recebe o link entra na sala só com o nome.",
       },
       {
         kind: "new",

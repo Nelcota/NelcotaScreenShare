@@ -44,7 +44,7 @@ export const meta = () => [
   { title: "Nelcota · Compartilhamento de tela" },
   {
     name: "description",
-    content: "Compartilhamento de tela para times de tecnologia, direto do navegador.",
+    content: "Compartilhamento de tela no navegador para times de tecnologia.",
   },
 ];
 

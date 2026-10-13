@@ -1,24 +1,18 @@
 import { Loader2, Plus } from "lucide-react";
-import { useTransition } from "react";
-import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { newRoomHref } from "@/features/home/domain/new-room";
+import { useCreateRoom } from "@/features/home/hooks/use-create-room";
 
 /**
- * "Criar sala grátis" outside the hero bar. The room code is drawn on click (never during
- * render, so server and browser agree), and visitors go through sign-up first.
+ * "Criar sala grátis" outside the hero bar. Visitors go through sign-up first.
  */
 export function CreateRoomButton({
-  signedIn,
   variant = "default",
   className,
 }: {
-  signedIn: boolean;
   variant?: "default" | "secondary";
   className?: string;
 }) {
-  const navigate = useNavigate();
-  const [pending, startTransition] = useTransition();
+  const { createRoom, pending } = useCreateRoom();
 
   return (
     <Button
@@ -26,9 +20,7 @@ export function CreateRoomButton({
       variant={variant}
       disabled={pending}
       className={className}
-      onClick={() =>
-        startTransition(() => navigate(newRoomHref(signedIn), { viewTransition: true }))
-      }
+      onClick={createRoom}
     >
       {pending ? (
         <Loader2 className="animate-spin" aria-hidden="true" />

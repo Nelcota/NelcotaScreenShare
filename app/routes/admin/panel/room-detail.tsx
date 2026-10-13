@@ -10,11 +10,15 @@ import { RoomNoteForm } from "@/features/admin/rooms/ui/RoomNoteForm";
 import { RoomStatus } from "@/features/admin/rooms/ui/RoomStatus";
 import {
   RoomParticipants,
+  RoomRemovals,
   RoomShares,
+  RoomStaffSection,
   RoomSummary,
 } from "@/features/admin/rooms/ui/RoomDetailSections";
 import { AdminHistory } from "@/features/admin/audit/ui/AdminHistory";
 import { getRoomDetail } from "@/features/admin/rooms/server/queries.server";
+import { removedFromCall } from "@/features/admin/rooms/server/room-removals.server";
+import { staffByRoom } from "@/features/admin/rooms/server/room-staff.server";
 import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { can } from "@/features/auth/server/permissions.server";
 import { getDb } from "@/server/db/index.server";
@@ -29,9 +33,12 @@ export const loader = routeLoader(async ({ params }) => {
   const detail = await getRoomDetail(db, id);
   if (!detail) notFound();
   const { room, participants, shares, invites, history } = detail;
+  const staff = (await staffByRoom(db, [room.code])).get(room.code) ?? null;
   const role = admin.user.role;
   const live = room.status === "active" && room.deletedAt === null;
   const online = participants.filter((participant) => participant.leftAt === null).length;
+  // Bans last only while the call does: nothing to list once it is over.
+  const removals = live ? await removedFromCall(db, room) : [];
 
   return {
     room,
@@ -39,9 +46,13 @@ export const loader = routeLoader(async ({ params }) => {
     shares,
     invites,
     history,
+    staff,
+    removals,
     live,
     online,
     canUpdate: can(role, { room: ["update"] }),
+    // Only while the call is live: removing needs someone connected.
+    canRemove: live && can(role, { live: ["kick"] }),
     canInvite: {
       create: can(role, { roomInvite: ["create"] }) && room.deletedAt === null,
       revoke: can(role, { roomInvite: ["revoke"] }),
@@ -50,8 +61,20 @@ export const loader = routeLoader(async ({ params }) => {
 });
 
 export default function RoomPage() {
-  const { room, participants, shares, invites, history, live, online, canUpdate, canInvite } =
-    useLoaderData<typeof loader>();
+  const {
+    room,
+    participants,
+    shares,
+    invites,
+    history,
+    staff,
+    removals,
+    live,
+    online,
+    canUpdate,
+    canRemove,
+    canInvite,
+  } = useLoaderData<typeof loader>();
   return (
     <>
       <div className="flex flex-col gap-3">
@@ -73,6 +96,7 @@ export default function RoomPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <RoomSummary room={room} online={live ? online : null} shareCount={shares.length} />
+        {staff ? <RoomStaffSection staff={staff} /> : null}
         <Section title="Nota interna" description="Só o painel vê.">
           <RoomNoteForm id={room.id} note={room.note} canEdit={canUpdate} />
         </Section>
@@ -94,7 +118,9 @@ export default function RoomPage() {
         />
       </Section>
 
-      <RoomParticipants participants={participants} />
+      <RoomRemovals roomId={room.id} removals={removals} canReadmit={canRemove} />
+
+      <RoomParticipants participants={participants} canRemove={canRemove} />
 
       <RoomShares shares={shares} />
 

@@ -1,11 +1,12 @@
-import { generateRoomCode, roomPath } from "@/features/room/domain/room-code";
+/** Back on the home page with this address, a signed-in person's "Criar sala" runs by itself. */
+export const CREATE_ROOM_RETURN = "/?criar=sala";
 
 /**
- * Where "Criar sala" goes: a new room with an account; without one, the sign-up page first
- * (a room only opens with someone signed in; guests join rooms that are already open).
+ * Where "Criar sala" sends someone the server did not recognize: a visitor signs up, an
+ * account whose session expired signs in. Both come back and the room is created.
  */
-export function newRoomHref(signedIn: boolean): string {
-  const room = roomPath(generateRoomCode());
-  if (signedIn) return room;
-  return `/cadastro?voltar=${encodeURIComponent(room)}`;
+export function createRoomEntryHref(hadAccount: boolean): string {
+  const back = encodeURIComponent(CREATE_ROOM_RETURN);
+  if (hadAccount) return `/entrar?voltar=${back}`;
+  return `/cadastro?voltar=${back}`;
 }

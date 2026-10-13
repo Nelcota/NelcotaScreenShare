@@ -7,7 +7,7 @@ test("the call switches themes on desktop and mobile without disconnecting", asy
   const { page, context } = await newParticipant(browser, "Tema Teste");
   try {
     await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
-    await joinRoom(page, newRoomCode(), { micOn: false });
+    await joinRoom(page, await newRoomCode(), { micOn: false });
     await page.getByRole("button", { name: "Ativar modo claro", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await page.getByRole("button", { name: "Ativar modo escuro", exact: true }).click();

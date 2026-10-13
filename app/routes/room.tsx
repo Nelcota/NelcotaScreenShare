@@ -1,59 +1,88 @@
 import { routeLoader } from "@/server/route-loader.server";
 
+import { isRouteErrorResponse, useRouteError } from "react-router";
+import { notFound, redirect } from "@/server/http.server";
+import { ErrorScreen } from "@/components/shell/ErrorScreen";
+import { Mascot } from "@/features/mascot/ui/Mascot";
 import { AdmissionError } from "@/features/room/server/session-store.server";
 import {
   definitionByCode,
   assertDefinitionAdmission,
 } from "@/features/rooms/server/room-access.server";
-import { redirect } from "@/server/http.server";
 import { getUserSession, requireUser } from "@/features/auth/server/participant-session.server";
 import { getAdminSession } from "@/features/auth/server/admin-session.server";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { presenceForGuests } from "@/features/room/domain/presence";
 import { roomPresence } from "@/features/room/server/presence.server";
+import { roomExists } from "@/features/room/server/room-codes.server";
+import { awaitsApproval } from "@/features/room/server/room-access.server";
+import { liveKitGateway } from "@/features/room/server/livekit-gateway.server";
+import { visitorBannedFromCall } from "@/features/room/server/room-bans.server";
+import { RoomUnavailable } from "@/features/room/ui/RoomUnavailable";
+import { roomDisplayName } from "@/features/room/domain/role-change";
+import { roomOwnerName } from "@/features/room/server/role-changes.server";
 import { decodeRoomParam, roomCodeSchema, roomLink } from "@/features/room/domain/room-code";
 import { INVITE_TOKEN_PATTERN } from "@/features/room/domain/invite-token";
 import type { RoomEntry } from "@/features/room/ui/ActiveRoom";
 
 export const meta = () => [{ title: "Sala · Nelcota" }];
 
-export const loader = routeLoader(async ({ params, searchParams }) => {
+/** The room code from the address; an invalid one goes home, and casing is normalized. */
+function canonicalRoomCode(codigo: string, invite: string | undefined): string {
+  const raw = decodeRoomParam(codigo);
+  if (raw === undefined) redirect("/?erro=codigo");
+  const parsed = roomCodeSchema.safeParse(raw);
+  if (!parsed.success) redirect("/?erro=codigo");
+  // A single address per room: "/sala/ABC-..." becomes "/sala/abc-...", same as the copied link.
+  if (parsed.data !== raw) redirect(roomLink(parsed.data, invite));
+  return parsed.data;
+}
+
+export const loader = routeLoader(async ({ params, searchParams, request }) => {
   const codigo = params.codigo ?? "";
   // Panel invite (?convite=…): format checked here, validity in /api/token.
   const { convite } = searchParams;
   const invite =
     typeof convite === "string" && INVITE_TOKEN_PATTERN.test(convite) ? convite : undefined;
 
-  const raw = decodeRoomParam(codigo);
-  if (raw === undefined) redirect("/?erro=codigo");
-  const code = roomCodeSchema.safeParse(raw);
-  if (!code.success) redirect("/?erro=codigo");
-  // A single address per room: "/sala/ABC-..." becomes "/sala/abc-...", same as the copied link.
-  if (code.data !== raw) redirect(roomLink(code.data, invite));
+  const code = canonicalRoomCode(codigo, invite);
+  // Only rooms created through "Criar sala" open.
+  if (!(await roomExists(getDb(), code))) notFound();
 
   // Without an account the person joins as a guest. An account still needs a confirmed
   // e-mail (when required); after confirming, it comes back here.
   const current = await getUserSession();
-  const user = current ? (await requireUser(roomLink(code.data, invite))).user : null;
+  const user = current ? (await requireUser(roomLink(code, invite))).user : null;
+  // Banned from the call happening now: the page says so instead of offering to join.
+  const banned = await visitorBannedFromCall(getDb(), liveKitGateway, {
+    roomCode: code,
+    userId: user?.id,
+    request,
+  });
+  if (banned) throw new Response(null, { status: 403 });
   const { ACCESS_PASSWORD, MAX_PARTICIPANTS } = getEnv();
   const passwordRequired = ACCESS_PASSWORD !== undefined;
-  const { unavailable, permanent } = await roomUnavailable(code.data, user?.id);
+  const { unavailable, permanent } = await roomUnavailable(code, user?.id);
   // Who is already inside, for the pre-join screen to show.
-  const [roomNow, admin] = await Promise.all([
-    unavailable ? Promise.resolve(null) : roomPresence(getDb(), code.data),
+  // Hidden without an account, behind the password, or until someone is let in.
+  const [roomNow, admin, ownerName, waiting] = await Promise.all([
+    unavailable ? Promise.resolve(null) : roomPresence(getDb(), code),
     getAdminSession(),
+    roomOwnerName(getDb(), code),
+    user ? awaitsApproval(getDb(), code, user.id) : true,
   ]);
-  const presence = roomNow ? presenceForGuests(roomNow, passwordRequired || user === null) : null;
+  const presence = roomNow ? presenceForGuests(roomNow, passwordRequired || waiting) : null;
 
   return {
     unavailable,
     permanent,
     invite,
-    code: code.data,
+    code: code,
     user: user && { name: user.name, image: user.image },
     passwordRequired,
     maxParticipants: MAX_PARTICIPANTS,
+    roomName: roomDisplayName(ownerName),
     presence,
     // Admin session in this browser: the call offers the panel without leaving the room.
     isAdmin: admin !== null,
@@ -66,6 +95,20 @@ export const loader = routeLoader(async ({ params, searchParams }) => {
  */
 export default function RoomPage() {
   return null;
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (isRouteErrorResponse(error) && error.status === 404)
+    return <RoomUnavailable reason="missing" />;
+  if (isRouteErrorResponse(error) && error.status === 403)
+    return <RoomUnavailable reason="banned" />;
+  return (
+    <ErrorScreen
+      missing={false}
+      mascot={<Mascot className="size-32" sizes="384px" expression="surprised" canSleep={false} />}
+    />
+  );
 }
 
 async function roomUnavailable(code: string, identity: string | undefined) {

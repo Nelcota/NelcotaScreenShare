@@ -7,10 +7,13 @@ import { defineAdminOperation } from "@/features/auth/server/operation-policies.
 import { ActionError } from "@/server/operations/action-error";
 import { diffChanges } from "@/server/audit.server";
 import { getDb } from "@/server/db/index.server";
-import { rooms } from "@/server/db/schema";
+import { roomParticipations, rooms } from "@/server/db/schema";
 import { appUrl } from "@/server/env.server";
 import { createRoomInvite, revokeRoomInvite } from "@/features/room/server/invites.server";
 import { lockRoomCodes } from "@/features/room/server/room-lifecycle.server";
+import { liveKitGateway } from "@/features/room/server/livekit-gateway.server";
+import { readmitToSession } from "@/features/room/server/call-removals.server";
+import { removeFromCall } from "@/features/room/server/moderation.server";
 import { bulkChange, bulkSelectionSchema, resolveSelection } from "@/server/table/selection.server";
 import { INVITE_VALIDITY, inviteMaxUsesSchema } from "./domain/invites";
 import { roomIdsForFilter } from "./server/queries.server";
@@ -98,7 +101,7 @@ export const restoreRoomsAction = defineAdminOperation(
           .returning({ id: rooms.id });
       },
       {
-        empty: "Nada para restaurar (o código pode já estar em uso por outra sala).",
+        empty: "Nada para restaurar. O código pode já estar em uso por outra sala.",
         entry: (room) => ({ action: "room.restore", resourceType: "room", resourceId: room.id }),
       },
     );
@@ -208,5 +211,88 @@ export const revokeInviteAction = defineAdminOperation(
       return revoked;
     });
     return { revoked: true };
+  },
+);
+
+/**
+ * Kick (they may join again) or ban (refused until this call ends) someone who is in the
+ * room now. The panel needs no room role: any admin with `live.kick` removes anyone.
+ */
+export const removeParticipantAction = defineAdminOperation(
+  { name: "room.removeParticipant", permission: { live: ["kick"] }, audit: "required" },
+  z.object({ participationId: z.uuid(), action: z.enum(["kick", "ban"]) }),
+  async ({ parsedInput, ctx }) => {
+    const db = getDb();
+    const [participation] = await db
+      .select({
+        roomId: rooms.id,
+        code: rooms.code,
+        identity: roomParticipations.livekitIdentity,
+      })
+      .from(roomParticipations)
+      .innerJoin(rooms, eq(rooms.id, roomParticipations.roomId))
+      .where(
+        and(
+          eq(roomParticipations.id, parsedInput.participationId),
+          isNull(roomParticipations.leftAt),
+        ),
+      );
+    if (!participation) throw new ActionError("Essa pessoa já saiu da sala.");
+
+    // The audit row and the ban are written before LiveKit is called, in one transaction: a
+    // failed removal rolls both back, and a removal is never left without its record.
+    await db.transaction(async (tx) => {
+      await ctx.audit.record(tx, {
+        action: parsedInput.action === "ban" ? "room.participant_ban" : "room.participant_kick",
+        resourceType: "room",
+        resourceId: participation.roomId,
+        metadata: { participacao: parsedInput.participationId },
+      });
+      const result = await removeFromCall(
+        tx,
+        liveKitGateway,
+        { room: participation.code, identity: participation.identity, action: parsedInput.action },
+        { adminId: ctx.admin.user.id },
+      );
+      if (!result.ok) throw new ActionError(result.message);
+    });
+    return { removed: true };
+  },
+);
+
+const READMIT_REFUSALS: Record<"not_removed" | "no_call", string> = {
+  not_removed: "Essa pessoa já pode voltar.",
+  no_call: "A chamada já acabou.",
+};
+
+/**
+ * "Deixar voltar": lifts a ban from the call happening now, so the person may join again.
+ * Same permission as banning. Nothing records who lifted it but this audit row.
+ */
+export const readmitParticipantAction = defineAdminOperation(
+  { name: "room.readmitParticipant", permission: { live: ["kick"] }, audit: "required" },
+  z.object({ roomId: z.uuid(), identity: z.string().min(1).max(128) }),
+  async ({ parsedInput, ctx }) => {
+    const db = getDb();
+    const [room] = await db
+      .select({ id: rooms.id, code: rooms.code })
+      .from(rooms)
+      .where(and(eq(rooms.id, parsedInput.roomId), isNull(rooms.deletedAt)));
+    if (!room) throw new ActionError("Sala não encontrada.");
+
+    await db.transaction(async (tx) => {
+      const result = await readmitToSession(tx, {
+        roomCode: room.code,
+        identity: parsedInput.identity,
+      });
+      if (!result.ok) throw new ActionError(READMIT_REFUSALS[result.reason]);
+      await ctx.audit.record(tx, {
+        action: "room.participant_unban",
+        resourceType: "room",
+        resourceId: room.id,
+        metadata: { pessoa: parsedInput.identity },
+      });
+    });
+    return { readmitted: true };
   },
 );

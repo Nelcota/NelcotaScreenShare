@@ -11,6 +11,7 @@ import {
   type PendingCall,
 } from "@/features/ringing/client/pending-call";
 import { useConnectedCallRoom } from "@/features/ringing/client/call-connection";
+import { markCalling } from "@/features/ringing/client/calling";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
 /** The spot above "Pronto para entrar?" kept free for notices like this one. */
@@ -24,7 +25,9 @@ async function ring(call: PendingCall) {
     call.kind === "friend"
       ? await callFriend({ friendId: call.friendId, room: call.room })
       : await callGroup({ conversationId: call.conversationId, room: call.room });
-  if (!result.data) toast.error(result.serverError ?? "Não dá para chamar agora.");
+  if (result.data) return;
+  if (call.kind === "friend") markCalling(call.friendId, false);
+  toast.error(result.serverError ?? "Não dá para chamar agora.");
 }
 
 function firstName(name: string) {
@@ -62,6 +65,8 @@ export function PendingCallRunner() {
 
   useEffect(() => {
     if (!pending || callRoom !== pending.room) return;
+    // "Chamando…" stays on while the ring reaches the page.
+    if (pending.kind === "friend") markCalling(pending.friendId, true);
     savePendingCall(null);
     void ring(pending);
   }, [pending, callRoom]);

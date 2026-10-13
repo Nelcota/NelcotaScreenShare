@@ -14,7 +14,7 @@ import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { canBeCalled, SHOWN_STATUS_LABEL } from "@/features/friends/domain/presence-status";
 import { FriendAvatar } from "@/features/friends/ui/FriendAvatar";
 import { openDirectConversation } from "@/features/messages/actions";
-import { cancelCall } from "@/features/ringing/actions";
+import { cancelCalling, useCalling } from "@/features/ringing/client/calling";
 import { useCallFriend } from "@/features/ringing/ui/CallButton";
 import { cn } from "@/lib/utils";
 
@@ -36,11 +36,12 @@ function useOpenMessages(friendId: string) {
 }
 
 /** Chamar, Cancelar while it rings, or Chamar disabled for someone Ocupado. */
-function CallItem({ friend, ringId }: { friend: FriendStatus; ringId: string | null }) {
+function CallItem({ friend }: { friend: FriendStatus }) {
+  const { ringId, calling } = useCalling(friend.id);
   const { call, starting } = useCallFriend(friend);
-  if (ringId) {
+  if (calling) {
     return (
-      <DropdownMenuItem onSelect={() => void cancelCall({ ringId })}>
+      <DropdownMenuItem onSelect={() => cancelCalling(friend.id, ringId)}>
         <X aria-hidden="true" />
         Cancelar chamada
       </DropdownMenuItem>
@@ -69,16 +70,10 @@ function CallItem({ friend, ringId }: { friend: FriendStatus; ringId: string | n
  * A friend on the rail: the avatar opens Chamar, Mensagem and their card, so a call can start
  * without opening the column (in a room it rings into that room).
  */
-export function RailFriendMenu({
-  friend,
-  ringId,
-}: {
-  friend: FriendStatus;
-  /** The ring going out to this friend, if any. */
-  ringId: string | null;
-}) {
+export function RailFriendMenu({ friend }: { friend: FriendStatus }) {
   const openMessages = useOpenMessages(friend.id);
-  const label = ringId ? `Chamando ${firstName(friend.name)}…` : friend.name;
+  const { calling } = useCalling(friend.id);
+  const label = calling ? `Chamando ${firstName(friend.name)}…` : friend.name;
   return (
     <DropdownMenu>
       <Hint text={label}>
@@ -89,7 +84,7 @@ export function RailFriendMenu({
           <span
             className={cn(
               "rounded-full",
-              ringId &&
+              calling &&
                 "ring-2 ring-brand ring-offset-2 ring-offset-surface motion-safe:animate-pulse",
             )}
           >
@@ -101,11 +96,11 @@ export function RailFriendMenu({
         <DropdownMenuLabel className="flex flex-col">
           <span className="truncate">{friend.name}</span>
           <span className="text-xs font-normal text-ink-muted">
-            {ringId ? "Chamando…" : SHOWN_STATUS_LABEL[friend.status]}
+            {calling ? "Chamando…" : SHOWN_STATUS_LABEL[friend.status]}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <CallItem friend={friend} ringId={ringId} />
+        <CallItem friend={friend} />
         <DropdownMenuItem onSelect={() => void openMessages()}>
           <MessageCircle aria-hidden="true" />
           Mensagem

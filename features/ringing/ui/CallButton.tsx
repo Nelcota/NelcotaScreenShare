@@ -1,12 +1,12 @@
 import { Phone, X } from "lucide-react";
 import { useState } from "react";
-import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
-import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
 import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { createRoomAction } from "@/features/room/actions";
-import { callFriend, callGroup, cancelCall } from "@/features/ringing/actions";
+import { callFriend, callGroup } from "@/features/ringing/actions";
+import { cancelCalling, markCalling, useCalling } from "@/features/ringing/client/calling";
 import { savePendingCall, type PendingCall } from "@/features/ringing/client/pending-call";
 import { cn } from "@/lib/utils";
 
@@ -68,12 +68,17 @@ export function useCallFriend(friend: { id: string; name: string }) {
   const [starting, setStarting] = useState(false);
   const call = async () => {
     setStarting(true);
+    markCalling(friend.id, true);
     const result = await callFriend({ friendId: friend.id });
     if (result.data?.needsRoom) {
       await openRoom({ kind: "friend", friendId: friend.id, name: friend.name });
+      // From here the waiting call shows "Chamando…", or nothing if the room did not open.
+      markCalling(friend.id, false);
     }
     setStarting(false);
-    if (!result.data) toast.error(result.serverError ?? "Não dá para chamar agora.");
+    if (result.data) return;
+    markCalling(friend.id, false);
+    toast.error(result.serverError ?? "Não dá para chamar agora.");
   };
   return { call, starting };
 }
@@ -89,15 +94,14 @@ export function CallButton({
   friend: { id: string; name: string; status: Status };
   className?: string;
 }) {
-  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
-  const ringing = outgoing.find((ring) => ring.calleeId === friend.id && ring.state === "ringing");
+  const { ringId, calling } = useCalling(friend.id);
   const { call, starting } = useCallFriend(friend);
   if (friend.status === "offline") return null;
-  if (ringing) {
+  if (calling) {
     return (
       <button
         type="button"
-        onClick={() => void cancelCall({ ringId: ringing.id })}
+        onClick={() => cancelCalling(friend.id, ringId)}
         aria-label={`Chamando ${firstName(friend.name)}. Cancelar`}
         className={cn(OUTLINE, "border-line-strong text-ink-muted hover:text-ink", className)}
       >
@@ -145,15 +149,14 @@ export function IconCallButton({
 }: {
   friend: { id: string; name: string; status: Status };
 }) {
-  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
-  const ringing = outgoing.find((ring) => ring.calleeId === friend.id && ring.state === "ringing");
+  const { ringId, calling } = useCalling(friend.id);
   const { call, starting } = useCallFriend(friend);
-  if (ringing) {
+  if (calling) {
     return (
       <Hint text="Cancelar chamada">
         <button
           type="button"
-          onClick={() => void cancelCall({ ringId: ringing.id })}
+          onClick={() => cancelCalling(friend.id, ringId)}
           aria-label={`Chamando ${firstName(friend.name)}. Cancelar`}
           className={cn(ICON, "bg-brand text-brand-ink motion-safe:animate-pulse")}
         >

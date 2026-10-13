@@ -1,6 +1,4 @@
 import { PanelLeftOpen } from "lucide-react";
-import { useRouteLoaderData } from "react-router";
-import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
 import { splitByPresence, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import type { PresenceStatus } from "@/features/friends/domain/presence-status";
@@ -11,11 +9,9 @@ import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
 
 function RailFriend({ friend }: { friend: FriendStatus }) {
-  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
-  const ringing = outgoing.find((ring) => ring.calleeId === friend.id && ring.state === "ringing");
   return (
     <li>
-      <RailFriendMenu friend={friend} ringId={ringing?.id ?? null} />
+      <RailFriendMenu friend={friend} />
     </li>
   );
 }

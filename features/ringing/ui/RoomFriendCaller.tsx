@@ -1,23 +1,31 @@
 import { Phone } from "lucide-react";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useRouteLoaderData } from "react-router";
+import { useLocation } from "react-router";
 import { toast } from "sonner";
-import type { loader as rootLoader } from "@/app/root";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { canBeCalled, SHOWN_STATUS_LABEL } from "@/features/friends/domain/presence-status";
 import { callFriend } from "@/features/ringing/actions";
+import { markCalling, useCalling } from "@/features/ringing/client/calling";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
 /** The empty room's invite card leaves this spot free. */
 const INVITE_SLOT_ID = "room-invite-actions";
 
+/** Rings one friend; "Chamando…" shows from the click and goes away if it fails. */
+async function ringOne(room: string, friendId: string) {
+  markCalling(friendId, true);
+  const result = await callFriend({ friendId, room });
+  if (!result.data?.ringId) markCalling(friendId, false);
+  return result;
+}
+
 /** Rings each chosen friend into the room; says how many could not be rung. */
 async function ringAll(room: string, friendIds: string[]) {
-  const results = await Promise.all(friendIds.map((friendId) => callFriend({ friendId, room })));
+  const results = await Promise.all(friendIds.map((friendId) => ringOne(room, friendId)));
   const failed = results.filter((result) => !result.data?.ringId).length;
   if (failed === 0) return;
   toast.error(
@@ -29,16 +37,15 @@ async function ringAll(room: string, friendIds: string[]) {
 
 function FriendChoice({
   friend,
-  ringing,
   checked,
   onToggle,
 }: {
   friend: FriendStatus;
-  ringing: boolean;
   checked: boolean;
   onToggle: () => void;
 }) {
   const id = useId();
+  const ringing = useCalling(friend.id).calling;
   return (
     <li className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-surface-3">
       <Checkbox
@@ -58,13 +65,10 @@ function FriendChoice({
 }
 
 function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[] }) {
-  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const callable = friends.filter((friend) => canBeCalled(friend.status));
-  const isRinging = (id: string) =>
-    outgoing.some((ring) => ring.calleeId === id && ring.state === "ringing");
 
   const toggle = (id: string) => {
     const next = new Set(chosen);
@@ -97,7 +101,6 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
               <FriendChoice
                 key={friend.id}
                 friend={friend}
-                ringing={isRinging(friend.id)}
                 checked={chosen.has(friend.id)}
                 onToggle={() => toggle(friend.id)}
               />

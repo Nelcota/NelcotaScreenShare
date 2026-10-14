@@ -22,7 +22,7 @@ export default function AccountSessionsPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Sessões ativas</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Sessões ativas</h1>
         <p className="mt-1 text-ink-muted">
           Onde sua conta está conectada. Encerre o que você não reconhecer e troque a senha.
         </p>

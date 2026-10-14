@@ -42,7 +42,7 @@ export default function AdminMailPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">E-mails</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">E-mails</h1>
         <p className="mt-1 text-ink-muted">Envios de confirmação de conta e de nova senha.</p>
       </div>
       <Section

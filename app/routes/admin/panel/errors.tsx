@@ -31,7 +31,7 @@ export default function AdminErrorsPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Erros</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Erros</h1>
         <p className="mt-1 text-ink-muted">{count} nas últimas 24 h.</p>
       </div>
       <Section

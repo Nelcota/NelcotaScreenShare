@@ -32,7 +32,7 @@ export default function RoomsPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Salas</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Salas</h1>
         <p className="mt-1 text-ink-muted">
           Toda sala aberta no LiveKit, com quem entrou e o que foi compartilhado.
         </p>

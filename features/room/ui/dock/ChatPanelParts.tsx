@@ -17,7 +17,7 @@ export function ChatHeader({ onClose }: { onClose: () => void }) {
   return (
     <header className="flex items-center justify-between gap-3 border-b border-line py-3 pr-2 pl-4">
       <div className="min-w-0">
-        <h2 className="text-base font-semibold tracking-[-0.025em]">Chat da sala</h2>
+        <h2 className="text-base font-semibold tracking-tight">Chat da sala</h2>
         <p className="flex items-center gap-1.5 text-xs text-ink-subtle">
           <EyeOff className="size-3.5 shrink-0" aria-hidden="true" />
           Some quando a sala acaba

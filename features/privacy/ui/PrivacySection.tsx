@@ -27,7 +27,7 @@ export function PrivacySection({
         <p className="text-xs font-medium text-ink-subtle tabular-nums">
           {String(index).padStart(2, "0")}
         </p>
-        <h2 id={headingId} className="mt-1 text-xl font-semibold tracking-[-0.025em]">
+        <h2 id={headingId} className="mt-1 text-xl font-semibold tracking-tight">
           {title}
         </h2>
         {description ? (

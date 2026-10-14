@@ -43,7 +43,7 @@ export default function AdminUsagePage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Uso diário</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Uso diário</h1>
         <p className="mt-1 text-ink-muted">
           <Summary days={days} />
         </p>

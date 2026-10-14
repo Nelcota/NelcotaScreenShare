@@ -24,7 +24,7 @@ export default function AdminSettingsPage() {
   const { mascot, defaults, limits, canEdit } = useLoaderData<typeof loader>();
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-[-0.025em]">Configurações</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
       <MascotSettingsForm initial={mascot} defaults={defaults} limits={limits} canEdit={canEdit} />
     </>
   );

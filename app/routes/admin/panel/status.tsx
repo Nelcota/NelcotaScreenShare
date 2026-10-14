@@ -65,7 +65,7 @@ export default function AdminStatusPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Status</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Status</h1>
         <p className="mt-1 text-ink-muted">Banco, chamadas e e-mail agora.</p>
       </div>
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

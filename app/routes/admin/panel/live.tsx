@@ -35,7 +35,7 @@ export default function AdminLivePage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Ao vivo</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Ao vivo</h1>
         <p className="mt-1 text-ink-muted">Quem está em cada sala e desde quando.</p>
       </div>
       {liveKitChecked ? null : (

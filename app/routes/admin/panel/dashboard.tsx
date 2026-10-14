@@ -46,7 +46,7 @@ export default function AdminHomePage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Início</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Início</h1>
         <p className="mt-1 text-ink-muted">
           O que está acontecendo agora e o que mudou nos últimos dias.
         </p>

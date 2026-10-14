@@ -220,7 +220,7 @@ export default function PrivacyPage() {
             <ShieldCheck className="size-4.5 text-brand-soft" aria-hidden="true" />
             LGPD · Marco Civil da Internet
           </span>
-          <h1 className="mt-5 text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-4xl">
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
             Aviso de privacidade
           </h1>
           <p className="mt-3 text-base leading-relaxed text-pretty text-ink-muted sm:text-lg">

@@ -36,7 +36,7 @@ export default function AuditPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Auditoria</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
         <p className="mt-1 text-ink-muted">
           Quem fez o quê, quando e de onde. Os registros não podem ser alterados nem apagados.
         </p>

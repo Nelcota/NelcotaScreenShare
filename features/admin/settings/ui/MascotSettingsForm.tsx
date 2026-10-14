@@ -67,7 +67,7 @@ export function MascotSettingsForm({
       }}
       className="panel w-full max-w-3xl rounded-2xl p-6 sm:p-8"
     >
-      <h2 className="text-xl font-semibold tracking-[-0.025em]">Saturação do mascote</h2>
+      <h2 className="text-xl font-semibold tracking-tight">Saturação do mascote</h2>
       <p className="mt-1 text-sm text-ink-muted">
         0% deixa o mascote cinza, 100% mantém a arte original e 200% deixa as cores mais vivas. O
         site só muda depois de salvar.

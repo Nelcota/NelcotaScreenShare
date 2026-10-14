@@ -30,7 +30,7 @@ export default function SharesPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Compartilhamentos</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Compartilhamentos</h1>
         <p className="mt-1 text-ink-muted">Cada vez que alguém compartilhou a tela numa sala.</p>
       </div>
       <SharesTable

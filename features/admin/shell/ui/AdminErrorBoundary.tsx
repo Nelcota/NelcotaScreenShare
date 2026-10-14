@@ -13,7 +13,7 @@ export function AdminErrorBoundary() {
       <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-danger/15">
         <TriangleAlert className="size-5 text-danger" aria-hidden="true" />
       </span>
-      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.025em]">Algo deu errado</h1>
+      <h1 className="mt-5 text-2xl font-semibold tracking-tight">Algo deu errado</h1>
       <p className="mt-2 text-ink-muted">
         Não foi possível carregar esta tela. Tente de novo em instantes.
       </p>

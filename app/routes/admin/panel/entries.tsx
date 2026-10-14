@@ -24,7 +24,7 @@ export default function AdminEntriesPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Entradas negadas</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Entradas negadas</h1>
         <p className="mt-1 text-ink-muted">Quem tentou entrar numa sala e não conseguiu.</p>
       </div>
       <Section title="Por motivo">

@@ -36,7 +36,7 @@ export default function ParticipantsPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Participantes</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Participantes</h1>
         <p className="mt-1 text-ink-muted">Contas de quem entra nas salas.</p>
       </div>
       <ParticipantsTable

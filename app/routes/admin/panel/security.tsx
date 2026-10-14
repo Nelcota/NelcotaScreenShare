@@ -20,7 +20,7 @@ export default function AccountSecurityPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Segurança da conta</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Segurança da conta</h1>
         <p className="mt-1 text-ink-muted">{admin.user.email}</p>
       </div>
       {mustSetUp ? (

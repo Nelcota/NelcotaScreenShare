@@ -38,7 +38,7 @@ export default function AdminWaitlistPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Lista de espera do Pro</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Lista de espera do Pro</h1>
         <p className="mt-1 text-ink-muted">{people} pediram aviso quando o Pro sair.</p>
       </div>
       <Section

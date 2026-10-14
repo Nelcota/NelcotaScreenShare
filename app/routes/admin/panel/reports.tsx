@@ -36,7 +36,7 @@ export default function AdminReportsPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Denúncias</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Denúncias</h1>
         <p className="mt-1 text-ink-muted">
           {open === 0 ? "Nenhuma denúncia aberta." : `${open} para avaliar.`}
         </p>

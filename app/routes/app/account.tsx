@@ -77,9 +77,7 @@ function IdentityCard({
   return (
     <header className="panel rounded-2xl p-5 sm:p-7">
       <ProfilePhotoForm image={user.image}>
-        <h1 className="truncate text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-          {user.name}
-        </h1>
+        <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{user.name}</h1>
         <p className="mt-1 text-sm [overflow-wrap:anywhere] text-ink-muted">{user.email}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <StatusChip ok={user.emailVerified}>

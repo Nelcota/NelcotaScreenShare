@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Copy, Star } from "lucide-react";
-import { toast } from "sonner";
+
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { RoomEditor } from "./RoomEditor";
 import type { RoomWorkspaceCommand } from "@/features/rooms/domain/commands";
+import { copyText } from "@/lib/clipboard";
 
 export interface WorkspaceRoom {
   id: string;
@@ -26,12 +27,11 @@ export interface WorkspaceRoom {
   favorite: boolean;
 }
 export async function copyWorkspaceLink(path: string) {
-  try {
-    await navigator.clipboard.writeText(new URL(path, location.origin).href);
-    toast.success("Link copiado.");
-  } catch {
-    toast.error("Não foi possível copiar. Abra a sala e copie o endereço.");
-  }
+  await copyText(new URL(path, location.origin).href, {
+    context: "Workspace link copy failed",
+    success: "Link copiado.",
+    failure: "Não foi possível copiar. Abra a sala e copie o endereço.",
+  });
 }
 export function RoomCard({
   room,

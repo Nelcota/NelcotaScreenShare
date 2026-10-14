@@ -2,7 +2,7 @@ import { SendHorizontal } from "lucide-react";
 import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { sendMessage } from "@/features/messages/actions";
-import { MAX_MESSAGE_LENGTH } from "@/features/messages/domain/conversation";
+import { messageLengthNote } from "@/features/messages/domain/conversation";
 import type { Gif } from "@/features/messages/domain/klipy";
 import { useKlipy } from "@/features/messages/hooks/use-gif";
 import { GifPicker } from "@/features/messages/ui/GifPicker";
@@ -33,11 +33,13 @@ export function Composer({
   const [gifOpen, setGifOpen] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
   const body = text.trim();
+  const note = messageLengthNote(body.length);
+  const sendable = body.length > 0 && !note?.over;
 
   // The field clears at once, so the next message can be typed; the text comes back on failure.
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
-    if (!body) return;
+    if (!sendable) return;
     setText("");
     void deliver({ conversationId, body }).then((sent) => {
       if (!sent) setText((current) => current || body);
@@ -71,7 +73,8 @@ export function Composer({
           ref={field}
           rows={1}
           value={text}
-          maxLength={MAX_MESSAGE_LENGTH}
+          aria-describedby={note ? `mensagem-tamanho-${conversationId}` : undefined}
+          aria-invalid={note?.over ? true : undefined}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
@@ -94,12 +97,24 @@ export function Composer({
         <button
           type="submit"
           aria-label="Enviar"
-          disabled={!body}
+          disabled={!sendable}
           className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-brand-ink hover:bg-brand-hover disabled:bg-disabled disabled:text-disabled-ink"
         >
           <SendHorizontal className="size-4" aria-hidden="true" />
         </button>
       </div>
+      {note ? (
+        <p
+          id={`mensagem-tamanho-${conversationId}`}
+          aria-live="polite"
+          className={cn(
+            "px-1 pt-1 text-right text-xs",
+            note.over ? "text-danger" : "text-ink-muted",
+          )}
+        >
+          {note.text}
+        </p>
+      ) : null}
     </form>
   );
 }

@@ -5,9 +5,9 @@ import {
   Clock,
   Download,
   Flag,
-  Fingerprint,
   Hand,
   Handshake,
+  History,
   Hourglass,
   Landmark,
   MessageSquare,
@@ -133,7 +133,7 @@ function PurposeAndRetentionSections() {
             aside={<Duration>Enquanto existir</Duration>}
           />
           <PrivacyItem
-            icon={Fingerprint}
+            icon={History}
             title="Registros de acesso (IP)"
             aside={<Duration>6 meses</Duration>}
           />

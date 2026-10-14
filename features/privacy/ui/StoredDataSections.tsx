@@ -1,10 +1,10 @@
 import {
   Ban,
   DoorOpen,
-  Fingerprint,
   Flag,
   Hand,
   Handshake,
+  History,
   KeyRound,
   Mail,
   MessageSquare,
@@ -46,7 +46,7 @@ export function StoredDataSections() {
             Sessões ativas (IP e navegador) e, se você ativar, o segredo da verificação em duas
             etapas, cifrado.
           </PrivacyItem>
-          <PrivacyItem icon={Fingerprint} title="Uso">
+          <PrivacyItem icon={History} title="Uso">
             Em quais salas você entrou, quando entrou e saiu, e quando compartilhou a tela, com o IP
             de acesso.
           </PrivacyItem>

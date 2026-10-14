@@ -1,6 +1,7 @@
 import { Inbox } from "lucide-react";
 import { NavLink } from "react-router";
 import { Hint } from "@/components/Hint";
+import { UnreadCount } from "@/components/UnreadCount";
 import { useToggleLink } from "@/features/friends/hooks/use-app-panel";
 import { cn } from "@/lib/utils";
 
@@ -24,14 +25,7 @@ export function RequestsButton({ count, className }: { count: number; className?
         )}
       >
         <Inbox className="size-4" aria-hidden="true" />
-        {count > 0 ? (
-          <span
-            aria-hidden="true"
-            className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-bold text-canvas ring-2 ring-surface"
-          >
-            {count > 99 ? "99+" : count}
-          </span>
-        ) : null}
+        <UnreadCount count={count} aria-hidden="true" />
       </NavLink>
     </Hint>
   );

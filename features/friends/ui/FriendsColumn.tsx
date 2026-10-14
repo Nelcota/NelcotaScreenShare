@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { Hint } from "@/components/Hint";
+import { UnreadCount } from "@/components/UnreadCount";
 import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
 import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
@@ -17,18 +18,6 @@ export interface ColumnTab {
   icon: LucideIcon;
   /** Unread or pending items, shown as a count on the tab. */
   badge?: number;
-}
-
-function TabBadge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span
-      aria-hidden="true"
-      className="grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-bold text-canvas"
-    >
-      {count > 99 ? "99+" : count}
-    </span>
-  );
 }
 
 /** The open tab shows its name; the others only their icon, named in the hint. */
@@ -50,13 +39,11 @@ function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
       >
         <Icon className="size-4 shrink-0" aria-hidden="true" />
         {active ? <span className="truncate">{tab.label}</span> : null}
-        {active ? (
-          <TabBadge count={badge} />
-        ) : (
-          <span className="absolute -top-1 -right-1">
-            <TabBadge count={badge} />
-          </span>
-        )}
+        <UnreadCount
+          count={badge}
+          aria-hidden="true"
+          className={active ? "static ring-0" : undefined}
+        />
       </Link>
     </Hint>
   );

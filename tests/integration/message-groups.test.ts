@@ -105,6 +105,36 @@ describe("message groups", () => {
     });
   });
 
+  test("a group never puts together two people where one blocked the other", async () => {
+    const { ana, bia, caio } = await threeFriends();
+    as(caio);
+    await friends.blockUser({ userId: bia.id });
+    as(ana);
+    const created = await chat.createGroupConversation({ memberIds: [bia.id, caio.id] });
+    expect(created).toEqual({ serverError: "Não dá para criar esse grupo." });
+  });
+
+  test("in a group from before the block, the blocker stops seeing who they blocked", async () => {
+    const { ana, bia, caio } = await threeFriends();
+    const conversationId = await groupOf(ana, [bia, caio]);
+    as(caio);
+    await friends.blockUser({ userId: bia.id });
+    as(bia);
+    await chat.sendMessage({ conversationId, body: "ainda estou aqui" });
+    as(ana);
+    await chat.sendMessage({ conversationId, body: "oi" });
+
+    as(caio);
+    const page = await chat.listMessages({ conversationId });
+    expect(page.data?.messages.map((message) => message.body)).toEqual(["oi"]);
+    const listed = await chat.listConversations({});
+    const group = listed.data?.conversations.find((item) => item.id === conversationId);
+    expect(group).toMatchObject({ unread: 1, lastMessage: { body: "oi" } });
+    as(ana);
+    const everything = await chat.listMessages({ conversationId });
+    expect(everything.data?.messages).toHaveLength(2);
+  });
+
   test("whoever leaves stops seeing it, and the last one out deletes it", async () => {
     const { ana, bia, caio } = await threeFriends();
     const conversationId = await groupOf(ana, [bia, caio]);

@@ -27,7 +27,7 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
   const [name, others, page, gifFavorites] = await Promise.all([
     conversationName(db, conversationId),
     othersByConversation(db, userId, [conversationId]),
-    listMessages(db, conversationId, null).then(withGifs),
+    listMessages(db, conversationId, null, userId).then(withGifs),
     gifFavoriteSlugs(db, userId),
   ]);
   const otherId = membership.otherId;

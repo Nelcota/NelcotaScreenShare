@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineUserOperation } from "@/features/auth/server/operation-policies.server";
+import { anyBlockAmong } from "@/features/friends/server/friendships.server";
 import {
   decideGroupCreation,
   GIF_SLUG_PATTERN,
@@ -124,6 +125,10 @@ export const createGroupConversation = defineUserOperation(
         throw new ActionError(`Um grupo tem até ${MAX_GROUP_MEMBERS} pessoas.`);
       }
       if (outcome === "not_friends") throw new ActionError("Escolha só amigos.");
+      // Never one person who blocked another; who blocked whom stays private.
+      if (await anyBlockAmong(tx, [creatorId, ...invitees])) {
+        throw new ActionError("Não dá para criar esse grupo.");
+      }
       const conversationId = await createGroup(
         tx,
         creatorId,
@@ -171,7 +176,12 @@ export const listMessages = defineUserOperation(
     const db = getDb();
     await requireMembership(db, parsedInput.conversationId, ctx.current.user.id);
     return withGifs(
-      await listMessageRows(db, parsedInput.conversationId, parsedInput.beforeId ?? null),
+      await listMessageRows(
+        db,
+        parsedInput.conversationId,
+        parsedInput.beforeId ?? null,
+        ctx.current.user.id,
+      ),
     );
   },
 );

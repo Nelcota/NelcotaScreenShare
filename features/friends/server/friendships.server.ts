@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, or, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   friendPair,
   type BlockState,
@@ -100,6 +100,19 @@ export async function blockBetween(
 /** Either one blocked the other (messages and calls use this). */
 export async function isBlockedEitherWay(db: DbExecutor, one: string, other: string) {
   return (await blockBetween(db, one, other)) !== "none";
+}
+
+/** Whether anyone among these people blocked another one of them. */
+export async function anyBlockAmong(db: DbExecutor, userIds: readonly string[]): Promise<boolean> {
+  if (userIds.length < 2) return false;
+  const [row] = await db
+    .select({ blockerId: userBlocks.blockerId })
+    .from(userBlocks)
+    .where(
+      and(inArray(userBlocks.blockerId, [...userIds]), inArray(userBlocks.blockedId, [...userIds])),
+    )
+    .limit(1);
+  return row !== undefined;
 }
 
 export async function countFriends(db: DbExecutor, userId: string): Promise<number> {

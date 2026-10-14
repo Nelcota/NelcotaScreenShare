@@ -5,6 +5,7 @@ import { sendMessage } from "@/features/messages/actions";
 import { messageLengthNote } from "@/features/messages/domain/conversation";
 import type { Gif } from "@/features/messages/domain/klipy";
 import { useKlipy } from "@/features/messages/hooks/use-gif";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GifPicker } from "@/features/messages/ui/GifPicker";
 import { cn } from "@/lib/utils";
@@ -111,14 +112,15 @@ export function Composer({
             </PopoverContent>
           </Popover>
         ) : null}
-        <button
+        <Button
           type="submit"
+          size="icon"
           aria-label="Enviar"
           disabled={!sendable}
-          className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-brand-ink hover:bg-brand-hover disabled:bg-disabled disabled:text-disabled-ink"
+          className="size-9 shrink-0 rounded-full transition-transform active:scale-90"
         >
-          <SendHorizontal className="size-4" aria-hidden="true" />
-        </button>
+          <SendHorizontal className="size-5" aria-hidden="true" />
+        </Button>
       </div>
       {note ? (
         <p

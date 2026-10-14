@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Pencil, X } from "lucide-react";
+import { Check, Pencil, SendHorizontal, X } from "lucide-react";
 import { useId, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
@@ -103,7 +103,7 @@ export function ChatComposer({
           {busy ? null : editing ? (
             <Check className="size-5" aria-hidden="true" />
           ) : (
-            <ArrowUp className="size-5" aria-hidden="true" />
+            <SendHorizontal className="size-5" aria-hidden="true" />
           )}
         </Button>
       </div>

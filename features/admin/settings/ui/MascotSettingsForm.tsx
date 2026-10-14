@@ -120,7 +120,7 @@ export function MascotSettingsForm({
 
       {canEdit ? null : (
         <p className="mt-6 text-sm text-ink-muted">
-          Só o dono do painel pode salvar esta configuração.
+          Só quem tem o papel Dono pode salvar esta configuração.
         </p>
       )}
 

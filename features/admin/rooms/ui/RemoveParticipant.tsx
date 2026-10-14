@@ -26,7 +26,7 @@ const COPY: Record<Removal, { title: string; description: string; confirm: strin
   };
 
 /** A guest has no account to ban: after it, new guests of this call ask to come in. */
-const GUEST_BAN_LIMIT = "Novos convidados desta chamada passam a pedir para entrar.";
+const GUEST_BAN_LIMIT = "Quem entrar sem conta nesta chamada passa a pedir para entrar.";
 
 /** Kick or ban someone who is in the room now (live.kick). */
 export function RemoveParticipant({

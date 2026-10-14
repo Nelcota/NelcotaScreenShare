@@ -153,6 +153,31 @@ describe("login", () => {
     assert.equal(failure?.scope, "user");
   });
 
+  test("wrong passwords on signed-in routes count toward the account lockout", async () => {
+    const bia = await verifiedParticipant(db, handler);
+    for (let i = 0; i < 5; i++) {
+      const res = await makeCaller(
+        handler,
+        USER_AUTH_BASE_PATH,
+        `198.20.0.${i + 1}`,
+      )("/change-password", {
+        body: { currentPassword: `errada-${i}-xxxxxx`, newPassword: "outra-senha-boa-1" },
+        jar: bia.jar,
+      });
+      assert.equal(res.status, 400);
+    }
+    const locked = await makeCaller(
+      handler,
+      USER_AUTH_BASE_PATH,
+      "198.20.0.99",
+    )("/change-password", {
+      body: { currentPassword: bia.password, newPassword: "outra-senha-boa-1" },
+      jar: bia.jar,
+    });
+    assert.equal(locked.status, 429);
+    assert.equal(errorCode(locked.body), "SIGN_IN_LOCKED");
+  });
+
   test("account cookie does not work in the admin panel", async () => {
     const caio = await verifiedParticipant(db, handler);
     assert.ok(caio.jar.has("nelcota."));

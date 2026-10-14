@@ -1,4 +1,4 @@
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { isPlainWebp, profilePhotoSchema } from "@/features/account/domain/profile-photo";
 import { recordAudit } from "@/server/audit.server";
@@ -32,6 +32,37 @@ export const AUTH_RATE_LIMIT_RULES = {
 };
 /** Sign-in completed by the second factor (TOTP or backup code). */
 const TWO_FACTOR_SIGN_IN = new Set(["/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
+
+/**
+ * Signed-in routes that check the password: wrong guesses count toward the same account
+ * lockout as sign-in, so a stolen session cannot try passwords one IP after another.
+ */
+const PASSWORD_CHECKS = new Set([
+  "/change-password",
+  "/two-factor/enable",
+  "/two-factor/disable",
+  "/two-factor/generate-backup-codes",
+  "/two-factor/get-totp-uri",
+]);
+
+type AuthContext = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0];
+
+/** The e-mail whose lockout applies: typed at sign-in, the session's on the other routes. */
+async function lockoutEmail(ctx: AuthContext): Promise<string | null> {
+  if (ctx.path === SIGN_IN_PATH) return stringField(ctx.body, "email") ?? "";
+  if (!PASSWORD_CHECKS.has(ctx.path)) return null;
+  const session = await getSessionFromCtx(ctx);
+  return session?.user.email ?? null;
+}
+
+function wrongPassword(returned: unknown, path: string): boolean {
+  if (!(returned instanceof APIError)) return false;
+  if (path === SIGN_IN_PATH) return returned.statusCode === 401;
+  const body: unknown = returned.body;
+  return (
+    typeof body === "object" && body !== null && Reflect.get(body, "code") === "INVALID_PASSWORD"
+  );
+}
 
 function lockedMessage(seconds: number): string {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
@@ -115,6 +146,18 @@ async function safeAudit(audit: () => Promise<void>) {
   }
 }
 
+/** A wrong password on a signed-in route counts toward the session account's lockout. */
+async function countWrongPasswordSignedIn(
+  ctx: AuthContext,
+  { db, secret, scope, audit }: { db: Database; secret: string; scope: AuthScope; audit: boolean },
+) {
+  if (!PASSWORD_CHECKS.has(ctx.path) || !wrongPassword(ctx.context.returned, ctx.path)) return;
+  const email = await lockoutEmail(ctx);
+  if (!email) return;
+  const ip = ctx.headers ? clientIpFrom(ctx.headers) : undefined;
+  await countWrongPassword(db, { scope, hash: emailHash(secret, scope, email), email, ip, audit });
+}
+
 /**
  * Better Auth hooks: lockout after wrong passwords (admins and participants,
  * separated by `scope`) and, in the admin panel, auditing of sign-in events.
@@ -141,8 +184,9 @@ export function authHooks(
           );
         }
       }
-      if (ctx.path !== SIGN_IN_PATH) return;
-      const hash = emailHash(secret, scope, stringField(ctx.body, "email") ?? "");
+      const email = await lockoutEmail(ctx);
+      if (email === null) return;
+      const hash = emailHash(secret, scope, email);
       const status = await checkLockout(db, {
         scope,
         hash,
@@ -180,7 +224,9 @@ export function authHooks(
         return;
       }
 
-      if (ctx.path !== SIGN_IN_PATH) return;
+      if (ctx.path !== SIGN_IN_PATH) {
+        return countWrongPasswordSignedIn(ctx, { db, secret, scope, audit });
+      }
       const hash = emailHash(secret, scope, stringField(ctx.body, "email") ?? "");
       if (failed) {
         if (returned.statusCode !== 401) return;

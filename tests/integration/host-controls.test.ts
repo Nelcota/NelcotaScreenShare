@@ -53,6 +53,7 @@ test("signaling refuses forged credentials and foreign origins before admission"
 test("concurrent host claims and capacity reservations have a single winner", async () => {
   const identities = await Promise.all([account(), account(), account()]);
   const code = "simultaneous-hosts";
+  await getDb().insert(roomDefinitions).values({ code });
   const results = await Promise.allSettled(
     identities.map((identity) => reserveAdmission(getDb(), grant(code, identity), 2)),
   );
@@ -65,6 +66,7 @@ test("concurrent host claims and capacity reservations have a single winner", as
 });
 
 test("guest cannot claim host and token reservation is not admission", async () => {
+  await getDb().insert(roomDefinitions).values({ code: "guest-no-host" });
   await expect(
     reserveAdmission(getDb(), grant("guest-no-host", "convidado-test"), 6),
   ).rejects.toMatchObject({ code: "host_absent" });

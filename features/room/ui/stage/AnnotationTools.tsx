@@ -2,6 +2,7 @@ import { Pencil } from "lucide-react";
 import { Popover } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import type { AnnotationControl } from "@/features/room/hooks/use-annotations";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 
 export function AnnotationTools({
   control,
@@ -19,49 +20,48 @@ export function AnnotationTools({
       >
         <Pencil className="size-4" aria-hidden="true" />
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          side="bottom"
-          align="end"
-          collisionPadding={16}
-          onCloseAutoFocus={(event) => event.preventDefault()}
-          className="glass z-50 flex w-[min(18rem,calc(100vw-2rem))] flex-col gap-2 rounded-2xl p-3"
-        >
-          <p className="text-sm text-ink-muted">
-            Marcas somem após 10 segundos. O vídeo em janela (PiP) não inclui estas anotações.
-          </p>
-          {(
-            [
-              ["arrow", "Seta"],
-              ["circle", "Círculo"],
-              ["pen", "Caneta"],
-            ] as const
-          ).map(([tool, label]) => (
-            <Popover.Close key={tool} asChild>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  onStart();
-                  control.setTool(tool);
-                }}
-              >
-                {label}
-              </Button>
-            </Popover.Close>
-          ))}
-          <Button variant="ghost" onClick={() => control.setTool(undefined)}>
-            Parar de anotar
-          </Button>
-          <Button variant="ghost" onClick={control.removeOwn}>
-            Desfazer minha última marca
-          </Button>
-          {control.canClear ? (
-            <Button variant="ghost" onClick={() => void control.clear()}>
-              Limpar anotações de todos
+      <GlassPopoverContent
+        side="bottom"
+        align="end"
+        sideOffset={8}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        width="sm"
+        className="flex flex-col gap-2 p-3"
+      >
+        <p className="text-sm text-ink-muted">
+          Marcas somem após 10 segundos. O vídeo em janela (PiP) não inclui estas anotações.
+        </p>
+        {(
+          [
+            ["arrow", "Seta"],
+            ["circle", "Círculo"],
+            ["pen", "Caneta"],
+          ] as const
+        ).map(([tool, label]) => (
+          <Popover.Close key={tool} asChild>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                onStart();
+                control.setTool(tool);
+              }}
+            >
+              {label}
             </Button>
-          ) : null}
-        </Popover.Content>
-      </Popover.Portal>
+          </Popover.Close>
+        ))}
+        <Button variant="ghost" onClick={() => control.setTool(undefined)}>
+          Parar de anotar
+        </Button>
+        <Button variant="ghost" onClick={control.removeOwn}>
+          Desfazer minha última marca
+        </Button>
+        {control.canClear ? (
+          <Button variant="ghost" onClick={() => void control.clear()}>
+            Limpar anotações de todos
+          </Button>
+        ) : null}
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

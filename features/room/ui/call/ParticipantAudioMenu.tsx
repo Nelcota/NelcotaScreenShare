@@ -8,6 +8,7 @@ import { useParticipantAudio } from "@/features/room/hooks/use-participant-audio
 import { participantName } from "@/features/room/domain/participant-label";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 
 function AudioLevel({
   label,
@@ -76,62 +77,59 @@ export function ParticipantAudioMenu({
           <Volume2 className="size-4" aria-hidden="true" />
         )}
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          side="left"
-          align="center"
-          sideOffset={10}
-          collisionPadding={16}
-          aria-labelledby={titleId}
-          aria-describedby={hintId}
-          className="glass z-50 flex max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-2rem))] w-[min(18rem,calc(100vw-2rem))] flex-col gap-5 overflow-y-auto overscroll-contain rounded-2xl p-4 outline-none"
-        >
-          <div>
-            <p id={titleId} className="truncate text-base font-medium">
-              Áudio de {name}
-            </p>
-            <p id={hintId} className="mt-1 text-xs text-ink-subtle">
-              Só muda o que você ouve.
-            </p>
-          </div>
-          <AudioLevel
-            label="Voz"
-            accessibleLabel={`Voz de ${name}`}
-            level={audio.settings.voice}
-            onChange={(level) => audio.setLevel("voice", level)}
-          />
-          <AudioLevel
-            label="Som compartilhado"
-            accessibleLabel={`Som compartilhado de ${name}`}
-            level={audio.settings.sharedAudio}
-            disabled={!hasSharedAudio}
-            onChange={(level) => audio.setLevel("sharedAudio", level)}
-          />
-          {!hasSharedAudio ? (
-            <p className="-mt-2 text-xs text-ink-subtle">Sem som compartilhado agora.</p>
-          ) : null}
-          <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
-            <button
-              type="button"
-              aria-pressed={audio.settings.muted}
-              onClick={audio.toggleMute}
-              className="rounded-lg px-2 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
-            >
-              {audio.settings.muted ? "Voltar a ouvir" : "Silenciar só para mim"}
-            </button>
-            <Button
-              type="button"
-              variant="quiet"
-              size="icon-lg"
-              onClick={audio.reset}
-              aria-label="Restaurar volumes"
-              className="rounded-lg"
-            >
-              <RotateCcw aria-hidden="true" />
-            </Button>
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
+      <GlassPopoverContent
+        side="left"
+        sideOffset={10}
+        aria-labelledby={titleId}
+        aria-describedby={hintId}
+        width="sm"
+        className="flex max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-2rem))] flex-col gap-5 overflow-y-auto overscroll-contain p-4"
+      >
+        <div>
+          <p id={titleId} className="truncate text-base font-medium">
+            Áudio de {name}
+          </p>
+          <p id={hintId} className="mt-1 text-xs text-ink-subtle">
+            Só muda o que você ouve.
+          </p>
+        </div>
+        <AudioLevel
+          label="Voz"
+          accessibleLabel={`Voz de ${name}`}
+          level={audio.settings.voice}
+          onChange={(level) => audio.setLevel("voice", level)}
+        />
+        <AudioLevel
+          label="Som compartilhado"
+          accessibleLabel={`Som compartilhado de ${name}`}
+          level={audio.settings.sharedAudio}
+          disabled={!hasSharedAudio}
+          onChange={(level) => audio.setLevel("sharedAudio", level)}
+        />
+        {!hasSharedAudio ? (
+          <p className="-mt-2 text-xs text-ink-subtle">Sem som compartilhado agora.</p>
+        ) : null}
+        <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+          <button
+            type="button"
+            aria-pressed={audio.settings.muted}
+            onClick={audio.toggleMute}
+            className="rounded-lg px-2 py-2 text-sm font-medium transition-colors hover:bg-surface-3"
+          >
+            {audio.settings.muted ? "Voltar a ouvir" : "Silenciar só para mim"}
+          </button>
+          <Button
+            type="button"
+            variant="quiet"
+            size="icon-lg"
+            onClick={audio.reset}
+            aria-label="Restaurar volumes"
+            className="rounded-lg"
+          >
+            <RotateCcw aria-hidden="true" />
+          </Button>
+        </div>
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

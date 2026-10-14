@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
 import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { DockButton } from "./DockButton";
-import { DockPopoverContent } from "./DockPopover";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 import { SharePanel } from "./SharePanel";
 import { canShare, shareSupportMessage } from "@/features/room/domain/share-support";
 import type { ScreenShareControl } from "@/features/room/hooks/use-screen-share";
@@ -95,9 +95,10 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
         </DockButton>
       </Popover.Trigger>
 
-      <DockPopoverContent
+      <GlassPopoverContent
         aria-label="Opções de compartilhamento"
-        className="max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain"
+        width="lg"
+        className="max-h-[min(var(--radix-popover-content-available-height),calc(100dvh-2rem))] overflow-y-auto overscroll-contain"
       >
         <SharePanel
           audio={share.audio}
@@ -109,7 +110,7 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
             void share.start(choice);
           }}
         />
-      </DockPopoverContent>
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

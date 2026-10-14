@@ -4,6 +4,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { navItemClass } from "./nav-item-class";
 import { Hint } from "@/components/Hint";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 
 /** Top glass bar, used on the home page and in the room. Sections separated by `NavDivider`. */
 export function NavBar({ className, ...props }: ComponentProps<"nav">) {
@@ -89,19 +90,16 @@ export function NavPopover({
           {trigger}
         </Popover.Trigger>
       </Hint>
-      <Popover.Portal>
-        <Popover.Content
-          data-slot="popover-content"
-          side="bottom"
-          align={align}
-          sideOffset={12}
-          collisionPadding={16}
-          aria-label={label}
-          className="glass z-50 w-[min(20rem,calc(100vw-2rem))] origin-(--radix-popover-content-transform-origin) rounded-2xl p-4 outline-none"
-        >
-          {children}
-        </Popover.Content>
-      </Popover.Portal>
+      <GlassPopoverContent
+        side="bottom"
+        align={align}
+        sideOffset={12}
+        aria-label={label}
+        width="md"
+        className="p-4"
+      >
+        {children}
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

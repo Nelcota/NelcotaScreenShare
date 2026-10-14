@@ -16,7 +16,8 @@ import {
 } from "@/features/room/ui/MicrophoneDevice";
 import { cn } from "@/lib/utils";
 import { DockButton } from "./DockButton";
-import { DockPopoverContent, DockPopoverTitle } from "./DockPopover";
+import { GlassPopoverContent } from "@/components/GlassPopover";
+import { DockPopoverTitle } from "./DockPopover";
 import { Button } from "@/components/ui/button";
 import { ProcessingSwitches } from "@/features/room/ui/settings/ProcessingSwitches";
 import { MicTestPanel } from "./MicTest";
@@ -94,11 +95,7 @@ export function MicMenu({ menu, disabled = false }: MicMenuProps) {
           />
         </DockButton>
       </Popover.Trigger>
-      <DockPopoverContent
-        align="start"
-        aria-label="Microfone"
-        className="w-[min(22rem,calc(100vw-2rem))]"
-      >
+      <GlassPopoverContent align="start" aria-label="Microfone" width="lg">
         {test.testing ? (
           <MicTestPanel />
         ) : (
@@ -125,7 +122,7 @@ export function MicMenu({ menu, disabled = false }: MicMenuProps) {
             </Button>
           </>
         )}
-      </DockPopoverContent>
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

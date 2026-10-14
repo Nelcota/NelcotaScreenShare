@@ -51,6 +51,8 @@ export function authErrorMessage(
   const known = BY_CODE[code];
   if (known) return known;
   if (SERVER_WORDED.has(code) && error.message) return error.message;
+  // No session behind the request (signed out in another tab, revoked): say so.
+  if (code === "UNAUTHORIZED" || (error.status === 401 && !code)) return SESSION_EXPIRED_MESSAGE;
   // The per-IP rate limit answers 429 with an English message.
   if (error.status === 429) return "Muitas tentativas. Aguarde um minuto.";
   return fallback;

@@ -52,6 +52,8 @@ async function changeTeam(
     input.kind === "remove" && input.userId === actor ? "read" : required,
   );
   if (input.kind === "invite") {
+    // Who manages the team is the owner's call: a manager brings in members only.
+    if (input.role === "manager") await requireMembership(tx, input.teamId, actor, "owner");
     const invitation = await createTeamInvitation(tx, input.teamId, actor, input.email, input.role);
     return {
       teamId: input.teamId,

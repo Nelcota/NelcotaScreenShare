@@ -59,7 +59,9 @@ export async function removeTeamMember(
   const target = await targetMember(tx, teamId, userId);
   if (target.role === "owner")
     throw new ActionError("O dono precisa transferir a propriedade ou excluir o time.");
-  if (actor !== userId) await requireMembership(tx, teamId, actor, "manage");
+  // Managers remove members; removing a manager is the owner's, like changing roles.
+  if (actor !== userId)
+    await requireMembership(tx, teamId, actor, target.role === "manager" ? "owner" : "manage");
   await tx
     .delete(teamMembers)
     .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));

@@ -10,9 +10,9 @@ import {
 import { chatParts } from "@/features/room/domain/chat-format";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
-import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
 
 const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -44,15 +44,14 @@ export function ChatMessage({
       )}
     >
       {mine ? null : (
-        <span
-          aria-hidden="true"
+        <InitialsAvatar
+          name={name}
+          source={null}
           className={cn(
-            "grid size-7 shrink-0 place-items-center self-end rounded-full bg-brand/20 text-xs font-medium text-brand-soft",
+            "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
             !groupStart && "invisible",
           )}
-        >
-          {initials(name)}
-        </span>
+        />
       )}
       <div className={cn("flex max-w-[80%] min-w-0 flex-col gap-1", mine && "items-end")}>
         {groupStart ? (

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { Hint } from "@/components/Hint";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { friendPhotoPath, type FriendPerson } from "@/features/friends/domain/friend-lists";
 import type { ShownStatus } from "@/features/friends/domain/presence-status";
@@ -29,12 +30,17 @@ function MutualFriends({ mutual }: { mutual: FriendProfileView["mutual"] }) {
       {mutual.total > 0 ? (
         <ul className="flex -space-x-2" aria-label={mutualLabel(mutual.total)}>
           {mutual.shown.map((person) => (
-            <li key={person.id} title={person.name}>
-              <InitialsAvatar
-                name={person.name}
-                source={friendPhotoPath(person.id)}
-                className="size-8 bg-brand/15 text-xs font-medium text-brand-soft ring-2 ring-surface"
-              />
+            <li key={person.id}>
+              <Hint text={person.name}>
+                <span className="block rounded-full">
+                  <span className="sr-only">{person.name}</span>
+                  <InitialsAvatar
+                    name={person.name}
+                    source={friendPhotoPath(person.id)}
+                    className="size-8 bg-brand/15 text-xs font-medium text-brand-soft ring-2 ring-surface"
+                  />
+                </span>
+              </Hint>
             </li>
           ))}
         </ul>

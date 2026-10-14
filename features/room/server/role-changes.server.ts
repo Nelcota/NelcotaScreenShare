@@ -39,11 +39,12 @@ export async function roomOwnerName(db: DbExecutor, roomCode: string): Promise<s
   return owner?.name ?? null;
 }
 
+/** An account that can take a role: not deleted and not blocked by the admin panel. */
 async function activeAccount(db: DbExecutor, userId: string): Promise<boolean> {
   const [account] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.id, userId), isNull(users.deletedAt)));
+    .where(and(eq(users.id, userId), isNull(users.deletedAt), isNull(users.blockedAt)));
   return account !== undefined;
 }
 

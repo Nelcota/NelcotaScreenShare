@@ -52,7 +52,10 @@ The host retains authority for 60 seconds after disappearing. After that, the co
 admitted, nonexcluded active accounts are ranked: the owner, then moderators, then everyone
 else, each group by join time. The first becomes host. Guests alone cannot claim
 authority and new admission stays locked. Presence checks use the LiveKit service API;
-webhooks project history and never grant roles. Calls persist when navigating within the app.
+webhooks project history and never grant roles. They do take people out: a `participant_joined`
+into a closed session, by someone excluded from it, or by someone never admitted while it is
+locked is removed again (`removeBannedJoin`), in case a kept token reaches LiveKit around the
+relay. Calls persist when navigating within the app.
 
 Host policy, a durable transport command and audit commit atomically. Transport effects
 follow the commit. Failures stay visible and retry every five seconds with bounded

@@ -77,13 +77,12 @@ function GifTabs({ tab, onChange }: { tab: GifTab; onChange: (next: GifTab) => v
     { id: "favorites", label: "Favoritos", icon: Star },
   ] as const;
   return (
-    <div role="tablist" aria-label="GIFs" className="flex gap-1">
+    <fieldset aria-label="GIFs" className="flex gap-1">
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           type="button"
-          role="tab"
-          aria-selected={tab === id}
+          aria-pressed={tab === id}
           onClick={() => onChange(id)}
           className={cn(
             "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-sm font-semibold",
@@ -94,7 +93,7 @@ function GifTabs({ tab, onChange }: { tab: GifTab; onChange: (next: GifTab) => v
           {label}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }
 
@@ -160,7 +159,7 @@ export function GifPicker({
   return (
     <section
       aria-label="GIFs"
-      className="flex max-h-[26rem] w-full flex-col rounded-3xl border border-line bg-popover shadow-soft sm:w-[25rem]"
+      className="flex max-h-[min(26rem,var(--radix-popover-content-available-height))] w-full flex-col rounded-3xl border border-line bg-popover shadow-soft"
     >
       <div className="flex flex-col gap-2 p-3 pb-2">
         <label className="flex h-10 items-center gap-2 rounded-full border border-line bg-surface-2 px-3 text-sm focus-within:border-brand-soft">

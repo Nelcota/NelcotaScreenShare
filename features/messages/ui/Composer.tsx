@@ -5,6 +5,7 @@ import { sendMessage } from "@/features/messages/actions";
 import { messageLengthNote } from "@/features/messages/domain/conversation";
 import type { Gif } from "@/features/messages/domain/klipy";
 import { useKlipy } from "@/features/messages/hooks/use-gif";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GifPicker } from "@/features/messages/ui/GifPicker";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ export function Composer({
   const [text, setText] = useState("");
   const [gifOpen, setGifOpen] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
+  const picked = useRef(false);
   const body = text.trim();
   const note = messageLengthNote(body.length);
   const sendable = body.length > 0 && !note?.over;
@@ -51,19 +53,21 @@ export function Composer({
     submit();
   };
   const pickGif = (gif: Gif) => {
+    picked.current = true;
     setGifOpen(false);
     void deliver({ conversationId, gifSlug: gif.slug });
     klipy?.share(gif.slug);
+  };
+  // After a pick the caret goes back to the message; Esc or a click outside returns to the trigger.
+  const onCloseAutoFocus = (event: Event) => {
+    if (!picked.current) return;
+    picked.current = false;
+    event.preventDefault();
     field.current?.focus();
   };
 
   return (
     <form onSubmit={submit} className="relative px-4 pt-1 pb-4">
-      {gifOpen && klipy ? (
-        <div className="absolute right-4 bottom-full z-20 mb-2 max-sm:left-4">
-          <GifPicker favorites={favorites} onPick={pickGif} />
-        </div>
-      ) : null}
       <div className="flex items-end gap-1 rounded-2xl border border-line-strong bg-surface-2 p-1.5 pl-4 focus-within:border-brand-soft">
         <label className="sr-only" htmlFor={`mensagem-${conversationId}`}>
           {placeholder}
@@ -81,18 +85,31 @@ export function Composer({
           className="field-sizing-content max-h-40 min-h-9 min-w-0 flex-1 resize-none self-center bg-transparent py-1.5 text-[0.9375rem] outline-none placeholder:text-ink-subtle"
         />
         {klipy ? (
-          <button
-            type="button"
-            aria-label="GIFs"
-            aria-expanded={gifOpen}
-            onClick={() => setGifOpen((open) => !open)}
-            className={cn(
-              "grid h-9 shrink-0 place-items-center rounded-xl px-2.5 text-xs font-bold tracking-wide text-ink-muted hover:bg-ink/[0.07] hover:text-ink",
-              gifOpen && "bg-ink/[0.07] text-ink",
-            )}
-          >
-            <span className="rounded-md border-2 border-current px-1 leading-4">GIF</span>
-          </button>
+          <Popover open={gifOpen} onOpenChange={setGifOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="GIFs"
+                className={cn(
+                  "grid h-9 shrink-0 place-items-center rounded-xl px-2.5 text-xs font-bold tracking-wide text-ink-muted hover:bg-ink/[0.07] hover:text-ink",
+                  gifOpen && "bg-ink/[0.07] text-ink",
+                )}
+              >
+                <span className="rounded-md border-2 border-current px-1 leading-4">GIF</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="end"
+              sideOffset={14}
+              alignOffset={-6}
+              collisionPadding={16}
+              onCloseAutoFocus={onCloseAutoFocus}
+              className="w-[calc(100vw-2rem)] gap-0 rounded-3xl bg-transparent p-0 shadow-none ring-0 sm:w-[25rem]"
+            >
+              <GifPicker favorites={favorites} onPick={pickGif} />
+            </PopoverContent>
+          </Popover>
         ) : null}
         <button
           type="submit"

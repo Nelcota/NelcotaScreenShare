@@ -14,7 +14,7 @@ const deletePasswordFailures = createRateLimiter({ limit: 5, windowMs: 15 * 60_0
 
 /** Ends a session of the user's own account (the token never goes to the browser). */
 export const revokeMySession = defineUserOperation(
-  { name: "account.revokeSession", audit: "none" },
+  { name: "account.revokeSession", audit: "none", allowUnverified: true },
   z.object({ sessionId: z.uuid() }),
   async ({ parsedInput, ctx }) => {
     if (parsedInput.sessionId === ctx.current.session.id) {
@@ -35,7 +35,7 @@ export const revokeMySession = defineUserOperation(
 );
 
 export const revokeMyOtherSessions = defineUserOperation(
-  { name: "account.revokeOtherSessions", audit: "none" },
+  { name: "account.revokeOtherSessions", audit: "none", allowUnverified: true },
   z.undefined(),
   async ({ ctx }) => {
     const deleted = await getDb()
@@ -57,7 +57,7 @@ export const revokeMyOtherSessions = defineUserOperation(
  * password, 2FA and sessions are removed immediately. Requires the current password.
  */
 export const deleteMyAccount = defineUserOperation(
-  { name: "account.delete", audit: "required" },
+  { name: "account.delete", audit: "required", allowUnverified: true },
   z.object({ password: z.string().min(1).max(128), deleteOwnedTeams: z.boolean().default(false) }),
   async ({ parsedInput, ctx }) => {
     const db = getDb();

@@ -18,7 +18,7 @@ const roomsPerAccount = createRateLimiter({ limit: 10, windowMs: 10 * 60_000 });
 
 /** "Criar sala": the account that creates the room is its owner, optionally choosing the access. */
 export const createRoomAction = defineUserOperation(
-  { name: "room.create", audit: "none" },
+  { name: "room.create", audit: "none", allowUnverified: true },
   z.object({ access: roomAccessSchema.optional() }).optional(),
   async ({ parsedInput, ctx }) => {
     const userId = ctx.current.user.id;
@@ -39,7 +39,7 @@ const roomSchema = z.object({ room: roomCodeSchema });
 
 /** The room's access mode, and whether the caller may change it (owner or moderator). */
 export const roomAccess = defineUserOperation(
-  { name: "room.access", audit: "none" },
+  { name: "room.access", audit: "none", allowUnverified: true },
   roomSchema,
   async ({ parsedInput, ctx }) => {
     const db = getDb();
@@ -53,7 +53,7 @@ export const roomAccess = defineUserOperation(
 
 /** Open entry or entry with approval; only the owner and moderators choose. */
 export const setRoomAccess = defineUserOperation(
-  { name: "room.setAccess", audit: "required" },
+  { name: "room.setAccess", audit: "required", allowUnverified: true },
   z.object({ room: roomCodeSchema, access: roomAccessSchema }),
   async ({ parsedInput, ctx }) => {
     const userId = ctx.current.user.id;
@@ -85,7 +85,7 @@ async function requireManager(db: DbExecutor, room: string, userId: string) {
 
 /** People waiting to enter, for the owner and moderators. */
 export const joinRequests = defineUserOperation(
-  { name: "room.joinRequests", audit: "none" },
+  { name: "room.joinRequests", audit: "none", allowUnverified: true },
   roomSchema,
   async ({ parsedInput, ctx }) => {
     const db = getDb();
@@ -96,7 +96,7 @@ export const joinRequests = defineUserOperation(
 
 /** Lets someone in or not; the person waiting sees the answer on their screen. */
 export const answerJoin = defineUserOperation(
-  { name: "room.answerJoin", audit: "required" },
+  { name: "room.answerJoin", audit: "required", allowUnverified: true },
   z.object({ room: roomCodeSchema, requestId: z.uuid(), accept: z.boolean() }),
   async ({ parsedInput, ctx }) => {
     const userId = ctx.current.user.id;
@@ -124,7 +124,7 @@ export const answerJoin = defineUserOperation(
 const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 export const hostCommandAction = defineUserOperation(
-  { name: "room.hostCommand", audit: "required" },
+  { name: "room.hostCommand", audit: "required", allowUnverified: true },
   hostCommandSchema,
   async ({ parsedInput, ctx }) => {
     if (!getEnv().ROOM_HOST_CONTROLS_ENABLED)

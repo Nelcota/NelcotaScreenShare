@@ -1,5 +1,5 @@
 import type { Participant } from "livekit-client";
-import { Volume1, Volume2, VolumeOff, VolumeX } from "lucide-react";
+import { Volume1, Volume2, VolumeX } from "lucide-react";
 import { useRef } from "react";
 import { Slider } from "@/components/ui/slider";
 import { useMediaVolumeSettable } from "@/features/room/hooks/use-media-volume-settable";
@@ -70,7 +70,7 @@ export function VoiceLine({ participant }: { participant: Participant }) {
 export function MuteAllItem({ participant }: { participant: Participant }) {
   const { settings, toggleMute } = useParticipantAudio(participant.identity);
   return (
-    <CardMenuItem icon={<VolumeOff />} aria-pressed={settings.muted} onClick={toggleMute}>
+    <CardMenuItem icon={<VolumeX />} aria-pressed={settings.muted} onClick={toggleMute}>
       {settings.muted ? "Voltar a ouvir" : "Silenciar tudo"}
     </CardMenuItem>
   );

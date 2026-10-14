@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from "react";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import {
   DEFAULT_SHORTCUT_KEYS,
@@ -6,23 +5,10 @@ import {
   type ShortcutId,
   type ShortcutKeys,
 } from "@/lib/shortcuts";
-import { logBrowserWarning } from "@/lib/telemetry.client";
+import { useStoredValue } from "@/lib/hooks/use-stored-value";
+import { createStoredValue } from "@/lib/stored-value";
 
-const STORAGE_KEY = "nelcota-shortcut-keys";
-const CHANGE_EVENT = "nelcota-shortcut-keys-change";
-let fallback: ShortcutKeys = DEFAULT_SHORTCUT_KEYS;
-let storageBlocked = false;
-let warned = false;
-let cached: { raw: string | null; keys: ShortcutKeys } | undefined;
-
-function warn(error: unknown) {
-  if (warned) return;
-  warned = true;
-  logBrowserWarning("Could not access shortcut keys storage", error);
-}
-
-function parse(raw: string | null): ShortcutKeys {
-  if (!raw) return DEFAULT_SHORTCUT_KEYS;
+function parse(raw: string): ShortcutKeys {
   try {
     return readShortcutKeys(JSON.parse(raw));
   } catch {
@@ -30,44 +16,21 @@ function parse(raw: string | null): ShortcutKeys {
   }
 }
 
-/** The same object while the saved value does not change (`useSyncExternalStore`). */
-function currentShortcutKeys(): ShortcutKeys {
-  if (storageBlocked) return fallback;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (cached?.raw !== raw) cached = { raw, keys: parse(raw) };
-    return cached.keys;
-  } catch (error) {
-    storageBlocked = true;
-    warn(error);
-    return fallback;
-  }
-}
+const shortcutKeys = createStoredValue<ShortcutKeys>({
+  key: "nelcota-shortcut-keys",
+  changeEvent: "nelcota-shortcut-keys-change",
+  fallback: DEFAULT_SHORTCUT_KEYS,
+  parse,
+  serialize: (keys) => JSON.stringify(keys),
+  warning: "Could not access shortcut keys storage",
+});
 
 /** Keeps the keys in this browser; without storage they last until the page reloads. */
-export function saveShortcutKeys(keys: ShortcutKeys) {
-  fallback = keys;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
-  } catch (error) {
-    storageBlocked = true;
-    warn(error);
-  }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-function subscribe(changed: () => void) {
-  window.addEventListener(CHANGE_EVENT, changed);
-  window.addEventListener("storage", changed);
-  return () => {
-    window.removeEventListener(CHANGE_EVENT, changed);
-    window.removeEventListener("storage", changed);
-  };
-}
+export const saveShortcutKeys = shortcutKeys.write;
 
 /** The room keys chosen in this browser (the defaults during SSR). */
 export function useShortcutKeys(): ShortcutKeys {
-  return useSyncExternalStore(subscribe, currentShortcutKeys, () => DEFAULT_SHORTCUT_KEYS);
+  return useStoredValue(shortcutKeys, DEFAULT_SHORTCUT_KEYS);
 }
 
 /** `useShortcut` with the key this browser chose for the room shortcut `id`. */

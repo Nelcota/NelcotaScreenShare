@@ -164,6 +164,8 @@ After all four required local checks pass, merge through the PR and deploy `main
 4. The App's `DATABASE_URL` uses `nelcota_app`; `MIGRATOR_DATABASE_URL` (GitHub secret) uses `nelcota_migrator`. Both with the Postgres **internal** host.
 5. Enable Coolify's scheduled backups to an S3-compatible store (daily, 03:00).
 
+> **Changing the config later:** paste the new file in Coolify and apply it. Logging settings such as `log_parameter_max_length` (slow statements logged without their values) only need a reload, not a restart: `SELECT pg_reload_conf();` as the superuser. Settings marked "restart" in `pg_settings.context` (e.g. `shared_buffers`, `shared_preload_libraries`) still need a restart.
+
 ### 5. TURN/TLS (optional, for very restrictive networks)
 
 TURN/UDP (3478) is already on. TURN/TLS on 5349 gets through firewalls that only let TLS through, but it needs a valid certificate for `turn.domain`:

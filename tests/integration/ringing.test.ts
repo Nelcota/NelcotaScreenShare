@@ -171,6 +171,28 @@ describe("calling a friend", () => {
     expect(approval).not.toBeNull();
   });
 
+  test("in a room that asks for approval, a friend rung by someone who only joined still asks", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    const caio = await verifiedParticipant(db, handler, { name: "Caio" });
+    await friends(ana.id, bia.id);
+    markOnline(bia.id);
+    const caioRoom = await createRoom(db, caio.id, "approval");
+    connected.set(await mediaRoomIn(db, caioRoom), [caio.id, ana.id]);
+
+    as(ana);
+    const ringId =
+      (await ringing.callFriend({ friendId: bia.id, room: caioRoom })).data?.ringId ?? "";
+    as(bia);
+    expect((await ringing.acceptCall({ ringId })).data?.path).toContain(caioRoom);
+    const approval = await consumeApproval(db, {
+      roomCode: caioRoom,
+      requester: { userId: bia.id },
+      requestId: undefined,
+    });
+    expect(approval).toBeNull();
+  });
+
   test("nobody rings an offline friend, a stranger, or into someone else's room", async () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     const bia = await verifiedParticipant(db, handler, { name: "Bia" });

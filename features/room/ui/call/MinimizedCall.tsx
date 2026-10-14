@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useNavigate } from "react-router";
+import { NavDivider } from "@/components/shell/NavBar";
 import { roomPath } from "@/features/room/domain/room-code";
 import { useDraggableCard } from "@/features/room/hooks/use-draggable-card";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
@@ -59,7 +60,7 @@ export function MinimizedCall({ code, onLeave }: { code: string; onLeave: () => 
         <CallConnectionDot className="ml-1" />
         <CallSpeakers roomCode={code} max={mobile ? PHONE_FACES : undefined} />
       </span>
-      <span aria-hidden="true" className="h-6 w-px shrink-0 bg-line-strong max-md:hidden" />
+      <NavDivider className="mx-0 max-md:hidden" />
       <span className="flex items-center gap-1">
         <CallMicButton />
         <CallDeafenButton />

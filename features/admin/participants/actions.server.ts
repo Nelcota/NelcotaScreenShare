@@ -6,6 +6,7 @@ import { ActionError } from "@/server/operations/action-error";
 import { getUserAuth } from "@/features/auth/server/participant-auth.server";
 import { getDb } from "@/server/db/index.server";
 import { users } from "@/server/db/schema";
+import { createRateLimiter } from "@/server/rate-limit.server";
 import {
   anonymizeParticipant,
   blockParticipants,
@@ -34,6 +35,9 @@ const reasonSchema = z
   .trim()
   .min(3, "Escreva o motivo do bloqueio.")
   .max(300, "O motivo pode ter até 300 caracteres.");
+
+/** Confirmation e-mails resent from the panel, per account. */
+const resendLimiter = createRateLimiter({ limit: 3, windowMs: 60 * 60_000 });
 
 function participantIds(selection: BulkSelectionInput) {
   const db = getDb();
@@ -144,7 +148,7 @@ export const revokeParticipantSessionsAction = defineAdminOperation(
   },
 );
 
-/** Resends the confirmation link (Better Auth rate-limits and generates the link). */
+/** Resends the confirmation link (Better Auth generates it; the panel limits it per account). */
 export const resendVerificationAction = defineAdminOperation(
   {
     name: "participant.resendVerification",
@@ -160,13 +164,21 @@ export const resendVerificationAction = defineAdminOperation(
       .where(eq(users.id, parsedInput.id));
     if (!user || user.deletedAt) throw new ActionError("Conta não encontrada.");
     if (user.verified) throw new ActionError("Esse e-mail já está confirmado.");
-    await getUserAuth().api.sendVerificationEmail({
-      body: { email: user.email, callbackURL: "/" },
-    });
-    await ctx.audit.record(db, {
-      action: "user.verification_resend",
-      resourceType: "user",
-      resourceId: parsedInput.id,
+    // Server-side, this call skips the HTTP rate limit: the account gets its own.
+    if (!resendLimiter.hit(parsedInput.id).ok) {
+      throw new ActionError("Esse e-mail já foi reenviado várias vezes. Tente de novo mais tarde.");
+    }
+    // The audit row first, in one transaction: an e-mail never goes out without its record,
+    // and a failed send rolls the record back.
+    await db.transaction(async (tx) => {
+      await ctx.audit.record(tx, {
+        action: "user.verification_resend",
+        resourceType: "user",
+        resourceId: parsedInput.id,
+      });
+      await getUserAuth().api.sendVerificationEmail({
+        body: { email: user.email, callbackURL: "/" },
+      });
     });
     return { sent: true };
   },

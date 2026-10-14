@@ -26,7 +26,9 @@ former owner a moderator. The owner does this from the person's card ("Transferi
 Sync commands also publish each person's saved room role, so badges follow the change.
 
 The person's card keeps two actions for the owner and moderators. "Expulsar" disconnects
-without excluding: the person may rejoin. "Banir desta chamada" is the session exclusion,
+without excluding: the person may rejoin. Both go through `/api/sala/moderar`, which with the
+flag on follows the same rule as the host's `remove`: a moderator never kicks or bans the
+session's host; only the owner does. "Banir desta chamada" is the session exclusion,
 recorded with who did it (`excluded_by_user_id` or, from the admin panel,
 `excluded_by_admin_id`), followed by a durable `remove` command. With the flag off there is
 no session; bans stay in `room_bans` for the LiveKit call. The admin panel reads both through

@@ -1,4 +1,4 @@
-import { Ban, DoorClosed, Home } from "lucide-react";
+import { ArrowLeft, Ban, DoorClosed } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "@/features/room/ui/StatusScreen";
@@ -22,7 +22,7 @@ export function RoomUnavailable({ reason }: { reason: RoomUnavailableReason }) {
       <StatusScreen icon={icon} title={title} message={message} alert>
         <Button size="lg" asChild>
           <Link to="/" viewTransition>
-            <Home aria-hidden="true" />
+            <ArrowLeft aria-hidden="true" />
             Voltar ao início
           </Link>
         </Button>

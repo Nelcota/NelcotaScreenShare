@@ -1,5 +1,5 @@
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-import { ArrowLeft, Home, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link, useLocation, useViewTransitionState } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -165,7 +165,11 @@ export function LeftScreen({
           ) : (
             <Button asChild size="lg" data-primary="">
               <Link viewTransition to={startPath(!guest)}>
-                {reason === "ended" ? <Plus aria-hidden="true" /> : <Home aria-hidden="true" />}
+                {reason === "ended" ? (
+                  <Plus aria-hidden="true" />
+                ) : (
+                  <ArrowLeft aria-hidden="true" />
+                )}
                 {reason === "ended" ? "Criar nova sala" : "Ir para o início"}
               </Link>
             </Button>

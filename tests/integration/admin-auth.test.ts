@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac, randomBytes } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { and, eq, like } from "drizzle-orm";
 import { Pool } from "pg";
@@ -255,6 +256,61 @@ describe("2FA TOTP", () => {
       const res = await call("/two-factor/verify-backup-code", { body: { code }, jar: third });
       assert.equal(res.status, expected);
     }
+  });
+});
+
+/** A 30-day "trust this device" cookie, built the way the two-factor plugin builds it. */
+async function trustedDeviceCookie(userId: string): Promise<string> {
+  const identifier = `trust-device-${randomBytes(16).toString("hex")}`;
+  await db.insert(schema.adminVerifications).values({
+    identifier,
+    value: userId,
+    expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+  });
+  const token = createHmac("sha256", SECRET).update(`${userId}!${identifier}`).digest("base64url");
+  const value = `${token}!${identifier}`;
+  const signature = createHmac("sha256", SECRET).update(value).digest("base64");
+  return `nelcota-admin.trust_device=${encodeURIComponent(`${value}.${signature}`)}`;
+}
+
+/** An admin who turned 2FA on, and the caller with its IP. */
+async function adminWithTwoFactor(email: string) {
+  const call = newCaller();
+  const { userId } = await inviteAndAccept(email);
+  const jar = new CookieJar();
+  await call("/sign-in/email", { body: { email, password: PASSWORD }, jar });
+  const enabled = await call("/two-factor/enable", { body: { password: PASSWORD }, jar });
+  const { totpURI } = enabled.body as { totpURI: string };
+  await call("/two-factor/verify-totp", { body: { code: totpFromUri(totpURI) }, jar });
+  return { call, userId, totpURI };
+}
+
+describe("2FA on every sign-in", () => {
+  test("trusting the device is refused", async () => {
+    const { call, totpURI } = await adminWithTwoFactor("confiar@exemplo.com");
+    const jar = new CookieJar();
+    await call("/sign-in/email", {
+      body: { email: "confiar@exemplo.com", password: PASSWORD },
+      jar,
+    });
+    const trusted = await call("/two-factor/verify-totp", {
+      body: { code: totpFromUri(totpURI), trustDevice: true },
+      jar,
+    });
+    assert.equal(trusted.status, 400);
+    assert.equal(errorCode(trusted.body), "TRUST_DEVICE_DISABLED");
+    assert.equal(jar.has("trust_device"), false);
+  });
+
+  test("a device trusted before no longer skips the code", async () => {
+    const { call, userId } = await adminWithTwoFactor("antigo@exemplo.com");
+    const jar = new CookieJar();
+    jar.store(new Response(null, { headers: { "set-cookie": await trustedDeviceCookie(userId) } }));
+    const signIn = await call("/sign-in/email", {
+      body: { email: "antigo@exemplo.com", password: PASSWORD },
+      jar,
+    });
+    assert.equal((signIn.body as { twoFactorRedirect?: boolean }).twoFactorRedirect, true);
   });
 });
 

@@ -7,6 +7,7 @@ import type { Database } from "@/server/db/index.server";
 import { users } from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import { enforceEmailPolicy } from "./email-policy.server";
+import { requireSecondFactorEverySignIn } from "./trusted-device.server";
 import {
   checkLockout,
   clearFailures,
@@ -101,6 +102,7 @@ export function authHooks(
 ) {
   return {
     before: createAuthMiddleware(async (ctx) => {
+      if (scope === "admin") await requireSecondFactorEverySignIn(db, ctx.path, ctx.body);
       if (scope === "user") {
         await enforceEmailPolicy(ctx, secret, FRESH_SESSION_SECONDS);
         if (ctx.path === "/update-user" || ctx.path === "/sign-up/email") {

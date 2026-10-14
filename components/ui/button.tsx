@@ -15,6 +15,9 @@ const buttonVariants = cva(
         default: "bg-brand text-brand-ink hover:bg-brand-hover disabled:bg-disabled",
         outline: NEUTRAL,
         secondary: NEUTRAL,
+        /** Green outline that fills on hover, focus or while its menu/dialog is open. */
+        "brand-outline":
+          "border-brand-soft/70 text-brand-soft hover:border-brand hover:bg-brand hover:text-brand-ink focus-visible:border-brand focus-visible:bg-brand focus-visible:text-brand-ink disabled:border-line disabled:bg-disabled aria-expanded:border-brand aria-expanded:bg-brand aria-expanded:text-brand-ink",
         ghost:
           "hover:bg-muted hover:text-foreground disabled:bg-disabled aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:

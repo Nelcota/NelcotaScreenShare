@@ -140,6 +140,7 @@ const envSchema = z
           "MAIL_FROM and an e-mail provider (RESEND_API_KEY or SMTP_URL) are required when delivery or verification is enabled",
       });
     }
+    refuseDevelopmentLiveKit(env, ctx);
     if (env.ADMIN_AUTH_SECRET && env.ADMIN_AUTH_SECRET === env.AUTH_SECRET) {
       ctx.addIssue({
         code: "custom",
@@ -148,6 +149,32 @@ const envSchema = z
       });
     }
   });
+
+/** The production build run on this machine (E2E, prints): APP_URL on loopback. */
+function servesLocally(appUrlValue: string | undefined): boolean {
+  if (!appUrlValue) return false;
+  const host = new URL(appUrlValue).hostname;
+  return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+}
+
+/**
+ * The keys in deploy/livekit/livekit.dev.yaml are in the repository: with them anyone could
+ * forge tokens and webhooks. A real deployment (public APP_URL) refuses them; the local
+ * production build that the E2E runs against the dev LiveKit still starts.
+ */
+function refuseDevelopmentLiveKit(
+  env: { LIVEKIT_API_KEY: string; LIVEKIT_API_SECRET: string; APP_URL?: string | undefined },
+  ctx: z.RefinementCtx,
+) {
+  const development =
+    env.LIVEKIT_API_KEY === "devkey" || env.LIVEKIT_API_SECRET.startsWith("devsecret");
+  if (!development || servesLocally(env.APP_URL)) return;
+  ctx.addIssue({
+    code: "custom",
+    path: ["LIVEKIT_API_SECRET"],
+    message: "Use production LiveKit keys: the development LiveKit key and secret are public",
+  });
+}
 
 /**
  * Public origin of the app (no trailing slash). Reads only APP_URL (validated by the same

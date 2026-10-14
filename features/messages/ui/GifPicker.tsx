@@ -1,4 +1,4 @@
-import { Search, Star, TrendingUp } from "lucide-react";
+import { Star, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { favoriteGif, unfavoriteGif } from "@/features/messages/actions";
@@ -7,10 +7,14 @@ import { useKlipy } from "@/features/messages/hooks/use-gif";
 import { useOperation } from "@/lib/operations/use-operation";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 import { cn } from "@/lib/utils";
+import { SearchField } from "@/components/SearchField";
 
 type GifTab = "trending" | "favorites";
 
 const SEARCH_DELAY_MS = 350;
+
+/** In English on purpose: KLIPY's attribution guidelines require this exact placeholder. */
+const KLIPY_PLACEHOLDER = "Search KLIPY";
 
 /** Trending, a search or the favourites; empty while loading, null on failure. */
 function useGifList(tab: GifTab, query: string, favorites: readonly string[]) {
@@ -162,17 +166,13 @@ export function GifPicker({
       className="flex max-h-[min(26rem,var(--radix-popover-content-available-height))] w-full flex-col rounded-3xl border border-line bg-popover shadow-soft"
     >
       <div className="flex flex-col gap-2 p-3 pb-2">
-        <label className="flex h-10 items-center gap-2 rounded-full border border-line bg-surface-2 px-3 text-sm focus-within:border-brand-soft">
-          <Search className="size-4 text-ink-subtle" aria-hidden="true" />
-          <span className="sr-only">Buscar GIF</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search KLIPY"
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ink-subtle"
-          />
-        </label>
+        <SearchField
+          label="Buscar GIF"
+          placeholder={KLIPY_PLACEHOLDER}
+          value={query}
+          onChange={setQuery}
+          className="h-10"
+        />
         {trimmed ? null : <GifTabs tab={tab} onChange={setTab} />}
       </div>
       <GifGrid gifs={gifs} favorites={favorites} onPick={onPick} empty={empty} />

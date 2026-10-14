@@ -1,4 +1,4 @@
-import { PanelLeftClose, Search, type LucideIcon } from "lucide-react";
+import { PanelLeftClose, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
@@ -10,6 +10,8 @@ import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { SearchField } from "@/components/SearchField";
+import { searchable } from "@/lib/search-text";
 
 /** A tab at the top of the column: Amigos, Salas and Times. */
 export interface ColumnTab {
@@ -63,14 +65,6 @@ function ColumnTabs({ tabs, activeId }: { tabs: ColumnTab[]; activeId: string })
   );
 }
 
-/** Accents and case do not matter in the search. */
-function searchable(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
 function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
   return (
     <Hint text="Recolher amigos" shortcut={COLUMN_SHORTCUT.toUpperCase()}>
@@ -119,17 +113,13 @@ function FriendsBody({
   return (
     <>
       <div className="mt-3 flex items-center gap-2 px-3">
-        <label className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full border border-line bg-surface-2 px-3 focus-within:border-brand-soft">
-          <Search className="size-4 shrink-0 text-ink-subtle" aria-hidden="true" />
-          <span className="sr-only">Buscar amigo</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-subtle"
-          />
-        </label>
+        <SearchField
+          label="Buscar amigo"
+          placeholder="Buscar"
+          value={query}
+          onChange={setQuery}
+          className="flex-1"
+        />
         <RequestsButton count={requests} />
         {extras.actions}
         <AddFriendDialog code={code} linkPath={linkPath} />

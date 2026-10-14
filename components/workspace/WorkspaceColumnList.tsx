@@ -1,8 +1,10 @@
-import { Search, Star, Users, Video } from "lucide-react";
+import { Star, Users, Video } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import { roomFilterFrom, withRoomFilter, type RoomFilter } from "./room-filter";
 import { cn } from "@/lib/utils";
+import { SearchField } from "@/components/SearchField";
+import { searchable } from "@/lib/search-text";
 
 export interface ColumnItem {
   id: string;
@@ -20,14 +22,6 @@ const ROOM_FILTERS: { id: RoomFilter; label: string }[] = [
 ];
 
 const ICONS = { room: Video, team: Users };
-
-/** Accents and case do not matter in the search. */
-function searchable(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
 
 function byFilter(filter: RoomFilter) {
   return (item: ColumnItem) => {
@@ -117,17 +111,7 @@ export function WorkspaceColumnList({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-3 pt-3">
-        <label className="flex h-9 items-center gap-2 rounded-full border border-line bg-surface-2 px-3 focus-within:border-brand-soft">
-          <Search className="size-4 shrink-0 text-ink-subtle" aria-hidden="true" />
-          <span className="sr-only">{searchLabel}</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={searchLabel}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-subtle"
-          />
-        </label>
+        <SearchField label={searchLabel} value={query} onChange={setQuery} />
       </div>
       {kind === "room" ? <Filters value={filter} onChange={setFilter} /> : null}
       <nav aria-label={searchLabel} className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-3">

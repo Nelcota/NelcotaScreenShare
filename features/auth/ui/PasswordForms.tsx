@@ -14,6 +14,7 @@ import { adminAuthClient } from "@/features/auth/client/admin-auth-client";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { newPasswordError, PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
+import { emailProblem } from "@/features/auth/domain/sign-up";
 import { formText } from "@/lib/utils";
 
 type Scope = "admin" | "user";
@@ -78,13 +79,17 @@ export function ForgotPasswordForm({ scope }: { scope: Scope }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    const email = formText(new FormData(event.currentTarget), "email").trim();
+    const problem = emailProblem(email);
+    if (problem) {
+      setError(problem);
+      event.currentTarget.querySelector<HTMLInputElement>("input[name=email]")?.focus();
+      return;
+    }
     setPending(true);
     setError(undefined);
     const { error: failure } = await callAuth(() =>
-      client.requestPasswordReset({
-        email: formText(new FormData(event.currentTarget), "email"),
-        redirectTo: PATHS[scope].reset,
-      }),
+      client.requestPasswordReset({ email, redirectTo: PATHS[scope].reset }),
     );
     setPending(false);
     if (failure) {

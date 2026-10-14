@@ -398,7 +398,7 @@
     rotate: 90deg;
   }
   :is(a, button):hover .icon-spin {
-    rotate: 180deg;
+    rotate: -180deg;
   }
   @media (prefers-reduced-motion: reduce) {
     .icon-nudge,

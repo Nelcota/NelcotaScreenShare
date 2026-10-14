@@ -247,8 +247,8 @@ describe("calling a group", () => {
     const code = await createRoom(db, ana.id);
 
     as(ana);
+    // How many were rung would tell who in the group is online, friends or not.
     expect((await ringing.callGroup({ conversationId, room: code })).data).toEqual({
-      rang: 1,
       needsRoom: false,
     });
     expect(incomingRings(bia.id)).toHaveLength(1);

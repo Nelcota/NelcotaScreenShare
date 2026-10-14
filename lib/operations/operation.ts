@@ -15,6 +15,21 @@ export type Operation<I, O> = ((input: I) => Promise<OperationResult<O>>) & {
 };
 
 const UNEXPECTED_RESPONSE = "Algo deu errado. Tente de novo.";
+export const OFFLINE_MESSAGE = "Sem internet. Confira a conexão e tente de novo.";
+
+/** The request never reached the server: offline says so, anything else is generic. */
+function unreachable(): OperationResult<never> {
+  const offline = typeof navigator !== "undefined" && "onLine" in navigator && !navigator.onLine;
+  return { serverError: offline ? OFFLINE_MESSAGE : UNEXPECTED_RESPONSE };
+}
+
+async function send(url: string, init: RequestInit): Promise<Response | null> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    return null;
+  }
+}
 
 /** Checks the envelope; `data` is trusted to be the operation's declared output. */
 function resultSchema<O>() {
@@ -38,7 +53,7 @@ export function operation<I, O>(
   const url = `/api/operations/${id}`;
   const execute = async (input: I): Promise<OperationResult<O>> => {
     const body = JSON.stringify({ input });
-    const response = await fetch(
+    const response = await send(
       method === "get" ? `${url}?payload=${encodeURIComponent(body)}` : url,
       {
         method: method.toUpperCase(),
@@ -46,6 +61,7 @@ export function operation<I, O>(
         ...(method === "post" ? { body } : {}),
       },
     );
+    if (!response) return unreachable();
     const parsed = resultSchema<O>().safeParse(await readJson(response));
     // A proxy error page or an unexpected body: the same message as any server failure.
     if (!parsed.success) return { serverError: UNEXPECTED_RESPONSE };

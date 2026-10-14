@@ -10,6 +10,7 @@ import { createRateLimiter } from "@/server/rate-limit.server";
 import { getClientIp } from "@/server/client-ip.server";
 import { roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import { isGuestIdentity } from "@/features/room/domain/participant-label";
+import { clientSignalParams, DEFAULT_SIGNAL_PROTOCOL } from "@/features/room/domain/signal-params";
 import { mayShareScreen } from "@/features/room/domain/host-controls";
 import {
   AdmissionError,
@@ -83,7 +84,7 @@ export async function authorizeSignal(
     url.pathname = `${url.pathname.replace(/\/$/, "")}/rtc`;
     url.searchParams.set("access_token", freshToken);
     // Protocol 16 uses binary signaling and supports current participant permissions.
-    url.searchParams.set("protocol", "16");
+    url.searchParams.set("protocol", DEFAULT_SIGNAL_PROTOCOL);
     url.searchParams.set("auto_subscribe", "1");
     const relay = await connect?.(url, session.mediaRoomName, identity);
     if (relay) {
@@ -124,20 +125,8 @@ export async function openSignal(request: Request): Promise<SignalRelay | Respon
           throw new AdmissionError("room_removed", "Pedido de conexão inválido.");
         url.searchParams.set("join_request", join);
       }
-      const supplied = new URL(request.url).searchParams;
-      for (const key of [
-        "protocol",
-        "sdk",
-        "version",
-        "reconnect",
-        "sid",
-        "auto_subscribe",
-        "adaptive_stream",
-        "subscriber_primary",
-      ]) {
-        const value = supplied.get(key);
-        if (value !== null && value.length <= 128) url.searchParams.set(key, value);
-      }
+      for (const [key, value] of clientSignalParams(requestUrl.searchParams))
+        url.searchParams.set(key, value);
       const opened = new SignalRelay(room, identity, url);
       try {
         await opened.ready();

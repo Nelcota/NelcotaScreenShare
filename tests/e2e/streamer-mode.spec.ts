@@ -84,7 +84,7 @@ test("back, forward and reload preserve each hidden room without adding history 
 }) => {
   const { page, context } = await newParticipant(browser, "Streamer Historico");
   const first = await newRoomCode();
-  const second = first.replace(/-sala$/, "-next");
+  const second = await newRoomCode();
   try {
     await context.addInitScript(() => localStorage.setItem("nelcota-streamer-mode", "1"));
     await page.goto("/");
@@ -142,7 +142,7 @@ test("a hidden room and its invite survive reload when session storage is blocke
     const index = await historyIndex(page);
     await page.reload();
     await expect(page).toHaveURL(/\/sala$/);
-    await expect(page.getByText("Você tem convite: não precisa de senha")).toBeVisible();
+    await expect(page.getByText("Com convite, sem senha")).toBeVisible();
     expect(await historyIndex(page)).toBe(index);
     await setSavedMode(page, false);
     await expect(page).toHaveURL(new RegExp(`/sala/${code}\\?convite=${invite}$`));
@@ -162,7 +162,7 @@ test("a masked call stays connected across profile navigation and browser histor
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
     await page.getByRole("switch", { name: "Modo streamer" }).click();
     await expect(page).toHaveURL(/\/sala$/);
-    await page.getByRole("link", { name: /Foto, e-mail e senha na sua conta/ }).click();
+    await page.getByRole("link", { name: "Editar perfil" }).click();
     await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
     await page.getByRole("link", { name: "Voltar à sala", exact: true }).click();
     await expect(page).toHaveURL(/\/sala$/);

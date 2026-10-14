@@ -93,7 +93,7 @@ test("individual playback survives track replacement, deafening and navigation",
     await expect(sound).toHaveJSProperty("volume", 0.25);
 
     await listener.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await listener.page.getByRole("link", { name: /Foto, e-mail e senha na sua conta/ }).click();
+    await listener.page.getByRole("link", { name: "Editar perfil" }).click();
     await expect(
       listener.page.getByRole("complementary", { name: "Chamada em andamento" }),
     ).toBeVisible();

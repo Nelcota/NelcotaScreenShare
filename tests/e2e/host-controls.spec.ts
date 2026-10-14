@@ -183,7 +183,7 @@ test("admitted participant reconnects under lock and host authority survives nav
     await expect(member.page.locator('audio[data-source="voice"]')).toHaveCount(1);
     await host.page.keyboard.press("Escape");
     await host.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await host.page.getByRole("link", { name: /Foto, e-mail e senha na sua conta/ }).click();
+    await host.page.getByRole("link", { name: "Editar perfil" }).click();
     await expect(
       host.page.getByRole("complementary", { name: "Chamada em andamento" }),
     ).toBeVisible();

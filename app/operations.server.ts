@@ -155,7 +155,6 @@ export const operations: OperationHandlers = {
   "ringing-acceptCall": acceptCall,
 };
 export const readOperations = new Set([
-  "admin-search-searchPanelAction",
   "friends-friendRelation",
   "room-roomAccess",
   "room-joinRequests",

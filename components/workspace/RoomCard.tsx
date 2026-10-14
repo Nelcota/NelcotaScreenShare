@@ -72,7 +72,7 @@ export function RoomCard({
           aria-pressed={room.favorite}
           onClick={() => onCommand({ kind: "favorite", roomId: room.id, favorite: !room.favorite })}
         >
-          <Star className={room.favorite ? "fill-yellow-300 text-yellow-300" : undefined} />
+          <Star className={room.favorite ? "fill-status-away text-status-away" : undefined} />
         </Button>
       </div>
       <div className="flex flex-wrap gap-2">

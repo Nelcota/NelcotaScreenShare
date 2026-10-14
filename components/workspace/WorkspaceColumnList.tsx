@@ -78,10 +78,13 @@ function ItemLine({ item, kind }: { item: ColumnItem; kind: keyof typeof ICONS }
           ) : null}
         </span>
         {item.favorite ? (
-          <Star
-            className="size-3.5 shrink-0 fill-status-away text-status-away"
-            aria-label="Favorita"
-          />
+          <>
+            <Star
+              className="size-3.5 shrink-0 fill-status-away text-status-away"
+              aria-hidden="true"
+            />
+            <span className="sr-only">favorita</span>
+          </>
         ) : null}
       </NavLink>
     </li>

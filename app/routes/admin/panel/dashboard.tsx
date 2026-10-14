@@ -4,6 +4,7 @@ import { useLoaderData, Link } from "react-router";
 import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { getDashboardSummary } from "@/features/admin/dashboard/server/summary.server";
 import { getDb } from "@/server/db/index.server";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Início · Nelcota" }];
 
@@ -45,12 +46,10 @@ export default function AdminHomePage() {
   const { summary } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Início</h1>
-        <p className="mt-1 text-ink-muted">
-          O que está acontecendo agora e o que mudou nos últimos dias.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Início"
+        description="O que está acontecendo agora e o que mudou nos últimos dias."
+      />
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat
           href="/admin/salas?status=ativa"

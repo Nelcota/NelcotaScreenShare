@@ -10,6 +10,7 @@ import { PAGE_SIZE } from "@/lib/table-params";
 import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { can } from "@/features/auth/server/permissions.server";
 import { getDb } from "@/server/db/index.server";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Auditoria · Nelcota" }];
 
@@ -35,12 +36,10 @@ export default function AuditPage() {
   const { page, options, exportHref } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
-        <p className="mt-1 text-ink-muted">
-          Quem fez o quê, quando e de onde. Os registros não podem ser alterados nem apagados.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Auditoria"
+        description="Quem fez o quê, quando e de onde. Os registros não podem ser alterados nem apagados."
+      />
       <AuditTable
         rows={page.items}
         page={pageInfo(page)}

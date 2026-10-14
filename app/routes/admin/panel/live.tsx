@@ -12,6 +12,7 @@ import { useAutoRefresh } from "@/features/admin/live/ui/use-auto-refresh";
 import { getDb } from "@/server/db/index.server";
 import { formatNumber } from "@/lib/format";
 import { Notice } from "@/components/Notice";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Ao vivo · Nelcota" }];
 
@@ -35,10 +36,7 @@ export default function AdminLivePage() {
   const people = rooms.reduce((total, room) => total + room.people.length, 0);
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ao vivo</h1>
-        <p className="mt-1 text-ink-muted">Quem está em cada sala e desde quando.</p>
-      </div>
+      <AdminPageHeader title="Ao vivo" description="Quem está em cada sala e desde quando." />
       {liveKitChecked ? null : (
         <Notice tone="warning" icon={TriangleAlert}>
           O LiveKit não respondeu. Não deu para conferir salas fantasma.

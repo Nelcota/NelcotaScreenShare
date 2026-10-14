@@ -5,6 +5,7 @@ import { TwoFactorSettings } from "@/features/security/ui/TwoFactorSettings";
 import { needsTwoFactorSetup, requireAdmin } from "@/features/auth/server/admin-session.server";
 import { ROLES_REQUIRING_2FA } from "@/features/auth/domain/roles";
 import { Notice } from "@/components/Notice";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Segurança da conta · Nelcota" }];
 
@@ -20,10 +21,7 @@ export default function AccountSecurityPage() {
   const { admin, mustSetUp } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Segurança da conta</h1>
-        <p className="mt-1 text-ink-muted">{admin.user.email}</p>
-      </div>
+      <AdminPageHeader title="Segurança da conta" description={admin.user.email} />
       {mustSetUp ? (
         <Notice as="output" tone="warning">
           Para usar o painel, ative a verificação em duas etapas.

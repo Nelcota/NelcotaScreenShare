@@ -14,6 +14,7 @@ import { SocialTable } from "@/features/admin/usage/ui/SocialTable";
 import { UsageTable } from "@/features/admin/usage/ui/UsageTable";
 import { getDb } from "@/server/db/index.server";
 import { formatNumber } from "@/lib/format";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Uso diário · Nelcota" }];
 
@@ -42,12 +43,7 @@ export default function AdminUsagePage() {
   const { days, social, browsers } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Uso diário</h1>
-        <p className="mt-1 text-ink-muted">
-          <Summary days={days} />
-        </p>
-      </div>
+      <AdminPageHeader title="Uso diário" description={<Summary days={days} />} />
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <Section title="Por dia">
           <UsageTable days={days} />

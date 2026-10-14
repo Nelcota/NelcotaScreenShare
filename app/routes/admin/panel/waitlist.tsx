@@ -10,6 +10,7 @@ import { getWaitlist } from "@/features/admin/waitlist/server/queries.server";
 import { WaitlistTable } from "@/features/admin/waitlist/ui/WaitlistTable";
 import { getDb } from "@/server/db/index.server";
 import { formatNumber } from "@/lib/format";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Lista de espera do Pro · Nelcota" }];
 
@@ -37,10 +38,10 @@ export default function AdminWaitlistPage() {
   const people = total === 1 ? "1 pessoa" : `${formatNumber(total)} pessoas`;
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Lista de espera do Pro</h1>
-        <p className="mt-1 text-ink-muted">{people} pediram aviso quando o Pro sair.</p>
-      </div>
+      <AdminPageHeader
+        title="Lista de espera do Pro"
+        description={<>{people} pediram aviso quando o Pro sair.</>}
+      />
       <Section
         title={total > latest.length ? `Últimas ${latest.length}` : "Inscrições"}
         action={canExport && total > 0 ? <ExportButton /> : null}

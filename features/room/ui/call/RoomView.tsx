@@ -1,3 +1,4 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { RoomContext } from "@livekit/components-react";
 import { useState } from "react";
 import { useAnnounceCall } from "@/features/room/hooks/use-call-tabs";
@@ -22,7 +23,7 @@ interface RoomViewProps {
   code: string;
   choices: JoinChoices;
   maxParticipants: number;
-  roomName: string | null;
+  roomName: RoomTitle | null;
   /** Shows the link to the admin panel. */
   isAdmin: boolean;
   /** Another page is open: the call goes on hidden, with a card to go back. */

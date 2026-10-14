@@ -1,3 +1,4 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { useLocalParticipant } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId } from "react";
@@ -180,8 +181,8 @@ export function RoomTopBar({
   code: string;
   participants: Participant[];
   maxParticipants: number;
-  /** "Sala de Ana" as the page loaded it; follows a new owner live. */
-  roomName: string | null;
+  /** The name as the page loaded it; "Sala de Ana" follows a new owner live. */
+  roomName: RoomTitle | null;
   /** Admins open the panel without leaving: the call goes on minimized. */
   isAdmin: boolean;
   connection: Connection;

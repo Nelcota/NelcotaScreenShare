@@ -21,6 +21,8 @@ import { useJoinForm } from "./use-join-form";
 
 interface PreJoinProps {
   code: string;
+  /** A permanent room's own name ("Daily do time"); null for a one-off room. */
+  roomName: string | null;
   /** Signed-in account name: how the person appears in the room. Null for a guest. */
   userName: string | null;
   /** Signed-in account photo (null: none, or a guest). */
@@ -126,6 +128,7 @@ function WaitingApproval({ onCancel }: { onCancel: () => void }) {
 
 export function PreJoin({
   code,
+  roomName,
   userName,
   userImage,
   passwordRequired,
@@ -191,6 +194,7 @@ export function PreJoin({
       >
         <PreJoinHeader
           code={code}
+          roomName={roomName}
           invite={invite}
           presence={presence}
           maxParticipants={maxParticipants}

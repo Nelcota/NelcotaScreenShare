@@ -6,14 +6,18 @@ import {
   parseFriendCode,
 } from "@/features/friends/domain/friend-code";
 import { friendLinkPath } from "@/features/friends/domain/friend-link";
-import { MAX_FRIENDS, type FriendRequestOutcome } from "@/features/friends/domain/friendship";
+import {
+  MAX_FRIENDS,
+  MAX_PENDING_SENT,
+  type FriendRequestOutcome,
+} from "@/features/friends/domain/friendship";
 import {
   accountByEmail,
   ownerOfFriendCode,
   rotateFriendCode,
 } from "@/features/friends/server/friend-codes.server";
 import { rotateFriendLink } from "@/features/friends/server/friend-links.server";
-import { countFriends } from "@/features/friends/server/friendships.server";
+import { countFriends, countPendingSent } from "@/features/friends/server/friendships.server";
 import { requestFriendship } from "@/features/friends/server/request-friendship.server";
 import { nudgeFriendLists } from "@/features/friends/server/friend-nudges.server";
 import { requestNudgeTargets } from "@/features/friends/domain/friend-nudges";
@@ -30,6 +34,7 @@ const attemptLimiter = createRateLimiter({ limit: 10, windowMs: 15 * 60_000 });
 const BAD_EMAIL = "Confira o e-mail.";
 const BAD_CODE = "Confira o código. Ele é assim: NELC-4K7Q.";
 const UNKNOWN_CODE = "Nenhuma conta com esse código.";
+const TOO_MANY_PENDING = "Você tem muitos pedidos sem resposta. Espere alguns serem aceitos.";
 
 type Target = { via: "email"; id: string | null } | { via: "code"; id: string | null };
 
@@ -54,9 +59,7 @@ async function statusFor(
   requesterId: string,
   outcome: FriendRequestOutcome,
 ): Promise<"sent" | "friends"> {
-  if (outcome === "pending_limit") {
-    throw new ActionError("Você tem muitos pedidos sem resposta. Espere alguns serem aceitos.");
-  }
+  if (outcome === "pending_limit") throw new ActionError(TOO_MANY_PENDING);
   if (outcome === "friend_limit" && (await countFriends(db, requesterId)) >= MAX_FRIENDS) {
     throw new ActionError(`Limite de ${MAX_FRIENDS} amigos atingido.`);
   }
@@ -77,6 +80,10 @@ export const addFriend = defineUserOperation(
       throw new ActionError("Muitas tentativas. Espere alguns minutos.");
     }
     const db = getDb();
+    // Before looking the account up: otherwise only an existing e-mail would hit the limit.
+    if ((await countPendingSent(db, requesterId)) >= MAX_PENDING_SENT) {
+      throw new ActionError(TOO_MANY_PENDING);
+    }
     const target = await resolveTarget(db, parsedInput.target);
     if (target.id === requesterId) throw new ActionError("Esse é você.");
     if (!target.id && target.via === "code") throw new ActionError(UNKNOWN_CODE);

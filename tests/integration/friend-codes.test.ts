@@ -1,4 +1,5 @@
 import type * as Crypto from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, describe, expect, test, vi } from "vitest";
@@ -21,6 +22,7 @@ vi.mock("node:crypto", async (importOriginal) => {
 });
 
 const { FRIEND_CODE_ALPHABET } = await import("@/features/friends/domain/friend-code");
+const { MAX_PENDING_SENT, friendPair } = await import("@/features/friends/domain/friendship");
 const { retiredFriendCodes } = await import("@/server/db/schema");
 const { forgetFriendships } = await import("@/features/friends/server/friendships.server");
 
@@ -131,6 +133,33 @@ describe("adding a friend", () => {
     ).toBeDefined();
     expect((await lists.friendLists(db, ana.id)).friends).toEqual([{ id: bia.id, name: "Bia" }]);
     expect(await lists.relationTo(db, ana.id, bia.id)).toBe("friends");
+  });
+
+  test("with too many requests waiting, existing and unknown e-mails get the same answer", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    const others = await db
+      .insert(schema.users)
+      .values(
+        Array.from({ length: MAX_PENDING_SENT }, (_, index) => ({
+          name: `Pessoa ${index}`,
+          email: `pendente-${index}-${randomUUID()}@exemplo.test`,
+        })),
+      )
+      .returning({ id: schema.users.id });
+    await db.insert(schema.friendships).values(
+      others.map(({ id }) => ({
+        ...friendPair(ana.id, id),
+        requestedBy: ana.id,
+        status: "pending" as const,
+      })),
+    );
+
+    as(ana);
+    const known = await codes.addFriend({ target: bia.email });
+    const unknown = await codes.addFriend({ target: "ninguem-aqui-tambem@exemplo.com" });
+    expect(unknown).toEqual(known);
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("none");
   });
 
   test("accepts at once when the other person had already asked", async () => {

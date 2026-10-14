@@ -4,6 +4,7 @@ import { teamInvitations, teamMembers } from "@/server/db/schema/workspaces";
 import { ActionError } from "@/server/operations/action-error";
 import { requireMembership, workspaceAccount } from "./access.server";
 import { revokeTeamSessions } from "./session-revocation.server";
+import { assertMayOwnAnotherTeam } from "./team-allowance.server";
 
 async function targetMember(tx: DbExecutor, teamId: string, userId: string) {
   const [member] = await tx
@@ -35,6 +36,11 @@ export async function transferTeam(tx: DbExecutor, teamId: string, actor: string
   if (actor === userId) throw new ActionError("Escolha outra pessoa para assumir o time.");
   await targetMember(tx, teamId, userId);
   await workspaceAccount(tx, userId);
+  await assertMayOwnAnotherTeam(
+    tx,
+    userId,
+    "Essa pessoa já é dona de 3 times: o piloto permite até 3 times por conta.",
+  );
   await tx
     .update(teamMembers)
     .set({ role: "manager" })

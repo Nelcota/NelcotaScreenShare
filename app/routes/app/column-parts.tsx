@@ -1,4 +1,4 @@
-import { Home, Users, UsersRound, Video } from "lucide-react";
+import { House, Users, UsersRound, Video } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { UnreadCount } from "@/components/UnreadCount";
@@ -63,7 +63,7 @@ export function PhoneTabs({ requests, unread }: { requests: number; unread: numb
       aria-label="App"
       className="glass sticky bottom-3 z-20 mx-3 mb-3 flex gap-1 rounded-2xl p-1.5 sm:hidden"
     >
-      <PhoneTab to="/inicio" icon={<Home className={icon} aria-hidden="true" />} label="Início" />
+      <PhoneTab to="/inicio" icon={<House className={icon} aria-hidden="true" />} label="Início" />
       <PhoneTab
         to="/amigos"
         icon={<Users className={icon} aria-hidden="true" />}

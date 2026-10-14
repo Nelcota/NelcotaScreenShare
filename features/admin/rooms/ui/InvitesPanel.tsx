@@ -1,4 +1,4 @@
-import { Copy, Link2, Plus, XCircle } from "lucide-react";
+import { CircleX, Copy, Link2, Plus } from "lucide-react";
 import { useOperation } from "@/lib/operations/use-operation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -246,7 +246,7 @@ export function InvitesPanel({
                     disabled={revoke.isPending}
                     onClick={() => revoke.execute({ id: invite.id })}
                   >
-                    <XCircle aria-hidden="true" />
+                    <CircleX aria-hidden="true" />
                     Revogar
                   </Button>
                 ) : null}

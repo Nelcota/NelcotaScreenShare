@@ -27,7 +27,7 @@ async function isRetired(db: DbExecutor, code: string): Promise<boolean> {
 
 /**
  * Saves a new random code for an account that has none, drawing again when the code is in
- * use or was used before. Codes grow to five characters when the short ones keep clashing.
+ * use or was used before. Codes grow to seven characters when the six-character ones clash.
  */
 async function insertCode(db: DbExecutor, userId: string): Promise<string> {
   for (let draw = 0; draw < MAX_DRAWS; draw++) {

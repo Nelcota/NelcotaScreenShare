@@ -118,7 +118,7 @@ export const friendCodes = pgTable(
     code: text("code").notNull().unique(),
     createdAt: createdAt(),
   },
-  (table) => [check("friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,5}$'`)],
+  (table) => [check("friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,7}$'`)],
 );
 
 /**
@@ -132,7 +132,7 @@ export const retiredFriendCodes = pgTable(
     retiredAt: timestamptz("retired_at").notNull().defaultNow(),
   },
   (table) => [
-    check("retired_friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,5}$'`),
+    check("retired_friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,7}$'`),
   ],
 );
 

@@ -1,5 +1,6 @@
 import type * as Crypto from "node:crypto";
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, describe, expect, test, vi } from "vitest";
@@ -55,7 +56,7 @@ describe("friend code", () => {
   test("is created once, and a new one replaces the code and the link", async () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     const first = await store.friendCode(db, ana.id);
-    expect(first).toMatch(/^[2-9A-HJKMNP-Z]{4}$/);
+    expect(first).toMatch(/^[2-9A-HJKMNP-Z]{6}$/);
     expect(await store.friendCode(db, ana.id)).toBe(first);
     expect(await store.ownerOfFriendCode(db, first)).toBe(ana.id);
     const oldLink = await links.friendLinkToken(db, ana.id);
@@ -63,7 +64,7 @@ describe("friend code", () => {
     as(ana);
     const rotated = await codes.newFriendCode(undefined);
     const shown = rotated.data?.code ?? "";
-    expect(shown).toMatch(/^NELC-[2-9A-HJKMNP-Z]{4}$/);
+    expect(shown).toMatch(/^NELC-[2-9A-HJKMNP-Z]{6}$/);
     expect(await store.ownerOfFriendCode(db, shown.slice(5))).toBe(ana.id);
     expect(await links.ownerOfFriendLink(db, oldLink)).toBeNull();
   });
@@ -91,17 +92,51 @@ describe("retired friend codes", () => {
     expect(retired.map((row) => row.code)).toContain(code);
   });
 
-  test("grows to five characters when the short draws keep clashing", async () => {
+  test("grows to seven characters when the six-character draws keep clashing", async () => {
     const dora = await verifiedParticipant(db, handler, { name: "Dora" });
     const taken = await store.friendCode(db, dora.id);
     const edu = await verifiedParticipant(db, handler, { name: "Edu" });
     forceDraws(taken, taken, taken);
-    expect(await store.friendCode(db, edu.id)).toMatch(/^[2-9A-HJKMNP-Z]{5}$/);
+    expect(await store.friendCode(db, edu.id)).toMatch(/^[2-9A-HJKMNP-Z]{7}$/);
     forcedPicks.length = 0;
   });
 });
 
+describe("old four-character codes", () => {
+  test("keep working", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    const old = "4K7Q";
+    await db.delete(schema.friendCodes).where(eq(schema.friendCodes.code, old));
+    await db.insert(schema.friendCodes).values({ userId: bia.id, code: old }).onConflictDoNothing();
+    as(ana);
+    expect((await codes.addFriend({ target: "NELC-4K7Q" })).data).toEqual({ status: "sent" });
+  });
+});
+
 describe("adding a friend", () => {
+  test("tries count per network too, so several accounts do not add up", async () => {
+    const people = await Promise.all(
+      [0, 1, 2, 3].map((index) => verifiedParticipant(db, handler, { name: `Pessoa ${index}` })),
+    );
+    const tryFrom = (person: (typeof people)[number], index: number) => {
+      requestHeaders.current = new Headers({
+        cookie: person.jar.header(),
+        "user-agent": "vitest",
+        "x-client-ip": "203.0.113.77",
+      });
+      return codes.addFriend({ target: `ninguem-${index}@exemplo.com` });
+    };
+    for (let index = 0; index < 30; index++) {
+      const person = people[Math.floor(index / 10)];
+      if (!person) throw new Error("person");
+      expect((await tryFrom(person, index)).data).toEqual({ status: "sent" });
+    }
+    const last = people[3];
+    if (!last) throw new Error("person");
+    expect((await tryFrom(last, 30)).serverError).toBe("Muitas tentativas. Espere alguns minutos.");
+  });
+
   test("by code, typed in any case, sends the request", async () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     const bia = await verifiedParticipant(db, handler, { name: "Bia" });

@@ -33,7 +33,7 @@ async function mutualFriends(db: DbExecutor, viewerId: string, friendId: string)
 export interface FriendProfile {
   id: string;
   name: string;
-  /** Their friend code as people share it ("NELC-XXXX"), under the name; never the e-mail. */
+  /** Their friend code as people share it ("NELC-XXXXXX"), under the name; never the e-mail. */
   code: string;
   since: Date;
   mutual: { shown: FriendPerson[]; total: number };

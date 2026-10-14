@@ -233,7 +233,7 @@ describe("friendships", () => {
       expect.objectContaining({ pessoa: "Bia", situacao: "pendente", pedido_feito_por_voce: true }),
     ]);
     expect(exported.pessoas_bloqueadas).toEqual([expect.objectContaining({ pessoa: "Caio" })]);
-    expect(exported.codigo_de_amigo?.codigo).toMatch(/^[2-9A-HJKMNP-Z]{4}$/);
+    expect(exported.codigo_de_amigo?.codigo).toMatch(/^[2-9A-HJKMNP-Z]{6}$/);
 
     await db.transaction((tx) => anonymizeParticipant(tx, ana.id));
     expect(await rowBetween(ana, bia)).toBeUndefined();

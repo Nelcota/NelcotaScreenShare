@@ -23,16 +23,22 @@ import { nudgeFriendLists } from "@/features/friends/server/friend-nudges.server
 import { requestNudgeTargets } from "@/features/friends/domain/friend-nudges";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
 import { ActionError } from "@/server/operations/action-error";
+import { clientIpFrom } from "@/server/client-ip.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
+import { requestHeaders } from "@/server/request-context.server";
 
 const addSchema = z.object({ target: z.string().trim().min(1).max(254) });
 const emailSchema = z.email();
 
 /** Counts every try, found or not, so nobody can test e-mails or codes one after another. */
 const attemptLimiter = createRateLimiter({ limit: 10, windowMs: 15 * 60_000 });
+/** The same per network: several accounts from one place do not add up to more guesses. */
+const ipAttemptLimiter = createRateLimiter({ limit: 30, windowMs: 15 * 60_000 });
+
+const TOO_MANY_TRIES = "Muitas tentativas. Espere alguns minutos.";
 
 const BAD_EMAIL = "Confira o e-mail.";
-const BAD_CODE = "Confira o código. Ele é assim: NELC-4K7Q.";
+const BAD_CODE = "Confira o código. Ele é assim: NELC-4K7Q2X.";
 const UNKNOWN_CODE = "Nenhuma conta com esse código.";
 const TOO_MANY_PENDING = "Você tem muitos pedidos sem resposta. Espere alguns serem aceitos.";
 
@@ -76,9 +82,9 @@ export const addFriend = defineUserOperation(
   addSchema,
   async ({ parsedInput, ctx }) => {
     const requesterId = ctx.current.user.id;
-    if (!attemptLimiter.hit(requesterId).ok) {
-      throw new ActionError("Muitas tentativas. Espere alguns minutos.");
-    }
+    if (!attemptLimiter.hit(requesterId).ok) throw new ActionError(TOO_MANY_TRIES);
+    const ip = clientIpFrom(requestHeaders());
+    if (ip && !ipAttemptLimiter.hit(ip).ok) throw new ActionError(TOO_MANY_TRIES);
     const db = getDb();
     // Before looking the account up: otherwise only an existing e-mail would hit the limit.
     if ((await countPendingSent(db, requesterId)) >= MAX_PENDING_SENT) {

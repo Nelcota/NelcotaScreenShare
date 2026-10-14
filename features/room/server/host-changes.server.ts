@@ -10,7 +10,7 @@ import { closeEndsRoom } from "@/features/room/domain/room-host";
 import type { RoomRole } from "@/features/room/domain/room-role";
 import { roomRoles } from "@/server/db/schema";
 import { roomRoleOf } from "./room-roles.server";
-import { transferOwnership } from "./role-changes.server";
+import { isPermanentRoom, transferOwnership } from "./role-changes.server";
 
 /** Who gives the command: their account and the role saved for the room. */
 interface HostActor {
@@ -72,6 +72,7 @@ export async function applyHostChange(
     return { kind: "sync" };
   }
   if (input.kind === "transfer") {
+    await assertOwnerMayTransfer(tx, session, actor);
     await transferHost(tx, session, input.identity, participants, actor.identity);
     // From the owner, the room goes too: otherwise the owner, still here, would take the
     // host back at once.
@@ -128,6 +129,16 @@ async function assertMayRemove(
   if (session.hostUserId === actor.identity) return;
   if (identity === session.hostUserId || !canModerate(actor.role, target))
     throw new ActionError("Moderadores só removem participantes.");
+}
+
+/**
+ * The owner's transfer also hands over the room, and a permanent room is not handed over.
+ * Giving only the host would not last either: the owner, still here, takes it back.
+ */
+async function assertOwnerMayTransfer(tx: DbExecutor, session: ControlSession, actor: HostActor) {
+  if (actor.role !== "owner") return;
+  if (!(await isPermanentRoom(tx, await codeOf(tx, session)))) return;
+  throw new ActionError("Numa sala permanente, o dono continua anfitrião enquanto estiver aqui.");
 }
 
 /** A room someone owns stays for the next call; only an ownerless ad hoc room closes. */

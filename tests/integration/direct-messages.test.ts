@@ -21,6 +21,8 @@ const { anonymizeParticipant } =
   await import("@/features/account/server/participant-accounts.server");
 const { personalData } = await import("@/features/account/server/personal-data.server");
 const { liveBus } = await import("@/features/live/server/live-bus.server");
+const { conversationPage } = await import("@/features/messages/server/conversation-page.server");
+const { markOnline } = await import("@/features/friends/server/online-presence.server");
 const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -110,6 +112,25 @@ describe("direct messages", () => {
     await friends.blockUser({ userId: ana.id });
     as(ana);
     expect((await chat.sendMessage({ conversationId, body: "oi" })).serverError).toBeDefined();
+  });
+
+  test("a block or an unfriending hides the other's status in the old conversation", async () => {
+    const { ana, bia } = await friendsPair();
+    const conversationId = await openWith(ana, bia);
+    markOnline(bia.id);
+    expect((await conversationPage(db, ana.id, conversationId))?.conversation.status).toBe(
+      "online",
+    );
+    as(bia);
+    await friends.blockUser({ userId: ana.id });
+    expect((await conversationPage(db, ana.id, conversationId))?.conversation.status).toBeNull();
+
+    const { ana: caio, bia: davi } = await friendsPair();
+    const kept = await openWith(caio, davi);
+    markOnline(davi.id);
+    as(davi);
+    await friends.removeFriend({ userId: caio.id });
+    expect((await conversationPage(db, caio.id, kept))?.conversation.status).toBeNull();
   });
 
   test("people outside the conversation cannot read or write in it", async () => {

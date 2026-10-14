@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { proInterestResultSchema, proInterestSchema } from "@/features/home/domain/pro-interest";
 import { readJson } from "@/lib/read-json";
 import { logBrowserWarning } from "@/lib/telemetry.client";
+import { Notice } from "@/components/Notice";
 
 type State =
   | { kind: "idle" }
@@ -51,9 +52,9 @@ export function ProWaitlistForm() {
 
   if (state.kind === "done") {
     return (
-      <output className="block rounded-2xl bg-brand/12 px-4 py-3 text-sm font-medium">
+      <Notice as="output" tone="brand" className="font-medium">
         {state.message}
-      </output>
+      </Notice>
     );
   }
 

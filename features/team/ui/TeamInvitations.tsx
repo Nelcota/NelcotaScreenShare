@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { copyWorkspaceLink } from "@/components/workspace/RoomCard";
 import { formText } from "@/lib/utils";
 import type { TeamCommand } from "../domain/commands";
+import { Notice } from "@/components/Notice";
 
 export function TeamInvitations({
   teamId,
@@ -66,7 +67,7 @@ export function TeamInvitations({
         </Button>
       </form>
       {link ? (
-        <output className="flex flex-col gap-3 rounded-xl border border-brand/30 bg-brand/10 p-4">
+        <Notice as="output" tone="brand" className="flex-col items-stretch gap-3 p-4">
           <p className="text-sm">
             Convite criado. Copie agora; o link completo só aparece nesta resposta.
           </p>
@@ -74,7 +75,7 @@ export function TeamInvitations({
           <Button variant="outline" onClick={() => void copyWorkspaceLink(link)}>
             Copiar convite
           </Button>
-        </output>
+        </Notice>
       ) : null}
       <ul className="divide-y divide-line">
         {invitations.map((invite) => (

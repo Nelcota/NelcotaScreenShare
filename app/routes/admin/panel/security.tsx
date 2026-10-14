@@ -4,6 +4,7 @@ import { useLoaderData } from "react-router";
 import { TwoFactorSettings } from "@/features/security/ui/TwoFactorSettings";
 import { needsTwoFactorSetup, requireAdmin } from "@/features/auth/server/admin-session.server";
 import { ROLES_REQUIRING_2FA } from "@/features/auth/domain/roles";
+import { Notice } from "@/components/Notice";
 
 export const meta = () => [{ title: "Segurança da conta · Nelcota" }];
 
@@ -24,9 +25,9 @@ export default function AccountSecurityPage() {
         <p className="mt-1 text-ink-muted">{admin.user.email}</p>
       </div>
       {mustSetUp ? (
-        <output className="block rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+        <Notice as="output" tone="warning">
           Para usar o painel, ative a verificação em duas etapas.
-        </output>
+        </Notice>
       ) : null}
       <TwoFactorSettings
         scope="admin"

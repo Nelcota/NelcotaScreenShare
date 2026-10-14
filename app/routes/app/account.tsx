@@ -37,6 +37,7 @@ import { userSessions } from "@/server/db/schema";
 import { getEnv } from "@/server/env.server";
 import { cn } from "@/lib/utils";
 import { noticeFor } from "@/lib/notice";
+import { Notice } from "@/components/Notice";
 
 export const meta = () => [{ title: "Minha conta · Nelcota" }];
 
@@ -176,10 +177,9 @@ export default function AccountPage() {
           </BackLink>
         ) : null}
         {notice ? (
-          <output className="flex items-center gap-2.5 rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm">
-            <CircleCheck className="size-4 shrink-0 text-brand-soft" aria-hidden="true" />
+          <Notice as="output" tone="brand" icon={CircleCheck}>
             {notice}
-          </output>
+          </Notice>
         ) : null}
 
         <IdentityCard user={user} />

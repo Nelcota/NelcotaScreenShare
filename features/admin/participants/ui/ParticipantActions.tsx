@@ -20,6 +20,7 @@ import { useParticipantOperations, type ParticipantOperations } from "./use-part
 
 type Dialog =
   | "block"
+  | "revokeSessions"
   | "delete"
   | "anonymize"
   | "disableTwoFactor"
@@ -48,7 +49,7 @@ function ActionButtons({
   operations: ParticipantOperations;
   openDialog: (dialog: Dialog) => void;
 }) {
-  const { unblock, revoke, resend, restore } = operations;
+  const { unblock, resend, restore } = operations;
   return (
     <>
       {show.unblock ? (
@@ -68,11 +69,7 @@ function ActionButtons({
         </Button>
       ) : null}
       {show.revokeSessions ? (
-        <Button
-          variant="outline"
-          disabled={revoke.isPending}
-          onClick={() => revoke.execute({ id })}
-        >
+        <Button variant="outline" onClick={() => openDialog("revokeSessions")}>
           <LogOut aria-hidden="true" />
           Encerrar sessões
         </Button>
@@ -144,7 +141,7 @@ function ConfirmDialogs({
   setDialog: (dialog: Dialog) => void;
   operations: ParticipantOperations;
 }) {
-  const { block, remove, anonymize, disableTwoFactor, removePhoto, resetName } = operations;
+  const { block, revoke, remove, anonymize, disableTwoFactor, removePhoto, resetName } = operations;
   return (
     <>
       <ConfirmDialog
@@ -157,6 +154,15 @@ function ConfirmDialogs({
         pending={block.isPending}
         reason={{ label: "Motivo (fica no histórico)", maxLength: 300 }}
         onConfirm={(reason) => block.execute({ selection, reason })}
+      />
+      <ConfirmDialog
+        open={dialog === "revokeSessions"}
+        onOpenChange={(open) => setDialog(open ? "revokeSessions" : null)}
+        title="Encerrar as sessões desta conta?"
+        description="A pessoa sai de todos os aparelhos e precisa entrar de novo."
+        confirmLabel="Encerrar"
+        pending={revoke.isPending}
+        onConfirm={() => revoke.execute({ id })}
       />
       <ConfirmDialog
         open={dialog === "disableTwoFactor"}

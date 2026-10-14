@@ -29,8 +29,10 @@ export function useParticipantOperations(closeDialog: () => void) {
     onError: toastError("Não foi possível desbloquear."),
   });
   const revoke = useOperation(revokeParticipantSessionsAction, {
-    onSuccess: ({ data }) =>
-      toast.success(data.count === 1 ? "1 sessão encerrada." : `${data.count} sessões encerradas.`),
+    onSuccess: ({ data }) => {
+      closeDialog();
+      toast.success(data.count === 1 ? "1 sessão encerrada." : `${data.count} sessões encerradas.`);
+    },
     onError: toastError("Não foi possível encerrar as sessões."),
   });
   const resend = useOperation(resendVerificationAction, {

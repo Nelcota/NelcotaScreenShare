@@ -17,7 +17,7 @@ import { appUrl, getEnv } from "@/server/env.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 import { redeemRoomInvite } from "./invites.server";
 import { liveKitGateway, type LiveKitGateway } from "./livekit-gateway.server";
-import { bannedFromCall } from "./room-bans.server";
+import { bannedFromCall, guestBannedFromCall } from "./room-bans.server";
 import { roomExists } from "./room-codes.server";
 import { roomRoleOf } from "./room-roles.server";
 import { roomAccessOf } from "./room-access.server";
@@ -124,6 +124,7 @@ export async function issueRoomToken(
         bannedFromCall: (room, identity) =>
           bannedFromCall(getDb(), gateway, { roomCode: room, identity }),
         accessOf: (room) => roomAccessOf(getDb(), room),
+        guestBannedFromCall: (room) => guestBannedFromCall(getDb(), gateway, room),
         awaitApproval: (request) =>
           awaitApproval(request, ipKey, (approvalId) => {
             usedApproval = approvalId;

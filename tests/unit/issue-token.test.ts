@@ -26,6 +26,7 @@ function deps(overrides: Partial<TokenDeps> = {}): TokenDeps {
     roleOf: () => Promise.resolve("participant"),
     bannedFromCall: () => Promise.resolve(false),
     accessOf: () => Promise.resolve("open"),
+    guestBannedFromCall: () => Promise.resolve(false),
     awaitApproval: () => Promise.resolve({ approved: false, requestId: "pedido-1" }),
     ...overrides,
   };
@@ -403,6 +404,29 @@ describe("rooms with approval", () => {
       name: "Ana",
       requestId,
     });
+  });
+
+  it("after a guest ban, new guests of an open room ask first; accounts still go in", async () => {
+    const awaitApproval = vi.fn(() =>
+      Promise.resolve({ approved: false as const, requestId: "p" }),
+    );
+    const afterBan = deps({ guestBannedFromCall: () => Promise.resolve(true), awaitApproval });
+    const guest = await decideTokenRequest(
+      { guestId: "g2" },
+      body({ room: "sala", guestName: "Outra visita" }),
+      OPEN,
+      afterBan,
+    );
+    expect(guest).toMatchObject({ ok: false, error: "awaiting_approval", requestId: "p" });
+    const account = await decideTokenRequest(ANA, body({ room: "sala" }), OPEN, afterBan);
+    expect(account.ok).toBe(true);
+    const noBan = await decideTokenRequest(
+      { guestId: "g3" },
+      body({ room: "sala", guestName: "Visita" }),
+      OPEN,
+      deps({ awaitApproval }),
+    );
+    expect(noBan.ok).toBe(true);
   });
 
   it("a guest asks too, after the host check", async () => {

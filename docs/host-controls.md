@@ -42,7 +42,10 @@ LiveKit removes already published tracks of revoked sources. See its
 Locks allow identities already admitted through the signaling gate to reconnect, unless
 excluded. A prefetched token alone does not confer this exception. Removal excludes an
 identity from this session. A guest who clears their signed cookie can obtain another
-identity; locking new entrants supplies the room-level control. Closing from the host menu
+identity, so once a guest is excluded from (or, with the flag off, banned from) the call,
+new guests of that call ask for approval even in an open room (`guestBannedFromCall`);
+accounts still go straight in. Only the owner and moderators answer requests, so with
+neither in the call new guests wait. Locking new entrants remains the room-level control. Closing from the host menu
 makes the public code terminal only for an ad hoc room without an owner. A room with an
 owner, a permanent room or a team room keeps its code for a new call. A naturally empty
 call expires after 60 seconds, keeping the definition available for a new call with a new

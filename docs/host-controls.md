@@ -20,7 +20,8 @@ Saved room roles ([ADR 0007](adr/0007-room-ownership-and-host.md)) extend this a
 The room owner may give every host command without holding the host role, and becomes host
 once connected and admitted. A moderator is a co-host: lock, sharing policy and removal of
 participants, but not transfer, closing, or removing the host, the owner or another
-moderator. The control state lists the commands each person may give; menus show only those.
+moderator. A host who is not the owner removes anyone but the owner, who may only be away for
+a reconnect. The control state lists the commands each person may give; menus show only those.
 A transfer given by the owner also hands over the room: the target becomes owner and the
 former owner a moderator. The owner does this from the person's card ("Transferir a sala").
 Sync commands also publish each person's saved room role, so badges follow the change.

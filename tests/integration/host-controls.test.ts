@@ -299,6 +299,26 @@ test("a moderator co-hosts: lock, sharing and removal of participants, not trans
   ).resolves.toMatchObject({ status: "applied" });
 });
 
+test("a host who is not the owner cannot remove the owner, back from a reconnect", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.other, "owner");
+  // The owner is reconnecting: admitted to the session, but not in LiveKit right now.
+  online.set(room.mediaRoomName, [participant(room.host)]);
+  await expect(room.command({ kind: "remove", identity: room.other })).rejects.toThrow(
+    "Ninguém remove o dono da sala",
+  );
+  const [owner] = await getDb()
+    .select({ excludedAt: roomSessionMembers.excludedAt })
+    .from(roomSessionMembers)
+    .where(
+      and(
+        eq(roomSessionMembers.sessionId, room.sessionId),
+        eq(roomSessionMembers.identity, room.other),
+      ),
+    );
+  expect(owner?.excludedAt).toBeNull();
+});
+
 test("host absence elects a moderator before an older account", async () => {
   const room = await controlledRoom();
   const third = await admittedThird(room, 0);

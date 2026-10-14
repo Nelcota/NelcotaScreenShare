@@ -109,8 +109,9 @@ export async function applyHostChange(
 }
 
 /**
- * The host and the owner remove anyone; a moderator, as co-host, removes participants
- * only, never the host, the owner or another moderator.
+ * The owner removes anyone. The host removes anyone but the owner, who may be away for a
+ * moment (a reconnect) and would come back shut out of their own room. A moderator, as
+ * co-host, removes participants only, never the host, the owner or another moderator.
  */
 async function assertMayRemove(
   tx: DbExecutor,
@@ -118,11 +119,13 @@ async function assertMayRemove(
   actor: HostActor,
   identity: string,
 ) {
-  if (session.hostUserId === actor.identity || actor.role === "owner") return;
+  if (actor.role === "owner") return;
   const roomCode = await codeOf(tx, session);
   const target = isAccountIdentity(identity)
     ? await roomRoleOf(tx, { roomCode, userId: identity })
     : "participant";
+  if (target === "owner") throw new ActionError("Ninguém remove o dono da sala.");
+  if (session.hostUserId === actor.identity) return;
   if (identity === session.hostUserId || !canModerate(actor.role, target))
     throw new ActionError("Moderadores só removem participantes.");
 }

@@ -1,5 +1,7 @@
 import { MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +18,11 @@ function showError(result: { error: { serverError?: string } }) {
   toast.error(result.error.serverError ?? "Não foi possível agora. Tente de novo.");
 }
 
-/** "…" on a friend: undo the friendship or block. */
+function firstName(name: string) {
+  return name.trim().split(" ")[0] ?? name;
+}
+
+/** "…" on a friend: undo the friendship or block (after confirming). */
 export function FriendMenu({
   person,
   size = "icon-sm",
@@ -30,30 +36,47 @@ export function FriendMenu({
   onDone?: () => void;
 }) {
   const remove = useOperation(removeFriend, { onSuccess: () => onDone?.(), onError: showError });
-  const block = useOperation(blockUser, { onSuccess: () => onDone?.(), onError: showError });
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const block = useOperation(blockUser, {
+    onSuccess: () => {
+      setConfirmBlock(false);
+      onDone?.();
+    },
+    onError: showError,
+  });
+  const name = firstName(person.name);
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          size={size}
-          variant="ghost"
-          aria-label={`Opções para ${person.name}`}
-          className={cn("shrink-0", className)}
-        >
-          <MoreHorizontal aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        <DropdownMenuItem onSelect={() => remove.execute({ userId: person.id })}>
-          Desfazer amizade
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          variant="destructive"
-          onSelect={() => block.execute({ userId: person.id })}
-        >
-          Bloquear
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size={size}
+            variant="ghost"
+            aria-label={`Opções para ${person.name}`}
+            className={cn("shrink-0", className)}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-44">
+          <DropdownMenuItem onSelect={() => remove.execute({ userId: person.id })}>
+            Desfazer amizade
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => setConfirmBlock(true)}>
+            Bloquear
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ConfirmDialog
+        open={confirmBlock}
+        onOpenChange={setConfirmBlock}
+        title={`Bloquear ${name}?`}
+        description={`A amizade acaba, e ${name} não consegue mais te chamar nem mandar mensagem. ${name} não fica sabendo.`}
+        confirmLabel="Bloquear"
+        danger
+        pending={block.isPending}
+        onConfirm={() => block.execute({ userId: person.id })}
+      />
+    </>
   );
 }

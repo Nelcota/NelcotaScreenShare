@@ -9,6 +9,7 @@ import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 /** A tab at the top of the column: Amigos, Salas and Times. */
 export interface ColumnTab {
@@ -73,15 +74,16 @@ function searchable(text: string): string {
 function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
   return (
     <Hint text="Recolher amigos" shortcut={COLUMN_SHORTCUT.toUpperCase()}>
-      <button
+      <Button
         type="button"
+        variant="quiet"
+        size="icon"
         aria-label="Recolher amigos"
         aria-keyshortcuts={COLUMN_SHORTCUT.toUpperCase()}
         onClick={onCollapse}
-        className="grid size-8 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
       >
-        <PanelLeftClose className="size-4" aria-hidden="true" />
-      </button>
+        <PanelLeftClose aria-hidden="true" />
+      </Button>
     </Hint>
   );
 }

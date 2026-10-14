@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { useParticipantAudio } from "@/features/room/hooks/use-participant-audio";
 import { participantName } from "@/features/room/domain/participant-label";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 function AudioLevel({
   label,
@@ -118,14 +119,16 @@ export function ParticipantAudioMenu({
             >
               {audio.settings.muted ? "Voltar a ouvir" : "Silenciar só para mim"}
             </button>
-            <button
+            <Button
               type="button"
+              variant="quiet"
+              size="icon-lg"
               onClick={audio.reset}
               aria-label="Restaurar volumes"
-              className="grid size-9 shrink-0 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+              className="rounded-lg"
             >
-              <RotateCcw className="size-4" aria-hidden="true" />
-            </button>
+              <RotateCcw aria-hidden="true" />
+            </Button>
           </div>
         </Popover.Content>
       </Popover.Portal>

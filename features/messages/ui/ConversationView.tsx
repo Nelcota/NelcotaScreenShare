@@ -29,6 +29,7 @@ import { GroupCallButton, IconCallButton } from "@/features/ringing/ui/CallButto
 import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const STATUS_LABEL = { online: "Online", away: "Ausente", busy: "Ocupado", offline: "Offline" };
 
@@ -52,11 +53,10 @@ function MoreMenu({ conversation }: { conversation: OpenConversation["conversati
   const [other] = conversation.others;
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Mais opções"
-        className="grid size-9 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
-      >
-        <MoreHorizontal className="size-4" aria-hidden="true" />
+      <DropdownMenuTrigger asChild>
+        <Button variant="quiet" size="icon-lg" aria-label="Mais opções">
+          <MoreHorizontal aria-hidden="true" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {conversation.kind === "direct" && other ? (

@@ -12,6 +12,7 @@ import { participantLabel } from "@/features/room/domain/participant-label";
 import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
 import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -124,13 +125,15 @@ function MessageMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="quiet"
+          size="icon-sm"
           aria-label="Ações da mensagem"
-          className="grid size-7 shrink-0 place-items-center rounded-full text-ink-subtle opacity-0 transition-[opacity,background-color] group-hover/message:opacity-100 hover:bg-surface-3 hover:text-ink focus-visible:opacity-100 focus-visible:outline-none data-[state=open]:bg-surface-3 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
+          className="text-ink-subtle opacity-0 group-hover/message:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
         >
-          <EllipsisVertical className="size-4" aria-hidden="true" />
-        </button>
+          <EllipsisVertical aria-hidden="true" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align={mine ? "end" : "start"}

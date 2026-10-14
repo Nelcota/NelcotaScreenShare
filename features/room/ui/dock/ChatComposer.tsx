@@ -47,14 +47,16 @@ export function ChatComposer({
           <Pencil className="size-3.5 shrink-0 text-brand-soft" aria-hidden="true" />
           <span className="font-medium text-brand-soft">Editando mensagem</span>
           <span className="text-ink-subtle max-sm:hidden">· Esc cancela</span>
-          <button
+          <Button
             type="button"
+            variant="quiet"
+            size="icon-sm"
             onClick={onCancelEdit}
             aria-label="Cancelar edição"
-            className="ml-auto grid size-7 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+            className="ml-auto rounded-lg"
           >
-            <X className="size-4" aria-hidden="true" />
-          </button>
+            <X aria-hidden="true" />
+          </Button>
         </div>
       ) : null}
       <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface-2 p-1.5 pl-4 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">

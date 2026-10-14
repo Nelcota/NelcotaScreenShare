@@ -7,6 +7,7 @@ import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { RailFriendMenu } from "@/features/friends/ui/RailFriendMenu";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
+import { Button } from "@/components/ui/button";
 
 function RailFriend({ friend, unread }: { friend: FriendStatus; unread: number }) {
   return (
@@ -43,15 +44,17 @@ export function FriendsRail({
     <div className="flex min-h-0 flex-1 flex-col items-center">
       <div className="flex flex-col items-center gap-2 pt-3">
         <Hint text="Abrir amigos" shortcut={key}>
-          <button
+          <Button
             type="button"
+            variant="quiet"
+            size="icon-lg"
             aria-label="Abrir amigos"
             aria-keyshortcuts={key}
             onClick={onExpand}
-            className="grid size-9 place-items-center rounded-full border border-line-strong text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
+            className="border-line-strong"
           >
-            <PanelLeftOpen className="size-4" aria-hidden="true" />
-          </button>
+            <PanelLeftOpen aria-hidden="true" />
+          </Button>
         </Hint>
         <RequestsButton count={requests} />
         <AddFriendDialog code={code} linkPath={linkPath} />

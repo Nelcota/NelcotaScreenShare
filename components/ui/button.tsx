@@ -20,6 +20,9 @@ const buttonVariants = cva(
           "border-brand-soft/70 text-brand-soft hover:border-brand hover:bg-brand hover:text-brand-ink focus-visible:border-brand focus-visible:bg-brand focus-visible:text-brand-ink disabled:border-line disabled:bg-disabled aria-expanded:border-brand aria-expanded:bg-brand aria-expanded:text-brand-ink",
         ghost:
           "hover:bg-muted hover:text-foreground disabled:bg-disabled aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        /** The app's discreet icon button: muted at rest, surface-3 on hover. */
+        quiet:
+          "text-ink-muted hover:bg-surface-3 hover:text-ink aria-expanded:bg-surface-3 aria-expanded:text-ink aria-pressed:bg-surface-3 aria-pressed:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:bg-disabled dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline disabled:no-underline",

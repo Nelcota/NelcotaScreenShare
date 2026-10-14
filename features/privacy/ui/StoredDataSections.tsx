@@ -40,7 +40,7 @@ export function StoredDataSections() {
           <PrivacyItem icon={UserRound} title="Conta">
             Nome de exibição, e-mail, senha (guardada só como hash argon2id) e, se você escolher, a
             foto de perfil, sem os metadados da imagem. Nome e foto aparecem para quem está nas
-            mesmas salas; a foto pode ser trocada ou removida em Minha conta.
+            mesmas salas; a foto pode ser trocada ou removida em Configurações.
           </PrivacyItem>
           <PrivacyItem icon={KeyRound} title="Segurança">
             Sessões ativas (IP e navegador) e, se você ativar, o segredo da verificação em duas

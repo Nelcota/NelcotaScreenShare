@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import { noticeFor } from "@/lib/notice";
 import { Notice } from "@/components/Notice";
 
-export const meta = () => [{ title: "Minha conta · Nelcota" }];
+export const meta = () => [{ title: "Configurações · Nelcota" }];
 
 const NOTICES: Record<string, string> = {
   email: "E-mail confirmado e atualizado.",

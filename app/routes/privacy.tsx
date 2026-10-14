@@ -180,7 +180,7 @@ function RightsSection() {
       id="seus-direitos"
       index={5}
       title="Seus direitos"
-      description="Em Minha conta você baixa todos os seus dados e exclui a conta."
+      description="Em Configurações você baixa todos os seus dados e exclui a conta."
     >
       <div className="panel rounded-2xl p-5 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2">

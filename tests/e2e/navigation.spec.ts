@@ -45,7 +45,9 @@ test("pre-join keeps the return from the account page and the call uses only the
   const navbar = page.getByRole("navigation", { name: "Principal", exact: true });
   // The account lives in the avatar's menu.
   const menu = navbar.getByRole("button", { name: "Navegacao Teste", exact: true });
-  const account = page.getByRole("link", { name: "Minha conta", exact: true });
+  const account = page
+    .getByRole("navigation", { name: "Sua conta", exact: true })
+    .getByRole("link", { name: "Configurações", exact: true });
   await menu.click();
   await expect(account).toHaveAttribute(
     "href",

@@ -5,7 +5,7 @@ import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-import { Check, Copy, LayoutDashboard, MoreHorizontal } from "lucide-react";
+import { Check, Copy, Ellipsis, LayoutDashboard } from "lucide-react";
 import { Link } from "react-router";
 import { Hint } from "@/components/Hint";
 import { NavBar, NavBrand, NavDivider, NavPopover } from "@/components/shell/NavBar";
@@ -233,7 +233,7 @@ export function RoomTopBar({
         label="Mais opções"
         iconOnly
         align="end"
-        trigger={<MoreHorizontal className="size-5" aria-hidden="true" />}
+        trigger={<Ellipsis className="size-5" aria-hidden="true" />}
       >
         <div className="mb-4 border-b border-line pb-4">
           <label htmlFor={streamerId} className="flex items-center justify-between gap-3">

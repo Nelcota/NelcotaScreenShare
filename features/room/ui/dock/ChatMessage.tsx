@@ -1,4 +1,4 @@
-import { Copy, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
+import { Copy, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { Fragment } from "react";
 import {
   DropdownMenu,
@@ -130,7 +130,7 @@ function MessageMenu({
           aria-label="Ações da mensagem"
           className="text-ink-subtle opacity-0 group-hover/message:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
         >
-          <EllipsisVertical aria-hidden="true" />
+          <Ellipsis aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

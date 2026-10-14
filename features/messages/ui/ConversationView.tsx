@@ -1,4 +1,4 @@
-import { LogOut, MoreHorizontal, UserRound } from "lucide-react";
+import { Ellipsis, LogOut, UserRound } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -64,7 +64,7 @@ function MoreMenu({ conversation }: { conversation: OpenConversation["conversati
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="quiet" size="icon-lg" aria-label="Mais opções">
-          <MoreHorizontal aria-hidden="true" />
+          <Ellipsis aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

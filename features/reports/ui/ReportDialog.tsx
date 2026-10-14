@@ -11,12 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { reportAction } from "@/features/reports/actions";
-import {
-  REASON_LABELS,
-  REPORT_DETAILS_MAX,
-  REPORT_REASONS,
-  type ReportReason,
-} from "@/features/reports/domain/reports";
+import { REPORT_DETAILS_MAX, type ReportReason } from "@/features/reports/domain/reports";
+import { ReasonChoice } from "@/features/reports/ui/ReasonChoice";
 import { useOperation } from "@/lib/operations/use-operation";
 import { Field } from "@/components/Field";
 
@@ -63,22 +59,7 @@ export function ReportDialog({ open, onOpenChange, target, title }: ReportDialog
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>A pessoa não fica sabendo quem denunciou.</DialogDescription>
           </DialogHeader>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-sm font-medium">Motivo</legend>
-            {REPORT_REASONS.map((option) => (
-              <label key={option} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="motivo"
-                  value={option}
-                  checked={reason === option}
-                  onChange={() => setReason(option)}
-                  className="size-4 accent-brand"
-                />
-                {REASON_LABELS[option]}
-              </label>
-            ))}
-          </fieldset>
+          <ReasonChoice value={reason} onChange={setReason} />
           <Field id={detailsId} label="Detalhes">
             <Textarea
               value={details}

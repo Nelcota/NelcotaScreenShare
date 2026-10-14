@@ -42,6 +42,9 @@ export const friendships = pgTable(
     // A request the other side declined, or sent by someone they blocked: the sender still
     // sees it as sent, the receiver no longer sees it. Neither learns about the other.
     dismissedAt: timestamptz("dismissed_at"),
+    // The sender cancelled a request the other side had declined: it stays as a marker, so
+    // sending it again revives it still declined instead of asking anew.
+    withdrawnAt: timestamptz("withdrawn_at"),
   },
   (table) => [
     primaryKey({ columns: [table.userLowId, table.userHighId] }),

@@ -115,6 +115,28 @@ describe("friendships", () => {
     ).toBeDefined();
   });
 
+  test("cancelling a declined request and sending it again never reaches the receiver", async () => {
+    const { ana, bia } = await pair();
+    as(ana);
+    await friends.sendFriendRequest({ userId: bia.id });
+    as(bia);
+    await friends.answerFriendRequest({ userId: ana.id, accept: false });
+
+    as(ana);
+    expect(await friends.cancelFriendRequest({ userId: bia.id })).toEqual({
+      data: { status: "none" },
+    });
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("none");
+    expect((await lists.friendLists(db, ana.id)).sent).toEqual([]);
+
+    expect(await friends.sendFriendRequest({ userId: bia.id })).toEqual({
+      data: { status: "sent" },
+    });
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("sent");
+    expect((await lists.friendLists(db, bia.id)).received).toEqual([]);
+    expect(await lists.pendingReceivedCount(db, bia.id)).toBe(0);
+  });
+
   test("counts leave out accounts blocked by the admin, as the lists do", async () => {
     const { ana, bia } = await pair();
     as(bia);

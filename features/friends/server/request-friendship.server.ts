@@ -12,6 +12,7 @@ import {
   exposeRequest,
   lockFriendship,
   lockPeople,
+  reviveRequest,
 } from "@/features/friends/server/friendships.server";
 import type { DbExecutor } from "@/server/db/index.server";
 
@@ -50,5 +51,8 @@ export async function requestFriendship(
     await createRequest(tx, requesterId, targetId, { hidden: true, privateRequest });
   if (outcome === "accept") await acceptRequest(tx, requesterId, targetId);
   if (outcome === "already_sent" && !privateRequest) await exposeRequest(tx, requesterId, targetId);
+  if (outcome === "already_sent" && existing?.withdrawn) {
+    await reviveRequest(tx, requesterId, targetId);
+  }
   return outcome;
 }

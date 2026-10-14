@@ -16,6 +16,14 @@ import { toastError } from "@/features/admin/shell/ui/toast-error";
 import { ADMIN_ROLE_LABELS } from "@/features/auth/domain/roles";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { useOperation } from "@/lib/operations/use-operation";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type MemberDialog = "end" | "deactivate" | "reactivate" | null;
 
@@ -112,25 +120,27 @@ function MemberRow({ member, you }: { member: TeamMember; you: boolean }) {
   // Nobody changes their own account or an owner here.
   const changeable = !you && member.role !== "owner";
   return (
-    <tr className="border-t border-line">
-      <td className="py-2 pr-4">
+    <TableRow>
+      <TableCell className="whitespace-normal">
         <div className="font-medium">
           {member.name}
           {you ? <span className="font-normal text-ink-muted"> · você</span> : null}
         </div>
         <div className="text-ink-muted">{member.email}</div>
-      </td>
-      <td className="py-2 pr-4">{ADMIN_ROLE_LABELS[member.role]}</td>
-      <td className="py-2 pr-4">
+      </TableCell>
+      <TableCell className="whitespace-normal">{ADMIN_ROLE_LABELS[member.role]}</TableCell>
+      <TableCell className="whitespace-normal">
         <StatusBadge tone={member.twoFactor ? "success" : "warning"}>
           {member.twoFactor ? "Ativo" : "Desligado"}
         </StatusBadge>
-      </td>
-      <td className="py-2 pr-4 whitespace-nowrap">
+      </TableCell>
+      <TableCell>
         <LastSeen member={member} />
-      </td>
-      <td className="py-1 pl-4">{changeable ? <MemberActions member={member} /> : null}</td>
-    </tr>
+      </TableCell>
+      <TableCell className="pl-4">
+        {changeable ? <MemberActions member={member} /> : null}
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -139,24 +149,24 @@ export function TeamTable({ members, youId }: { members: TeamMember[]; youId: st
   return (
     <Section title="Pessoas">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="text-xs text-ink-subtle">
-            <tr>
-              <th className="py-2 pr-4 font-medium">Pessoa</th>
-              <th className="py-2 pr-4 font-medium">Papel</th>
-              <th className="py-2 pr-4 font-medium">2FA</th>
-              <th className="py-2 pr-4 font-medium">Último acesso</th>
-              <th className="py-2 font-medium">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Pessoa</TableHead>
+              <TableHead>Papel</TableHead>
+              <TableHead>2FA</TableHead>
+              <TableHead>Último acesso</TableHead>
+              <TableHead>
                 <span className="sr-only">Ações</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {members.map((member) => (
               <MemberRow key={member.id} member={member} you={member.id === youId} />
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </Section>
   );

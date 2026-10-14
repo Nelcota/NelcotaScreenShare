@@ -34,7 +34,7 @@ export function AddFriendDialog({
           </Button>
         </DialogTrigger>
       </Hint>
-      <DialogContent className="max-w-md rounded-3xl">
+      <DialogContent className="max-w-md">
         <DialogTitle>Adicionar amigo</DialogTitle>
         <DialogDescription className="sr-only">
           Seu código para passar adiante e o campo para o e-mail ou código de outra pessoa.

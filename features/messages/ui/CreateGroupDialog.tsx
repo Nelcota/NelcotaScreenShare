@@ -149,7 +149,7 @@ export function CreateGroupDialog({ friends }: { friends: PickableFriend[] }) {
           </Button>
         </DialogTrigger>
       </Hint>
-      <DialogContent className="max-w-md rounded-3xl" showCloseButton>
+      <DialogContent className="max-w-md" showCloseButton>
         <DialogTitle>Criar grupo</DialogTitle>
         <DialogDescription className="sr-only">Escolha dois ou mais amigos.</DialogDescription>
         {open ? <NewGroupForm friends={friends} onDone={() => setOpen(false)} /> : null}

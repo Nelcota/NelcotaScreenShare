@@ -194,14 +194,13 @@ export function ShortcutsHelp({ className }: { className?: string }) {
       </Hint>
       <DialogContent
         showCloseButton={false}
-        className="gap-4 rounded-2xl p-5"
         // Esc while waiting for a key cancels the change, not the dialog.
         onEscapeKeyDown={(event) => {
           if (editor.editing) event.preventDefault();
         }}
       >
         <div className="flex flex-col gap-1.5">
-          <DialogTitle className="text-lg font-semibold tracking-tight">{LABEL}</DialogTitle>
+          <DialogTitle>{LABEL}</DialogTitle>
           <DialogDescription className="text-ink-muted">
             Desligue para jogar sem acionar a chamada.
           </DialogDescription>

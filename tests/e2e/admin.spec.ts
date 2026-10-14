@@ -104,6 +104,17 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await expect(page.getByText("Ninguém entrou nesta sala.")).toBeVisible();
   await expect(page.getByText("Ninguém compartilhou a tela.")).toBeVisible();
 
+  // A note typed on one room does not follow to the next room opened from the palette.
+  const note = page.getByRole("textbox", { name: "Nota interna" });
+  await note.fill("Nota só desta sala");
+  await page.keyboard.press("Control+k");
+  await page.getByPlaceholder("Ir para…, código da sala ou nome de alguém").fill(otherCode);
+  await page.getByRole("option", { name: new RegExp(otherCode) }).click();
+  await expect(page.getByRole("heading", { name: otherCode })).toBeVisible();
+  await expect(note).toHaveValue("");
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: roomCode })).toBeVisible();
+
   const audit = await sql(
     `select count(*)::int as n from audit_logs as audit
      join admin_users as actor on actor.id = audit.actor_admin_id

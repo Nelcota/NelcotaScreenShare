@@ -98,7 +98,8 @@ export default function RoomPage() {
         <RoomSummary room={room} online={live ? online : null} shareCount={shares.length} />
         {staff ? <RoomStaffSection staff={staff} /> : null}
         <Section title="Nota interna" description="Só o painel vê.">
-          <RoomNoteForm id={room.id} note={room.note} canEdit={canUpdate} />
+          {/* A new room is a new form: the typed note never carries over to another room. */}
+          <RoomNoteForm key={room.id} id={room.id} note={room.note} canEdit={canUpdate} />
         </Section>
       </div>
 

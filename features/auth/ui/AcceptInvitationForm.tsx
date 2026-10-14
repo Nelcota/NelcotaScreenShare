@@ -9,9 +9,9 @@ import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { newPasswordError, PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
 import { formText } from "@/lib/utils";
+import { Field } from "@/components/Field";
 
 const MIN = PASSWORD_LIMITS.admin.min;
 
@@ -56,32 +56,21 @@ export function AcceptInvitationForm({
       }
     >
       <form method="post" onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={nameId}>Seu nome</Label>
-          <Input
-            id={nameId}
-            name="name"
-            autoComplete="name"
-            required
-            maxLength={80}
-            className="h-11"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={passwordId}>Senha (pelo menos {MIN} caracteres)</Label>
+        <Field id={nameId} label="Seu nome">
+          <Input name="name" autoComplete="name" required maxLength={80} className="h-11" />
+        </Field>
+        <Field id={passwordId} label={<>Senha (pelo menos {MIN} caracteres)</>}>
           <PasswordInput
-            id={passwordId}
             name="password"
             autoComplete="new-password"
             required
             minLength={MIN}
             maxLength={PASSWORD_LIMITS.admin.max}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={confirmId}>Repita a senha</Label>
-          <PasswordInput id={confirmId} name="confirm" autoComplete="new-password" required />
-        </div>
+        </Field>
+        <Field id={confirmId} label="Repita a senha">
+          <PasswordInput name="confirm" autoComplete="new-password" required />
+        </Field>
         <FormError message={localError ?? serverError} />
         <Button type="submit" size="lg" loading={accept.isPending} className="w-full">
           Criar acesso

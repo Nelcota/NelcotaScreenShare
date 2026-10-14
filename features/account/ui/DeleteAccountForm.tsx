@@ -7,9 +7,9 @@ import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
+import { Field } from "@/components/Field";
 
 /**
  * Account deletion confirmation (LGPD): asks for the current password and, with two-step
@@ -54,10 +54,8 @@ export function DeleteAccountForm({
       }}
       className="flex max-w-sm flex-col gap-3"
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={passwordId}>Digite sua senha para confirmar</Label>
+      <Field id={passwordId} label="Digite sua senha para confirmar">
         <PasswordInput
-          id={passwordId}
           name="password"
           autoComplete="current-password"
           required
@@ -65,12 +63,16 @@ export function DeleteAccountForm({
           aria-describedby={error ? errorId : undefined}
           onChange={() => setPasswordError(undefined)}
         />
-      </div>
+      </Field>
       {askCode ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={codeId}>Código de duas etapas</Label>
+        <Field
+          id={codeId}
+          label="Código de duas etapas"
+          footer={
+            <p className="text-sm text-ink-muted">Do app autenticador, ou um código de backup.</p>
+          }
+        >
           <Input
-            id={codeId}
             name="code"
             autoComplete="one-time-code"
             spellCheck={false}
@@ -79,8 +81,7 @@ export function DeleteAccountForm({
             aria-describedby={error ? errorId : undefined}
             onChange={() => setPasswordError(undefined)}
           />
-          <p className="text-sm text-ink-muted">Do app autenticador, ou um código de backup.</p>
-        </div>
+        </Field>
       ) : null}
       {ownedTeamCount ? (
         <div className="flex flex-col gap-3 rounded-xl border border-danger/30 p-3 text-sm">

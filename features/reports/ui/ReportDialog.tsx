@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { reportAction } from "@/features/reports/actions";
 import {
@@ -19,6 +18,7 @@ import {
   type ReportReason,
 } from "@/features/reports/domain/reports";
 import { useOperation } from "@/lib/operations/use-operation";
+import { Field } from "@/components/Field";
 
 type ReportTargetInput = Parameters<typeof reportAction>[0]["target"];
 
@@ -79,15 +79,13 @@ export function ReportDialog({ open, onOpenChange, target, title }: ReportDialog
               </label>
             ))}
           </fieldset>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={detailsId}>Detalhes</Label>
+          <Field id={detailsId} label="Detalhes">
             <Textarea
-              id={detailsId}
               value={details}
               maxLength={REPORT_DETAILS_MAX}
               onChange={(event) => setDetails(event.target.value)}
             />
-          </div>
+          </Field>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancelar

@@ -11,7 +11,6 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { celebrateMascot, upsetMascot } from "@/features/mascot/client/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { AccessContext } from "@/features/auth/domain/access-context";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
@@ -23,6 +22,7 @@ import {
 } from "@/features/auth/domain/password-rules";
 import { cn, formText } from "@/lib/utils";
 import { checkSignUp } from "@/features/auth/domain/sign-up";
+import { Field } from "@/components/Field";
 
 const { min: MIN_PASSWORD, max: MAX_PASSWORD } = PASSWORD_LIMITS.user;
 
@@ -176,11 +176,13 @@ export function SignUpForm({
       >
         <NameField id={ids.name} ref={nameRef} />
         <EmailField id={ids.email} autoComplete="email" />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={ids.password}>Senha</Label>
+        <Field
+          id={ids.password}
+          label="Senha"
+          footer={<PasswordGuide id={ids.guide} password={password} personal={personal} />}
+        >
           <PasswordInput
             ref={passwordRef}
-            id={ids.password}
             name="password"
             autoComplete="new-password"
             required
@@ -190,8 +192,7 @@ export function SignUpForm({
             onChange={(event) => setPassword(event.target.value)}
             aria-describedby={ids.guide}
           />
-          <PasswordGuide id={ids.guide} password={password} personal={personal} />
-        </div>
+        </Field>
         <FormError id={ids.error} message={error} />
         <Button type="submit" size="lg" loading={pending} className="mt-1 w-full">
           Criar conta
@@ -211,11 +212,9 @@ function personalWords(form: HTMLFormElement): string[] {
 
 function NameField({ id, ref }: { id: string; ref: RefObject<HTMLInputElement | null> }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>Seu nome</Label>
+    <Field id={id} label="Seu nome">
       <Input
         ref={ref}
-        id={id}
         name="name"
         autoComplete="nickname"
         placeholder="Como vão te ver na sala"
@@ -223,7 +222,7 @@ function NameField({ id, ref }: { id: string; ref: RefObject<HTMLInputElement | 
         maxLength={32}
         className="h-11"
       />
-    </div>
+    </Field>
   );
 }
 

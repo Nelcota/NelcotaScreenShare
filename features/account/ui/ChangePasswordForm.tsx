@@ -5,17 +5,17 @@ import { toast } from "sonner";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { newPasswordError, PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
 import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
+import { Field } from "@/components/Field";
 
 export function ChangePasswordForm() {
   const revalidator = useRevalidator();
-  const ids = { current: useId(), next: useId(), confirm: useId(), hint: useId() };
+  const ids = { current: useId(), next: useId(), confirm: useId() };
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const closeRow = useCloseRow();
@@ -55,29 +55,25 @@ export function ChangePasswordForm() {
       noValidate
       className="grid max-w-sm gap-3"
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={ids.current}>Senha atual</Label>
-        <PasswordInput id={ids.current} name="current" autoComplete="current-password" required />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={ids.next}>Nova senha</Label>
+      <Field id={ids.current} label="Senha atual">
+        <PasswordInput name="current" autoComplete="current-password" required />
+      </Field>
+      <Field
+        id={ids.next}
+        label="Nova senha"
+        hint={`Pelo menos ${PASSWORD_LIMITS.user.min} caracteres.`}
+      >
         <PasswordInput
-          id={ids.next}
           name="next"
           autoComplete="new-password"
           required
           minLength={PASSWORD_LIMITS.user.min}
           maxLength={PASSWORD_LIMITS.user.max}
-          aria-describedby={ids.hint}
         />
-        <p id={ids.hint} className="text-xs text-ink-muted">
-          Pelo menos {PASSWORD_LIMITS.user.min} caracteres.
-        </p>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={ids.confirm}>Repita a nova senha</Label>
-        <PasswordInput id={ids.confirm} name="confirm" autoComplete="new-password" required />
-      </div>
+      </Field>
+      <Field id={ids.confirm} label="Repita a nova senha">
+        <PasswordInput name="confirm" autoComplete="new-password" required />
+      </Field>
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" loading={pending}>

@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formText } from "@/lib/utils";
+import { Field } from "@/components/Field";
 
 export interface RoomValues {
   name: string;
@@ -34,10 +34,8 @@ export function RoomEditor({
         });
       }}
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={id}>Nome da sala</Label>
+      <Field id={id} label="Nome da sala">
         <Input
-          id={id}
           name="name"
           defaultValue={initial?.name}
           minLength={2}
@@ -45,7 +43,7 @@ export function RoomEditor({
           required
           placeholder="Reunião semanal"
         />
-      </div>
+      </Field>
       <label className="flex items-start gap-3 text-sm">
         <input
           type="checkbox"

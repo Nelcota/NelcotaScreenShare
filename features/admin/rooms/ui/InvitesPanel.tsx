@@ -26,6 +26,7 @@ import {
 } from "@/features/admin/rooms/domain/invites";
 import { toastError } from "@/features/admin/shell/ui/toast-error";
 import { copyText } from "@/lib/clipboard";
+import { Field } from "@/components/Field";
 
 export interface InviteRow {
   id: string;
@@ -149,15 +150,12 @@ function CreateInviteDialog({
                 gasta outro uso.
               </DialogDescription>
             </DialogHeader>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={ids.label}>Nome (opcional)</Label>
-              <Input id={ids.label} name="label" maxLength={80} placeholder="Ex.: Turma de março" />
-            </div>
+            <Field id={ids.label} label="Nome (opcional)">
+              <Input name="label" maxLength={80} placeholder="Ex.: Turma de março" />
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={ids.uses}>Limite de pessoas</Label>
+              <Field id={ids.uses} label="Limite de pessoas">
                 <Input
-                  id={ids.uses}
                   name="uses"
                   type="number"
                   min={1}
@@ -167,9 +165,8 @@ function CreateInviteDialog({
                   onChange={() => setUsesError(undefined)}
                   placeholder="Sem limite"
                 />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={ids.validity}>Validade</Label>
+              </Field>
+              <Field id={ids.validity} label="Validade">
                 <ChoiceSelect
                   id={ids.validity}
                   name="validity"
@@ -177,7 +174,7 @@ function CreateInviteDialog({
                   className="h-11 w-full bg-surface-2"
                   options={VALIDITY_OPTIONS}
                 />
-              </div>
+              </Field>
             </div>
             <FormError id={`${ids.uses}-error`} message={usesError} />
             <DialogFooter>

@@ -7,12 +7,12 @@ import { useFormError } from "./use-form-error";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { adminAuthClient } from "@/features/auth/client/admin-auth-client";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { formText } from "@/lib/utils";
+import { Field } from "@/components/Field";
 
 /** Second factor at sign-in (authenticator app or backup code). */
 export function TwoFactorCodeForm({
@@ -74,10 +74,8 @@ export function TwoFactorCodeForm({
         className="flex flex-col gap-4"
       >
         <input type="hidden" name="mode" value={backup ? "backup" : "totp"} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={codeId}>{backup ? "Código de backup" : "Código"}</Label>
+        <Field id={codeId} label={<>{backup ? "Código de backup" : "Código"}</>}>
           <Input
-            id={codeId}
             name="code"
             required
             autoFocus
@@ -89,7 +87,7 @@ export function TwoFactorCodeForm({
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
           />
-        </div>
+        </Field>
         <FormError id={errorId} message={error} />
         <Button type="submit" size="lg" loading={pending} className="w-full">
           Verificar

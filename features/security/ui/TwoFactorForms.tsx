@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/Field";
 
 /** Feedback shared by every 2FA form: one error message and one pending request. */
 export type TwoFactorFormState = {
@@ -113,16 +113,14 @@ function PasswordField({
   errorId: string;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>Confirme sua senha</Label>
+    <Field id={id} label="Confirme sua senha">
       <PasswordInput
-        id={id}
         name="password"
         autoComplete="current-password"
         required
         aria-invalid={invalid}
         aria-describedby={errorId}
       />
-    </div>
+    </Field>
   );
 }

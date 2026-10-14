@@ -12,17 +12,12 @@ import { notFound } from "@/server/http.server";
 import { routeLoader } from "@/server/route-loader.server";
 import type { loader as appLoader } from "./layout";
 import { Button } from "@/components/ui/button";
+import { formatMonthYear } from "@/lib/format";
 
 export const meta = () => [
   { title: "Mensagens · Nelcota" },
   { name: "robots", content: "noindex" },
 ];
-
-const SINCE = new Intl.DateTimeFormat("pt-BR", {
-  month: "long",
-  year: "numeric",
-  timeZone: "America/Sao_Paulo",
-});
 
 export const loader = routeLoader(async ({ params }) => {
   const conversationId = params.conversa ?? "";
@@ -36,7 +31,7 @@ export const loader = routeLoader(async ({ params }) => {
   return {
     ...page,
     klipyKey: getEnv().KLIPY_API_KEY ?? null,
-    profile: profile ? { ...profile, since: SINCE.format(profile.since) } : null,
+    profile: profile ? { ...profile, since: formatMonthYear(profile.since) } : null,
   };
 });
 

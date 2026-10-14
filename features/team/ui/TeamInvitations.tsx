@@ -6,6 +6,7 @@ import { copyWorkspaceLink } from "@/components/workspace/RoomCard";
 import { formText } from "@/lib/utils";
 import type { TeamCommand } from "../domain/commands";
 import { Notice } from "@/components/Notice";
+import { TIME_ZONE } from "@/lib/format";
 
 export function TeamInvitations({
   teamId,
@@ -110,5 +111,5 @@ function invitationStatus(invite: {
   if (invite.usedAt) return "Aceito";
   if (invite.revokedAt) return "Revogado";
   // Expiry is enforced by the server; render a stable date for SSR hydration.
-  return `Válido até ${new Date(invite.expiresAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}`;
+  return `Válido até ${new Date(invite.expiresAt).toLocaleDateString("pt-BR", { timeZone: TIME_ZONE })}`;
 }

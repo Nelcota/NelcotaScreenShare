@@ -1,6 +1,6 @@
 import type { Gif } from "@/features/messages/domain/klipy";
-/** Times in São Paulo, the same on the server and in the browser (no hydration jump). */
-const TIME_ZONE = "America/Sao_Paulo";
+// Times in São Paulo, the same on the server and in the browser (no hydration jump).
+import { TIME_ZONE } from "@/lib/format";
 
 const DAY_MS = 24 * 60 * 60_000;
 /** Messages from the same person this close together share one name and photo. */

@@ -10,14 +10,9 @@ import { FriendMenu } from "@/features/friends/ui/FriendMenu";
 import { CallButton } from "@/features/ringing/ui/CallButton";
 import { getDb } from "@/server/db/index.server";
 import { routeLoader } from "@/server/route-loader.server";
+import { formatMonthYear } from "@/lib/format";
 
 export const meta = () => [{ title: "Amigo · Nelcota" }, { name: "robots", content: "noindex" }];
-
-const SINCE = new Intl.DateTimeFormat("pt-BR", {
-  month: "long",
-  year: "numeric",
-  timeZone: "America/Sao_Paulo",
-});
 
 export const loader = routeLoader(async ({ params }) => {
   const friendId = z.uuid().safeParse(params.id);
@@ -31,7 +26,7 @@ export const loader = routeLoader(async ({ params }) => {
       name: card.name,
       status: (await shownStatuses(getDb(), [card.id])).get(card.id) ?? ("offline" as const),
     },
-    since: SINCE.format(card.since),
+    since: formatMonthYear(card.since),
   };
 });
 

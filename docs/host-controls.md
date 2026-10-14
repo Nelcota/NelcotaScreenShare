@@ -92,6 +92,9 @@ Before enabling in Coolify:
    both host and provider firewalls. A private hostname in configuration alone proves
    nothing about reachability. Keep RTC 7881/TCP, configured RTP UDP and TURN ports available.
    The TURN DNS name may remain; it must not proxy public HTTP signaling to 7880.
+   Also make LiveKit listen only where the app reaches it: `bind_addresses: ["172.17.0.1"]`
+   (the Docker bridge gateway, see the comment in `deploy/livekit/livekit.yaml`), so a
+   forgotten route or port mapping has nothing to reach.
 4. Ensure the app's HTTPS proxy supports WebSocket upgrades at the new path. Disable
    query-string logging on that path at every proxy: signaling queries contain JWTs.
 5. Set `ROOM_HOST_CONTROLS_ENABLED=true` and restart the app. The environment validator
@@ -100,6 +103,23 @@ Before enabling in Coolify:
 6. From an external client, verify all direct signaling URLs/ports are unreachable.
    Verify app admission and attempt reentry with original and server-refreshed credentials
    after removal, locking and closure. Repeat on the actual VPS before rollout.
+
+### Proposal: a deploy smoke check for step 6
+
+Step 6 is manual today. A proposal for the deploy pipeline (not in `.github/workflows` yet),
+run after the app deploy whenever `ROOM_HOST_CONTROLS_ENABLED=true`, from the runner (an
+external network to the VPS):
+
+1. `curl -sS -o /dev/null -w '%{http_code}' --max-time 5 https://lk.<domain>/rtc` must not
+   answer LiveKit (no `200`/`401`/`400` from LiveKit; a proxy `404` or a refused connection
+   pass), and the same for `/rtc/v1` and every alternate `lk.*` domain.
+2. A raw TCP connect to `<VPS IP>:7880` (`nc -z -w 5`) must fail.
+3. A WebSocket upgrade to `https://lk.<domain>/rtc?access_token=x` must not reach `101`.
+4. `https://<app domain>/api/sala/conexao/rtc/validate` must answer the app (`401`/`403`
+   without a token), proving the relay path is up.
+
+Any LiveKit answer fails the job before the deploy is marked healthy. The check holds no
+secret: it never needs a valid token, since any LiveKit response at all means exposure.
 
 The repository's legacy Compose/proxy examples stay usable with the flag off. They do not
 establish the required private boundary. Do not activate host controls by merely changing

@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import type { ComponentProps } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Hint } from "@/components/Hint";
 import { gsap, MOTION_DURATION, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { cn } from "@/lib/utils";
 
@@ -82,79 +82,66 @@ export function DockButton({
   });
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          data-anim="dock-item"
-          aria-label={label}
-          aria-pressed={pressed}
-          aria-busy={busy || undefined}
-          aria-keyshortcuts={shortcut}
-          {...props}
-          onPointerLeave={(event) => {
-            onPointerLeave?.(event);
-            animate(event.currentTarget, { scale: 1 });
-          }}
-          onPointerDown={(event) => {
-            onPointerDown?.(event);
-            animate(event.currentTarget, { scale: 0.96, duration: MOTION_DURATION.feedback });
-          }}
-          onPointerUp={(event) => {
-            onPointerUp?.(event);
-            animate(event.currentTarget, { scale: 1 });
-          }}
-          onPointerCancel={(event) => {
-            onPointerCancel?.(event);
-            animate(event.currentTarget, { scale: 1 });
-          }}
+    <Hint text={label} shortcut={shortcut} side="top" sideOffset={10}>
+      <button
+        type="button"
+        data-anim="dock-item"
+        aria-label={label}
+        aria-pressed={pressed}
+        aria-busy={busy || undefined}
+        aria-keyshortcuts={shortcut}
+        {...props}
+        onPointerLeave={(event) => {
+          onPointerLeave?.(event);
+          animate(event.currentTarget, { scale: 1 });
+        }}
+        onPointerDown={(event) => {
+          onPointerDown?.(event);
+          animate(event.currentTarget, { scale: 0.96, duration: MOTION_DURATION.feedback });
+        }}
+        onPointerUp={(event) => {
+          onPointerUp?.(event);
+          animate(event.currentTarget, { scale: 1 });
+        }}
+        onPointerCancel={(event) => {
+          onPointerCancel?.(event);
+          animate(event.currentTarget, { scale: 1 });
+        }}
+        className={cn(
+          "group flex shrink-0 cursor-pointer touch-manipulation flex-col items-center gap-2 rounded-xl outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+          caption ? "min-w-11 sm:min-w-16" : "",
+          className,
+        )}
+      >
+        <span
+          data-dock-surface=""
           className={cn(
-            "group flex shrink-0 cursor-pointer touch-manipulation flex-col items-center gap-2 rounded-xl outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
-            caption ? "min-w-11 sm:min-w-16" : "",
-            className,
+            "relative grid size-11 place-items-center rounded-xl border transition-colors duration-150 group-focus-visible:ring-3 group-focus-visible:ring-brand/60 sm:size-12",
+            toneClasses[tone],
+            iconClassName,
           )}
         >
+          {busy ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : children}
+        </span>
+        {caption ? (
           <span
-            data-dock-surface=""
+            aria-hidden="true"
             className={cn(
-              "relative grid size-11 place-items-center rounded-xl border transition-colors duration-150 group-focus-visible:ring-3 group-focus-visible:ring-brand/60 sm:size-12",
-              toneClasses[tone],
-              iconClassName,
+              "text-xs leading-4 font-medium whitespace-nowrap sm:text-[0.8125rem] [@media(max-height:32rem)]:hidden",
+              captionClasses[tone],
             )}
           >
-            {busy ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : children}
+            {shortCaption ? (
+              <>
+                <span className="sm:hidden">{shortCaption}</span>
+                <span className="max-sm:hidden">{caption}</span>
+              </>
+            ) : (
+              caption
+            )}
           </span>
-          {caption ? (
-            <span
-              aria-hidden="true"
-              className={cn(
-                "text-xs leading-4 font-medium whitespace-nowrap sm:text-[0.8125rem] [@media(max-height:32rem)]:hidden",
-                captionClasses[tone],
-              )}
-            >
-              {shortCaption ? (
-                <>
-                  <span className="sm:hidden">{shortCaption}</span>
-                  <span className="max-sm:hidden">{caption}</span>
-                </>
-              ) : (
-                caption
-              )}
-            </span>
-          ) : null}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={10}>
-        {label}
-        {shortcut ? (
-          <kbd
-            data-slot="kbd"
-            className="bg-background/15 px-1.5 py-0.5 font-sans text-xs font-medium"
-          >
-            {shortcut}
-          </kbd>
         ) : null}
-      </TooltipContent>
-    </Tooltip>
+      </button>
+    </Hint>
   );
 }

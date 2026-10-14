@@ -70,6 +70,7 @@ export function TeamPage() {
           invitations={data.invitations}
           link={invitationLink}
           active={data.pro.active && data.enabled}
+          canInviteManagers={data.role === "owner"}
           pending={action.isPending}
           onCommand={action.execute}
         />

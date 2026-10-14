@@ -13,6 +13,7 @@ export function TeamInvitations({
   invitations,
   link,
   active,
+  canInviteManagers,
   pending,
   onCommand,
 }: {
@@ -27,6 +28,8 @@ export function TeamInvitations({
   }[];
   link?: string;
   active: boolean;
+  /** Only the owner decides who manages the team; a manager invites members. */
+  canInviteManagers: boolean;
   pending: boolean;
   onCommand: (command: TeamCommand) => void;
 }) {
@@ -53,16 +56,20 @@ export function TeamInvitations({
       >
         <Label htmlFor={id}>E-mail da pessoa</Label>
         <Input id={id} name="email" type="email" required maxLength={254} disabled={!active} />
-        <Label htmlFor={`${id}-role`}>Função no time</Label>
-        <select
-          id={`${id}-role`}
-          name="role"
-          className="rounded-xl border border-line bg-surface-2 p-3"
-          disabled={!active}
-        >
-          <option value="member">Membro</option>
-          <option value="manager">Gestor</option>
-        </select>
+        {canInviteManagers ? (
+          <>
+            <Label htmlFor={`${id}-role`}>Função no time</Label>
+            <select
+              id={`${id}-role`}
+              name="role"
+              className="rounded-xl border border-line bg-surface-2 p-3"
+              disabled={!active}
+            >
+              <option value="member">Membro</option>
+              <option value="manager">Gestor</option>
+            </select>
+          </>
+        ) : null}
         <Button disabled={pending || !active} type="submit">
           Gerar convite
         </Button>

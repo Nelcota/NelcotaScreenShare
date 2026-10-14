@@ -361,17 +361,17 @@ describe("account name", () => {
       (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.name;
 
     const renamed = await call("/update-user", {
-      body: { name: "  Equipe\u202E Nelcota\u200B  " },
+      body: { name: "  Equipe\u202E Ana\u200B  " },
       jar: participant.jar,
     });
     assert.equal(renamed.status, 200);
-    assert.equal(await nameOf(), "Equipe Nelcota");
+    assert.equal(await nameOf(), "Equipe Ana");
 
-    for (const name of ["x".repeat(50_000), "\u202E\u200B", 42]) {
+    for (const name of ["x".repeat(50_000), "\u202E\u200B", 42, "Equipe Nelcota"]) {
       const refused = await call("/update-user", { body: { name }, jar: participant.jar });
       assert.equal(refused.status, 400);
     }
-    assert.equal(await nameOf(), "Equipe Nelcota");
+    assert.equal(await nameOf(), "Equipe Ana");
 
     const email = `nome-${crypto.randomUUID()}@exemplo.com`;
     const signUp = await newCaller()("/sign-up/email", {

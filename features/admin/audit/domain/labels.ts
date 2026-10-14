@@ -9,6 +9,7 @@ const ACTION_LABELS: Record<string, string> = {
   "auth.password_changed": "Trocou a senha",
   "auth.password_reset": "Redefiniu a senha",
   "admin_invitation.accept": "Aceitou convite de admin",
+  "admin.recovery_start": "Iniciou a recuperação de acesso do dono",
   "admin_session.revoke": "Encerrou uma sessão",
   "admin_session.revoke_others": "Encerrou as outras sessões",
   "settings.update": "Alterou configurações",

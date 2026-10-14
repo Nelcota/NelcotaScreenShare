@@ -80,6 +80,6 @@ pnpm admin:create-owner owner@example.com
 docker exec -it <app-container> node create-owner.mjs owner@example.com
 ```
 
-The command prints a single-use link, valid for 30 minutes. If the only owner loses their 2FA and backup codes, run it again with `--force` to generate another owner invitation.
+The command prints a single-use link, valid for 30 minutes. If the only owner loses their 2FA and backup codes, run it again with `--force` and the **same e-mail**: that account is locked, its sessions end and its 2FA is removed (audited as `admin.recovery_start`, actor `system`), and the link brings the same account back, with its history, a new password and 2FA to set up again. With `--force` and an e-mail that has no panel account, it issues a new owner invitation as usual.
 
 Friend requests sent by email remain private to their recipient until accepted. They do not expose recipient names in the sender's outgoing list, relation endpoint, photo endpoint, or data export. Email and explicit code/card requests have separate pending quotas, so a blind lookup cannot be detected through a later public request limit.

@@ -176,10 +176,22 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await page.goto("/admin/pro");
   await page.getByRole("textbox", { name: "Buscar contas e times" }).fill(participantEmail);
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
-  await page
-    .getByLabel("Conta ou time")
-    .selectOption({ label: `Pessoa Painel · ${participantEmail}` });
+  // Design-system controls only: no browser select, date picker or checkbox on the page
+  // (Radix keeps hidden native ones for forms, marked aria-hidden).
+  await expect(
+    page
+      .locator("main")
+      .locator('select, input[type="date"], input[type="checkbox"]')
+      .and(page.locator(':not([aria-hidden="true"])')),
+  ).toHaveCount(0);
+  // Messages come from the page, not the browser's validation bubble.
+  await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
+  await expect(page.getByText("Escolha a conta ou o time.")).toBeVisible();
+  await page.getByRole("combobox", { name: "Conta ou time" }).click();
+  await page.getByRole("option", { name: `Pessoa Painel · ${participantEmail}` }).click();
   await page.getByLabel("Limite de salas permanentes").fill("4");
+  await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
+  await expect(page.getByText("Escreva o motivo da alteração.")).toBeVisible();
   await page.getByLabel("Motivo da alteração").fill("Selected participant pilot");
   await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
   await expect(page.getByText("Ativação salva e registrada na auditoria.")).toBeVisible();

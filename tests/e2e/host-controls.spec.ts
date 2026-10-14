@@ -110,11 +110,17 @@ test("transfer removes old host authority; exclusion and closure reject original
     const refreshes = refreshedCredentials(member);
     const memberCredentials = await joinControlled(member, code);
     const refreshCount = refreshes.length;
-    const hand = await member.context.request.post("/api/sala/mao", {
-      headers: await accountHeaders(member),
-      data: { room: code, raised: true },
-    });
-    expect(hand.status()).toBe(204);
+    // Right after joining, LiveKit may not list the member yet (409): ask again until it does.
+    const headers = await accountHeaders(member);
+    await expect
+      .poll(async () => {
+        const hand = await member.context.request.post("/api/sala/mao", {
+          headers,
+          data: { room: code, raised: true },
+        });
+        return hand.status();
+      })
+      .toBe(204);
     await expect.poll(() => refreshes.length).toBeGreaterThan(refreshCount);
     await host.page.getByRole("button", { name: /3 pessoas/ }).click();
     await host.page.getByRole("button", { name: "Moderar Proximo Host" }).click();

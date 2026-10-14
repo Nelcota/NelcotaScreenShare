@@ -1,4 +1,4 @@
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { CircleAlert, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "@/features/room/ui/StatusScreen";
@@ -25,7 +25,7 @@ export function ConnectError({
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
       <StatusScreen
-        icon={AlertTriangle}
+        icon={CircleAlert}
         tone="danger"
         title="Não deu para conectar"
         message={message}

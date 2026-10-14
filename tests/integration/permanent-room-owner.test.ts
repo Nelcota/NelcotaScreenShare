@@ -1,12 +1,17 @@
 import { afterAll, beforeEach, expect, test } from "vitest";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/server/db/index.server";
-import { roomDefinitions } from "@/server/db/schema/room-control";
+import { roomDefinitions, roomSessions } from "@/server/db/schema/room-control";
+import { roomRoles } from "@/server/db/schema";
 import { applyRoleChange } from "@/features/room/server/role-changes.server";
 import { roomRoleOf } from "@/features/room/server/room-roles.server";
-import { controlledRoom, mockControlTransport } from "./support/host-controls";
+import { reconcileSessionPresence } from "@/features/room/server/session-presence.server";
+import { controlledRoom, mockControlTransport, participant } from "./support/host-controls";
 
-/** A permanent room stays with whoever created it: its owner is not handed over in a call. */
+/**
+ * A permanent room stays with whoever created it: the owner passes the host, never the room,
+ * and takes the host back only after joining again.
+ */
 process.env.ROOM_HOST_CONTROLS_ENABLED = "true";
 beforeEach(mockControlTransport);
 afterAll(closeDb);
@@ -49,10 +54,39 @@ test("the owner of a personal room moderates, but does not give the room away", 
   expect(await ownerOf(room.code)).toBe(room.host);
 });
 
-test("the owner's host transfer in a personal room is refused instead of moving the room", async () => {
-  const room = await personalControlledRoom();
-  await expect(room.command({ kind: "transfer", identity: room.other })).rejects.toThrow(
-    "Numa sala permanente",
+async function session(id: string) {
+  const [found] = await getDb().select().from(roomSessions).where(eq(roomSessions.id, id));
+  if (!found) throw new Error("Missing session");
+  return found;
+}
+
+const reconcile = async (id: string, people: ReturnType<typeof participant>[]) =>
+  getDb().transaction(async (tx) =>
+    reconcileSessionPresence(tx, await session(id), people, new Date()),
   );
+
+test("the owner passes the host and keeps the room; it comes back only on rejoining", async () => {
+  const room = await personalControlledRoom();
+  await room.command({ kind: "transfer", identity: room.other });
   expect(await ownerOf(room.code)).toBe(room.host);
+  expect((await session(room.sessionId)).hostUserId).toBe(room.other);
+
+  // Still in the call: the owner does not take the host back.
+  const present = [participant(room.host, 1), participant(room.other, 2)];
+  expect((await reconcile(room.sessionId, present)).hostUserId).toBe(room.other);
+
+  // Back after leaving: the owner's priority applies again.
+  const rejoined = Math.floor(Date.now() / 1000) + 5;
+  const back = [participant(room.other, 2), participant(room.host, rejoined)];
+  const updated = await reconcile(room.sessionId, back);
+  expect(updated.hostUserId).toBe(room.host);
+  expect(updated.hostGivenAt).toBeNull();
+});
+
+test("in a one-off room the owner's host transfer still hands over the room", async () => {
+  const room = await controlledRoom();
+  await getDb().insert(roomRoles).values({ roomCode: room.code, userId: room.host, role: "owner" });
+  await room.command({ kind: "transfer", identity: room.other });
+  expect(await ownerOf(room.code)).toBe(room.other);
+  expect((await session(room.sessionId)).hostGivenAt).toBeNull();
 });

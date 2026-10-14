@@ -78,6 +78,7 @@ async function keepHostOrHandToOwner(
   const owner = ownerTakingOver(
     session.hostUserId,
     await hostCandidates(tx, session, participants),
+    session.hostGivenAt,
   );
   if (owner) return handHostTo(tx, session, owner, "owner_present", {});
   const [updated] = await tx
@@ -108,7 +109,14 @@ async function handHostTo(
 ) {
   const [handed] = await tx
     .update(roomSessions)
-    .set({ ...changes, status: "active", hostUserId, hostMissingAt: null, emptySince: null })
+    .set({
+      ...changes,
+      status: "active",
+      hostUserId,
+      hostMissingAt: null,
+      hostGivenAt: null,
+      emptySince: null,
+    })
     .where(eq(roomSessions.id, session.id))
     .returning();
   await tx.insert(roomCommands).values({ sessionId: session.id, kind: "sync" });

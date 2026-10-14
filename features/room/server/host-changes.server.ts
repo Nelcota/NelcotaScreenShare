@@ -43,7 +43,7 @@ async function transferHost(
     throw new ActionError("Esta pessoa não pode ser anfitriã.");
   await tx
     .update(roomSessions)
-    .set({ hostUserId: identity, hostMissingAt: null })
+    .set({ hostUserId: identity, hostMissingAt: null, hostGivenAt: null })
     .where(eq(roomSessions.id, session.id));
 }
 
@@ -72,16 +72,8 @@ export async function applyHostChange(
     return { kind: "sync" };
   }
   if (input.kind === "transfer") {
-    await assertOwnerMayTransfer(tx, session, actor);
     await transferHost(tx, session, input.identity, participants, actor.identity);
-    // From the owner, the room goes too: otherwise the owner, still here, would take the
-    // host back at once.
-    if (actor.role === "owner")
-      await transferOwnership(tx, {
-        roomCode: await codeOf(tx, session),
-        fromUserId: actor.identity,
-        toUserId: input.identity,
-      });
+    if (actor.role === "owner") await ownerGaveHost(tx, session, actor.identity, input.identity);
     return { kind: "sync", targetIdentity: input.identity };
   }
   if (input.kind === "remove") {
@@ -132,13 +124,25 @@ async function assertMayRemove(
 }
 
 /**
- * The owner's transfer also hands over the room, and a permanent room is not handed over.
- * Giving only the host would not last either: the owner, still here, takes it back.
+ * The owner's host transfer. A one-off room goes along: otherwise the owner, still here,
+ * would take the host back at once. A permanent room stays with its owner, who takes the
+ * host back only after joining again (`hostGivenAt`).
  */
-async function assertOwnerMayTransfer(tx: DbExecutor, session: ControlSession, actor: HostActor) {
-  if (actor.role !== "owner") return;
-  if (!(await isPermanentRoom(tx, await codeOf(tx, session)))) return;
-  throw new ActionError("Numa sala permanente, o dono continua anfitrião enquanto estiver aqui.");
+async function ownerGaveHost(
+  tx: DbExecutor,
+  session: ControlSession,
+  fromUserId: string,
+  toUserId: string,
+) {
+  const roomCode = await codeOf(tx, session);
+  if (!(await isPermanentRoom(tx, roomCode))) {
+    await transferOwnership(tx, { roomCode, fromUserId, toUserId });
+    return;
+  }
+  await tx
+    .update(roomSessions)
+    .set({ hostGivenAt: new Date() })
+    .where(eq(roomSessions.id, session.id));
 }
 
 /** A room someone owns stays for the next call; only an ownerless ad hoc room closes. */

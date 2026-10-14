@@ -1,0 +1,1 @@
+ALTER TABLE "room_sessions" ADD COLUMN "host_given_at" timestamp with time zone;

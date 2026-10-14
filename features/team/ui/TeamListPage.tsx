@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { FormError } from "@/components/FormError";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOperation } from "@/lib/operations/use-operation";
 import { formText } from "@/lib/utils";
+import { fieldErrorOf } from "@/lib/operations/field-error";
+import { workspaceNameSchema } from "@/features/rooms/domain/commands";
 import { teamWorkspaceAction } from "../actions";
 import type { loader } from "@/app/routes/workspace/teams";
 
@@ -18,6 +20,9 @@ export function TeamListPage() {
   const action = useOperation(teamWorkspaceAction, {
     onSuccess: ({ data: result }) => void navigate(`/times/${result.teamId}`),
   });
+  // Only spaces pass the browser's minLength; the server trims and refuses them too.
+  const [nameError, setNameError] = useState<string>();
+  const shownError = nameError ?? fieldErrorOf(action.result, "name");
   return (
     <WorkspaceShell
       account={data.account}
@@ -56,10 +61,12 @@ export function TeamListPage() {
           className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            action.execute({
-              kind: "create",
-              name: formText(new FormData(event.currentTarget), "name"),
-            });
+            const name = workspaceNameSchema.safeParse(
+              formText(new FormData(event.currentTarget), "name"),
+            );
+            if (!name.success) return setNameError(name.error.issues[0]?.message);
+            setNameError(undefined);
+            action.execute({ kind: "create", name: name.data });
           }}
         >
           <Label htmlFor={id}>Nome do time</Label>
@@ -70,7 +77,11 @@ export function TeamListPage() {
             minLength={2}
             maxLength={80}
             disabled={!data.pro.active}
+            aria-invalid={shownError ? true : undefined}
+            aria-describedby={shownError ? `${id}-error` : undefined}
+            onChange={() => setNameError(undefined)}
           />
+          <FormError id={`${id}-error`} message={shownError} />
           <Button type="submit" disabled={action.isPending || !data.pro.active || !data.enabled}>
             Criar time
           </Button>

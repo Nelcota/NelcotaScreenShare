@@ -36,13 +36,20 @@ export async function copyWorkspaceLink(path: string) {
 export function RoomCard({
   room,
   pending,
+  saved,
+  nameError,
   onCommand,
 }: {
   room: WorkspaceRoom;
   pending: boolean;
+  /** Saves that went through so far: the edit dialog closes on the next one. */
+  saved: number;
+  nameError?: string;
   onCommand: (input: RoomWorkspaceCommand) => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [openedAt, setOpenedAt] = useState<number | null>(null);
+  const editing = openedAt === saved;
+  const setEditing = (open: boolean) => setOpenedAt(open ? saved : null);
   const [archiving, setArchiving] = useState(false);
   const link = `/sala/${room.code}`;
   const history = room.teamId ? `/times/${room.teamId}/salas/${room.id}` : `/salas/${room.id}`;
@@ -114,10 +121,8 @@ export function RoomCard({
             }}
             team={Boolean(room.teamId)}
             pending={pending}
-            onSave={(values) => {
-              onCommand({ kind: "edit", roomId: room.id, ...values });
-              setEditing(false);
-            }}
+            error={nameError}
+            onSave={(values) => onCommand({ kind: "edit", roomId: room.id, ...values })}
           />
         </DialogContent>
       </Dialog>

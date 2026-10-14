@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { formText } from "@/lib/utils";
 import { useOperation } from "@/lib/operations/use-operation";
+import { fieldErrorOf } from "@/lib/operations/field-error";
 import { roomWorkspaceAction } from "@/features/rooms/actions";
 import { teamWorkspaceAction } from "../actions";
 import { managesTeam } from "../domain/team-policy";
@@ -31,7 +32,10 @@ export function TeamPage() {
       if (result.deleted || result.left) void navigate("/times");
     },
   });
-  const rooms = useOperation(roomWorkspaceAction);
+  const [savedRooms, setSavedRooms] = useState(0);
+  const rooms = useOperation(roomWorkspaceAction, {
+    onSuccess: () => setSavedRooms((count) => count + 1),
+  });
   const managing = managesTeam(data.role);
   return (
     <WorkspaceShell
@@ -48,6 +52,8 @@ export function TeamPage() {
         enabled={data.enabled}
         pending={rooms.isPending}
         error={rooms.result.serverError}
+        saved={savedRooms}
+        nameError={fieldErrorOf(rooms.result, "name")}
         onCommand={rooms.execute}
       />
       <TeamMembers

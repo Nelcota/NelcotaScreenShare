@@ -23,6 +23,8 @@ export function RoomCollection({
   enabled,
   pending,
   error,
+  saved = 0,
+  nameError,
   onCommand,
 }: {
   rooms: WorkspaceRoom[];
@@ -32,9 +34,16 @@ export function RoomCollection({
   enabled: boolean;
   pending: boolean;
   error?: string;
+  /** Saves that went through so far: a dialog opened before the next one closes on it. */
+  saved?: number;
+  /** The server's message for the room name, from the last save. */
+  nameError?: string;
   onCommand: (input: RoomWorkspaceCommand) => void;
 }) {
-  const [creating, setCreating] = useState(false);
+  // The dialog stays open until the room is really created; a refused name keeps it open.
+  const [openedAt, setOpenedAt] = useState<number | null>(null);
+  const creating = openedAt === saved;
+  const setCreating = (open: boolean) => setOpenedAt(open ? saved : null);
   const [ownTab, setTab] = useState("active");
   // Inside the app the personal room filter lives in the address (?filtro=), shared with the
   // column: this row hides where the column shows the same three filters and stays on
@@ -110,7 +119,14 @@ export function RoomCollection({
       {visible.length ? (
         <div className="grid gap-4 md:grid-cols-2">
           {visible.map((room) => (
-            <RoomCard key={room.id} room={room} pending={pending} onCommand={onCommand} />
+            <RoomCard
+              key={room.id}
+              room={room}
+              pending={pending}
+              saved={saved}
+              nameError={nameError}
+              onCommand={onCommand}
+            />
           ))}
         </div>
       ) : (
@@ -130,10 +146,8 @@ export function RoomCollection({
           <RoomEditor
             team={Boolean(teamId)}
             pending={pending}
-            onSave={(values) => {
-              onCommand({ kind: "create", teamId, ...values });
-              setCreating(false);
-            }}
+            error={nameError}
+            onSave={(values) => onCommand({ kind: "create", teamId, ...values })}
           />
         </DialogContent>
       </Dialog>

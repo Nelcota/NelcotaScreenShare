@@ -75,8 +75,15 @@ export async function findPendingInvitation(db: Database, token: string) {
   return row;
 }
 
+export interface AcceptedInvitation {
+  userId: string;
+  email: string;
+  invitationId: string;
+  role: string;
+}
+
 export type AcceptResult =
-  | { ok: true; userId: string; email: string; invitationId: string; role: string }
+  | ({ ok: true } & AcceptedInvitation)
   | { ok: false; reason: "invalid" | "already_admin" | "weak_password" };
 
 /**
@@ -89,6 +96,12 @@ export async function acceptAdminInvitation(
   db: Database,
   auth: AdminAuth,
   { token, name, password }: { token: string; name: string; password: string },
+  {
+    onAccepted,
+  }: {
+    /** Runs before the acceptance counts (the audit): if it fails, everything is undone. */
+    onAccepted?: (accepted: AcceptedInvitation) => Promise<void>;
+  } = {},
 ): Promise<AcceptResult> {
   if (password.length < PASSWORD_LIMITS.admin.min || password.length > PASSWORD_LIMITS.admin.max) {
     return { ok: false, reason: "weak_password" };
@@ -110,7 +123,7 @@ export async function acceptAdminInvitation(
   const release = () =>
     db
       .update(adminInvitations)
-      .set({ status: "pending", acceptedAt: null })
+      .set({ status: "pending", acceptedAt: null, acceptedUserId: null })
       .where(eq(adminInvitations.id, claimed.id));
 
   const [existing] = await db
@@ -152,16 +165,18 @@ export async function acceptAdminInvitation(
       .update(adminInvitations)
       .set({ acceptedUserId: user.id })
       .where(eq(adminInvitations.id, claimed.id));
-    return {
-      ok: true,
+    const accepted: AcceptedInvitation = {
       userId: user.id,
       email: claimed.email,
       invitationId: claimed.id,
       role: claimed.role,
     };
+    await onAccepted?.(accepted);
+    return { ok: true, ...accepted };
   } catch (error) {
-    if (createdUserId) await db.delete(adminUsers).where(eq(adminUsers.id, createdUserId));
+    // The invitation first: it points at the account and would block deleting it.
     await release();
+    if (createdUserId) await db.delete(adminUsers).where(eq(adminUsers.id, createdUserId));
     throw error;
   }
 }

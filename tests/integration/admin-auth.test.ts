@@ -490,4 +490,32 @@ describe("invitation failing midway", () => {
     const retry = await acceptAdminInvitation(db, auth, { token, name: "X", password: PASSWORD });
     assert.equal(retry.ok, true);
   });
+
+  test("an account whose audit row cannot be written is undone too", async () => {
+    const email = "sem-auditoria@exemplo.com";
+    const { token, invitation } = await createAdminInvitation(db, {
+      email,
+      role: "admin",
+      invitedBy: null,
+    });
+    await assert.rejects(
+      acceptAdminInvitation(
+        db,
+        auth,
+        { token, name: "X", password: PASSWORD },
+        { onAccepted: () => Promise.reject(new Error("audit down")) },
+      ),
+      /audit down/,
+    );
+    const users = await db
+      .select()
+      .from(schema.adminUsers)
+      .where(eq(schema.adminUsers.email, email));
+    assert.equal(users.length, 0, "no admin without its audit row");
+    const [row] = await db
+      .select()
+      .from(schema.adminInvitations)
+      .where(eq(schema.adminInvitations.id, invitation.id));
+    assert.equal(row?.status, "pending");
+  });
 });

@@ -2,7 +2,7 @@ import { ownedTeams } from "@/features/account/server/workspace-privacy.server";
 import { routeLoader } from "@/server/route-loader.server";
 import { useLoaderData } from "react-router";
 
-import { Check, CircleCheck, Download, ShieldAlert } from "lucide-react";
+import { Check, CircleCheck, Download, ShieldAlert, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { revokeMyOtherSessions, revokeMySession } from "@/features/account/actions";
 import { AccountHealth } from "@/features/account/ui/AccountHealth";
@@ -97,7 +97,7 @@ function TwoFactorSummary({ enabled }: { enabled: boolean }) {
   if (enabled) {
     return (
       <span className="inline-flex items-center gap-1.5 text-brand-soft">
-        <Check className="size-4" aria-hidden="true" />
+        <ShieldCheck className="size-4" aria-hidden="true" />
         Ativa
       </span>
     );

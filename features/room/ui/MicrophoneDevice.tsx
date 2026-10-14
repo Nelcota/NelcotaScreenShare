@@ -36,7 +36,7 @@ export function DeviceIcon({
         KIND_COLORS[kind],
       )}
     >
-      <Icon className={size === "md" ? "size-[18px]" : "size-4"} />
+      <Icon className={size === "md" ? "size-4.5" : "size-4"} />
     </span>
   );
 }

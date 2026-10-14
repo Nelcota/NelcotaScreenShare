@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
 import { Field } from "@/components/Field";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 /**
  * Account deletion confirmation (LGPD): asks for the current password and, with two-step
@@ -24,6 +26,7 @@ export function DeleteAccountForm({
 }) {
   const passwordId = useId();
   const codeId = useId();
+  const teamsId = useId();
   const errorId = useId();
   const closeRow = useCloseRow();
   const [passwordError, setPasswordError] = useState<string>();
@@ -92,10 +95,12 @@ export function DeleteAccountForm({
             </Link>{" "}
             para manter esses times.
           </p>
-          <label className="flex items-start gap-2">
-            <input type="checkbox" name="deleteTeams" className="mt-1" />
-            <span>Excluir também meus times, encerrar suas chamadas e arquivar suas salas.</span>
-          </label>
+          <div className="flex items-start gap-2">
+            <Checkbox id={teamsId} name="deleteTeams" className="mt-0.5" />
+            <Label htmlFor={teamsId} className="leading-snug font-normal">
+              Excluir também meus times, encerrar suas chamadas e arquivar suas salas.
+            </Label>
+          </div>
         </div>
       ) : null}
       <FormError id={errorId} message={error} />

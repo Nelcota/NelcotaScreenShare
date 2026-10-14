@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useRevalidator } from "react-router";
 import { joinNames, firstName } from "@/features/messages/domain/conversation-display";
 import { useNow } from "@/lib/hooks/use-now";
+import { Button } from "@/components/ui/button";
 
 /** The banner checks again this often: a call that ends sends no message. */
 const RECHECK_MS = 30_000;
@@ -33,13 +34,11 @@ export function GroupCallBanner({ call }: { call: LiveGroupCall }) {
           {people} · {minutes} min
         </span>
       </p>
-      <Link
-        viewTransition
-        to={`/sala/${call.roomCode}`}
-        className="inline-flex h-9 shrink-0 items-center rounded-full bg-brand px-4 text-sm font-semibold text-brand-ink hover:bg-brand-hover"
-      >
-        Entrar
-      </Link>
+      <Button asChild className="h-9 text-sm font-semibold">
+        <Link viewTransition to={`/sala/${call.roomCode}`}>
+          Entrar
+        </Link>
+      </Button>
     </div>
   );
 }

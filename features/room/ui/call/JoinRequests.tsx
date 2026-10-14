@@ -6,6 +6,7 @@ import { useLocalRoomRole } from "@/features/room/hooks/use-room-roles";
 import { useOperation } from "@/lib/operations/use-operation";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { Button } from "@/components/ui/button";
 
 interface Request {
   id: string;
@@ -79,22 +80,23 @@ function RequestCard({
         </span>
       </div>
       <div className="flex justify-end gap-2">
-        <button
+        <Button
           type="button"
+          variant="quiet"
           disabled={answer.isPending}
           onClick={() => answer.execute({ room: code, requestId: request.id, accept: false })}
-          className="h-9 rounded-full px-3 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+          className="h-9 px-3 text-sm"
         >
           Recusar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled={answer.isPending}
           onClick={() => answer.execute({ room: code, requestId: request.id, accept: true })}
-          className="h-9 rounded-full bg-brand px-4 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-hover"
+          className="h-9 text-sm"
         >
           Aceitar
-        </button>
+        </Button>
       </div>
     </li>
   );

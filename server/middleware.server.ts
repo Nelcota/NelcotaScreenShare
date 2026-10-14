@@ -9,9 +9,13 @@ const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
 export const requestMiddleware: MiddlewareFunction<Response> = async ({ request }, next) => {
   const env = getEnv();
+  // The request's id is always the server's: a client could replay another request's id
+  // and blur the audit. One sent from outside is kept apart, to match the proxy's logs.
   const incoming = request.headers.get("x-request-id");
-  const requestId = incoming && REQUEST_ID.test(incoming) ? incoming : crypto.randomUUID();
+  const requestId = crypto.randomUUID();
   request.headers.set("x-request-id", requestId);
+  request.headers.delete("x-upstream-request-id");
+  if (incoming && REQUEST_ID.test(incoming)) request.headers.set("x-upstream-request-id", incoming);
   request.headers.set(CLIENT_IP_HEADER, getClientIp(request.headers, env.TRUSTED_PROXY_HOPS));
   const nonce = randomBytes(24).toString("base64");
   request.headers.set("x-nonce", nonce);

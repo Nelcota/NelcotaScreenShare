@@ -81,6 +81,14 @@ with current source permissions. The room lock is held through upstream establis
 admission. Cached and LiveKit-refreshed tokens cannot bypass this gate **only if direct
 signaling is inaccessible to clients**. Media continues directly over RTC/TURN ports.
 
+The relay keeps the browser's protocol only when it is 16 or 17 and passes the v1
+`join_request` as the SDK built it. That request may carry `metadata` and
+`participant_attributes`; LiveKit 1.13.7 refuses the whole join (401, "no permissions to
+access the room") unless the token grants `canUpdateOwnMetadata`, which ours never do
+(`token-route.test.ts` checks it). Checked against the development LiveKit on 2026-10-14:
+a clean v1 join entered, the same join with forged `role=owner` attributes got 401, and only
+a token with that grant got the attributes applied. So the relay does not decode it.
+
 Before enabling in Coolify:
 
 1. Drain legacy calls. Apply migrations with the migrator role and deploy this application.

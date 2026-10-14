@@ -1,4 +1,4 @@
-import { Loader2, MailCheck } from "lucide-react";
+import { MailCheck } from "lucide-react";
 import { useState } from "react";
 import { AuthCard } from "./AuthCard";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,7 @@ export function ConfirmEmailPanel({
           <a href={confirmationHref}>Confirmar e-mail</a>
         </Button>
       ) : (
-        <Button size="lg" disabled={pending} onClick={() => void signIn()} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button size="lg" loading={pending} onClick={() => void signIn()} className="w-full">
           {signedIn ? "Entrar na conta correta" : "Entrar para confirmar"}
         </Button>
       )}

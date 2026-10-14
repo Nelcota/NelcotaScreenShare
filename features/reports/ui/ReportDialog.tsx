@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -93,8 +92,7 @@ export function ReportDialog({ open, onOpenChange, target, title }: ReportDialog
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={!reason || report.isPending}>
-              {report.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+            <Button type="submit" loading={report.isPending} disabled={!reason}>
               Enviar denúncia
             </Button>
           </DialogFooter>

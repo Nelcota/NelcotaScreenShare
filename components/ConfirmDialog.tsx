@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -109,9 +108,9 @@ export function ConfirmDialog({
             <Button
               type="submit"
               variant={danger ? "destructive" : "default"}
-              disabled={!ready || pending}
+              loading={pending}
+              disabled={!ready}
             >
-              {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
               {confirmLabel}
             </Button>
           </DialogFooter>

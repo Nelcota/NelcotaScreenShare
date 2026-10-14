@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,10 +73,7 @@ export function ProWaitlistForm() {
           aria-invalid={state.kind === "error" || undefined}
           aria-describedby={statusId}
         />
-        <Button type="submit" variant="secondary" disabled={state.kind === "sending"}>
-          {state.kind === "sending" ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : null}
+        <Button type="submit" variant="secondary" loading={state.kind === "sending"}>
           Quero ser avisado
         </Button>
       </div>

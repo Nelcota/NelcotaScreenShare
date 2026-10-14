@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
@@ -86,8 +85,7 @@ export function ChangeEmailForm({ email }: { email: string }) {
       </div>
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending}>
           Enviar link de confirmação
         </Button>
         {closeRow ? (

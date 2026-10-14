@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Loader2, Pencil, X } from "lucide-react";
+import { ArrowUp, Check, Pencil, X } from "lucide-react";
 import { useId, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
@@ -93,13 +93,12 @@ export function ChatComposer({
         <Button
           type="submit"
           size="icon"
+          loading={busy}
           disabled={!canSend}
           aria-label={editing ? "Salvar edição" : "Enviar mensagem"}
           className="size-9 shrink-0 rounded-full transition-transform active:scale-90"
         >
-          {busy ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : editing ? (
+          {busy ? null : editing ? (
             <Check className="size-5" aria-hidden="true" />
           ) : (
             <ArrowUp className="size-5" aria-hidden="true" />

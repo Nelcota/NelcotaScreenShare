@@ -1,4 +1,4 @@
-import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -91,8 +91,7 @@ export function TwoFactorCodeForm({
           />
         </div>
         <FormError id={errorId} message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="w-full">
           Verificar
         </Button>
         <Button

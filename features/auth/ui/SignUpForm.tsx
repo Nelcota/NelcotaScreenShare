@@ -1,4 +1,4 @@
-import { Check, Circle, Loader2, UserPlus } from "lucide-react";
+import { Check, Circle, UserPlus } from "lucide-react";
 import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useRef, useState, type FormEvent, type RefObject } from "react";
@@ -193,8 +193,7 @@ export function SignUpForm({
           <PasswordGuide id={ids.guide} password={password} personal={personal} />
         </div>
         <FormError id={ids.error} message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="mt-1 w-full">
           Criar conta
         </Button>
         <PrivacyConsent />

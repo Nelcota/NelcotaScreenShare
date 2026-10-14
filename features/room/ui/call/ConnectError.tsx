@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2, RotateCcw } from "lucide-react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "@/features/room/ui/StatusScreen";
@@ -31,12 +31,8 @@ export function ConnectError({
         message={message}
         alert
       >
-        <Button size="lg" disabled={retrying} onClick={() => void retry()}>
-          {retrying ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : (
-            <RotateCcw aria-hidden="true" />
-          )}
+        <Button size="lg" loading={retrying} onClick={() => void retry()}>
+          {retrying ? null : <RotateCcw aria-hidden="true" />}
           Tentar de novo
         </Button>
         <Button variant="outline" size="lg" onClick={onBack}>

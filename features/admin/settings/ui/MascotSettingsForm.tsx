@@ -1,4 +1,4 @@
-import { Loader2, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useOperation } from "@/lib/operations/use-operation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -134,8 +134,7 @@ export function MascotSettingsForm({
           <RotateCcw aria-hidden="true" />
           Restaurar original
         </Button>
-        <Button type="submit" disabled={!canEdit || pending || !changed}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending} disabled={!canEdit || !changed}>
           Salvar
         </Button>
       </div>

@@ -1,4 +1,4 @@
-import { Loader2, Monitor } from "lucide-react";
+import { Monitor } from "lucide-react";
 import { useOperation } from "@/lib/operations/use-operation";
 import { toast } from "sonner";
 import type { revokeMyOtherSessions, revokeMySession } from "@/features/account/actions";
@@ -109,12 +109,9 @@ export function SessionList({
         >
           <Button
             variant="outline"
-            disabled={revokeOthers.isPending}
+            loading={revokeOthers.isPending}
             onClick={() => revokeOthers.execute()}
           >
-            {revokeOthers.isPending ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : null}
             Encerrar todas as outras
           </Button>
         </div>

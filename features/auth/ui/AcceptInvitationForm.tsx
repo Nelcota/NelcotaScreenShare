@@ -1,4 +1,4 @@
-import { Loader2, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 import { useOperation } from "@/lib/operations/use-operation";
 import { useId, type FormEvent } from "react";
@@ -83,8 +83,7 @@ export function AcceptInvitationForm({
           <PasswordInput id={confirmId} name="confirm" autoComplete="new-password" required />
         </div>
         <FormError message={localError ?? serverError} />
-        <Button type="submit" size="lg" disabled={accept.isPending} className="w-full">
-          {accept.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={accept.isPending} className="w-full">
           Criar acesso
         </Button>
       </form>

@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { Button } from "@/components/ui/button";
@@ -85,8 +84,7 @@ export function NameRow({
             }}
             className="flex-none rounded-full border-line px-4 text-lg text-ink sm:w-auto sm:flex-1"
           />
-          <Button type="button" size="default" disabled={saving} onClick={() => void save()}>
-            {saving ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+          <Button type="button" size="default" loading={saving} onClick={() => void save()}>
             Salvar
           </Button>
           <Button

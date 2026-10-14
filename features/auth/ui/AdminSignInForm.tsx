@@ -1,4 +1,4 @@
-import { Loader2, LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -94,8 +94,7 @@ export function AdminSignInForm({ notice }: { notice?: string | undefined }) {
           />
         </div>
         <FormError id={errorId} message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="mt-1 w-full">
           Entrar
         </Button>
       </form>

@@ -1,5 +1,3 @@
-import { Loader2 } from "lucide-react";
-
 import type { FormEvent } from "react";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -98,8 +96,7 @@ export function EnableTwoFactorForm({
         errorId={state.errorId}
       />
       <FormError id={state.errorId} message={state.error} />
-      <Button type="submit" disabled={state.pending} className="self-start">
-        {state.pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+      <Button type="submit" loading={state.pending} className="self-start">
         Ativar verificação
       </Button>
     </form>

@@ -1,5 +1,5 @@
 import { useLocalParticipant } from "@livekit/components-react";
-import { Settings, Loader2 } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useId, useState, type FormEvent } from "react";
 import { Link, useRevalidator } from "react-router";
@@ -80,8 +80,7 @@ export function NameEditor({ code }: { code: string }) {
           aria-invalid={error ? true : undefined}
           className="h-10 min-w-0 flex-1"
         />
-        <Button type="submit" disabled={pending || unchanged}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending} disabled={unchanged}>
           Salvar
         </Button>
       </div>

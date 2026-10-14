@@ -1,4 +1,4 @@
-import { KeyRound, Loader2, MailCheck } from "lucide-react";
+import { KeyRound, MailCheck } from "lucide-react";
 import { Link, useActionData, useNavigate } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -149,8 +149,7 @@ export function ForgotPasswordForm({ scope }: { scope: Scope }) {
           />
         </div>
         <FormError message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="w-full">
           Enviar link
         </Button>
       </form>
@@ -235,8 +234,7 @@ export function ResetPasswordForm({ scope, token }: { scope: Scope; token: strin
           <PasswordInput id={confirmId} name="confirm" autoComplete="new-password" required />
         </div>
         <FormError message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="w-full">
           Salvar nova senha
         </Button>
       </form>

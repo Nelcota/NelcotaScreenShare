@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { Loader2 } from "lucide-react";
 
 import { useOperation } from "@/lib/operations/use-operation";
 import { useId, useState } from "react";
@@ -103,10 +102,9 @@ export function DeleteAccountForm({
         <Button
           type="submit"
           variant="destructive"
-          disabled={remove.isPending}
+          loading={remove.isPending}
           className="h-auto! min-h-10 max-w-full py-2 whitespace-normal"
         >
-          {remove.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
           Excluir minha conta para sempre
         </Button>
         {closeRow ? (

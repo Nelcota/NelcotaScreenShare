@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -81,8 +80,7 @@ export function ChangePasswordForm() {
       </div>
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending}>
           Salvar nova senha
         </Button>
         {closeRow ? (

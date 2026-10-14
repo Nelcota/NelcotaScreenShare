@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Headphones, Loader2, Ticket } from "lucide-react";
+import { ArrowLeft, ArrowRight, Headphones, Ticket } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/features/mascot/ui/Mascot";
@@ -85,11 +85,11 @@ export function JoinActions({
         type="submit"
         size="lg"
         disabled={joinDisabled}
+        loading={submitting}
         onMouseEnter={onPrepareJoin}
         onFocus={onPrepareJoin}
         className="h-12! w-full"
       >
-        {submitting ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
         {submitting ? "Entrando…" : mic.joinsMuted ? "Entrar só ouvindo" : "Entrar na sala"}
         {submitting ? null : <ArrowRight className="icon-nudge" aria-hidden="true" />}
       </Button>

@@ -5,6 +5,7 @@ import { roomFilterFrom, withRoomFilter, type RoomFilter } from "./room-filter";
 import { cn } from "@/lib/utils";
 import { SearchField } from "@/components/SearchField";
 import { searchable } from "@/lib/search-text";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface ColumnItem {
   id: string;
@@ -33,20 +34,28 @@ function byFilter(filter: RoomFilter) {
 
 function Filters({ value, onChange }: { value: RoomFilter; onChange: (next: RoomFilter) => void }) {
   return (
-    <fieldset aria-label="Filtrar a lista de salas" className="flex gap-1 px-3 pt-2">
+    <ToggleGroup
+      type="single"
+      size="sm"
+      aria-label="Filtrar a lista de salas"
+      value={value}
+      onValueChange={(next) => {
+        const chosen = ROOM_FILTERS.find((filter) => filter.id === next);
+        if (chosen) onChange(chosen.id);
+      }}
+      className="px-3 pt-2"
+    >
       {ROOM_FILTERS.map((filter) => (
-        <button
+        <ToggleGroupItem
           key={filter.id}
-          type="button"
-          aria-pressed={value === filter.id}
+          value={filter.id}
           aria-label={`Filtrar ${filter.label.toLowerCase()}`}
-          onClick={() => onChange(filter.id)}
-          className="rounded-full px-2.5 py-1 text-xs font-semibold text-ink-muted transition-colors hover:text-ink aria-pressed:bg-surface-3 aria-pressed:text-ink"
+          className="data-[state=on]:bg-surface-3"
         >
           {filter.label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </fieldset>
+    </ToggleGroup>
   );
 }
 

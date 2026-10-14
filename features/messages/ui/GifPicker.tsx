@@ -8,6 +8,7 @@ import { useOperation } from "@/lib/operations/use-operation";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 import { cn } from "@/lib/utils";
 import { SearchField } from "@/components/SearchField";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type GifTab = "trending" | "favorites";
 
@@ -81,23 +82,22 @@ function GifTabs({ tab, onChange }: { tab: GifTab; onChange: (next: GifTab) => v
     { id: "favorites", label: "Favoritos", icon: Star },
   ] as const;
   return (
-    <fieldset aria-label="GIFs" className="flex gap-1">
+    <ToggleGroup
+      type="single"
+      aria-label="GIFs"
+      value={tab}
+      // A second press on the chosen one would leave none chosen: it stays.
+      onValueChange={(next) => {
+        if (next === "trending" || next === "favorites") onChange(next);
+      }}
+    >
       {tabs.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          type="button"
-          aria-pressed={tab === id}
-          onClick={() => onChange(id)}
-          className={cn(
-            "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-sm font-semibold",
-            tab === id ? "bg-ink/[0.07] text-ink" : "text-ink-muted hover:text-ink",
-          )}
-        >
-          <Icon className="size-3.5" aria-hidden="true" />
+        <ToggleGroupItem key={id} value={id}>
+          <Icon aria-hidden="true" />
           {label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </fieldset>
+    </ToggleGroup>
   );
 }
 

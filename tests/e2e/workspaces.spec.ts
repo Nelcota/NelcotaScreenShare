@@ -87,7 +87,7 @@ test("permanent rooms: favorite, rename, two calls, history and archive reuse on
     await archived;
     await expect(person.page.getByRole("button", { name: "Nova sala", exact: true })).toBeEnabled();
     await expect(renamed).toHaveCount(0);
-    await person.page.getByRole("button", { name: "Arquivadas", exact: true }).click();
+    await person.page.getByRole("radio", { name: "Arquivadas", exact: true }).click();
     await renamed.getByRole("button", { name: "Desfavoritar Ritual do time" }).click();
     await expect(renamed.getByRole("button", { name: "Favoritar Ritual do time" })).toBeDisabled();
     await person.page.goto(href);

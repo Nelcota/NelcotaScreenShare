@@ -13,6 +13,7 @@ import { RoomEditor } from "./RoomEditor";
 import { RoomCard, type WorkspaceRoom } from "./RoomCard";
 import { isRoomFilter, roomFilterFrom, withRoomFilter } from "./room-filter";
 import type { RoomWorkspaceCommand } from "@/features/rooms/domain/commands";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export function RoomCollection({
   rooms,
@@ -86,25 +87,26 @@ export function RoomCollection({
         </p>
       ) : null}
       <FormError message={error} />
-      <fieldset
+      <ToggleGroup
+        type="single"
+        size="lg"
         aria-label="Filtrar salas"
-        className={columnFilter ? "flex flex-wrap gap-2 sm:hidden" : "flex flex-wrap gap-2"}
+        value={tab}
+        onValueChange={(next) => {
+          if (next) choose(next);
+        }}
+        className={columnFilter ? "flex-wrap gap-2 sm:hidden" : "flex-wrap gap-2"}
       >
         {[
           { id: "active", label: "Minhas salas" },
           { id: "favorites", label: "Favoritas" },
           { id: "archived", label: "Arquivadas" },
         ].map((item) => (
-          <Button
-            key={item.id}
-            variant={tab === item.id ? "secondary" : "ghost"}
-            aria-pressed={tab === item.id}
-            onClick={() => choose(item.id)}
-          >
+          <ToggleGroupItem key={item.id} value={item.id} className="font-medium">
             {item.label}
-          </Button>
+          </ToggleGroupItem>
         ))}
-      </fieldset>
+      </ToggleGroup>
       {visible.length ? (
         <div className="grid gap-4 md:grid-cols-2">
           {visible.map((room) => (

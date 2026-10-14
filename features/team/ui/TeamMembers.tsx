@@ -36,7 +36,7 @@ export function TeamMembers({
         {members.map((person) => (
           <li key={person.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
             <div className="min-w-0">
-              <p className="font-medium break-words">
+              <p className="font-medium wrap-anywhere">
                 {person.name}
                 {person.id === actor ? " (você)" : ""}
               </p>

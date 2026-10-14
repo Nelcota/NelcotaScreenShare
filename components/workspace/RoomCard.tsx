@@ -54,10 +54,11 @@ export function RoomCard({
   const link = `/sala/${room.code}`;
   const history = room.teamId ? `/times/${room.teamId}/salas/${room.id}` : `/salas/${room.id}`;
   return (
-    <article className="panel flex flex-col gap-4 rounded-2xl p-5">
+    // min-w-0 and wrap-anywhere: a name with one long word wraps instead of widening the grid.
+    <article className="panel flex min-w-0 flex-col gap-4 rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold break-words">{room.name}</h2>
+          <h2 className="text-lg font-semibold wrap-anywhere">{room.name}</h2>
           <p className="mt-1 text-xs text-ink-muted">
             {room.archivedAt ? "Arquivada" : room.teamId ? "Sala de time" : "Sala pessoal"} · Link
             permanente

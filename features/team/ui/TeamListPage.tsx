@@ -34,9 +34,9 @@ export function TeamListPage() {
           <Link
             key={team.id}
             to={`/times/${team.id}`}
-            className="panel rounded-2xl p-6 hover:border-brand/50"
+            className="panel min-w-0 rounded-2xl p-6 hover:border-brand/50"
           >
-            <h2 className="text-xl font-semibold break-words">{team.name}</h2>
+            <h2 className="text-xl font-semibold wrap-anywhere">{team.name}</h2>
             <p className="mt-2 text-sm text-ink-muted">{roleLabels[team.role]}</p>
           </Link>
         ))}

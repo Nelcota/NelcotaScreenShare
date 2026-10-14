@@ -9,6 +9,7 @@ import { participantName } from "@/features/room/domain/participant-label";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { GlassPopoverContent } from "@/components/GlassPopover";
+import { Hint } from "@/components/Hint";
 
 function AudioLevel({
   label,
@@ -63,20 +64,22 @@ export function ParticipantAudioMenu({
 
   return (
     <Popover.Root>
-      <Popover.Trigger
-        aria-label={`Áudio de ${name}`}
-        className={cn(
-          "glass relative z-10 grid size-8 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-          audio.settings.muted && "text-warning",
-          className,
-        )}
-      >
-        {audio.settings.muted ? (
-          <VolumeX className="size-4" aria-hidden="true" />
-        ) : (
-          <Volume2 className="size-4" aria-hidden="true" />
-        )}
-      </Popover.Trigger>
+      <Hint text={`Áudio de ${name}`}>
+        <Popover.Trigger
+          aria-label={`Áudio de ${name}`}
+          className={cn(
+            "glass relative z-10 grid size-8 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+            audio.settings.muted && "text-warning",
+            className,
+          )}
+        >
+          {audio.settings.muted ? (
+            <VolumeX className="size-4" aria-hidden="true" />
+          ) : (
+            <Volume2 className="size-4" aria-hidden="true" />
+          )}
+        </Popover.Trigger>
+      </Hint>
       <GlassPopoverContent
         side="left"
         sideOffset={10}
@@ -118,16 +121,18 @@ export function ParticipantAudioMenu({
           >
             {audio.settings.muted ? "Voltar a ouvir" : "Silenciar só para mim"}
           </button>
-          <Button
-            type="button"
-            variant="quiet"
-            size="icon-lg"
-            onClick={audio.reset}
-            aria-label="Restaurar volumes"
-            className="rounded-lg"
-          >
-            <RotateCcw aria-hidden="true" />
-          </Button>
+          <Hint text="Restaurar volumes">
+            <Button
+              type="button"
+              variant="quiet"
+              size="icon-lg"
+              onClick={audio.reset}
+              aria-label="Restaurar volumes"
+              className="rounded-lg"
+            >
+              <RotateCcw aria-hidden="true" />
+            </Button>
+          </Hint>
         </div>
       </GlassPopoverContent>
     </Popover.Root>

@@ -1,5 +1,6 @@
 import { Pencil } from "lucide-react";
 import { Popover } from "radix-ui";
+import { Hint } from "@/components/Hint";
 import { Button } from "@/components/ui/button";
 import type { AnnotationControl } from "@/features/room/hooks/use-annotations";
 import { GlassPopoverContent } from "@/components/GlassPopover";
@@ -14,12 +15,14 @@ export function AnnotationTools({
   if (!control.available) return null;
   return (
     <Popover.Root>
-      <Popover.Trigger
-        aria-label="Anotar na tela"
-        className="glass pointer-events-auto grid size-9 place-items-center rounded-xl"
-      >
-        <Pencil className="size-4" aria-hidden="true" />
-      </Popover.Trigger>
+      <Hint text="Anotar na tela">
+        <Popover.Trigger
+          aria-label="Anotar na tela"
+          className="glass pointer-events-auto grid size-9 place-items-center rounded-xl"
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+        </Popover.Trigger>
+      </Hint>
       <GlassPopoverContent
         side="bottom"
         align="end"

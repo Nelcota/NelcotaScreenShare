@@ -1,4 +1,4 @@
-import { Ban, Copy, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
+import { Copy, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
 import { Fragment } from "react";
 import {
   DropdownMenu,
@@ -67,7 +67,6 @@ export function ChatMessage({
         <div className={cn("flex max-w-full items-center gap-1", mine && "flex-row-reverse")}>
           {message.deleted ? (
             <p className="flex items-center gap-1.5 rounded-2xl border border-dashed border-line-strong px-3.5 py-2 text-sm text-ink-subtle italic">
-              <Ban className="size-3.5 shrink-0" aria-hidden="true" />
               {mine ? "Você apagou esta mensagem" : "Mensagem apagada"}
             </p>
           ) : (

@@ -1,5 +1,5 @@
 import { useId, useSyncExternalStore } from "react";
-import { Volume2 } from "lucide-react";
+import { Play } from "lucide-react";
 import { ChoiceSelect } from "@/components/ChoiceSelect";
 import { Button } from "@/components/ui/button";
 import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
@@ -43,7 +43,7 @@ export function ChatSoundSettings() {
         aria-label="Ouvir som da notificação"
         onClick={() => void playChatNotification(sound, true)}
       >
-        <Volume2 className="size-4" aria-hidden="true" />
+        <Play className="size-4" aria-hidden="true" />
       </Button>
     </div>
   );

@@ -15,6 +15,7 @@ export function CallToaster() {
   return (
     <Toaster
       id={CALL_TOASTER_ID}
+      containerAriaLabel="Avisos da chamada"
       position="top-right"
       visibleToasts={2}
       gap={8}

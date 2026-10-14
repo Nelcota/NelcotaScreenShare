@@ -4,7 +4,7 @@ import { cn } from "cn";
 import { Slot } from "radix-ui";
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium tracking-[-0.01em] whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-(--motion-feedback) ease-out-smooth outline-hidden select-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand/55 active:not-disabled:scale-[0.97] disabled:pointer-events-none disabled:text-disabled-ink aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 motion-reduce:transition-none motion-reduce:active:scale-100 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium tracking-[-0.01em] whitespace-nowrap outline-hidden transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-(--motion-feedback) ease-out-smooth select-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand/55 active:not-disabled:scale-[0.97] disabled:pointer-events-none disabled:text-disabled-ink aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 motion-reduce:transition-none motion-reduce:active:scale-100 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

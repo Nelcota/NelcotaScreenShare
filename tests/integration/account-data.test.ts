@@ -7,6 +7,7 @@ import { z } from "zod";
 import * as schema from "@/server/db/schema";
 import { verifiedParticipant } from "./support/accounts";
 import { makeCaller } from "./support/http-auth";
+import { totpFromUri } from "./support/totp";
 
 /**
  * Data subject rights (LGPD): "download my data" includes the room history
@@ -106,6 +107,28 @@ const rolesIn = (roomCode: string) =>
     .select({ userId: schema.roomRoles.userId, role: schema.roomRoles.role })
     .from(schema.roomRoles)
     .where(eq(schema.roomRoles.roomCode, roomCode));
+
+/** A participant with two-step verification on, signed in for the operations. */
+async function withTwoFactor() {
+  const person = await verifiedParticipant(db, handler);
+  const call = makeCaller(handler, "/api/auth", "192.0.2.90");
+  const enabled = await call("/two-factor/enable", {
+    body: { password: person.password },
+    jar: person.jar,
+  });
+  const setup = z
+    .object({ totpURI: z.string(), backupCodes: z.array(z.string()) })
+    .parse(enabled.body);
+  const verified = await call("/two-factor/verify-totp", {
+    body: { code: totpFromUri(setup.totpURI) },
+    jar: person.jar,
+  });
+  assert.equal(verified.status, 200);
+  requestHeaders.current = new Headers({ cookie: person.jar.header() });
+  return { person, setup };
+}
+const deletedAt = async (id: string) =>
+  (await db.select().from(schema.users).where(eq(schema.users.id, id)))[0]?.deletedAt ?? null;
 
 describe("data subject data", () => {
   test("the export lists the rooms the person created, their roles and their bans", async () => {
@@ -438,5 +461,27 @@ describe("data subject data", () => {
     assert.match(String(blocked.serverError), /Muitas tentativas/);
     const [user] = await db.select().from(schema.users).where(eq(schema.users.id, ana.id));
     assert.equal(user?.deletedAt, null, "the account stays active");
+  });
+
+  test("with two-step verification on, deleting also asks for a code from the app or a backup", async () => {
+    const { person: ana, setup } = await withTwoFactor();
+    const withoutCode = await deleteMyAccount({ password: ana.password });
+    assert.equal(withoutCode.serverError, "Digite o código de duas etapas para confirmar.");
+    const wrongCode = await deleteMyAccount({ password: ana.password, code: "000000" });
+    assert.equal(wrongCode.serverError, "Código inválido. Confira e tente de novo.");
+    assert.equal(await deletedAt(ana.id), null);
+    const deleted = await deleteMyAccount({
+      password: ana.password,
+      code: totpFromUri(setup.totpURI),
+    });
+    assert.equal(deleted.serverError, undefined);
+    assert.notEqual(await deletedAt(ana.id), null);
+
+    const { person: bia, setup: biaSetup } = await withTwoFactor();
+    const backup = biaSetup.backupCodes[0];
+    assert(backup);
+    const withBackup = await deleteMyAccount({ password: bia.password, code: backup });
+    assert.equal(withBackup.serverError, undefined);
+    assert.notEqual(await deletedAt(bia.id), null);
   });
 });

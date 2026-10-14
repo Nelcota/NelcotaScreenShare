@@ -271,7 +271,7 @@ export default function AccountPage() {
               actionLabel="Excluir conta"
               danger
             >
-              <DeleteAccountForm ownedTeamCount={ownedTeamCount} />
+              <DeleteAccountForm ownedTeamCount={ownedTeamCount} askCode={user.twoFactorEnabled} />
             </ExpandableRow>
           </SettingsSection>
         </div>

@@ -7,7 +7,9 @@ import {
   checkLiveKit,
   checkMailConfiguration,
   deployInfo,
+  lastMailDelivery,
 } from "@/features/admin/status/server/checks.server";
+import { mailHealth } from "@/features/admin/status/domain/mail-health";
 import { getLiveKitEventsSummary } from "@/features/admin/status/server/livekit-events.server";
 import { HealthCard } from "@/features/admin/status/ui/HealthCard";
 import { LiveKitEvents } from "@/features/admin/status/ui/LiveKitEvents";
@@ -22,11 +24,14 @@ export const loader = routeLoader(async () => {
   const db = getDb();
   const [database, liveKit] = await Promise.all([checkDatabase(db), checkLiveKit()]);
   // Without the database there are no events to read: the card already says why.
-  const events = database.state === "down" ? null : await getLiveKitEventsSummary(db);
+  const [events, lastDelivery] =
+    database.state === "down"
+      ? [null, null]
+      : await Promise.all([getLiveKitEventsSummary(db), lastMailDelivery(db)]);
   return {
     database,
     liveKit,
-    mail: checkMailConfiguration(),
+    mail: mailHealth(checkMailConfiguration(), lastDelivery),
     deploy: deployInfo(getEnv().APP_VERSION),
     events,
   };

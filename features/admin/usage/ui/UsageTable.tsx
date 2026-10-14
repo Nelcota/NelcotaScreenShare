@@ -1,5 +1,13 @@
 import type { UsageDay } from "@/features/admin/usage/server/queries.server";
 import { formatNumber } from "@/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const dayLabel = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "UTC",
@@ -26,26 +34,26 @@ export function quietLine(quietDays: number, total: number): string | null {
 
 function DaysTable({ days }: { days: UsageDay[] }) {
   return (
-    <table className="w-full text-left text-sm">
-      <thead className="text-xs text-ink-subtle">
-        <tr>
-          <th className="py-2 pr-4 font-medium">Dia</th>
-          <th className="py-2 pr-4 text-right font-medium">Salas</th>
-          <th className="py-2 pr-4 text-right font-medium">Pessoas</th>
-          <th className="py-2 text-right font-medium">Minutos</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Dia</TableHead>
+          <TableHead className="text-right">Salas</TableHead>
+          <TableHead className="text-right">Pessoas</TableHead>
+          <TableHead className="text-right">Minutos</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {days.map((day) => (
-          <tr key={day.day} className="border-t border-line">
-            <td className="py-2 pr-4 whitespace-nowrap">{formatDay(day.day)}</td>
-            <td className="py-2 pr-4 text-right tabular-nums">{formatNumber(day.rooms)}</td>
-            <td className="py-2 pr-4 text-right tabular-nums">{formatNumber(day.people)}</td>
-            <td className="py-2 text-right tabular-nums">{formatNumber(day.minutes)}</td>
-          </tr>
+          <TableRow key={day.day}>
+            <TableCell>{formatDay(day.day)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(day.rooms)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(day.people)}</TableCell>
+            <TableCell className="text-right tabular-nums">{formatNumber(day.minutes)}</TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 

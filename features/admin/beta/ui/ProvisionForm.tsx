@@ -10,6 +10,8 @@ import { formText } from "@/lib/utils";
 import { useOperation } from "@/lib/operations/use-operation";
 import { provisionBetaAction } from "../actions";
 import type { betaSubjects } from "../server/queries.server";
+import { Field } from "@/components/Field";
+import { TIME_ZONE } from "@/lib/format";
 
 type Subjects = Awaited<ReturnType<typeof betaSubjects>>;
 type Subject = "account" | "team";
@@ -30,7 +32,7 @@ function rowLabel(row: Row): string {
 /** The expiry as a São Paulo day (YYYY-MM-DD), the value the date field works with. */
 function expiryDay(pro: Pro): string | null {
   if (!pro?.expiresAt) return null;
-  return new Date(pro.expiresAt).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  return new Date(pro.expiresAt).toLocaleDateString("en-CA", { timeZone: TIME_ZONE });
 }
 
 /** What is wrong with the form, checked before sending (the server checks again). */
@@ -95,27 +97,24 @@ function ActivationFields({
           Ativação vigente
         </Label>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`${prefix}-limit`}>Limite de salas permanentes</Label>
+      <Field id={`${prefix}-limit`} label="Limite de salas permanentes">
         <Input
-          id={`${prefix}-limit`}
           name="limit"
           type="number"
           min={1}
           max={MAX_ROOMS}
           defaultValue={pro?.roomLimit ?? 3}
         />
-      </div>
+      </Field>
       <FilterDate
         form
         label="Expiração (opcional, horário de Brasília)"
         value={expiry}
         onChange={onExpiryChange}
       />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`${prefix}-reason`}>Motivo da alteração</Label>
-        <Input id={`${prefix}-reason`} name="reason" maxLength={300} />
-      </div>
+      <Field id={`${prefix}-reason`} label="Motivo da alteração">
+        <Input name="reason" maxLength={300} />
+      </Field>
     </>
   );
 }
@@ -170,7 +169,9 @@ function ProvisionFields({
           expiry={expiry}
           onExpiryChange={setExpiry}
         />
-        <Button type="submit">Salvar ativação</Button>
+        <Button type="submit" loading={action.isPending}>
+          Salvar ativação
+        </Button>
       </fieldset>
       <FormError message={problem ?? action.result.serverError} />
       {action.result.data && !problem ? (
@@ -195,9 +196,8 @@ export function ProvisionForm({ subjects, canEdit }: { subjects: Subjects; canEd
         Até 100 contas e 100 times por busca. Contas e times têm ativações independentes; o piloto
         não cria cobranças.
       </p>
-      <div className="flex max-w-lg flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`${prefix}-subject`}>Titular</Label>
+      <div className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-5">
+        <Field id={`${prefix}-subject`} label="Titular">
           <ChoiceSelect
             id={`${prefix}-subject`}
             className="h-11 w-full bg-surface-2"
@@ -208,9 +208,8 @@ export function ProvisionForm({ subjects, canEdit }: { subjects: Subjects; canEd
               setSelected("");
             }}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`${prefix}-id`}>Conta ou time</Label>
+        </Field>
+        <Field id={`${prefix}-id`} label="Conta ou time">
           <ChoiceSelect
             id={`${prefix}-id`}
             className="h-11 w-full bg-surface-2"
@@ -221,7 +220,7 @@ export function ProvisionForm({ subjects, canEdit }: { subjects: Subjects; canEd
             ]}
             onValueChange={setSelected}
           />
-        </div>
+        </Field>
         <ProvisionFields
           key={`${subject}/${selected}/${String(current?.pro?.updatedAt ?? "")}`}
           rows={rows}

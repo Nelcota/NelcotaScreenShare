@@ -41,11 +41,7 @@ export function PrivacySection({
 
 /** Card with rows separated by dividers, following the /conta pattern. */
 export function PrivacyList({ children }: { children: ReactNode }) {
-  return (
-    <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
-      {children}
-    </ul>
-  );
+  return <ul className="panel divide-y divide-line overflow-hidden rounded-2xl">{children}</ul>;
 }
 
 /** Row with an icon on the left; `aside` shows a highlight on the right (e.g. a period). */

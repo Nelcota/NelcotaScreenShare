@@ -29,7 +29,7 @@ export function TeamListPage() {
           <Link
             key={team.id}
             to={`/times/${team.id}`}
-            className="rounded-2xl border border-line bg-surface p-6 hover:border-brand/50"
+            className="panel rounded-2xl p-6 hover:border-brand/50"
           >
             <h2 className="text-xl font-semibold break-words">{team.name}</h2>
             <p className="mt-2 text-sm text-ink-muted">{roleLabels[team.role]}</p>
@@ -46,7 +46,7 @@ export function TeamListPage() {
           Você ainda não faz parte de um time. Aceite um convite ou crie seu próprio time.
         </p>
       ) : null}
-      <section className="flex max-w-lg flex-col gap-4 rounded-2xl border border-line bg-surface p-6">
+      <section className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-6">
         <h2 className="text-xl font-semibold">Criar um time</h2>
         <p className="text-sm text-ink-muted">
           O Pro beta pessoal permite criar até 3 times. As salas e convites de cada time precisam de

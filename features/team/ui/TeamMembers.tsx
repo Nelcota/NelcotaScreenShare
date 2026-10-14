@@ -26,7 +26,7 @@ export function TeamMembers({
     name: string;
   }>();
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    <section className="panel flex flex-col gap-4 rounded-2xl p-5">
       <h2 className="text-xl font-semibold">Membros</h2>
       <p className="text-sm text-ink-muted">
         O dono administra o time e sua propriedade. Gestores cuidam de salas, convites e membros.

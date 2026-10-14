@@ -75,7 +75,7 @@ function IdentityCard({
   };
 }) {
   return (
-    <header className="rounded-2xl border border-line bg-surface p-5 sm:p-7">
+    <header className="panel rounded-2xl p-5 sm:p-7">
       <ProfilePhotoForm image={user.image}>
         <h1 className="truncate text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
           {user.name}

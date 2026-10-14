@@ -69,7 +69,7 @@ export function TeamPage() {
         />
       ) : null}
       {managing ? (
-        <section className="flex max-w-lg flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+        <section className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-5">
           <h2 className="text-xl font-semibold">Configurações do time</h2>
           <form
             className="flex flex-col gap-3"

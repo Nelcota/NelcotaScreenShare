@@ -30,7 +30,7 @@ export function TeamInvitations({
 }) {
   const id = useId();
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    <section className="panel flex flex-col gap-4 rounded-2xl p-5">
       <h2 className="text-xl font-semibold">Convites</h2>
       <p className="text-sm text-ink-muted">
         Crie e compartilhe o link com o destinatário. Ele expira em 7 dias, vale uma vez e exige uma

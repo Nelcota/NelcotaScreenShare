@@ -47,7 +47,7 @@ export function RoomCard({
   const link = `/sala/${room.code}`;
   const history = room.teamId ? `/times/${room.teamId}/salas/${room.id}` : `/salas/${room.id}`;
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    <article className="panel flex flex-col gap-4 rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold break-words">{room.name}</h2>

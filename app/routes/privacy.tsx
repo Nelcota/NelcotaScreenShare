@@ -182,7 +182,7 @@ function RightsSection() {
       title="Seus direitos"
       description="Em Minha conta você baixa todos os seus dados e exclui a conta."
     >
-      <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <div className="panel rounded-2xl p-5 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2">
           <RightsLink
             to="/conta#privacidade"
@@ -230,7 +230,7 @@ export default function PrivacyPage() {
 
         <ul aria-label="Resumo" className="mt-8 grid gap-3 sm:grid-cols-3">
           {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
-            <li key={title} className="rounded-2xl border border-line bg-surface p-5">
+            <li key={title} className="panel rounded-2xl p-5">
               <span className="grid size-10 place-items-center rounded-xl bg-brand/12 text-brand-soft">
                 <Icon className="size-5" aria-hidden="true" />
               </span>

@@ -110,7 +110,7 @@ function useEntranceAnimation(scope: RefObject<HTMLFormElement | null>) {
 /** In a room with approval: the request is out and the owner or a moderator decides. */
 function WaitingApproval({ onCancel }: { onCancel: () => void }) {
   return (
-    <output className="flex w-full flex-col items-center gap-3 rounded-2xl border border-line bg-surface p-5 text-center">
+    <output className="panel flex w-full flex-col items-center gap-3 rounded-2xl p-5 text-center">
       <Loader2
         className="size-6 animate-spin text-brand-soft motion-reduce:animate-none"
         aria-hidden="true"
@@ -201,7 +201,7 @@ export function PreJoin({
 
         <div
           data-anim="row"
-          className="w-full divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface"
+          className="panel w-full divide-y divide-line overflow-hidden rounded-2xl"
         >
           <IdentityRow
             userName={userName}

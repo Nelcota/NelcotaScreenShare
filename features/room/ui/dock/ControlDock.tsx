@@ -12,6 +12,7 @@ import { ReactionsMenu } from "./Reactions";
 import { ShareMenu } from "./ShareMenu";
 import type { ScreenShareControl } from "@/features/room/hooks/use-screen-share";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
+import { UnreadCount } from "@/components/UnreadCount";
 
 interface ControlDockProps {
   chat: ChatState;
@@ -85,14 +86,13 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
             onClick={() => chat.setOpen(!chat.open)}
           >
             <MessageSquare className="size-5" aria-hidden="true" />
-            {chat.unread > 0 ? (
-              <span
-                aria-hidden="true"
-                className="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-xs font-medium text-brand-ink ring-2 ring-surface"
-              >
-                {chat.unread > 9 ? "9+" : chat.unread}
-              </span>
-            ) : null}
+            <UnreadCount
+              count={chat.unread}
+              tone="brand"
+              max={9}
+              aria-hidden="true"
+              className="-top-1.5 -right-1.5 z-auto h-5 min-w-5 text-xs font-medium"
+            />
           </DockButton>
         </fieldset>
 

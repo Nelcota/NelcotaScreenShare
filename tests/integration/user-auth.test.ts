@@ -17,13 +17,22 @@ import { logger } from "@/server/logger.server";
 import { verifiedParticipant } from "./support/accounts";
 import { CookieJar, errorCode, makeCaller } from "./support/http-auth";
 import { totpFromUri } from "./support/totp";
+import { emailHash, recordFailure } from "@/features/auth/server/lockout.server";
 import { createEmailVerificationToken } from "better-auth/api";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
 afterAll(() => pool.end());
 
-const auth = createUserAuthForTests(db, "segredo-participantes-de-teste-0123456789abcdef");
+const SECRET = "segredo-participantes-de-teste-0123456789abcdef";
+const auth = createUserAuthForTests(db, SECRET);
+
+/** Wrong passwords already recorded for an account, from one IP. */
+async function seedFailures(email: string, ip: string, count: number) {
+  for (let i = 0; i < count; i++) {
+    await recordFailure(db, { scope: "user", hash: emailHash(SECRET, "user", email), ip });
+  }
+}
 const handler = (request: Request) => auth.handler(request);
 let nextIp = 1;
 function newCaller() {
@@ -129,48 +138,81 @@ describe("login", () => {
     assert.equal(errorCode(res.body), "FAILED_TO_CREATE_SESSION");
   });
 
-  test("attempt lockout applies to participants, separate from admin", async () => {
+  test("guesses spread over many IPs never lock the owner out", async () => {
     const bia = await verifiedParticipant(db, handler);
-    for (let i = 0; i < 5; i++) {
-      const res = await makeCaller(
-        handler,
-        USER_AUTH_BASE_PATH,
-        `198.19.0.${i + 1}`,
-      )("/sign-in/email", {
-        body: { email: bia.email, password: `errada-${i}-xxxxxx` },
+    for (let i = 0; i < 6; i++) {
+      const spread = makeCaller(handler, USER_AUTH_BASE_PATH, `198.19.1.${i + 1}`);
+      const res = await spread("/sign-in/email", {
+        body: { email: bia.email, password: `x-${i}-errada` },
       });
       assert.equal(res.status, 401);
     }
-    const locked = await makeCaller(
-      handler,
-      USER_AUTH_BASE_PATH,
-      "198.19.0.99",
-    )("/sign-in/email", {
+    const owner = makeCaller(handler, USER_AUTH_BASE_PATH, "198.19.9.9");
+    const res = await owner("/sign-in/email", {
       body: { email: bia.email, password: bia.password },
     });
-    assert.equal(locked.status, 429);
+    assert.equal(res.status, 200);
     const [failure] = await db.select().from(schema.loginFailures).limit(1);
     assert.equal(failure?.scope, "user");
   });
 
+  // Better Auth's own per-IP limit stops a sixth try first, so the failures are seeded.
+  test.each([
+    ["an IPv4 address", "198.19.2.1", "198.19.2.1"],
+    ["the same IPv6 /64", "2001:db8:19::1", "2001:db8:19::99"],
+  ])(
+    "locks the account from %s that kept failing, even with the right password",
+    async (_, failedFrom, triesFrom) => {
+      const bia = await verifiedParticipant(db, handler);
+      await seedFailures(bia.email, failedFrom, 5);
+      const attacker = makeCaller(handler, USER_AUTH_BASE_PATH, triesFrom);
+      const locked = await attacker("/sign-in/email", {
+        body: { email: bia.email, password: bia.password },
+      });
+      assert.equal(locked.status, 429);
+      assert.equal(errorCode(locked.body), "SIGN_IN_LOCKED");
+      const owner = makeCaller(handler, USER_AUTH_BASE_PATH, "2001:db8:77::1");
+      const res = await owner("/sign-in/email", {
+        body: { email: bia.email, password: bia.password },
+      });
+      assert.equal(res.status, 200);
+    },
+  );
+
+  test("a password reset clears the account's failures", async () => {
+    const bia = await verifiedParticipant(db, handler);
+    await seedFailures(bia.email, "198.21.0.1", 5);
+    const attacker = makeCaller(handler, USER_AUTH_BASE_PATH, "198.21.0.1");
+    const context = await auth.$context;
+    const token = crypto.randomUUID();
+    await context.internalAdapter.createVerificationValue({
+      identifier: `reset-password:${token}`,
+      value: bia.id,
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+    });
+    const newPassword = "nova-senha-depois-do-reset-1";
+    assert.equal((await attacker("/reset-password", { body: { token, newPassword } })).status, 200);
+    const res = await attacker("/sign-in/email", {
+      body: { email: bia.email, password: newPassword },
+    });
+    assert.equal(res.status, 200);
+  });
+
   test("wrong passwords on signed-in routes count toward the account lockout", async () => {
     const bia = await verifiedParticipant(db, handler);
-    for (let i = 0; i < 5; i++) {
-      const res = await makeCaller(
-        handler,
-        USER_AUTH_BASE_PATH,
-        `198.20.0.${i + 1}`,
-      )("/change-password", {
-        body: { currentPassword: `errada-${i}-xxxxxx`, newPassword: "outra-senha-boa-1" },
-        jar: bia.jar,
-      });
-      assert.equal(res.status, 400);
-    }
-    const locked = await makeCaller(
-      handler,
-      USER_AUTH_BASE_PATH,
-      "198.20.0.99",
-    )("/change-password", {
+    const call = makeCaller(handler, USER_AUTH_BASE_PATH, "198.20.0.1");
+    const res = await call("/change-password", {
+      body: { currentPassword: "errada-xxxxxx", newPassword: "outra-senha-boa-1" },
+      jar: bia.jar,
+    });
+    assert.equal(res.status, 400);
+    const counted = await db
+      .select()
+      .from(schema.loginFailures)
+      .where(eq(schema.loginFailures.emailHash, emailHash(SECRET, "user", bia.email)));
+    assert.equal(counted.length, 1);
+    await seedFailures(bia.email, "198.20.0.1", 4);
+    const locked = await call("/change-password", {
       body: { currentPassword: bia.password, newPassword: "outra-senha-boa-1" },
       jar: bia.jar,
     });

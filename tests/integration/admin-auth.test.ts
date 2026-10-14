@@ -15,6 +15,7 @@ import {
 } from "@/features/auth/server/admin-invitations.server";
 import * as schema from "@/server/db/schema";
 import { CookieJar, errorCode, makeCaller } from "./support/http-auth";
+import { emailHash, recordFailure } from "@/features/auth/server/lockout.server";
 import { totpFromUri } from "./support/totp";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -178,24 +179,28 @@ describe("sign-in", () => {
 
   test("5 wrong passwords lock the account, even with the right password afterwards", async () => {
     await inviteAndAccept("bloqueio@exemplo.com");
-    // A different IP on each attempt: the lock is per account, not the per-IP rate limit.
-    for (let i = 0; i < 5; i++) {
-      const res = await makeCaller(
-        handler,
-        ADMIN_AUTH_BASE_PATH,
-        `198.51.100.${i + 1}`,
-      )("/sign-in/email", {
+    // The lockout counts per account and network; Better Auth's per-IP limit stops a sixth
+    // try from one IP first, so four go through HTTP and one more is recorded directly.
+    const attacker = makeCaller(handler, ADMIN_AUTH_BASE_PATH, "198.51.100.1");
+    for (let i = 0; i < 4; i++) {
+      const res = await attacker("/sign-in/email", {
         body: { email: "bloqueio@exemplo.com", password: `errada-${i}-xxxxxx` },
       });
       assert.equal(res.status, 401);
     }
-    const locked = await makeCaller(
-      handler,
-      ADMIN_AUTH_BASE_PATH,
-      "198.51.100.99",
-    )("/sign-in/email", { body: { email: "bloqueio@exemplo.com", password: PASSWORD } });
+    const hash = emailHash(SECRET, "admin", "bloqueio@exemplo.com");
+    await recordFailure(db, { scope: "admin", hash, ip: "198.51.100.1" });
+    const locked = await attacker("/sign-in/email", {
+      body: { email: "bloqueio@exemplo.com", password: PASSWORD },
+    });
     assert.equal(locked.status, 429);
     assert.match(errorMessage(locked.body), /Muitas tentativas/);
+    // The owner, from elsewhere, still gets in.
+    const owner = makeCaller(handler, ADMIN_AUTH_BASE_PATH, "198.51.100.200");
+    const res = await owner("/sign-in/email", {
+      body: { email: "bloqueio@exemplo.com", password: PASSWORD },
+    });
+    assert.equal(res.status, 200);
   });
 
   test("a request from another origin is rejected (CSRF)", async () => {
@@ -383,9 +388,10 @@ describe("auditing of sign-in events", () => {
 
   test("a lockout of a real admin is recorded once, tied to the account, without the e-mail", async () => {
     const { userId } = await inviteAndAccept("trava-auditada@exemplo.com");
-    // Each attempt from its own IP: the per-IP limits stay out of the way.
+    // All from one IP, which the lockout counts; past five, Better Auth's limit answers.
+    const attacker = makeCaller(handler, ADMIN_AUTH_BASE_PATH, "198.51.100.84");
     for (let attempt = 0; attempt < 8; attempt++) {
-      await newCaller()("/sign-in/email", {
+      await attacker("/sign-in/email", {
         body: { email: "trava-auditada@exemplo.com", password: "senha-errada-123" },
       });
     }

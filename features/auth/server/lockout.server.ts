@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { loginFailures } from "@/server/db/schema";
 
@@ -8,8 +8,9 @@ export type AuthScope = "admin" | "user";
 
 /**
  * Lockout after wrong passwords (Better Auth only locks 2FA):
- * - per account (HMAC of the e-mail): every 5 failures in 24 h the lockout doubles,
- *   starting at 15 min and going up to 24 h;
+ * - per account and network (HMAC of the e-mail, and the IP, or its /64 for IPv6): every 5
+ *   failures in 24 h the lockout doubles, starting at 15 min and going up to 24 h. Someone
+ *   guessing from elsewhere never locks the owner out;
  * - per IP: 20 failures in 15 min lock the IP for 15 min.
  * The message for whoever is trying is always the same, whether the account exists or not.
  */
@@ -36,6 +37,13 @@ export function emailHash(secret: string, scope: AuthScope, email: string): stri
 /** Only valid IPs go to the `inet` column (the rest becomes NULL). */
 function validIp(ip: string | undefined): string | null {
   return ip && isIP(ip) ? ip : null;
+}
+
+/** Failures from the same network: the IP itself, or its /64 for IPv6 (one home or phone). */
+function sameNetwork(address: string | null) {
+  if (!address) return isNull(loginFailures.ip);
+  if (isIP(address) === 4) return eq(loginFailures.ip, address);
+  return sql`${loginFailures.ip} <<= network(set_masklen(${address}::inet, 64))`;
 }
 
 /** Lockout duration after `failures` failures: 0, or 15 min doubling every 5. */
@@ -65,6 +73,7 @@ export async function checkLockout(
       and(
         eq(loginFailures.scope, scope),
         eq(loginFailures.emailHash, hash),
+        sameNetwork(validIp(ip)),
         gte(loginFailures.createdAt, since),
       ),
     );
@@ -117,7 +126,7 @@ export async function recordFailure(
     .values({ scope, emailHash: hash, ip: validIp(ip), createdAt: now });
 }
 
-/** A correct sign-in resets the account's failures (the IP's keep counting). */
+/** A correct sign-in or a password reset clears the account's failures (the IP's keep counting). */
 export async function clearFailures(
   db: Database,
   { scope, hash }: { scope: AuthScope; hash: string },
@@ -125,6 +134,14 @@ export async function clearFailures(
   await db
     .delete(loginFailures)
     .where(and(eq(loginFailures.scope, scope), eq(loginFailures.emailHash, hash)));
+}
+
+/** After a password reset: whoever proved they own the e-mail starts with a clean slate. */
+export async function clearFailuresAfterReset(
+  db: Database,
+  { secret, scope, email }: { secret: string; scope: AuthScope; email: string },
+): Promise<void> {
+  await clearFailures(db, { scope, hash: emailHash(secret, scope, email) });
 }
 
 /** Retention: failures older than 30 days are removed (daily job). */

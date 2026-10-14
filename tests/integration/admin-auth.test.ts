@@ -362,7 +362,7 @@ async function auditOf(action: string, adminId: string) {
 }
 
 describe("auditing of sign-in events", () => {
-  test("a successful sign-in records the author; a failed one does not store the e-mail", async () => {
+  test("a successful sign-in records the author; a wrong password alone records nothing", async () => {
     const call = newCaller();
     await inviteAndAccept("auditoria@exemplo.com");
     const [user] = await db
@@ -373,15 +373,35 @@ describe("auditing of sign-in events", () => {
     const signIns = await auditFor("auth.sign_in");
     assert.ok(signIns.some((row) => row.actorAdminId === user?.id && row.resourceId === user?.id));
 
+    const before = (await auditFor("auth.sign_in_failed")).length;
     await call("/sign-in/email", {
       body: { email: "auditoria@exemplo.com", password: "senha-errada-123" },
     });
-    const failures = await auditFor("auth.sign_in_failed");
-    assert.ok(failures.length > 0);
-    for (const row of failures) {
-      assert.equal(row.actorAdminId, null);
-      assert.doesNotMatch(JSON.stringify(row), /auditoria@exemplo\.com/);
+    // The failure is counted in login_failures (for the lockout), not in the audit log.
+    assert.equal((await auditFor("auth.sign_in_failed")).length, before);
+  });
+
+  test("a lockout of a real admin is recorded once, tied to the account, without the e-mail", async () => {
+    const { userId } = await inviteAndAccept("trava-auditada@exemplo.com");
+    // Each attempt from its own IP: the per-IP limits stay out of the way.
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await newCaller()("/sign-in/email", {
+        body: { email: "trava-auditada@exemplo.com", password: "senha-errada-123" },
+      });
     }
+    const lockouts = (await auditFor("auth.lockout")).filter((row) => row.resourceId === userId);
+    assert.equal(lockouts.length, 1);
+    assert.doesNotMatch(JSON.stringify(lockouts), /trava-auditada@exemplo.com/);
+  });
+
+  test("wrong passwords for e-mails that are not admins leave no audit rows", async () => {
+    const before = (await db.select().from(schema.auditLogs)).length;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await newCaller()("/sign-in/email", {
+        body: { email: `ninguem-${attempt % 2}@exemplo.com`, password: "senha-errada-123" },
+      });
+    }
+    assert.equal((await db.select().from(schema.auditLogs)).length, before);
   });
 
   test("2FA enabled and password reset are recorded", async () => {

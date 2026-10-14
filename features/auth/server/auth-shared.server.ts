@@ -7,6 +7,7 @@ import type { Database } from "@/server/db/index.server";
 import { users } from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import { enforceEmailPolicy } from "./email-policy.server";
+import { recordAdminLockout } from "./lockout-audit.server";
 import { requireSecondFactorEverySignIn } from "./trusted-device.server";
 import {
   checkLockout,
@@ -81,6 +82,30 @@ async function validatePasswordReset(
   }
 }
 
+/**
+ * A wrong password counts toward the lockout. In the panel, the failure that starts a
+ * lockout is audited once (only for a real admin); the others stay in `login_failures`.
+ */
+async function countWrongPassword(
+  db: Database,
+  {
+    scope,
+    hash,
+    email,
+    ip,
+    audit,
+  }: { scope: AuthScope; hash: string; email: string; ip?: string; audit: boolean },
+) {
+  await recordFailure(db, { scope, hash, ip });
+  logger.warn({ event: `${scope}.sign_in_failed` }, "sign-in refused");
+  if (!audit) return;
+  const status = await checkLockout(db, { scope, hash, ip });
+  if (!status.locked) return;
+  await safeAudit(() =>
+    recordAdminLockout(db, { email, hash, retryAfterSeconds: status.retryAfterSeconds }),
+  );
+}
+
 /** Auditing never breaks sign-in: a failure becomes a log entry. */
 async function safeAudit(audit: () => Promise<void>) {
   try {
@@ -124,15 +149,8 @@ export function authHooks(
         ip: ctx.headers ? clientIpFrom(ctx.headers) : undefined,
       });
       if (status.locked) {
-        if (audit) {
-          await safeAudit(() =>
-            recordAudit(db, "system", {
-              action: "auth.lockout",
-              resourceType: "admin_user",
-              metadata: { email_hash: hash.slice(0, 16) },
-            }),
-          );
-        }
+        // Attempts while locked only reach the log: the lockout itself was audited once.
+        logger.warn({ event: `${scope}.sign_in_locked` }, "sign-in while locked");
         throw new APIError("TOO_MANY_REQUESTS", {
           code: "SIGN_IN_LOCKED",
           message: lockedMessage(status.retryAfterSeconds),
@@ -165,24 +183,14 @@ export function authHooks(
       if (ctx.path !== SIGN_IN_PATH) return;
       const hash = emailHash(secret, scope, stringField(ctx.body, "email") ?? "");
       if (failed) {
-        if (returned.statusCode === 401) {
-          await recordFailure(db, {
-            scope,
-            hash,
-            ip: ctx.headers ? clientIpFrom(ctx.headers) : undefined,
-          });
-          logger.warn({ event: `${scope}.sign_in_failed` }, "sign-in refused");
-          if (audit) {
-            await safeAudit(() =>
-              recordAudit(db, "system", {
-                action: "auth.sign_in_failed",
-                resourceType: "admin_user",
-                // Only part of the HMAC: groups attempts without storing the e-mail.
-                metadata: { email_hash: hash.slice(0, 16) },
-              }),
-            );
-          }
-        }
+        if (returned.statusCode !== 401) return;
+        await countWrongPassword(db, {
+          scope,
+          hash,
+          email: stringField(ctx.body, "email") ?? "",
+          ip: ctx.headers ? clientIpFrom(ctx.headers) : undefined,
+          audit,
+        });
         return;
       }
       await clearFailures(db, { scope, hash });

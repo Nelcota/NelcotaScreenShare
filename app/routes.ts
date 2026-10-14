@@ -62,6 +62,7 @@ export default [
     route("admin/erros", "routes/admin/panel/errors.tsx"),
     route("admin/pro", "routes/admin/panel/beta.tsx"),
     route("admin/configuracoes", "routes/admin/panel/settings.tsx"),
+    route("admin/equipe", "routes/admin/panel/team.tsx"),
     route("admin/conta/seguranca", "routes/admin/panel/security.tsx"),
     route("admin/conta/sessoes", "routes/admin/panel/sessions.tsx"),
     route("admin/sem-permissao", "routes/admin/panel/no-permission.tsx"),

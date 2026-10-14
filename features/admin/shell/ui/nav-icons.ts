@@ -13,6 +13,7 @@ import {
   ShieldX,
   Sparkles,
   Settings2,
+  UserCog,
   Users,
   Video,
   type LucideIcon,
@@ -36,4 +37,5 @@ export const NAV_ICONS: Record<NavIcon, LucideIcon> = {
   settings: Settings2,
   security: KeyRound,
   sessions: MonitorSmartphone,
+  team: UserCog,
 };

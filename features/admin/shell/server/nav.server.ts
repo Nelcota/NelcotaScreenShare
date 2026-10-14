@@ -21,7 +21,8 @@ export type NavIcon =
   | "errors"
   | "settings"
   | "security"
-  | "sessions";
+  | "sessions"
+  | "team";
 
 interface NavItemDefinition {
   href: string;
@@ -142,6 +143,13 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
         icon: "settings",
         permission: { beta: ["read"] },
         keywords: ["piloto", "ativação", "time"],
+      },
+      {
+        href: "/admin/equipe",
+        label: "Equipe",
+        icon: "team",
+        permission: { user: ["ban"], adminInvitation: ["create"] },
+        keywords: ["admin", "convite", "acesso", "desativar", "leitor"],
       },
       {
         href: "/admin/configuracoes",

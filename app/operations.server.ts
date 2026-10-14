@@ -37,6 +37,13 @@ import {
   resolveReportAction,
 } from "@/features/admin/reports/actions.server";
 import { searchPanelAction } from "@/features/admin/search/actions.server";
+import {
+  deactivateAdminAction,
+  endAdminSessionsAction,
+  inviteAdminAction,
+  reactivateAdminAction,
+  revokeAdminInvitationAction,
+} from "@/features/admin/team/actions.server";
 import { saveMascotSettings } from "@/features/admin/settings/actions.server";
 import { acceptInvitation } from "@/features/auth/actions.server";
 import { reportAction } from "@/features/reports/actions.server";
@@ -119,6 +126,11 @@ export const operations: OperationHandlers = {
   "admin-reports-deleteReportedMessageAction": deleteReportedMessageAction,
   "admin-reports-blockReportedAccountAction": blockReportedAccountAction,
   "admin-search-searchPanelAction": searchPanelAction,
+  "admin-team-inviteAdminAction": inviteAdminAction,
+  "admin-team-revokeAdminInvitationAction": revokeAdminInvitationAction,
+  "admin-team-deactivateAdminAction": deactivateAdminAction,
+  "admin-team-reactivateAdminAction": reactivateAdminAction,
+  "admin-team-endAdminSessionsAction": endAdminSessionsAction,
   "admin-settings-saveMascotSettings": saveMascotSettings,
   "auth-acceptInvitation": acceptInvitation,
   "reports-reportAction": reportAction,

@@ -33,7 +33,14 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
     "Permissions-Policy",
     "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
   );
+  // Served over HTTPS only (production): browsers stop trying plain HTTP for a year.
+  if (appUrl().startsWith("https://"))
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   if (response.headers.get("Content-Type")?.includes("text/html")) {
+    // Pages carry the person's name, e-mail and sessions: never kept by a shared cache, and
+    // not shown again by the Back button after signing out.
+    if (!response.headers.has("Cache-Control"))
+      response.headers.set("Cache-Control", "private, no-store");
     response.headers.set(
       "Content-Security-Policy",
       buildCsp({

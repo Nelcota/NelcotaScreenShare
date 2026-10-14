@@ -353,6 +353,34 @@ describe("email change security", () => {
   });
 });
 
+describe("account name", () => {
+  test("is checked on the server: hidden direction marks go, too long or not text is refused", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const call = newCaller();
+    const nameOf = async () =>
+      (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.name;
+
+    const renamed = await call("/update-user", {
+      body: { name: "  Equipe\u202E Nelcota\u200B  " },
+      jar: participant.jar,
+    });
+    assert.equal(renamed.status, 200);
+    assert.equal(await nameOf(), "Equipe Nelcota");
+
+    for (const name of ["x".repeat(50_000), "\u202E\u200B", 42]) {
+      const refused = await call("/update-user", { body: { name }, jar: participant.jar });
+      assert.equal(refused.status, 400);
+    }
+    assert.equal(await nameOf(), "Equipe Nelcota");
+
+    const email = `nome-${crypto.randomUUID()}@exemplo.com`;
+    const signUp = await newCaller()("/sign-up/email", {
+      body: { name: "y".repeat(40), email, password: PASSWORD },
+    });
+    assert.equal(signUp.status, 400);
+  });
+});
+
 describe("profile photo", () => {
   test("sign-up validates the photo with the same rules as the update", async () => {
     for (const invalid of INVALID_IMAGES) {

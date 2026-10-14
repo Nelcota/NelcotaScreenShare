@@ -1,6 +1,7 @@
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { isPlainWebp, profilePhotoSchema } from "@/features/account/domain/profile-photo";
+import { displayNameSchema } from "@/features/room/domain/participant-label";
 import { recordAudit } from "@/server/audit.server";
 import { clientIpFrom } from "@/server/client-ip.server";
 import type { Database } from "@/server/db/index.server";
@@ -159,6 +160,22 @@ async function countWrongPasswordSignedIn(
 }
 
 /**
+ * The account name goes through the same rules as the screens (1 to 32 characters, no
+ * invisible ones), so a direct call cannot store a disguised name or hit the database check.
+ */
+function cleanName(body: unknown) {
+  if (typeof body !== "object" || body === null || !Reflect.has(body, "name")) return;
+  const parsed = displayNameSchema.safeParse(Reflect.get(body, "name"));
+  if (!parsed.success) {
+    throw new APIError("BAD_REQUEST", {
+      code: "INVALID_NAME",
+      message: parsed.error.issues[0]?.message ?? "Confira o nome.",
+    });
+  }
+  Reflect.set(body, "name", parsed.data);
+}
+
+/**
  * Better Auth hooks: lockout after wrong passwords (admins and participants,
  * separated by `scope`) and, in the admin panel, auditing of sign-in events.
  */
@@ -175,6 +192,7 @@ export function authHooks(
         await enforceEmailPolicy(ctx, secret, FRESH_SESSION_SECONDS);
         if (ctx.path === "/update-user" || ctx.path === "/sign-up/email") {
           validateProfilePhoto(ctx.body);
+          cleanName(ctx.body);
         }
         if (ctx.path === "/reset-password") {
           await validatePasswordReset(

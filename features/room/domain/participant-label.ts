@@ -1,11 +1,22 @@
 import { z } from "zod";
 
-/** Name the person uses in rooms (the account's). */
+/**
+ * Invisible characters that only serve to disguise a name: control characters, direction
+ * marks that flip the text, and zero-width spaces. Joiners stay, for emoji and scripts.
+ */
+const INVISIBLE = /[\p{Cc}\u061C\u200B\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/gu;
+
+/** Name the person uses in rooms (the account's), without invisible characters. */
 export const displayNameSchema = z
   .string()
-  .trim()
-  .min(1, "Digite seu nome para entrar na sala.")
-  .max(32, "Seu nome pode ter até 32 caracteres. Use um nome mais curto.");
+  .transform((name) => name.replace(INVISIBLE, ""))
+  .pipe(
+    z
+      .string()
+      .trim()
+      .min(1, "Digite seu nome para entrar na sala.")
+      .max(32, "Seu nome pode ter até 32 caracteres. Use um nome mais curto."),
+  );
 
 /** LiveKit identity of someone who joined through a link, without an account. */
 export const GUEST_IDENTITY_PREFIX = "convidado-";

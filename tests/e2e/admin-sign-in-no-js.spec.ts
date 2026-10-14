@@ -5,7 +5,7 @@ import { E2E_URL } from "./support/env";
 
 const PASSWORD = "senha-forte-sem-script";
 
-/** Viewer invitation written straight to the database: no 2FA step for this role. */
+/** Viewer invitation written straight to the database. */
 async function viewerInvitation(email: string): Promise<string> {
   const token = randomBytes(32).toString("base64url");
   await sql(
@@ -48,7 +48,8 @@ test("admin invitation and sign-in work with JavaScript off", async ({ browser }
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Início");
+  // Every panel role needs 2FA: a new account goes straight to setting it up.
+  await expect(page).toHaveURL(/\/admin\/conta\/seguranca/);
+  await expect(page.getByText("Algo deu errado")).toHaveCount(0);
   await context.close();
 });

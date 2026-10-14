@@ -47,7 +47,7 @@ The panel uses its **own [Better Auth](https://www.better-auth.com) instance** a
 
 - **Invitation only:** there is no public sign-up and no default password. The first owner is created with the script below; other admins are invited from the panel.
 - **Password:** argon2id (OWASP: 19 MiB, 2 iterations), 12 to 128 characters.
-- **Mandatory TOTP 2FA** for `owner` and `admin` (authenticator app + 10 single-use backup codes). Without 2FA, the session can only reach the screen to set it up.
+- **Mandatory TOTP 2FA** for every panel role, `viewer` included: it changes nothing but sees participants' e-mails, IPs and browsers (authenticator app + 10 single-use backup codes). Without 2FA, the session can only reach the screen to set it up.
 - **Database-backed session** (no cookie cache): expires after 12 h of inactivity, absolute maximum of 7 days, `HttpOnly` + `Secure` + `SameSite=Strict` cookie. Critical actions require a login within the last 10 min.
 - **Lockout after failed attempts:** 5 wrong passwords on the same account lock it for 15 min (doubling every 5, up to 24 h); 20 failures from the same IP in 15 min block the IP. On top of that, Better Auth's rate limit (5 logins/min per IP), stored in the database.
 - **No enumeration:** login, password recovery and invitation respond the same whether or not the e-mail exists.

@@ -24,6 +24,8 @@ moderator. A host who is not the owner removes anyone but the owner, who may onl
 a reconnect. The control state lists the commands each person may give; menus show only those.
 A transfer given by the owner also hands over the room: the target becomes owner and the
 former owner a moderator. The owner does this from the person's card ("Transferir a sala").
+A permanent room is never handed over: there the owner's transfer passes only the host, and
+`host_given_at` keeps the owner from taking it back until they join again.
 Sync commands also publish each person's saved room role, so badges follow the change.
 
 The person's card keeps two actions for the owner and moderators. "Expulsar" disconnects

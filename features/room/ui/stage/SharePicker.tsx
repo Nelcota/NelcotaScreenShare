@@ -1,5 +1,5 @@
 import type { TrackReference } from "@livekit/components-react";
-import { Eye, MonitorUp } from "lucide-react";
+import { MonitorPlay, MonitorUp } from "lucide-react";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import { useScreenWatch } from "@/features/room/hooks/use-screen-watch";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,7 @@ export function SharePicker({
             onClick={() => watch(invite.publication.trackSid)}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
           >
-            <Eye className="size-3.5" aria-hidden="true" />
+            <MonitorPlay className="size-3.5" aria-hidden="true" />
             {name}
           </button>
         );

@@ -1,4 +1,4 @@
-import { Bluetooth, Camera, Headphones, Mic, Phone, Star, type LucideIcon } from "lucide-react";
+import { Bluetooth, Camera, Headphones, Mic, Phone, type LucideIcon } from "lucide-react";
 import type { MicrophoneOption } from "@/features/room/domain/microphone-options";
 import { Hint } from "@/components/Hint";
 import { cn } from "@/lib/utils";
@@ -13,8 +13,8 @@ const KIND_COLORS = {
   camera: "bg-warning/15 text-warning",
 } as const;
 
-const BADGES: Partial<Record<string, { icon: LucideIcon; className: string }>> = {
-  Padrão: { icon: Star, className: "bg-brand/15 text-brand-soft" },
+const BADGES: Partial<Record<string, { icon?: LucideIcon; className: string }>> = {
+  Padrão: { className: "bg-brand/15 text-brand-soft" },
   Chamadas: { icon: Phone, className: "bg-info/15 text-info" },
 };
 

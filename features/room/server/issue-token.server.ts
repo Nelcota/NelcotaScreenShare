@@ -25,11 +25,12 @@ import { consumeApproval, openJoinRequest, restoreApproval } from "./join-reques
 import { recordTokenRequest } from "./token-log.server";
 import { AdmissionError, mediaRoomForCode } from "./session-store.server";
 import { reserveAdmission } from "./session-admission.server";
+import { createJoinRequestGate } from "./join-request-gate.server";
 
 // Per account: switching IP does not grant more attempts.
 const perAccountLimit = createRateLimiter({ limit: 20, windowMs: 60_000 });
-// New requests to enter a room with approval, per IP: a guest gets a new id per cookie.
-const newJoinRequests = createRateLimiter({ limit: 10, windowMs: 10 * 60_000 });
+// New requests to enter a room with approval, per IP and per person (join-request-gate).
+const mayOpenJoinRequest = createJoinRequestGate();
 // Wrong password: few chances per IP, with a long window, against brute force.
 const passwordFailures = createRateLimiter({ limit: 5, windowMs: 15 * 60_000 });
 
@@ -71,7 +72,7 @@ async function awaitApproval(
     roomCode: room,
     requester,
     displayName: name,
-    mayOpen: () => newJoinRequests.hit(ipKey).ok,
+    mayOpen: () => mayOpenJoinRequest(ipKey, requester),
   });
   if (!opened) return { approved: false, queueFull: true };
   return { approved: false, requestId: opened };

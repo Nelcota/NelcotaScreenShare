@@ -54,6 +54,6 @@ test("too many requests from one person get 429", async () => {
   deps.profilePhotoOf.mockResolvedValue(null);
   const statuses: number[] = [];
   for (let attempt = 0; attempt < 121; attempt += 1) statuses.push((await photo()).status);
-  expect(statuses.slice(0, 120).every((status) => status === 404)).toBe(true);
+  expect(statuses.slice(0, 120).every((status) => status === 204)).toBe(true);
   expect(statuses.at(-1)).toBe(429);
 });

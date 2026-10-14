@@ -39,12 +39,13 @@ const PHOTO_CACHE = "private, max-age=300";
 /** "This person has no photo" is cached briefly too, so lists do not ask again on every render. */
 const NO_PHOTO_CACHE = "private, max-age=60";
 
+/**
+ * No photo: 204, an empty answer that is no error, so the call's initials stay without a 404
+ * in every client's console for each person without a photo (the friends route does the same).
+ */
 export function noPhotoResponse(cache: "short" | "none" = "none"): Response {
   const cacheControl = cache === "short" ? NO_PHOTO_CACHE : "no-store";
-  return Response.json(
-    { message: "Sem foto." },
-    { status: 404, headers: { "Cache-Control": cacheControl } },
-  );
+  return new Response(null, { status: 204, headers: { "Cache-Control": cacheControl } });
 }
 
 /** The photo as a WebP response with a validator, or 304 when the browser already has it. */

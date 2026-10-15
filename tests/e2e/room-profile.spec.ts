@@ -50,7 +50,7 @@ test("a guest's mobile rename reaches others and is remembered for the next invi
     await guest.page.getByLabel("Seu nome na sala", { exact: true }).fill("Visitante Renomeado");
     await guest.page.getByRole("button", { name: "Salvar", exact: true }).click();
     // Your own tile changes at once; the others get it once the server writes it.
-    await expect(guest.page.getByText(/^Visitante Renomeado \(convidado\)/).first()).toBeVisible();
+    await expect(guest.page.getByText(/^Visitante Renomeado \(sem conta\)/).first()).toBeVisible();
     await expect(guest.page.getByText("Nome atualizado na sala.", { exact: true })).toBeVisible();
     await expect(
       observer.page.getByText("Visitante Renomeado (sem conta)", { exact: true }),

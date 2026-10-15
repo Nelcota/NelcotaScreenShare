@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type RefObject } from "react";
-import { useRevalidator } from "react-router";
+import { useNavigate, useRevalidator } from "react-router";
 import { upsetMascot } from "@/features/mascot/client/events";
 import { requestToken } from "@/features/room/client/api";
 import { joinFailure, type JoinChoices } from "@/features/room/domain/join";
@@ -60,6 +60,7 @@ export function useJoinForm(options: JoinFormOptions) {
   const [submitting, setSubmitting] = useState(false);
   const [pendingJoin, setPendingJoin] = useState<PendingJoin>();
   const revalidator = useRevalidator();
+  const navigate = useNavigate();
   const approval = useJoinApproval();
 
   /**
@@ -124,7 +125,8 @@ export function useJoinForm(options: JoinFormOptions) {
     const failure = joinFailure(error);
     if (failure.redirect) {
       const page = failure.redirect === "login" ? "/entrar" : "/verificar-email";
-      window.location.assign(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
+      // Still before the call: a client navigation, without reloading the whole app.
+      void navigate(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
       return;
     }
     if (failure.reloadRoom) {

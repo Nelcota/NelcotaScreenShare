@@ -361,6 +361,40 @@ describe("data subject data", () => {
     assert.deepEqual(bans, [{ roomCode: other }]);
   });
 
+  test("deleting an account removes its join request names in other people's rooms", async () => {
+    const requester = await verifiedParticipant(db, handler);
+    const owner = await plainAccount("Dona Da Sala");
+    const code = `pedidos-${crypto.randomUUID().slice(0, 8)}`;
+    await db.insert(schema.roomDefinitions).values({ code, ownerUserId: owner });
+    await db.insert(schema.roomJoinRequests).values([
+      {
+        roomCode: code,
+        userId: requester.id,
+        displayName: "Nome Pessoal No Pedido",
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+      {
+        roomCode: code,
+        guestId: crypto.randomUUID(),
+        displayName: "Outra Pessoa",
+        status: "accepted",
+        decidedByUserId: requester.id,
+        decidedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    ]);
+
+    await deleteAccountOf(requester);
+
+    const requests = await db
+      .select()
+      .from(schema.roomJoinRequests)
+      .where(eq(schema.roomJoinRequests.roomCode, code));
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0]?.displayName, "Outra Pessoa");
+    assert.equal(requests[0]?.decidedByUserId, null);
+  });
+
   test("deleting the account archives an owned room the host controls kept calls of", async () => {
     const owner = await verifiedParticipant(db, handler);
     const code = `com-chamadas-${Date.now().toString(36)}`;

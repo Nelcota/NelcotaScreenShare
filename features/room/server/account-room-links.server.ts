@@ -27,6 +27,11 @@ export async function forgetRoomLinks(tx: DbExecutor, userId: string) {
     await handOverOrDeleteRoom(tx, roomCode, userId);
   }
   await tx.delete(roomRoles).where(eq(roomRoles.userId, userId));
+  await tx.delete(roomJoinRequests).where(eq(roomJoinRequests.userId, userId));
+  await tx
+    .update(roomJoinRequests)
+    .set({ decidedByUserId: null })
+    .where(eq(roomJoinRequests.decidedByUserId, userId));
   await tx
     .update(roomRoles)
     .set({ grantedByUserId: null })

@@ -3,7 +3,7 @@ import { Archive } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "./StatusScreen";
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { CallShell, ScreenShell } from "./RoomShell";
 import { requestToken } from "@/features/room/client/api";
@@ -29,6 +29,22 @@ async function prefetchRoomView() {
   } catch (error) {
     logBrowserWarning("Could not prefetch the room view", error);
   }
+}
+
+/**
+ * On the pre-join, fetch the call code once the page is idle: phones have no hover, so
+ * waiting for the "Entrar" tap meant downloading it only after the person asked to join.
+ */
+function usePrefetchRoomViewWhenIdle(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    if (typeof window.requestIdleCallback !== "function") {
+      const timer = window.setTimeout(prepareRoomView, 2000);
+      return () => window.clearTimeout(timer);
+    }
+    const handle = window.requestIdleCallback(prepareRoomView, { timeout: 4000 });
+    return () => window.cancelIdleCallback(handle);
+  }, [active]);
 }
 
 interface RoomSessionProps {
@@ -84,6 +100,8 @@ export function RoomSession({
   renderColumn,
 }: RoomSessionProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "prejoin" });
+  usePrefetchRoomViewWhenIdle(phase.kind === "prejoin");
+
   // The parent hears about the call where the phase changes, not from an effect after it.
   function changePhase(next: Phase) {
     setPhase(next);

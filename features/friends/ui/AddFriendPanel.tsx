@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from "react";
 import { useRouteLoaderData } from "react-router";
 import { toast } from "sonner";
 import type { loader as rootLoader } from "@/app/root";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addFriend, newFriendCode } from "@/features/friends/actions";
@@ -95,8 +96,12 @@ function LinkActions({ linkPath }: { linkPath: string }) {
   const origin = useRouteLoaderData<typeof rootLoader>("root")?.origin ?? "";
   const link = `${origin}${linkPath}`;
   const [copyFailed, setCopyFailed] = useState(false);
+  const [confirmRotate, setConfirmRotate] = useState(false);
   const rotate = useOperation(newFriendCode, {
-    onSuccess: () => toast.success("Código e link novos. Os anteriores pararam de funcionar."),
+    onSuccess: () => {
+      setConfirmRotate(false);
+      toast.success("Código e link novos. Os anteriores pararam de funcionar.");
+    },
     onError: () => toast.error("Não foi possível trocar o código agora."),
   });
 
@@ -116,7 +121,7 @@ function LinkActions({ linkPath }: { linkPath: string }) {
           <Copy aria-hidden="true" />
           Convidar por link
         </Button>
-        <Button variant="ghost" disabled={rotate.isPending} onClick={() => rotate.execute()}>
+        <Button variant="ghost" disabled={rotate.isPending} onClick={() => setConfirmRotate(true)}>
           <RefreshCw aria-hidden="true" />
           Gerar novo código
         </Button>
@@ -130,6 +135,15 @@ function LinkActions({ linkPath }: { linkPath: string }) {
           className="mt-3 font-mono text-sm"
         />
       ) : null}
+      <ConfirmDialog
+        open={confirmRotate}
+        onOpenChange={setConfirmRotate}
+        title="Gerar um novo código?"
+        description="Seu código e seu link de agora param de funcionar. Quem ainda não te adicionou vai precisar do novo."
+        confirmLabel="Gerar novo código"
+        pending={rotate.isPending}
+        onConfirm={() => rotate.execute()}
+      />
     </div>
   );
 }

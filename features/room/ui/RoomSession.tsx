@@ -57,7 +57,14 @@ interface RoomSessionProps {
 type Phase =
   | { kind: "prejoin" }
   /** `startedAt`: when they joined, for the leave summary (kept across attempts). */
-  | { kind: "room"; choices: JoinChoices; attempt: number; startedAt: number }
+  | {
+      kind: "room";
+      choices: JoinChoices;
+      attempt: number;
+      startedAt: number;
+      /** Joined without the pre-join (from "Chamar" or a ring). */
+      direct?: boolean;
+    }
   | { kind: "left"; reason: LeaveReason; message?: string; durationMs?: number };
 
 export function RoomSession({
@@ -143,6 +150,7 @@ export function RoomSession({
             minimized={minimized}
             onLeave={(notice) => leave(notice, phase.startedAt)}
             onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
+            directEntry={phase.direct === true && phase.attempt === 0}
           />
         </Suspense>
       </CallShell>
@@ -183,7 +191,13 @@ export function RoomSession({
           autoJoin={autoJoin}
           onJoin={(choices) => {
             setAutoJoin(false);
-            setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() });
+            setPhase({
+              kind: "room",
+              choices,
+              attempt: 0,
+              startedAt: Date.now(),
+              direct: autoJoin,
+            });
           }}
         />
       ) : (

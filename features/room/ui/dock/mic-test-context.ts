@@ -6,6 +6,8 @@ export interface MicTestState {
   busy: boolean;
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  /** The microphone turned on during the test (the M key, the dock): the test gives way. */
+  endForCall: () => void;
   /** Hands the level bar to the test, which fills it straight from the capture. */
   attachMeter: (meter: HTMLDivElement | null) => void;
 }

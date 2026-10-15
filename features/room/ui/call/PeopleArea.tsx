@@ -1,8 +1,12 @@
 import type { Participant } from "livekit-client";
+import { othersPresenting, peopleOrder } from "@/features/room/domain/people-order";
 import { cn } from "@/lib/utils";
 import { ParticipantTile } from "./ParticipantTile";
 
-/** People: a grid without a stage; with a stage, a side strip. */
+/**
+ * People: a grid without a stage; with a stage, a side strip. Whoever presents comes first;
+ * while someone else presents, your own tile goes last and, on a phone, shrinks.
+ */
 export function PeopleArea({
   participants,
   roomCode,
@@ -19,6 +23,7 @@ export function PeopleArea({
   hasStage: boolean;
   onEnlarge: (identity: string) => void;
 }) {
+  const shrinkOwn = !hasStage && othersPresenting(participants, sharingIds);
   return (
     <div
       className={cn(
@@ -34,16 +39,23 @@ export function PeopleArea({
         !hasStage && participants.length >= 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
       )}
     >
-      {participants.map((participant) => (
-        <ParticipantTile
+      {peopleOrder(participants, sharingIds).map((participant) => (
+        <div
           key={participant.identity}
-          participant={participant}
-          roomCode={roomCode}
-          isSharing={sharingIds.has(participant.identity)}
-          screenInvite={invites.get(participant.identity)}
-          compact={hasStage}
-          onEnlarge={() => onEnlarge(participant.identity)}
-        />
+          className={cn(
+            "contents",
+            shrinkOwn && participant.isLocal && "max-sm:block max-sm:w-1/2 max-sm:justify-self-end",
+          )}
+        >
+          <ParticipantTile
+            participant={participant}
+            roomCode={roomCode}
+            isSharing={sharingIds.has(participant.identity)}
+            screenInvite={invites.get(participant.identity)}
+            compact={hasStage}
+            onEnlarge={() => onEnlarge(participant.identity)}
+          />
+        </div>
       ))}
     </div>
   );

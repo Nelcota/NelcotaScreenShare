@@ -5,6 +5,7 @@ import { ActionError } from "@/server/operations/action-error";
 import { verifyPassword } from "@/features/auth/server/password.server";
 import { getDb } from "@/server/db/index.server";
 import { userAccounts, userSessions } from "@/server/db/schema";
+import { notifyUsers } from "@/features/live/server/live-bus.server";
 import { logger } from "@/server/logger.server";
 import { anonymizeParticipant } from "@/features/account/server/participant-accounts.server";
 import { secondFactorMatches } from "@/features/account/server/second-factor.server";
@@ -40,6 +41,8 @@ export const revokeMySession = defineUserOperation(
       )
       .returning({ id: userSessions.id });
     if (deleted.length === 0) throw new ActionError("Sessão não encontrada. Atualize a página.");
+    // The ended browser hears it now, not on its stream's next check.
+    notifyUsers([ctx.current.user.id], "session");
     return { revoked: true };
   },
 );
@@ -57,6 +60,7 @@ export const revokeMyOtherSessions = defineUserOperation(
         ),
       )
       .returning({ id: userSessions.id });
+    if (deleted.length > 0) notifyUsers([ctx.current.user.id], "session");
     return { revoked: deleted.length };
   },
 );

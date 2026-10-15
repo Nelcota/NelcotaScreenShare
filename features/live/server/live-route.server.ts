@@ -2,7 +2,12 @@ import {
   getUserSession,
   sessionStillValid,
 } from "@/features/auth/server/participant-session.server";
-import { DATA_EVENT, NUDGE_EVENT, type LiveTopic } from "@/features/live/domain/live-topics";
+import {
+  DATA_EVENT,
+  NUDGE_EVENT,
+  SESSION_ENDED_EVENT,
+  type LiveTopic,
+} from "@/features/live/domain/live-topics";
 import { liveBus, type LiveBus } from "@/features/live/server/live-bus.server";
 import { logger } from "@/server/logger.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
@@ -46,7 +51,7 @@ interface StreamTiming {
   sessionCheckMs: number;
 }
 
-/** The session is gone: close. A failed check keeps the stream; the next one decides. */
+/** Whether the session is gone. A failed check keeps the stream; the next one decides. */
 async function sessionGone(sessionId: string): Promise<boolean> {
   try {
     return !(await sessionStillValid(sessionId));
@@ -77,15 +82,21 @@ function liveStream(
           stop();
         }
       };
-      const unsubscribe = bus.subscribe(session.userId, (topic, data) =>
-        send(nudgeMessage(topic, data)),
-      );
-      const timer = setInterval(() => send(": keep-alive\n\n"), timing.keepAliveMs);
-      const check = setInterval(() => {
+      // Gone: the tab is told why, then the stream closes.
+      const checkSession = () => {
         void sessionGone(session.sessionId).then((gone) => {
-          if (gone) onAbort();
+          if (!gone) return;
+          send(`event: ${SESSION_ENDED_EVENT}\ndata: 1\n\n`);
+          onAbort();
         });
-      }, timing.sessionCheckMs);
+      };
+      const unsubscribe = bus.subscribe(session.userId, (topic, data) => {
+        // A session of this account ended: each stream checks its own at once.
+        if (topic === "session") return checkSession();
+        send(nudgeMessage(topic, data));
+      });
+      const timer = setInterval(() => send(": keep-alive\n\n"), timing.keepAliveMs);
+      const check = setInterval(checkSession, timing.sessionCheckMs);
       const onAbort = () => {
         stop();
         try {

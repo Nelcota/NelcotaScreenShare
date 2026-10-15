@@ -1,5 +1,6 @@
 import { useId, useSyncExternalStore } from "react";
 import { Volume2 } from "lucide-react";
+import { ChoiceSelect } from "@/components/ChoiceSelect";
 import { Button } from "@/components/ui/button";
 import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import {
@@ -9,6 +10,12 @@ import {
   subscribeChatSound,
 } from "@/features/room/domain/chat-notification-sound";
 
+const SOUND_OPTIONS = [
+  { value: "soft", label: "Suave" },
+  { value: "chime", label: "Duas notas" },
+  { value: "off", label: "Sem som" },
+] as const;
+
 export function ChatSoundSettings() {
   const id = useId();
   const sound = useSyncExternalStore(subscribeChatSound, currentChatSound, () => "soft" as const);
@@ -17,22 +24,18 @@ export function ChatSoundSettings() {
       <label htmlFor={id} className="text-xs text-ink-muted">
         Som do aviso
       </label>
-      <select
+      <ChoiceSelect
         id={id}
         value={sound}
-        onChange={(event) => {
-          const value = event.target.value;
+        options={SOUND_OPTIONS}
+        onValueChange={(value) => {
           if (!isChatNotificationSound(value)) return;
           setChatSound(value);
           // Selecting a sound is a user gesture, even after the initial muted gestures.
           void unlockChatAudio(value);
         }}
-        className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-sm"
-      >
-        <option value="soft">Suave</option>
-        <option value="chime">Duas notas</option>
-        <option value="off">Sem som</option>
-      </select>
+        className="h-8 min-w-0 flex-1 bg-surface"
+      />
       <Button
         variant="ghost"
         size="icon"

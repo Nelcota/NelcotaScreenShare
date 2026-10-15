@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { joinRoom, newParticipant, newRoomCode } from "./support/session";
+import { chooseOption, joinRoom, newParticipant, newRoomCode } from "./support/session";
 
 test("remote chat shows a notice and the selected sound, while open chat and mute remain silent", async ({
   browser,
@@ -29,8 +29,8 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   await joinRoom(receiver.page, code);
   await joinRoom(sender.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();
-  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveValue("off");
-  await receiver.page.getByRole("combobox", { name: "Som do aviso" }).selectOption("chime");
+  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveText("Sem som");
+  await chooseOption(receiver.page, "Som do aviso", "Duas notas");
   const notes = () =>
     receiver.page.evaluate(() => (window as Window & { chatSoundNotes?: number }).chatSoundNotes);
   expect(await notes()).toBe(0);
@@ -56,7 +56,7 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
       .getByText("Com o chat aberto", { exact: true }),
   ).toBeVisible();
   expect(await notes()).toBe(4);
-  await receiver.page.getByRole("combobox", { name: "Som do aviso" }).selectOption("off");
+  await chooseOption(receiver.page, "Som do aviso", "Sem som");
   await receiver.page.getByRole("button", { name: "Fechar chat" }).click();
   await send("Aviso sem som");
   const silentNotice = receiver.page.getByText("Envia Avisos: Aviso sem som", { exact: true });
@@ -77,7 +77,7 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
   await expect(silentNotice).toBeHidden();
   await joinRoom(receiver.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();
-  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveValue("off");
+  await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toHaveText("Sem som");
   await receiver.page.setViewportSize({ width: 320, height: 740 });
   await expect(receiver.page.getByRole("combobox", { name: "Som do aviso" })).toBeVisible();
   await receiver.context.close();

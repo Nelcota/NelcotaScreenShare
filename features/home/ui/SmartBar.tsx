@@ -171,7 +171,9 @@ export function SmartBar({
   const hintId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
-  const [linkError, setLinkError] = useState(invalidCode);
+  // Typing dismisses the error that came in the address; a new error remounts the bar (key).
+  const [errorDismissed, setErrorDismissed] = useState(false);
+  const linkError = invalidCode && !errorDismissed;
   const input = parseRoomInput(text);
   const hint = linkError
     ? {
@@ -196,7 +198,7 @@ export function SmartBar({
 
   function handleChange(value: string) {
     setText(value);
-    setLinkError(false);
+    setErrorDismissed(true);
     const next = parseRoomInput(value);
     setMascotDoubt(next.kind === "invalid" && value.trim().length > 3);
     if (next.kind === "room" && input.kind !== "room") nodMascot();

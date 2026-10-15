@@ -7,7 +7,7 @@ import type { LiveKitGateway } from "./livekit-gateway.server";
 import { recordCallAudit } from "./call-audit.server";
 import { banFromCall } from "./room-bans.server";
 import { roomRoleOf } from "./room-roles.server";
-import { mediaRoomIn } from "./session-store.server";
+import { lockControlRoom, mediaRoomIn, openControlSession } from "./session-store.server";
 import { excludeFromSession } from "./session-exclusion.server";
 
 type Gateway = Pick<LiveKitGateway, "roomSid" | "removeParticipant">;
@@ -72,24 +72,36 @@ export async function moderateParticipant(
   removal: Removal & { actorUserId: string },
 ): Promise<ModerationResult> {
   const { actorUserId, ...target } = removal;
-  const [actor, targeted] = await Promise.all([
-    roomRoleOf(db, { roomCode: target.room, userId: actorUserId }),
-    targetRole(db, target.room, target.identity),
-  ]);
-  if (target.identity === actorUserId || !canModerate(actor, targeted)) {
-    return {
-      ok: false,
-      error: "forbidden",
-      message: "Só quem criou a sala ou um moderador pode remover essa pessoa.",
-    };
-  }
-  const result = await removeFromCall(db, gateway, target, { userId: actorUserId });
-  if (!result.ok) return result;
-  await recordCallAudit(db, {
-    userId: actorUserId,
-    action: target.action === "ban" ? "room.participant_ban" : "room.participant_kick",
-    room: target.room,
-    target: target.identity,
+  return db.transaction(async (tx) => {
+    await lockControlRoom(tx, target.room);
+    if (!(await mayModerate(tx, removal))) {
+      return {
+        ok: false,
+        error: "forbidden",
+        message: "Só o anfitrião, o dono ou um moderador autorizado pode remover essa pessoa.",
+      };
+    }
+    const result = await removeFromCall(tx, gateway, target, { userId: actorUserId });
+    if (!result.ok) return result;
+    await recordCallAudit(tx, {
+      userId: actorUserId,
+      action: target.action === "ban" ? "room.participant_ban" : "room.participant_kick",
+      room: target.room,
+      target: target.identity,
+    });
+    return result;
   });
-  return result;
+}
+
+/** The host cannot be removed by a co-host through the card's moderation endpoint either. */
+async function mayModerate(db: DbExecutor, removal: Removal & { actorUserId: string }) {
+  const { actorUserId, room, identity } = removal;
+  if (identity === actorUserId) return false;
+  const [actor, targeted] = await Promise.all([
+    roomRoleOf(db, { roomCode: room, userId: actorUserId }),
+    targetRole(db, room, identity),
+  ]);
+  if (!canModerate(actor, targeted)) return false;
+  if (actor === "owner" || !getEnv().ROOM_HOST_CONTROLS_ENABLED) return true;
+  return (await openControlSession(db, room))?.hostUserId !== identity;
 }

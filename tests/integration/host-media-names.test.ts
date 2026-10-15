@@ -6,7 +6,7 @@ import { roomSessionMembers } from "@/server/db/schema/room-control";
 import { controlGateway } from "@/features/room/server/control-gateway.server";
 import { reserveAdmission } from "@/features/room/server/session-admission.server";
 import { liveKitGateway } from "@/features/room/server/livekit-gateway.server";
-import { removeFromCall } from "@/features/room/server/moderation.server";
+import { moderateParticipant, removeFromCall } from "@/features/room/server/moderation.server";
 import { bannedFromCall } from "@/features/room/server/room-bans.server";
 import { authorizeSignal } from "@/features/room/server/signal-admission.server";
 import { roomCodesForMedia } from "@/features/room/server/session-store.server";
@@ -63,16 +63,38 @@ test("kicking reaches the call by its media name", async () => {
   ).toBe(false);
 });
 
+test.each(["kick", "ban"] as const)("a moderator cannot %s the session host", async (action) => {
+  const room = await controlledRoom();
+  const removal = vi.spyOn(controlGateway, "remove");
+  await getDb()
+    .insert(roomRoles)
+    .values({ roomCode: room.code, userId: room.other, role: "moderator" });
+  const gateway = mediaOnlyGateway(room.mediaRoomName);
+  const result = await moderateParticipant(getDb(), gateway, {
+    room: room.code,
+    identity: room.host,
+    actorUserId: room.other,
+    action,
+  });
+  expect(result).toMatchObject({ ok: false, error: "forbidden" });
+  expect(gateway.calls).toEqual([]);
+  expect(removal).not.toHaveBeenCalled();
+  expect(await bannedFromCall(getDb(), gateway, { roomCode: room.code, identity: room.host })).toBe(
+    false,
+  );
+});
+
 test("banning excludes from the session, records who did it and disconnects", async () => {
   const room = await controlledRoom();
+  await getDb().insert(roomRoles).values({ roomCode: room.code, userId: room.host, role: "owner" });
   const removal = vi.spyOn(controlGateway, "remove").mockResolvedValue();
   const gateway = mediaOnlyGateway(room.mediaRoomName);
-  const banned = await removeFromCall(
-    getDb(),
-    gateway,
-    { room: room.code, identity: room.other, action: "ban" },
-    { userId: room.host },
-  );
+  const banned = await moderateParticipant(getDb(), gateway, {
+    room: room.code,
+    identity: room.other,
+    action: "ban",
+    actorUserId: room.host,
+  });
   expect(banned).toEqual({ ok: true });
   const [member] = await getDb()
     .select()

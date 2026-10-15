@@ -8,14 +8,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { removeFromCall } from "@/features/room/client/api";
 import { canModerate } from "@/features/room/domain/moderation";
 import { parseRoomRole, ROLE_ATTRIBUTE } from "@/features/room/domain/room-role";
+import { useRoomHost } from "./RoomHostProvider";
 
 /** Whether I may remove this person: the owner removes anyone, a moderator participants. */
 function useMayRemove(participant: Participant): boolean {
+  const host = useRoomHost();
   const { localParticipant } = useLocalParticipant();
   const myRole = parseRoomRole(
     useParticipantAttribute(ROLE_ATTRIBUTE, { participant: localParticipant }),
   );
   const theirRole = parseRoomRole(useParticipantAttribute(ROLE_ATTRIBUTE, { participant }));
+  if (myRole === "moderator" && host.sessionId) {
+    if (!host.state || participant.identity === host.state.hostIdentity) return false;
+  }
   return !participant.isLocal && canModerate(myRole, theirRole);
 }
 

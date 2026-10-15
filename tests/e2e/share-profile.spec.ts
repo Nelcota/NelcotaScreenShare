@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { fakeScreenCapture } from "./support/screen-capture";
-import { joinRoom, newParticipant, newRoomCode } from "./support/session";
+import { chooseOption, joinRoom, newParticipant, newRoomCode } from "./support/session";
 
 test("both sharing menus use the saved profile and it persists for the next call", async ({
   browser,
@@ -11,14 +11,14 @@ test("both sharing menus use the saved profile and it persists for the next call
     await joinRoom(person.page, await newRoomCode());
     await person.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     const menu = person.page.getByRole("dialog", { name: "Opções de compartilhamento" });
-    const profile = menu.getByLabel("Qualidade do compartilhamento");
-    await expect(profile).toHaveValue("automatic");
-    await profile.selectOption("text");
+    const profile = menu.getByRole("combobox", { name: "Qualidade do compartilhamento" });
+    await expect(profile).toHaveText("Automático");
+    await chooseOption(menu, "Qualidade do compartilhamento", "Texto · mais nitidez");
     await person.page.keyboard.press("Escape");
     await expect(profile).toBeHidden();
     await person.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
-    await expect(profile).toHaveValue("text");
-    await profile.selectOption("data-saver");
+    await expect(profile).toHaveText("Texto · mais nitidez");
+    await chooseOption(menu, "Qualidade do compartilhamento", "Economia de dados");
     await person.page.getByRole("button", { name: /^Tela inteira/ }).click();
     await expect(person.page.getByLabel("Prévia da sua tela")).toBeVisible();
     await person.page.getByRole("button", { name: /^Parar de compartilhar/ }).click();
@@ -27,7 +27,7 @@ test("both sharing menus use the saved profile and it persists for the next call
     ).toBeVisible();
     await person.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     await expect(menu).toBeVisible();
-    await expect(profile).toHaveValue("data-saver");
+    await expect(profile).toHaveText("Economia de dados");
     await person.page.screenshot({
       path: test.info().outputPath("sharing-profiles-desktop.png"),
       animations: "disabled",
@@ -51,7 +51,7 @@ test("both sharing menus use the saved profile and it persists for the next call
     await person.page.reload();
     await joinRoom(person.page, await newRoomCode());
     await person.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
-    await expect(profile).toHaveValue("data-saver");
+    await expect(profile).toHaveText("Economia de dados");
   } finally {
     await person.context.close();
   }

@@ -36,7 +36,7 @@ const CONNECTION_LABELS: Record<Connection, string> = {
 function PersonName({ participant }: { participant: Participant }) {
   const { name } = useParticipantName(participant);
   return (
-    <span className="truncate">
+    <span className="block truncate">
       {name}
       {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
     </span>
@@ -153,9 +153,14 @@ function PeopleButton({
               roomCode={roomCode}
               className="size-9 shrink-0 bg-brand/20 text-sm font-medium text-brand-soft"
             />
-            <PersonName participant={participant} />
-            <RoleBadge participant={participant} />
-            <HostBadge identity={participant.identity} />
+            {/* The roles go under the name: beside it, they cut a long name short. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <PersonName participant={participant} />
+              <div className="flex flex-wrap gap-1 empty:hidden">
+                <RoleBadge participant={participant} />
+                <HostBadge identity={participant.identity} />
+              </div>
+            </div>
             <ParticipantAudioMenu participant={participant} />
             <HostParticipantMenu participant={participant} />
           </li>

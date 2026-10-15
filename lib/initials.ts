@@ -1,9 +1,12 @@
-/** Words that make a name: a label in parentheses, like "(convidado)", does not count. */
+/** A label in parentheses, like "(sem conta)", is not part of the name. */
+const LABEL = /\([^)]*\)/g;
+/** Words that make a name start with a letter or a digit. */
 const NAME_WORD = /^[\p{L}\p{N}]/u;
 
 /** First letter of the first and last names. */
 export function initials(name: string): string {
   const parts = name
+    .replace(LABEL, " ")
     .trim()
     .split(/\s+/)
     .filter((part) => NAME_WORD.test(part));

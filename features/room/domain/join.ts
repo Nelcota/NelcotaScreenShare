@@ -13,12 +13,20 @@ export interface JoinChoices {
   audioDeviceId?: string;
 }
 
+/**
+ * A guest arrived before anyone with an account: they wait, which is no error. The same
+ * words before and after the click, and from the server.
+ */
+export const GUEST_WAIT_TEXT = "Quando quem te convidou entrar, toque em Entrar na sala.";
+
 /** What to do when the token request fails in the pre-join screen. */
 export interface JoinFailure {
   /** Session expired or email not verified: go to the right screen and come back later. */
   redirect?: "login" | "verify-email";
   /** Banned, or the room is gone: the room page loads again and shows why, without the form. */
   reloadRoom?: boolean;
+  /** Nobody to let a guest in yet: a neutral wait, not an error. */
+  waiting?: boolean;
   /** Error marked on the password field (and focus on it). */
   passwordField: boolean;
   /** An attempt error (password, data) makes it grumpy; a server or network failure, worried. */
@@ -35,6 +43,7 @@ export function joinFailure(code: TokenErrorCode | "network_error"): JoinFailure
   if (code === "banned" || code === "room_not_found") {
     return { reloadRoom: true, passwordField: false, mood: "worried" };
   }
+  if (code === "host_absent") return { waiting: true, passwordField: false, mood: "worried" };
   if (code === "invalid_password") return { passwordField: true, mood: "grumpy" };
   if (code === "invalid_request") return { passwordField: false, mood: "grumpy" };
   return { passwordField: false, mood: "worried" };
@@ -57,7 +66,7 @@ export function presenceText(online: number, max: number, guest = false): Presen
   if (online === 0 && guest) {
     return {
       kind: "empty",
-      text: "A sala ainda não abriu. Se te convidaram, você entra assim que a pessoa chegar.",
+      text: GUEST_WAIT_TEXT,
     };
   }
   if (online === 0) {

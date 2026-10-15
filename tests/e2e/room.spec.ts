@@ -583,7 +583,9 @@ test.describe("in the room", () => {
     await iris.getByLabel("Seu nome na sala").fill("Iris Convidada");
     await iris.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await join.click();
-    await expect(iris.getByText(/A sala ainda não começou/)).toBeVisible();
+    await expect(
+      iris.getByText("Quando quem te convidou entrar, toque em Entrar na sala."),
+    ).toBeVisible();
 
     await joinRoom(gil.page, code);
     await join.click();

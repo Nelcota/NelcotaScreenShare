@@ -126,6 +126,33 @@ function WaitingApproval({ onCancel }: { onCancel: () => void }) {
   );
 }
 
+/**
+ * The form's message without a field of its own. A wait is neutral, and only when the
+ * presence line (which already says it) is hidden; anything else is an error.
+ */
+function JoinMessage({
+  error,
+  presenceShown,
+}: {
+  error: { message: string; field?: string; waiting?: boolean } | undefined;
+  presenceShown: boolean;
+}) {
+  if (!error || error.field) return null;
+  if (error.waiting) {
+    if (presenceShown) return null;
+    return (
+      <output className="-mt-2 block w-full text-center text-base text-ink-muted">
+        {error.message}
+      </output>
+    );
+  }
+  return (
+    <p className="-mt-2 w-full text-center text-base text-danger" role="alert">
+      {error.message}
+    </p>
+  );
+}
+
 export function PreJoin({
   code,
   roomName,
@@ -227,11 +254,7 @@ export function PreJoin({
           />
         ) : null}
 
-        {formError && !formError.field ? (
-          <p className="-mt-2 w-full text-center text-base text-danger" role="alert">
-            {formError.message}
-          </p>
-        ) : null}
+        <JoinMessage error={formError} presenceShown={presence !== null} />
 
         {waitingApproval ? (
           <WaitingApproval onCancel={cancelWaiting} />

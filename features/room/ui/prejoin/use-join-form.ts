@@ -56,7 +56,12 @@ interface PendingJoin {
 export function useJoinForm(options: JoinFormOptions) {
   const { code, invite, passwordRequired, guest, guestName, scope, passwordRef, guestNameRef } =
     options;
-  const [formError, setFormError] = useState<{ message: string; field?: FormField }>();
+  const [formError, setFormError] = useState<{
+    message: string;
+    field?: FormField;
+    /** A wait to show in a neutral tone, not an error. */
+    waiting?: boolean;
+  }>();
   const [submitting, setSubmitting] = useState(false);
   const [pendingJoin, setPendingJoin] = useState<PendingJoin>();
   const revalidator = useRevalidator();
@@ -131,6 +136,13 @@ export function useJoinForm(options: JoinFormOptions) {
     }
     if (failure.reloadRoom) {
       setSubmitting(false);
+      void revalidator.revalidate();
+      return;
+    }
+    if (failure.waiting) {
+      // No shake and no upset mascot: waiting for whoever invited them is expected.
+      setSubmitting(false);
+      setFormError({ message, waiting: true });
       void revalidator.revalidate();
       return;
     }

@@ -1,6 +1,6 @@
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { Headphones, HeadphoneOff } from "lucide-react";
-import { createContext, use, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useRef, useState, type ReactNode } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
 import { setDeafenedInRoom } from "@/features/room/client/api";
 import { roomMicErrorMessage } from "@/features/room/client/microphone-errors";
@@ -21,17 +21,23 @@ interface DeafenState {
 
 const DeafenContext = createContext<DeafenState | null>(null);
 
-/** Tells the room when you stop hearing it, so your tile shows "Sem som" to everyone. */
-function useShareDeafened(deafened: boolean) {
+/**
+ * The deafened state, told to the room when it changes so your tile shows "Sem som" to
+ * everyone. Set from the handlers, without an effect watching it.
+ */
+function useSharedDeafened() {
   const { roomCode } = useRoomHost();
   const room = useRoomContext();
+  const [deafened, setDeafened] = useState(false);
   const shared = useRef(false);
-  useEffect(() => {
-    if (shared.current === deafened) return;
-    shared.current = deafened;
+  function changeDeafened(next: boolean) {
+    setDeafened(next);
+    if (shared.current === next) return;
+    shared.current = next;
     // Best effort: without it only the others' view lags, the sound itself is already off.
-    void setDeafenedInRoom(roomCode ?? room.name, deafened);
-  }, [deafened, roomCode, room, shared]);
+    void setDeafenedInRoom(roomCode ?? room.name, next);
+  }
+  return [deafened, changeDeafened] as const;
 }
 
 /**
@@ -41,10 +47,9 @@ function useShareDeafened(deafened: boolean) {
  */
 export function DeafenProvider({ children }: { children: ReactNode }) {
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
-  const [deafened, setDeafened] = useState(false);
+  const [deafened, setDeafened] = useSharedDeafened();
   const micWasOn = useRef(false);
   const hearingRevision = useRef(0);
-  useShareDeafened(deafened);
 
   async function setMic(enabled: boolean) {
     try {

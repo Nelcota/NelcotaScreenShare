@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMatches, useSearchParams } from "react-router";
+import { Link, useMatches, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/FormError";
 import {
@@ -14,6 +14,42 @@ import { RoomCard, type WorkspaceRoom } from "./RoomCard";
 import { isRoomFilter, roomFilterFrom, withRoomFilter } from "./room-filter";
 import type { RoomWorkspaceCommand } from "@/features/rooms/domain/commands";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+/** No Pro and no rooms: one short explanation and where to go instead, no dead controls. */
+function WithoutPro({ team }: { team: boolean }) {
+  return (
+    <div className="panel flex flex-col gap-4 rounded-2xl p-6">
+      <p className="text-ink-muted">
+        {team ? "Salas fixas do time" : "Salas fixas"} fazem parte do Pro. Por enquanto, crie uma
+        sala pelo Início.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link viewTransition to="/inicio">
+            Ir para o Início
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link viewTransition to="/#precos">
+            Entrar na lista do Pro
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Why "Nova sala" is off, when it is. */
+function CreationNotes({ enabled, needsPro }: { enabled: boolean; needsPro: boolean }) {
+  return (
+    <>
+      {enabled ? null : (
+        <output className="text-sm text-warning">Salas fixas ainda não estão disponíveis.</output>
+      )}
+      {needsPro ? <p className="text-sm text-ink-muted">Salas novas precisam do Pro.</p> : null}
+    </>
+  );
+}
 
 export function RoomCollection({
   rooms,
@@ -68,13 +104,20 @@ export function RoomCollection({
   const used = rooms.filter(
     (room) => !room.archivedAt && Boolean(room.teamId) === Boolean(teamId),
   ).length;
+  if (!pro.active && rooms.length === 0) {
+    return (
+      <section className="flex flex-col gap-4" aria-label="Salas permanentes">
+        <WithoutPro team={Boolean(teamId)} />
+      </section>
+    );
+  }
   return (
     <section className="flex flex-col gap-4" aria-label="Salas permanentes">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-ink-muted">
           {pro.active
             ? `${used} de ${pro.roomLimit} salas no Pro beta`
-            : "Pro beta inativo · Seu histórico continua disponível"}
+            : "Pro desativado. Suas salas e o histórico continuam aqui."}
         </p>
         {canCreate ? (
           <Button
@@ -85,16 +128,7 @@ export function RoomCollection({
           </Button>
         ) : null}
       </div>
-      {!enabled ? (
-        <output className="text-sm text-warning">
-          Salas permanentes aguardam a ativação dos controles de anfitrião nesta instância.
-        </output>
-      ) : null}
-      {!pro.active && canCreate ? (
-        <p className="text-sm text-ink-muted">
-          A ativação do piloto é feita pela equipe Nelcota. Não há cobrança automática.
-        </p>
-      ) : null}
+      <CreationNotes enabled={enabled} needsPro={!pro.active && canCreate} />
       <FormError message={error} />
       <ToggleGroup
         type="single"

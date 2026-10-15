@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CALL_END_SOUNDS,
+  MESSAGE_SOUND,
   RING_VOLUME,
   soundLength,
 } from "@/features/notifications/domain/call-end-sounds";
@@ -86,6 +87,7 @@ function fakeEnvironment({
     preferences: () => preferences,
     showSystem: vi.fn(() => system),
     startRing: vi.fn(() => ring),
+    playMessage: vi.fn(),
     addUnread: vi.fn(),
     after: vi.fn((_milliseconds: number, run: () => void) => {
       timeout = run;
@@ -94,6 +96,30 @@ function fakeEnvironment({
   } satisfies NotifierEnvironment;
   return { environment, ring, system, cancelTimeout, fireTimeout: () => timeout?.() };
 }
+
+describe("message sound", () => {
+  it("plays a short, quiet sound for a new message, on by default", () => {
+    expect(DEFAULT_NOTIFICATION_PREFERENCES.messageSound).toBe(true);
+    expect(readNotificationPreferences({ messageSound: false }).messageSound).toBe(false);
+    expect(soundLength(MESSAGE_SOUND.notes)).toBeLessThan(0.3);
+    expect(MESSAGE_SOUND.volume).toBeLessThan(RING_VOLUME);
+  });
+
+  it("sounds for a message, in front or in the background, unless turned off", () => {
+    const open = fakeEnvironment();
+    createNotifier(open.environment)({ kind: "message", title: "Nova mensagem de Bia" });
+    expect(open.environment.playMessage).toHaveBeenCalledTimes(1);
+    expect(open.environment.startRing).not.toHaveBeenCalled();
+    const quiet = fakeEnvironment({
+      preferences: { ...DEFAULT_NOTIFICATION_PREFERENCES, messageSound: false },
+    });
+    createNotifier(quiet.environment)({ kind: "message", title: "Nova mensagem de Bia" });
+    expect(quiet.environment.playMessage).not.toHaveBeenCalled();
+    const call = fakeEnvironment();
+    createNotifier(call.environment)({ kind: "call", title: "Bia está te chamando" });
+    expect(call.environment.playMessage).not.toHaveBeenCalled();
+  });
+});
 
 describe("notify", () => {
   it("rings for a call in the open tab, without counting or a system notification", () => {

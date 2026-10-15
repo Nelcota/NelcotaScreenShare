@@ -9,7 +9,7 @@ import {
   currentNotificationPreferences,
   updateNotificationPreferences,
 } from "@/features/notifications/client/preferences-store";
-import { playCallEnd, startRing } from "@/features/notifications/client/ring";
+import { playCallEnd, playMessageSound, startRing } from "@/features/notifications/client/ring";
 import type { CallEnd } from "@/features/notifications/domain/call-end-sounds";
 import {
   prepareSystemNotifications,
@@ -74,6 +74,7 @@ export function notify(options: NotifyOptions): NotifyHandle {
     preferences: currentNotificationPreferences,
     showSystem: showSystemNotification,
     startRing,
+    playMessage: playMessageSound,
     addUnread,
     after: (milliseconds, run) => {
       const timer = window.setTimeout(run, milliseconds);

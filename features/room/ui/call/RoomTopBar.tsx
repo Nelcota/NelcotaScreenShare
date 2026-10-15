@@ -1,5 +1,5 @@
 import type { RoomTitle } from "@/features/room/domain/room-title";
-import { useLocalParticipant } from "@livekit/components-react";
+import { useLocalParticipant, useParticipantInfo } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -191,8 +191,11 @@ export function RoomTopBar({
   const streamerId = useId();
   const name = useRoomName(participants, roomName);
   const { localParticipant } = useLocalParticipant();
+  // Read from the info hook: the identity arrives on connecting, on the same object, and a
+  // value derived from the object alone stays as it was before the call (React Compiler).
+  const { identity } = useParticipantInfo({ participant: localParticipant });
   // The way back to the start, like everywhere else; the call goes on minimized.
-  const startHref = startPath(!isGuestIdentity(localParticipant.identity));
+  const startHref = startPath(!isGuestIdentity(identity ?? localParticipant.identity));
   return (
     <NavBar aria-label="Sala" className="mx-auto max-w-5xl">
       <NavBrand href={startHref} showName={false} className="max-sm:hidden" />

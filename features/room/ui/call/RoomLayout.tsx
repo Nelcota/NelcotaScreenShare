@@ -245,6 +245,8 @@ export function RoomLayout({
           chat.open && "lg:pr-[26.5rem]",
         )}
       >
+        {/* Alone, the welcome's title is the page's heading; with company, this one. */}
+        {alone ? null : <h1 className="sr-only">Chamada</h1>}
         <Stage
           enlargedCamera={enlarged.camera}
           onCloseCamera={enlarged.close}

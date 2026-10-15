@@ -92,7 +92,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <html lang="pt-BR" style={style} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {indexable ? null : <meta name="robots" content="noindex, nofollow" />}
         <meta name="theme-color" content={THEME_COLOR.dark} />
         <meta name="color-scheme" content="dark light" />

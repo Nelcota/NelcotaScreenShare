@@ -72,7 +72,7 @@ export function PhoneTabs({ requests, unread }: { requests: number; unread: numb
   return (
     <nav
       aria-label="App"
-      className="glass sticky bottom-3 z-20 mx-3 mb-3 flex gap-1 rounded-2xl p-1.5 sm:hidden"
+      className="glass sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] flex gap-1 rounded-2xl p-1.5 sm:hidden"
     >
       <PhoneTab to="/inicio" icon={<House className={icon} aria-hidden="true" />} label="Início" />
       <PhoneTab

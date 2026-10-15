@@ -28,7 +28,7 @@ function PhoneFriends() {
       </div>
       <nav aria-label="Seus amigos" className="flex flex-col">
         {app.friends.length === 0 ? (
-          <NoFriendsYet code={app.code} />
+          <NoFriendsYet code={app.code} requests={app.requests} />
         ) : (
           <FriendGroups
             friends={app.friends}

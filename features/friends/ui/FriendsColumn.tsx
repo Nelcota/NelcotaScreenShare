@@ -127,7 +127,7 @@ function FriendsBody({
       </div>
       <nav aria-label="Amigos" className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-3">
         {friends.length === 0 ? (
-          <NoFriendsYet code={code} />
+          <NoFriendsYet code={code} requests={requests} />
         ) : (
           <FriendGroups
             friends={shown}

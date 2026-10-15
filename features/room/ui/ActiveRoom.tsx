@@ -14,6 +14,8 @@ export interface RoomEntry {
   passwordRequired: boolean;
   invite?: string;
   maxParticipants: number;
+  /** "Sala de Ana", from the owner; null when the room has no owner. */
+  roomName: string | null;
   presence: RoomPresence | null;
   isAdmin: boolean;
 }
@@ -49,6 +51,7 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
         passwordRequired={entry.passwordRequired}
         invite={entry.invite}
         maxParticipants={entry.maxParticipants}
+        roomName={entry.roomName}
         presence={entry.presence}
         isAdmin={entry.isAdmin}
         minimized={room === undefined}

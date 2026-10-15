@@ -1,0 +1,4 @@
+ALTER TABLE "room_session_members" ADD COLUMN "excluded_by_user_id" uuid;--> statement-breakpoint
+ALTER TABLE "room_session_members" ADD COLUMN "excluded_by_admin_id" uuid;--> statement-breakpoint
+ALTER TABLE "room_session_members" ADD CONSTRAINT "room_session_members_excluded_by_user_id_users_id_fk" FOREIGN KEY ("excluded_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "room_session_members" ADD CONSTRAINT "room_session_members_excluded_by_admin_id_admin_users_id_fk" FOREIGN KEY ("excluded_by_admin_id") REFERENCES "public"."admin_users"("id") ON DELETE set null ON UPDATE no action;

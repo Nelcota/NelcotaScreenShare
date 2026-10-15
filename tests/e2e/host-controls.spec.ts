@@ -29,7 +29,7 @@ test("host lock rejects prefetched admission and guests; sharing restriction pre
   const waiting = await newParticipant(browser, "Pessoa Esperando");
   const guest = await newVisitor(browser);
   try {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await fakeScreenCapture(member.page, { withSound: true, safeAudio: true });
     const credentials = await joinControlled(host, code);
     const csp = (await host.context.request.get("/")).headers()["content-security-policy"];
@@ -104,17 +104,23 @@ test("transfer removes old host authority; exclusion and closure reject original
   const next = await newParticipant(browser, "Proximo Host");
   const member = await newParticipant(browser, "Pessoa Removida");
   try {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     const hostCredentials = await joinControlled(host, code);
     await joinRoom(next.page, code);
     const refreshes = refreshedCredentials(member);
     const memberCredentials = await joinControlled(member, code);
     const refreshCount = refreshes.length;
-    const hand = await member.context.request.post("/api/sala/mao", {
-      headers: await accountHeaders(member),
-      data: { room: code, raised: true },
-    });
-    expect(hand.status()).toBe(204);
+    // Right after joining, LiveKit may not list the member yet (409): ask again until it does.
+    const headers = await accountHeaders(member);
+    await expect
+      .poll(async () => {
+        const hand = await member.context.request.post("/api/sala/mao", {
+          headers,
+          data: { room: code, raised: true },
+        });
+        return hand.status();
+      })
+      .toBe(204);
     await expect.poll(() => refreshes.length).toBeGreaterThan(refreshCount);
     await host.page.getByRole("button", { name: /3 pessoas/ }).click();
     await host.page.getByRole("button", { name: "Moderar Proximo Host" }).click();
@@ -158,7 +164,7 @@ test("admitted participant reconnects under lock and host authority survives nav
       socket.connectToServer();
       interrupt = () => socket.close({ code: 1012, reason: "Test reconnection" });
     });
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await joinRoom(host.page, code);
     await joinRoom(member.page, code);
     await host.page.getByRole("button", { name: "Controles do anfitrião" }).click();
@@ -177,7 +183,7 @@ test("admitted participant reconnects under lock and host authority survives nav
     await expect(member.page.locator('audio[data-source="voice"]')).toHaveCount(1);
     await host.page.keyboard.press("Escape");
     await host.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await host.page.getByRole("link", { name: /Foto, e-mail e senha na sua conta/ }).click();
+    await host.page.getByRole("link", { name: "Editar perfil" }).click();
     await expect(
       host.page.getByRole("complementary", { name: "Chamada em andamento" }),
     ).toBeVisible();

@@ -42,7 +42,7 @@ test("internal media names map to public history and session; metadata never cha
     .where(eq(roomSessions.id, room.sessionId));
   expect(session?.hostUserId).toBe(room.host);
   const data = await personalData(getDb(), room.host);
-  expect(data.salas_criadas.some((definition) => definition.sala === room.code)).toBe(true);
+  expect(data.salas_permanentes.some((definition) => definition.sala === room.code)).toBe(true);
   expect(data.admissoes_em_chamadas.some((member) => member.chamada === room.sessionId)).toBe(true);
   await getDb().transaction((tx) => anonymizeParticipant(tx, room.host));
   const [detached] = await getDb()

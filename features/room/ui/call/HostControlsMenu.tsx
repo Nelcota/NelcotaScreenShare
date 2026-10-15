@@ -9,6 +9,32 @@ import { participantName } from "@/features/room/domain/participant-label";
 import { sharePolicySchema } from "@/features/room/domain/host-controls";
 import { useRoomHost } from "./RoomHostProvider";
 
+/** Ending the call: an ownerless ad hoc room closes for good, any other stays for the next call. */
+function CloseCallDialog({
+  endsRoom,
+  ...props
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  endsRoom: boolean;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <ConfirmDialog
+      {...props}
+      title={endsRoom ? "Encerrar sala para todos?" : "Encerrar chamada para todos?"}
+      description={
+        endsRoom
+          ? "Todos serão desconectados e este código ficará encerrado. Crie outra sala para uma nova chamada."
+          : "Todos serão desconectados. O link continuará disponível para uma nova chamada."
+      }
+      confirmLabel={endsRoom ? "Encerrar sala" : "Encerrar chamada"}
+      danger
+    />
+  );
+}
+
 export function HostControlsMenu({ participants }: { participants: Participant[] }) {
   const host = useRoomHost();
   const lockId = useId();
@@ -16,7 +42,7 @@ export function HostControlsMenu({ participants }: { participants: Participant[]
   const [closing, setClosing] = useState(false);
   const state = host.state;
   if (!state) return null;
-  if (!state.isHost)
+  if (state.commands.length === 0)
     return state.locked ? (
       <span title="Novas entradas bloqueadas" className="px-1 text-warning">
         <LockKeyhole className="size-4" />
@@ -24,6 +50,8 @@ export function HostControlsMenu({ participants }: { participants: Participant[]
       </span>
     ) : null;
   const disabled = host.busy || !host.available;
+  // A room someone owns, or a permanent one, stays for the next call.
+  const endsRoom = state.endsRoom;
   return (
     <>
       <NavPopover
@@ -33,7 +61,9 @@ export function HostControlsMenu({ participants }: { participants: Participant[]
         trigger={<Crown className="size-5" aria-hidden="true" />}
       >
         <div className="flex max-h-[min(32rem,calc(100dvh-8rem))] flex-col gap-4 overflow-y-auto overscroll-contain">
-          <p className="text-base font-medium">Você é o anfitrião</p>
+          <p className="text-base font-medium">
+            {state.isHost ? "Você é o anfitrião" : "Você modera a sala"}
+          </p>
           <div>
             <label htmlFor={lockId} className="flex items-center justify-between gap-3">
               <span>Bloquear novas entradas</span>
@@ -115,22 +145,17 @@ export function HostControlsMenu({ participants }: { participants: Participant[]
               Aguarde a conexão para usar os controles.
             </output>
           ) : null}
-          <Button variant="destructive" disabled={disabled} onClick={() => setClosing(true)}>
-            {state.permanent ? "Encerrar chamada para todos" : "Encerrar sala para todos"}
-          </Button>
+          {state.commands.includes("close") ? (
+            <Button variant="destructive" disabled={disabled} onClick={() => setClosing(true)}>
+              {endsRoom ? "Encerrar sala para todos" : "Encerrar chamada para todos"}
+            </Button>
+          ) : null}
         </div>
       </NavPopover>
-      <ConfirmDialog
+      <CloseCallDialog
         open={closing}
         onOpenChange={setClosing}
-        title={state.permanent ? "Encerrar chamada para todos?" : "Encerrar sala para todos?"}
-        description={
-          state.permanent
-            ? "Todos serão desconectados. O link continuará disponível para uma nova chamada."
-            : "Todos serão desconectados e este código ficará encerrado. Crie outra sala para uma nova chamada."
-        }
-        confirmLabel={state.permanent ? "Encerrar chamada" : "Encerrar sala"}
-        danger
+        endsRoom={endsRoom}
         pending={disabled}
         onConfirm={() => {
           host.execute({ kind: "close" });

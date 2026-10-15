@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, describe, test, vi } from "vitest";
@@ -72,7 +72,7 @@ const exportSchema = z.object({
   participacoes_em_salas: z.array(
     z.object({
       sala: z.string(),
-      nomeNaSala: z.string().nullable(),
+      nome_na_sala: z.string().nullable(),
       ip: z.string().nullable(),
       compartilhamentos: z.number(),
     }),
@@ -80,7 +80,65 @@ const exportSchema = z.object({
   pedidos_de_entrada: z.array(z.object({ sala: z.string(), resultado: z.string() })),
 });
 
+const roomDataSchema = z.object({
+  salas_criadas: z.array(z.object({ sala: z.string() })),
+  papeis_em_salas: z.array(z.object({ sala: z.string(), papel: z.string() })),
+  banimentos_de_chamadas: z.array(z.object({ sala: z.string() })),
+});
+
+async function plainAccount(name: string) {
+  const [account] = await db
+    .insert(schema.users)
+    .values({ name, email: `${crypto.randomUUID()}@exemplo.com` })
+    .returning({ id: schema.users.id });
+  assert.ok(account);
+  return account.id;
+}
+
+async function deleteAccountOf(participant: { password: string; jar: { header(): string } }) {
+  requestHeaders.current = new Headers({ cookie: participant.jar.header() });
+  const result = await deleteMyAccount({ password: participant.password });
+  assert.equal(result.serverError, undefined, JSON.stringify(result));
+}
+
+const rolesIn = (roomCode: string) =>
+  db
+    .select({ userId: schema.roomRoles.userId, role: schema.roomRoles.role })
+    .from(schema.roomRoles)
+    .where(eq(schema.roomRoles.roomCode, roomCode));
+
 describe("data subject data", () => {
+  test("the export lists the rooms the person created, their roles and their bans", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const stamp = Date.now().toString(36);
+    const created = `criada-${stamp}`;
+    const other = `outra-${stamp}`;
+    await db
+      .insert(schema.roomDefinitions)
+      .values([{ code: created, ownerUserId: participant.id }, { code: other }]);
+    await db.insert(schema.roomRoles).values([
+      { roomCode: created, userId: participant.id, role: "owner" },
+      { roomCode: other, userId: participant.id, role: "moderator" },
+    ]);
+    await db
+      .insert(schema.roomBans)
+      .values({ roomCode: other, identity: participant.id, livekitRoomSid: "RM_lgpd" });
+    requestHeaders.current = new Headers({ cookie: participant.jar.header() });
+    const data = roomDataSchema.parse(await (await downloadAccountData()).json());
+    assert.deepEqual(
+      data.salas_criadas.map((row) => row.sala),
+      [created],
+    );
+    const roles = new Map(data.papeis_em_salas.map((row) => [row.sala, row.papel]));
+    assert.equal(roles.size, 2);
+    assert.equal(roles.get(created), "dono");
+    assert.equal(roles.get(other), "moderador");
+    assert.deepEqual(
+      data.banimentos_de_chamadas.map((row) => row.sala),
+      [other],
+    );
+  });
+
   test("the export includes the entire history beyond 5,000 rows", async () => {
     const participant = await verifiedParticipant(db, handler);
     const { code } = await withHistory(participant.id);
@@ -164,17 +222,17 @@ describe("data subject data", () => {
     const data = exportSchema.parse(await response.json());
     assert.equal(data.conta.id, lia.id);
     assert.deepEqual(
-      data.participacoes_em_salas.map(({ sala, nomeNaSala, ip, compartilhamentos }) => ({
+      data.participacoes_em_salas.map(({ sala, nome_na_sala, ip, compartilhamentos }) => ({
         sala,
-        nomeNaSala,
+        nome_na_sala,
         ip,
         compartilhamentos,
       })),
-      [{ sala: code, nomeNaSala: "Nome Na Sala", ip: "203.0.113.20", compartilhamentos: 1 }],
+      [{ sala: code, nome_na_sala: "Nome Na Sala", ip: "203.0.113.20", compartilhamentos: 1 }],
     );
     assert.deepEqual(
       data.pedidos_de_entrada.map((row) => [row.sala, row.resultado]),
-      [[code, "granted"]],
+      [[code, "aceito"]],
     );
   });
 
@@ -194,6 +252,179 @@ describe("data subject data", () => {
     assert.equal(row?.displayName, null);
     assert.equal(row?.ip, "203.0.113.20");
     assert.equal(row?.userId, leo.id);
+  });
+
+  test("deleting the account hands an owned room to its oldest moderator", async () => {
+    const owner = await verifiedParticipant(db, handler);
+    const oldest = await plainAccount("Moderadora Antiga");
+    const newer = await plainAccount("Moderador Novo");
+    const code = `heranca-${Date.now().toString(36)}`;
+    await db.insert(schema.roomDefinitions).values({ code, ownerUserId: owner.id });
+    await db.insert(schema.roomRoles).values([
+      { roomCode: code, userId: owner.id, role: "owner" },
+      {
+        roomCode: code,
+        userId: newer,
+        role: "moderator",
+        grantedByUserId: owner.id,
+        createdAt: new Date(Date.now() - 60_000),
+      },
+      {
+        roomCode: code,
+        userId: oldest,
+        role: "moderator",
+        grantedByUserId: owner.id,
+        createdAt: new Date(Date.now() - 120_000),
+      },
+    ]);
+    await db.insert(schema.roomSettings).values({ roomCode: code, updatedByUserId: owner.id });
+    await db.insert(schema.rooms).values({ code, createdByUserId: owner.id });
+
+    await deleteAccountOf(owner);
+
+    const roles = new Map((await rolesIn(code)).map((row) => [row.userId, row.role]));
+    assert.equal(roles.size, 2);
+    assert.equal(roles.get(oldest), "owner");
+    assert.equal(roles.get(newer), "moderator");
+    const [definition] = await db
+      .select()
+      .from(schema.roomDefinitions)
+      .where(eq(schema.roomDefinitions.code, code));
+    assert.equal(definition?.ownerUserId, oldest);
+    const [settings] = await db
+      .select()
+      .from(schema.roomSettings)
+      .where(eq(schema.roomSettings.roomCode, code));
+    assert.equal(settings?.updatedByUserId, null);
+    const [room] = await db.select().from(schema.rooms).where(eq(schema.rooms.code, code));
+    assert.equal(room?.createdByUserId, null);
+    const granted = await db
+      .select()
+      .from(schema.roomRoles)
+      .where(eq(schema.roomRoles.grantedByUserId, owner.id));
+    assert.deepEqual(granted, []);
+  });
+
+  test("deleting the account removes an owned room with no moderator and its roles elsewhere", async () => {
+    const owner = await verifiedParticipant(db, handler);
+    const otherOwner = await plainAccount("Dona Da Outra");
+    const stamp = Date.now().toString(36);
+    const solo = `sozinha-${stamp}`;
+    const other = `alheia-${stamp}`;
+    await db.insert(schema.roomDefinitions).values([
+      { code: solo, ownerUserId: owner.id },
+      { code: other, ownerUserId: otherOwner },
+    ]);
+    await db.insert(schema.roomRoles).values([
+      { roomCode: solo, userId: owner.id, role: "owner" },
+      { roomCode: other, userId: otherOwner, role: "owner" },
+      { roomCode: other, userId: owner.id, role: "moderator", grantedByUserId: otherOwner },
+    ]);
+    await db.insert(schema.roomSettings).values({ roomCode: solo, access: "approval" });
+    await db.insert(schema.roomJoinRequests).values({
+      roomCode: solo,
+      guestId: crypto.randomUUID(),
+      displayName: "Visita",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await db.insert(schema.roomBans).values([
+      { roomCode: solo, identity: "convidado-x", livekitRoomSid: "RM_solo" },
+      { roomCode: other, identity: "convidado-y", livekitRoomSid: "RM_other" },
+    ]);
+
+    await deleteAccountOf(owner);
+
+    const codes = await db
+      .select({ code: schema.roomDefinitions.code })
+      .from(schema.roomDefinitions)
+      .where(inArray(schema.roomDefinitions.code, [solo, other]));
+    assert.deepEqual(
+      codes.map((row) => row.code),
+      [other],
+    );
+    assert.deepEqual(await rolesIn(solo), []);
+    assert.deepEqual(await rolesIn(other), [{ userId: otherOwner, role: "owner" }]);
+    const settings = await db
+      .select()
+      .from(schema.roomSettings)
+      .where(eq(schema.roomSettings.roomCode, solo));
+    assert.deepEqual(settings, []);
+    const requests = await db
+      .select()
+      .from(schema.roomJoinRequests)
+      .where(eq(schema.roomJoinRequests.roomCode, solo));
+    assert.deepEqual(requests, []);
+    const bans = await db
+      .select({ roomCode: schema.roomBans.roomCode })
+      .from(schema.roomBans)
+      .where(inArray(schema.roomBans.roomCode, [solo, other]));
+    assert.deepEqual(bans, [{ roomCode: other }]);
+  });
+
+  test("deleting an account removes its join request names in other people's rooms", async () => {
+    const requester = await verifiedParticipant(db, handler);
+    const owner = await plainAccount("Dona Da Sala");
+    const code = `pedidos-${crypto.randomUUID().slice(0, 8)}`;
+    await db.insert(schema.roomDefinitions).values({ code, ownerUserId: owner });
+    await db.insert(schema.roomJoinRequests).values([
+      {
+        roomCode: code,
+        userId: requester.id,
+        displayName: "Nome Pessoal No Pedido",
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+      {
+        roomCode: code,
+        guestId: crypto.randomUUID(),
+        displayName: "Outra Pessoa",
+        status: "accepted",
+        decidedByUserId: requester.id,
+        decidedAt: new Date(),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    ]);
+
+    await deleteAccountOf(requester);
+
+    const requests = await db
+      .select()
+      .from(schema.roomJoinRequests)
+      .where(eq(schema.roomJoinRequests.roomCode, code));
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0]?.displayName, "Outra Pessoa");
+    assert.equal(requests[0]?.decidedByUserId, null);
+  });
+
+  test("deleting the account archives an owned room the host controls kept calls of", async () => {
+    const owner = await verifiedParticipant(db, handler);
+    const code = `com-chamadas-${Date.now().toString(36)}`;
+    const [definition] = await db
+      .insert(schema.roomDefinitions)
+      .values({ code, ownerUserId: owner.id })
+      .returning({ id: schema.roomDefinitions.id });
+    assert.ok(definition);
+    await db.insert(schema.roomRoles).values({ roomCode: code, userId: owner.id, role: "owner" });
+    await db.insert(schema.roomSettings).values({ roomCode: code, access: "approval" });
+    await db.insert(schema.roomSessions).values({
+      definitionId: definition.id,
+      mediaRoomName: `nelcota-${crypto.randomUUID()}`,
+      status: "closed",
+    });
+
+    await deleteAccountOf(owner);
+
+    const [archived] = await db
+      .select()
+      .from(schema.roomDefinitions)
+      .where(eq(schema.roomDefinitions.code, code));
+    assert.equal(archived?.ownerUserId, null);
+    assert.notEqual(archived?.archivedAt, null);
+    assert.deepEqual(await rolesIn(code), []);
+    const settings = await db
+      .select()
+      .from(schema.roomSettings)
+      .where(eq(schema.roomSettings.roomCode, code));
+    assert.deepEqual(settings, []);
   });
 
   test("a wrong password on deletion has a per-account attempt limit", async () => {

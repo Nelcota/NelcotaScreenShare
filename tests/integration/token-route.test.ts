@@ -21,8 +21,14 @@ const fakeLiveKit = createServer((request, response) => {
   let body = "";
   request.on("data", (chunk: Buffer) => (body += chunk.toString()));
   request.on("end", () => {
-    const { room } = jsonObject.parse(JSON.parse(body || "{}"));
+    const { room, names } = jsonObject.parse(JSON.parse(body || "{}"));
     response.setHeader("Content-Type", "application/json");
+    // ListRooms (the current call's sid, read only when someone has a ban on record).
+    if (request.url?.endsWith("/ListRooms")) {
+      const rooms = z.array(z.string()).parse(names);
+      response.end(JSON.stringify({ rooms: rooms.map((name) => ({ name, sid: `RM_${name}` })) }));
+      return;
+    }
     if (room === "sala-nova") {
       response.statusCode = 404;
       response.end(JSON.stringify({ code: "not_found", msg: "room not found" }));
@@ -59,6 +65,7 @@ Object.assign(process.env, {
 const { requestRoomToken } = await import("@/features/room/server/token-route.server");
 const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
 const { createRoomInvite } = await import("@/features/room/server/invites.server");
+const { createRoom } = await import("@/features/room/server/room-codes.server");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
@@ -68,6 +75,23 @@ afterAll(async () => {
 });
 
 const handler = (request: Request) => getUserAuth().handler(request);
+
+/** Rooms only exist once created; the tests create theirs straight in the database. */
+async function createdRooms(...codes: string[]) {
+  await db
+    .insert(schema.roomDefinitions)
+    .values(codes.map((code) => ({ code })))
+    .onConflictDoNothing();
+}
+
+await createdRooms(
+  "sala-ok",
+  "sala-teste",
+  "sala-nova",
+  "sala-cheia",
+  "sala-quebrada",
+  "sala-so-convidados",
+);
 
 let nextIp = 1;
 function freshIp() {
@@ -100,6 +124,12 @@ async function errorCode(response: Response): Promise<string> {
 function claims(token: string): Record<string, unknown> {
   const [, payload = ""] = token.split(".");
   return jsonObject.parse(JSON.parse(Buffer.from(payload, "base64url").toString()));
+}
+
+async function roleIn(response: Response): Promise<unknown> {
+  assert.equal(response.status, 200);
+  const { token } = tokenBody.parse(await response.json());
+  return jsonObject.parse(claims(token).attributes).role;
 }
 
 describe("access", () => {
@@ -190,6 +220,39 @@ describe("token", () => {
     assert.equal(video.canUpdateOwnMetadata, undefined);
   });
 
+  test("the role goes in the signed token: the creator owns the room", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana Dona" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia Visita" });
+    const room = await createRoom(db, ana.id);
+    const request = { room, password: ACCESS };
+    // Bia asks first: asking first does not make anyone the owner.
+    assert.equal(await roleIn(await post(request, { cookie: bia.jar.header() })), "participant");
+    assert.equal(await roleIn(await post(request, { cookie: ana.jar.header() })), "owner");
+    assert.equal(await roleIn(await post({ ...request, guestName: "Iris" })), "participant");
+  });
+
+  test("a code nobody created: 404 room_not_found, for accounts and guests", async () => {
+    const lia = await verifiedParticipant(db, handler);
+    const room = `bzk-${Date.now().toString(36)}-askjndjkaw`;
+    for (const response of [
+      await post({ room, password: ACCESS }, { cookie: lia.jar.header() }),
+      await post({ room, password: ACCESS, guestName: "Iris" }),
+    ]) {
+      assert.equal(response.status, 404);
+      assert.equal(await errorCode(response), "room_not_found");
+    }
+    const rows = await requestsOf(room);
+    assert.deepEqual(
+      rows.map((row) => row.result),
+      ["room_not_found", "room_not_found"],
+    );
+    assert.equal(
+      (await db.select().from(schema.roomDefinitions).where(eq(schema.roomDefinitions.code, room)))
+        .length,
+      0,
+    );
+  });
+
   test("new room, full room and LiveKit error", async () => {
     const edu = await verifiedParticipant(db, handler);
     const cookie = edu.jar.header();
@@ -254,6 +317,7 @@ describe("logging to token_requests", () => {
     const ivo = await verifiedParticipant(db, handler);
     const cookie = ivo.jar.header();
     const room = `sala-registro-${Date.now().toString(36)}`;
+    await createdRooms(room);
     await post({ room, password: ACCESS });
     await post({ room, password: "errada" }, { cookie, ip: "198.51.100.9" });
     await post({ room: room.toUpperCase(), password: ACCESS }, { cookie, ip: "198.51.100.9" });
@@ -266,6 +330,24 @@ describe("logging to token_requests", () => {
     assert.equal(rows[0]?.userId, null);
     assert.equal(rows[2]?.userId, ivo.id);
     assert.equal(rows[2]?.ip, "198.51.100.9");
+  });
+
+  test("someone banned from the current call gets 403 banned, logged as banned", async () => {
+    const lia = await verifiedParticipant(db, handler);
+    const room = `sala-banida-${Date.now().toString(36)}`;
+    await createdRooms(room);
+    // The fake LiveKit answers ListRooms with `RM_<room>` as the current call.
+    await db
+      .insert(schema.roomBans)
+      .values({ roomCode: room, identity: lia.id, livekitRoomSid: `RM_${room}` });
+    const response = await post({ room, password: ACCESS }, { cookie: lia.jar.header() });
+    assert.equal(response.status, 403);
+    assert.equal(await errorCode(response), "banned");
+    const rows = await requestsOf(room);
+    assert.deepEqual(
+      rows.map((row) => row.result),
+      ["banned"],
+    );
   });
 
   test("full room, LiveKit error and invalid body are logged too", async () => {
@@ -304,6 +386,7 @@ async function inviteFor(
     .insert(schema.adminUsers)
     .values({ email: `convite-${crypto.randomUUID()}@exemplo.com`, name: "Admin", role: "admin" })
     .returning({ id: schema.adminUsers.id });
+  await createdRooms(code);
   let [room] = await db.select().from(schema.rooms).where(eq(schema.rooms.code, code));
   if (!room) [room] = await db.insert(schema.rooms).values({ code }).returning();
   assert.ok(owner);

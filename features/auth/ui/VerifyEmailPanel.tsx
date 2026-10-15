@@ -68,7 +68,7 @@ export function VerifyEmailPanel({
           <>
             Abra o e-mail de confirmação enviado para{" "}
             <strong className="break-all text-ink">{email}</strong> e toque em “Confirmar e-mail”. O
-            link vale por 24 horas. Se precisar, peça outro abaixo.
+            link vale por 24 horas.
           </>
         ) : (
           "Abra o e-mail de confirmação e toque em “Confirmar e-mail”."

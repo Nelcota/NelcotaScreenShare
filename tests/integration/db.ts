@@ -33,6 +33,27 @@ export async function adminQuery(adminUrl: string, statements: string[]) {
   }
 }
 
+/**
+ * Drops the worker copies a previous run left behind (a crashed or interrupted file never
+ * reaches its cleanup). Copies are named `<base>_w<pool>_<run>`.
+ */
+export async function dropWorkerDatabases(adminUrl: string) {
+  const base = new URL(adminUrl).pathname.slice(1);
+  const client = new Client({ connectionString: adminUrl });
+  await client.connect();
+  try {
+    const { rows } = await client.query<{ datname: string }>(
+      String.raw`select datname from pg_database where datname like $1 escape '\'`,
+      [`${base.replaceAll("_", String.raw`\_`)}\\_w%`],
+    );
+    for (const { datname } of rows) {
+      await client.query(`DROP DATABASE IF EXISTS ${ident(datname)} WITH (FORCE)`);
+    }
+  } finally {
+    await client.end();
+  }
+}
+
 /** Database name from the test config: only letters, digits and "_". */
 export function ident(name: string): string {
   if (!IDENTIFIER.test(name)) throw new Error(`Invalid database name: ${name}`);

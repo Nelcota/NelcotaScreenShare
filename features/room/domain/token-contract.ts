@@ -13,6 +13,8 @@ export const tokenRequestSchema = z.object({
   invite: z.string().max(64).optional(),
   /** Name of a guest (no account); ignored when the request comes with a session. */
   guestName: displayNameSchema.optional(),
+  /** An accepted request to enter a room with approval (it lets the person in once). */
+  requestId: z.uuid().optional(),
 });
 
 export type TokenRequest = z.infer<typeof tokenRequestSchema>;
@@ -36,6 +38,9 @@ export const tokenErrorSchema = z.object({
     "invite_invalid",
     "room_full",
     "host_absent",
+    "room_not_found",
+    "banned",
+    "awaiting_approval",
     "room_locked",
     "room_removed",
     "room_closed",
@@ -43,6 +48,8 @@ export const tokenErrorSchema = z.object({
     "server_error",
   ]),
   message: z.string(),
+  /** With awaiting_approval: the request to follow while the owner decides. */
+  requestId: z.string().optional(),
 });
 
 export type TokenErrorCode = z.infer<typeof tokenErrorSchema>["error"];

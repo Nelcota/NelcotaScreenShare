@@ -22,21 +22,21 @@ const OPTIONS: {
   {
     surface: "monitor",
     title: "Tela inteira",
-    description: "Tudo o que aparece no seu monitor",
+    description: "O monitor inteiro",
     icon: Monitor,
     hasAudio: true,
   },
   {
     surface: "window",
     title: "Janela",
-    description: "Um aplicativo específico, sem o resto da tela",
+    description: "Um aplicativo específico",
     icon: AppWindow,
     hasAudio: false,
   },
   {
     surface: "browser",
     title: "Aba do navegador",
-    description: "Ideal para vídeos e slides",
+    description: "Melhor para vídeos e slides",
     icon: Globe,
     hasAudio: true,
   },
@@ -126,7 +126,7 @@ export function SharePanel({
                   {silent ? (
                     <span className="mt-0.5 flex items-center gap-1 text-xs text-warning">
                       <VolumeX className="size-3" aria-hidden="true" />
-                      Vai sem áudio: o navegador não captura som de janelas
+                      Janelas vão sem áudio
                     </span>
                   ) : null}
                 </span>

@@ -23,9 +23,8 @@ export function BackupCodes({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-ink-muted">
-        Guarde estes códigos num lugar seguro (gerenciador de senhas). Cada um entra uma única vez
-        se você perder o app autenticador.{" "}
-        <strong className="text-ink">Eles não aparecem de novo.</strong>
+        Guarde estes códigos num gerenciador de senhas. Se perder o app autenticador, cada um vale
+        para um acesso. <strong className="text-ink">Eles não aparecem de novo.</strong>
       </p>
       <ol className="grid grid-cols-2 gap-2 rounded-xl bg-surface-2 p-4 font-sans text-sm tabular-nums">
         {codes.map((code) => (

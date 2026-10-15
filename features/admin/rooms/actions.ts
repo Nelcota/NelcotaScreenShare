@@ -20,3 +20,11 @@ export const revokeInviteAction = operation<
   Parameters<typeof server.revokeInviteAction>[0],
   NonNullable<Awaited<ReturnType<typeof server.revokeInviteAction>>["data"]>
 >("admin-rooms-revokeInviteAction");
+export const removeParticipantAction = operation<
+  Parameters<typeof server.removeParticipantAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.removeParticipantAction>>["data"]>
+>("admin-rooms-removeParticipantAction");
+export const readmitParticipantAction = operation<
+  Parameters<typeof server.readmitParticipantAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.readmitParticipantAction>>["data"]>
+>("admin-rooms-readmitParticipantAction");

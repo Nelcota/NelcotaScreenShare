@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessions, roomSessionMembers } from "@/server/db/schema/room-control";
 import { users } from "@/server/db/schema/user-auth";
@@ -103,8 +103,34 @@ export async function activeAccount(tx: DbExecutor, identity: string) {
   return account;
 }
 
+/**
+ * The LiveKit room of a public code: the code itself until host controls are enabled, then
+ * the open session's media name (the code while no call is open).
+ */
+export async function mediaRoomIn(tx: DbExecutor, code: string): Promise<string> {
+  if (!getEnv().ROOM_HOST_CONTROLS_ENABLED) return code;
+  return (await openControlSession(tx, code))?.mediaRoomName ?? code;
+}
+
 /** Legacy calls keep their existing media name until host controls are enabled. */
 export async function mediaRoomForCode(code: string): Promise<string> {
-  if (!getEnv().ROOM_HOST_CONTROLS_ENABLED) return code;
-  return (await openControlSession(getDb(), code))?.mediaRoomName ?? code;
+  return mediaRoomIn(getDb(), code);
+}
+
+/** The public code behind a LiveKit room name; a name that is no session's is the code. */
+export async function roomCodeForMedia(tx: DbExecutor, mediaName: string): Promise<string> {
+  // Not behind the flag: sessions recorded while it was on keep their names.
+  return (await sessionByMediaName(tx, mediaName))?.code ?? mediaName;
+}
+
+/** Public codes behind several LiveKit room names, in one read; unknown names are codes. */
+export async function roomCodesForMedia(tx: DbExecutor, mediaNames: readonly string[]) {
+  if (mediaNames.length === 0) return [];
+  const sessions = await tx
+    .select({ mediaName: roomSessions.mediaRoomName, code: roomDefinitions.code })
+    .from(roomSessions)
+    .innerJoin(roomDefinitions, eq(roomDefinitions.id, roomSessions.definitionId))
+    .where(inArray(roomSessions.mediaRoomName, [...mediaNames]));
+  const codeOf = new Map(sessions.map((session) => [session.mediaName, session.code]));
+  return mediaNames.map((name) => codeOf.get(name) ?? name);
 }

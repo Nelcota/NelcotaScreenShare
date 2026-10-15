@@ -1,14 +1,9 @@
-import assert from "node:assert/strict";
-import { test } from "vitest";
-import { newRoomHref } from "@/features/home/domain/new-room";
+import { expect, it } from "vitest";
+import { CREATE_ROOM_RETURN, createRoomEntryHref } from "@/features/home/domain/new-room";
+import { safeReturnPath } from "@/features/auth/domain/return-path";
 
-test("with an account, a new room opens directly", () => {
-  assert.match(newRoomHref(true), /^\/sala\/[a-z0-9]{3}-[a-z0-9]{4}-[a-z0-9]{3}$/);
-});
-
-test("without an account, sign-up comes first and returns to the new room", () => {
-  const href = newRoomHref(false);
-  assert.match(href, /^\/cadastro\?voltar=%2Fsala%2F/);
-  const back = decodeURIComponent(href.split("voltar=")[1] ?? "");
-  assert.match(back, /^\/sala\/[a-z0-9]{3}-[a-z0-9]{4}-[a-z0-9]{3}$/);
+it("a visitor signs up and an expired session signs in, both coming back to create the room", () => {
+  expect(createRoomEntryHref(false)).toBe("/cadastro?voltar=%2F%3Fcriar%3Dsala");
+  expect(createRoomEntryHref(true)).toBe("/entrar?voltar=%2F%3Fcriar%3Dsala");
+  expect(safeReturnPath(CREATE_ROOM_RETURN)).toBe(CREATE_ROOM_RETURN);
 });

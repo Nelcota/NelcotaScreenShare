@@ -20,7 +20,8 @@ import { createdAt, id, timestamptz, updatedAt } from "./columns";
 import { users } from "./user-auth";
 import { TOKEN_LOG_RESULTS } from "@/features/room/domain/issue-token";
 import { ROOM_CODE_PATTERN } from "@/features/room/domain/room-code";
-import { roomSessions } from "./room-control";
+import { SAVED_ROOM_ROLES } from "@/features/room/domain/room-role";
+import { roomDefinitions, roomSessions } from "./room-control";
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 
@@ -215,6 +216,68 @@ export const roomInviteUses = pgTable(
     createdAt: createdAt(),
   },
   (table) => [primaryKey({ columns: [table.inviteId, table.userId] })],
+);
+
+export const roomRole = pgEnum("room_role", SAVED_ROOM_ROLES);
+
+/**
+ * Owner and moderators of each room (features/room/domain/room-role.ts), by its code in
+ * `room_definitions`. The owner row is written with the room, by the account that created
+ * it, and mirrors `room_definitions.owner_user_id`. Revoking a moderator deletes
+ * the row.
+ */
+export const roomRoles = pgTable(
+  "room_roles",
+  {
+    roomCode: text("room_code")
+      .notNull()
+      .references(() => roomDefinitions.code, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: roomRole("role").notNull(),
+    // Who made this account a moderator (null for the owner).
+    grantedByUserId: uuid("granted_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.roomCode, t.userId] }),
+    // A single owner per room.
+    uniqueIndex("room_roles_owner_key")
+      .on(t.roomCode)
+      .where(sql`${t.role} = 'owner'`),
+    index("room_roles_user_idx").on(t.userId),
+  ],
+);
+
+/**
+ * Bans from one call: the LiveKit sid identifies this instance of the room, so the ban
+ * ends by itself when the room empties and closes. The identity is the account id or the
+ * guest identity (`convidado-…`). Set by the owner or a moderator, or from the admin panel.
+ */
+export const roomBans = pgTable(
+  "room_bans",
+  {
+    id: id(),
+    roomCode: text("room_code").notNull(),
+    livekitRoomSid: text("livekit_room_sid").notNull(),
+    identity: text("identity").notNull(),
+    bannedByUserId: uuid("banned_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    bannedByAdminId: uuid("banned_by_admin_id").references(() => adminUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check("room_bans_code_check", sql.raw(`room_code ~ '${ROOM_CODE_PATTERN}'`)),
+    check("room_bans_identity_check", sql`length(${t.identity}) <= 128`),
+    // Lookups go by room and person first; the call sid narrows the few bans they have.
+    uniqueIndex("room_bans_call_identity_key").on(t.roomCode, t.identity, t.livekitRoomSid),
+  ],
 );
 
 export const tokenResult = pgEnum("token_result", TOKEN_LOG_RESULTS);

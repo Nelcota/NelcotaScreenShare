@@ -50,7 +50,7 @@ async function sendExistingAccountMail({ user }: { user: MailRecipient }) {
     mailLayout({
       title: "Você já tem uma conta no Nelcota",
       intro:
-        "Alguém tentou criar uma nova conta com este e-mail. Se foi você, é só entrar com sua senha (ou redefini-la). Se não foi, pode ignorar.",
+        "Alguém tentou criar uma conta com este e-mail. Se foi você, entre com sua senha ou redefina a senha. Se não foi, ignore este e-mail.",
       action: { label: "Entrar no Nelcota", url: `${appUrl()}/entrar` },
     }),
   );

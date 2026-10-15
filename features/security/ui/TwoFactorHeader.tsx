@@ -2,10 +2,10 @@ import { ShieldAlert, ShieldCheck } from "lucide-react";
 
 function headerHint(enabled: boolean, required: boolean): string {
   if (enabled) {
-    return "Ativa. Para entrar, além da senha, pedimos um código do seu app autenticador.";
+    return "Ativa. Ao entrar, pedimos a senha e um código do app autenticador.";
   }
   if (required) return "Obrigatória para o seu papel. Ative para usar o painel.";
-  return "Recomendada: protege a conta mesmo se a senha vazar.";
+  return "Recomendada. Protege a conta mesmo se a senha vazar.";
 }
 
 export function TwoFactorHeader({

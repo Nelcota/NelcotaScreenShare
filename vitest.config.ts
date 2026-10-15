@@ -47,6 +47,12 @@ export default defineConfig({
                 environment: "node",
                 globalSetup: ["tests/integration/global-setup.ts"],
                 setupFiles: ["tests/integration/file-setup.ts"],
+                // The local Postgres mirrors production (max_connections = 50) and is shared by
+                // every chat, app and E2E run on the machine. Each worker holds the app pool (up to
+                // 5) plus the test's own: more workers ran out of connections under load.
+                maxWorkers: 4,
+                // A different worker limit needs its own group: unit tests run first.
+                sequence: { groupOrder: 1 },
                 testTimeout: 20_000,
                 hookTimeout: 60_000,
               },

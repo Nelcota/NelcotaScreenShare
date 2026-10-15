@@ -7,6 +7,7 @@ import type { AdminRole } from "@/features/auth/domain/roles";
  */
 export type NavIcon =
   | "home"
+  | "live"
   | "rooms"
   | "users"
   | "shares"
@@ -32,6 +33,13 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
   {
     label: "Uso",
     items: [
+      {
+        href: "/admin/ao-vivo",
+        label: "Ao vivo",
+        icon: "live",
+        permission: { live: ["read"] },
+        keywords: ["chamada", "agora", "online", "fantasma"],
+      },
       {
         href: "/admin/salas",
         label: "Salas",

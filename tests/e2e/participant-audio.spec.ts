@@ -30,7 +30,7 @@ test("individual playback survives track replacement, deafening and navigation",
       interruptSignal = () => socket.close({ code: 1012, reason: "Test reconnection" });
     });
     await fakeScreenCapture(sender.page, { withSound: true, safeAudio: true });
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await joinRoom(sender.page, code);
     await joinRoom(listener.page, code);
     const initialVoice = listener.page.locator('audio[data-source="voice"]');
@@ -93,7 +93,7 @@ test("individual playback survives track replacement, deafening and navigation",
     await expect(sound).toHaveJSProperty("volume", 0.25);
 
     await listener.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await listener.page.getByRole("link", { name: /Foto, e-mail e senha na sua conta/ }).click();
+    await listener.page.getByRole("link", { name: "Editar perfil" }).click();
     await expect(
       listener.page.getByRole("complementary", { name: "Chamada em andamento" }),
     ).toBeVisible();
@@ -136,7 +136,7 @@ test("shared sound is disabled until the participant publishes it", async ({ bro
   const sender = await newParticipant(browser, "Audio Sem Tela");
   const listener = await newParticipant(browser, "Audio Apenas Voz");
   try {
-    const code = newRoomCode();
+    const code = await newRoomCode();
     await joinRoom(sender.page, code);
     await joinRoom(listener.page, code);
     await listener.page.getByRole("button", { name: "Áudio de Audio Sem Tela" }).click();

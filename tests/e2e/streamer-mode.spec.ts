@@ -30,7 +30,7 @@ async function expectHiddenRoom(page: Page, code: string) {
 
 test("streamer mode hides every invitation and can reveal them again", async ({ browser }) => {
   const { page, context } = await newParticipant(browser, "Streamer Teste");
-  const code = newRoomCode();
+  const code = await newRoomCode();
   await joinRoom(page, code, { micOn: false });
   await expect(page.getByLabel("Link da sala", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Mais opções", exact: true }).click();
@@ -83,8 +83,8 @@ test("back, forward and reload preserve each hidden room without adding history 
   browser,
 }) => {
   const { page, context } = await newParticipant(browser, "Streamer Historico");
-  const first = newRoomCode();
-  const second = first.replace(/-sala$/, "-next");
+  const first = await newRoomCode();
+  const second = await newRoomCode();
   try {
     await context.addInitScript(() => localStorage.setItem("nelcota-streamer-mode", "1"));
     await page.goto("/");
@@ -126,7 +126,7 @@ test("a hidden room and its invite survive reload when session storage is blocke
   browser,
 }) => {
   const { page, context } = await newParticipant(browser, "Streamer Storage");
-  const code = newRoomCode();
+  const code = await newRoomCode();
   const invite = "a".repeat(43);
   try {
     await context.addInitScript(() => {
@@ -142,7 +142,7 @@ test("a hidden room and its invite survive reload when session storage is blocke
     const index = await historyIndex(page);
     await page.reload();
     await expect(page).toHaveURL(/\/sala$/);
-    await expect(page.getByText("Você tem convite: não precisa de senha")).toBeVisible();
+    await expect(page.getByText("Com convite, sem senha")).toBeVisible();
     expect(await historyIndex(page)).toBe(index);
     await setSavedMode(page, false);
     await expect(page).toHaveURL(new RegExp(`/sala/${code}\\?convite=${invite}$`));
@@ -156,13 +156,13 @@ test("a masked call stays connected across profile navigation and browser histor
   browser,
 }) => {
   const { page, context } = await newParticipant(browser, "Streamer Chamada");
-  const code = newRoomCode();
+  const code = await newRoomCode();
   try {
     await joinRoom(page, code);
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
     await page.getByRole("switch", { name: "Modo streamer" }).click();
     await expect(page).toHaveURL(/\/sala$/);
-    await page.getByRole("link", { name: /Foto, e-mail e senha na sua conta/ }).click();
+    await page.getByRole("link", { name: "Editar perfil" }).click();
     await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
     await page.getByRole("link", { name: "Voltar à sala", exact: true }).click();
     await expect(page).toHaveURL(/\/sala$/);

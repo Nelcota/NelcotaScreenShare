@@ -35,13 +35,7 @@ function isFreshPageLoad(): boolean {
  * steps, privacy); then the reference sections, which scroll normally because people read,
  * compare and click there (details, browsers, price, updates, questions, call to action).
  */
-export function HomeSections({
-  maxParticipants,
-  signedIn,
-}: {
-  maxParticipants: number;
-  signedIn: boolean;
-}) {
+export function HomeSections({ maxParticipants }: { maxParticipants: number }) {
   const scope = useRef<HTMLDivElement>(null);
   const reference = useRef<HTMLDivElement>(null);
   useReferenceFx(reference);
@@ -83,11 +77,11 @@ export function HomeSections({
       >
         <FeaturesSection maxParticipants={maxParticipants} />
         <BrowserCheckSection />
-        <PricingSection maxParticipants={maxParticipants} signedIn={signedIn} />
+        <PricingSection maxParticipants={maxParticipants} />
         <ChangelogSection />
         <FaqSection maxParticipants={maxParticipants} />
       </div>
-      <FinalCta signedIn={signedIn} />
+      <FinalCta />
     </div>
   );
 }

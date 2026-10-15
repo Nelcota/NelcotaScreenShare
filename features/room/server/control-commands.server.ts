@@ -2,6 +2,7 @@ import { and, asc, eq, lte, ne } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { roomCommands, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import { controlGateway } from "./control-gateway.server";
+import { savedRolesIn } from "./room-roles.server";
 import { lockControlRoom, sessionByMediaName } from "./session-store.server";
 import { closeSignalConnections } from "./signal-relay.server";
 
@@ -46,7 +47,7 @@ export async function applyRoomCommand(db: Database, id: string) {
         }
       }
       if (session.status !== "closed" && command.kind === "sync")
-        await controlGateway.sync(session);
+        await controlGateway.sync(session, await savedRolesIn(tx, resolved.code));
       await tx
         .update(roomCommands)
         .set({ status: "applied", attempts: command.attempts + 1, error: null })

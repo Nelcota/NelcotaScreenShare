@@ -33,8 +33,8 @@ interface SmartBarProps {
   invalidCode: boolean;
   pending: boolean;
   onNavigate: (href: string) => void;
-  /** Where an empty bar's "Criar sala" goes (a new room, or sign-up first). */
-  createRoomHref: () => string;
+  /** An empty bar's "Criar sala". */
+  onCreateRoom: () => void;
   /** Mascot "peeking" over the bar. */
   mascot: ReactNode;
   /** Whether "/" focuses this bar; only one bar on the page should answer it. */
@@ -154,7 +154,7 @@ export function SmartBar({
   invalidCode,
   pending,
   onNavigate,
-  createRoomHref,
+  onCreateRoom,
   mascot,
   focusShortcut = true,
 }: SmartBarProps) {
@@ -212,7 +212,11 @@ export function SmartBar({
       return;
     }
     celebrateMascot();
-    onNavigate(input.kind === "room" ? roomLink(input.code, input.invite) : createRoomHref());
+    if (input.kind !== "room") {
+      onCreateRoom();
+      return;
+    }
+    onNavigate(roomLink(input.code, input.invite));
   }
 
   // "Criar sala" only with an empty bar; with text, the person is trying to join.

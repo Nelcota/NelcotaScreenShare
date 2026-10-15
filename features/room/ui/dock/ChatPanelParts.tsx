@@ -20,7 +20,7 @@ export function ChatHeader({ onClose }: { onClose: () => void }) {
         <h2 className="text-base font-semibold tracking-[-0.025em]">Chat da sala</h2>
         <p className="flex items-center gap-1.5 text-xs text-ink-subtle">
           <EyeOff className="size-3.5 shrink-0" aria-hidden="true" />
-          Nada fica salvo: some quando a sala acaba
+          Some quando a sala acaba
         </p>
       </div>
       <button
@@ -43,9 +43,7 @@ export function ChatEmptyState() {
       </span>
       <div>
         <p className="text-base font-medium">Nenhuma mensagem ainda</p>
-        <p className="mt-1 text-sm text-ink-muted">
-          Mande um link, um recado ou um oi para a sala.
-        </p>
+        <p className="mt-1 text-sm text-ink-muted">As mensagens aparecem aqui.</p>
       </div>
     </div>
   );

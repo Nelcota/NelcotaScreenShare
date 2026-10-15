@@ -8,6 +8,8 @@ import {
   roomSessions,
 } from "@/server/db/schema/room-control";
 import { auditLogs } from "@/server/db/schema/audit";
+import { roomRoles } from "@/server/db/schema";
+import { applyRoleChange } from "@/features/room/server/role-changes.server";
 import { reserveAdmission } from "@/features/room/server/session-admission.server";
 import { controlGateway } from "@/features/room/server/control-gateway.server";
 import { liveKitGateway } from "@/features/room/server/livekit-gateway.server";
@@ -144,7 +146,10 @@ test("transport failure preserves policy/audit and retry applies current state",
   ).toHaveLength(1);
   await room.command({ kind: "sharing", policy: "everyone", allowed: [] });
   expect(await applyRoomCommand(getDb(), failed.commandId)).toBe("applied");
-  expect(sync).toHaveBeenLastCalledWith(expect.objectContaining({ sharePolicy: "everyone" }));
+  expect(sync).toHaveBeenLastCalledWith(
+    expect.objectContaining({ sharePolicy: "everyone" }),
+    expect.any(Map),
+  );
   const [stored] = await getDb()
     .select()
     .from(roomCommands)
@@ -198,4 +203,134 @@ test("empty call expires without making definition terminal; old JWT cannot open
   const next = await reserveAdmission(db, grant(room.code, room.host), 6);
   expect(next.sessionId).not.toBe(room.sessionId);
   expect(next.mediaRoomName).not.toBe(room.mediaRoomName);
+});
+
+/** A third account admitted to the call, for co-host cases. */
+async function admittedThird(room: Awaited<ReturnType<typeof controlledRoom>>, joinedAt = 3) {
+  const third = await account();
+  await reserveAdmission(getDb(), grant(room.code, third), 6);
+  await getDb()
+    .update(roomSessionMembers)
+    .set({ admittedAt: new Date() })
+    .where(eq(roomSessionMembers.sessionId, room.sessionId));
+  online.set(room.mediaRoomName, [
+    ...(online.get(room.mediaRoomName) ?? []),
+    participant(third, joinedAt),
+  ]);
+  return third;
+}
+
+async function saveRole(code: string, userId: string, role: "owner" | "moderator") {
+  await getDb().insert(roomRoles).values({ roomCode: code, userId, role });
+}
+
+test("a moderator co-hosts: lock, sharing and removal of participants, not transfer or close", async () => {
+  const room = await controlledRoom();
+  const third = await admittedThird(room);
+  await saveRole(room.code, room.other, "moderator");
+  expect(
+    (await readControlState(getDb(), room.code, room.sessionId, room.other))?.commands,
+  ).toEqual(["lock", "sharing", "remove"]);
+  await expect(room.command({ kind: "lock", locked: true }, room.other)).resolves.toMatchObject({
+    status: "applied",
+  });
+  await expect(room.command({ kind: "close" }, room.other)).rejects.toThrow(
+    "Só o anfitrião ou o dono",
+  );
+  await expect(room.command({ kind: "transfer", identity: third }, room.other)).rejects.toThrow(
+    "Só o anfitrião ou o dono",
+  );
+  await expect(room.command({ kind: "remove", identity: room.host }, room.other)).rejects.toThrow(
+    "Moderadores só removem participantes",
+  );
+  await expect(
+    room.command({ kind: "remove", identity: third }, room.other),
+  ).resolves.toMatchObject({ status: "applied" });
+});
+
+test("host absence elects a moderator before an older account", async () => {
+  const room = await controlledRoom();
+  const third = await admittedThird(room, 0);
+  await saveRole(room.code, room.other, "moderator");
+  const db = getDb();
+  const [initial] = await db.select().from(roomSessions).where(eq(roomSessions.id, room.sessionId));
+  if (!initial) throw new Error("Missing session");
+  const now = new Date();
+  const people = [participant(third, 0), participant(room.other, 2)];
+  const waiting = await db.transaction((tx) => reconcileSessionPresence(tx, initial, people, now));
+  const elected = await db.transaction((tx) =>
+    reconcileSessionPresence(tx, waiting, people, new Date(now.getTime() + 60_001)),
+  );
+  expect(elected.hostUserId).toBe(room.other);
+});
+
+test("the owner takes the host over once in the call", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.other, "owner");
+  const db = getDb();
+  const [initial] = await db.select().from(roomSessions).where(eq(roomSessions.id, room.sessionId));
+  if (!initial) throw new Error("Missing session");
+  const people = [participant(room.host, 1), participant(room.other, 2)];
+  const updated = await db.transaction((tx) =>
+    reconcileSessionPresence(tx, initial, people, new Date()),
+  );
+  expect(updated.hostUserId).toBe(room.other);
+  const [audit] = await db
+    .select()
+    .from(auditLogs)
+    .where(
+      and(eq(auditLogs.resourceId, room.sessionId), eq(auditLogs.action, "room.host_transfer")),
+    );
+  expect(audit?.metadata).toMatchObject({ motivo: "owner_present", anfitriao: room.other });
+});
+
+test("closing a room with an owner ends only the call; the code opens a new one", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.host, "owner");
+  expect((await readControlState(getDb(), room.code, room.sessionId, room.host))?.endsRoom).toBe(
+    false,
+  );
+  await room.command({ kind: "close" });
+  const [definition] = await getDb()
+    .select()
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.code, room.code));
+  expect(definition?.closedAt).toBeNull();
+  const next = await reserveAdmission(getDb(), grant(room.code, room.host), 6);
+  expect(next.sessionId).not.toBe(room.sessionId);
+});
+
+test("the owner's host transfer hands over the room, and the host does not bounce back", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.host, "owner");
+  await room.command({ kind: "transfer", identity: room.other });
+  const roles = await getDb().select().from(roomRoles).where(eq(roomRoles.roomCode, room.code));
+  expect(new Map(roles.map((row) => [row.userId, row.role]))).toEqual(
+    new Map([
+      [room.other, "owner"],
+      [room.host, "moderator"],
+    ]),
+  );
+  const [definition] = await getDb()
+    .select()
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.code, room.code));
+  expect(definition?.ownerUserId).toBe(room.other);
+  const state = await readControlState(getDb(), room.code, room.sessionId, room.host);
+  expect(state?.isHost).toBe(false);
+  expect(state?.commands).toEqual(["lock", "sharing", "remove"]);
+});
+
+test("after the owner hands the room over from the card, the new owner becomes host", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.host, "owner");
+  await applyRoleChange(getDb(), {
+    roomCode: room.code,
+    actorUserId: room.host,
+    targetUserId: room.other,
+    change: "transfer",
+  });
+  expect((await readControlState(getDb(), room.code, room.sessionId, room.other))?.isHost).toBe(
+    true,
+  );
 });

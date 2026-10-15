@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type RefObject } from "react";
+import { useRevalidator } from "react-router";
 import { upsetMascot } from "@/features/mascot/client/events";
 import { requestToken } from "@/features/room/client/api";
 import { joinFailure, type JoinChoices } from "@/features/room/domain/join";
@@ -7,6 +8,8 @@ import { roomLink } from "@/features/room/domain/room-code";
 import type { useGuestName } from "@/features/room/hooks/use-guest-name";
 import { gsap, MOTION_DURATION, prefersReducedMotion } from "@/lib/animation/gsap";
 import { formText } from "@/lib/utils";
+import type { TokenRequest } from "@/features/room/domain/token-contract";
+import { useJoinApproval, type ApprovalAnswer } from "./use-join-approval";
 
 type FormField = "password" | "name";
 
@@ -23,6 +26,11 @@ interface JoinFormOptions {
   onPrepareJoin?: () => void;
 }
 
+const APPROVAL_ENDINGS: Record<Exclude<ApprovalAnswer, "accepted" | "cancelled">, string> = {
+  declined: "Seu pedido não foi aceito.",
+  expired: "Ninguém respondeu a tempo. Tente de novo.",
+};
+
 /** The microphone choices the room starts with. */
 type MicrophoneChoices = Pick<JoinChoices, "micEnabled" | "audioDeviceId">;
 
@@ -32,6 +40,27 @@ export function useJoinForm(options: JoinFormOptions) {
     options;
   const [formError, setFormError] = useState<{ message: string; field?: FormField }>();
   const [submitting, setSubmitting] = useState(false);
+  const revalidator = useRevalidator();
+  const approval = useJoinApproval();
+
+  /**
+   * Requests the token; in a room with approval, waits for the answer and asks again with
+   * the accepted request. Returns null when the person cancelled the wait.
+   */
+  async function requestWithApproval(input: TokenRequest) {
+    const first = await requestToken(input);
+    if (first.ok || first.code !== "awaiting_approval" || !first.requestId) return first;
+    const answer = await approval.waitForApproval(first.requestId);
+    if (answer === "cancelled") return null;
+    if (answer !== "accepted") {
+      return {
+        ok: false as const,
+        code: "awaiting_approval" as const,
+        message: APPROVAL_ENDINGS[answer],
+      };
+    }
+    return requestToken({ ...input, requestId: first.requestId });
+  }
 
   /** Shows the error and moves focus to the field that needs fixing. */
   function showFailure(message: string, failure: ReturnType<typeof joinFailure>) {
@@ -81,6 +110,11 @@ export function useJoinForm(options: JoinFormOptions) {
       window.location.assign(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
       return;
     }
+    if (failure.reloadRoom) {
+      setSubmitting(false);
+      void revalidator.revalidate();
+      return;
+    }
     setSubmitting(false);
     showFailure(message, failure);
   }
@@ -94,7 +128,11 @@ export function useJoinForm(options: JoinFormOptions) {
     setFormError(undefined);
     setSubmitting(true);
     options.onPrepareJoin?.();
-    const result = await requestToken({ room: code, invite, ...fields });
+    const result = await requestWithApproval({ room: code, invite, ...fields });
+    if (!result) {
+      setSubmitting(false);
+      return;
+    }
     if (!result.ok) {
       handleRefusal(result.code, result.message);
       return;
@@ -113,6 +151,8 @@ export function useJoinForm(options: JoinFormOptions) {
   return {
     formError,
     submitting,
+    waitingApproval: approval.waiting,
+    cancelWaiting: approval.cancel,
     clearError: () => setFormError(undefined),
     handleSubmit,
   };

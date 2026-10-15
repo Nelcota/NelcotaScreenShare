@@ -3,7 +3,14 @@ import { eq } from "drizzle-orm";
 import type { ParticipantInfo } from "livekit-server-sdk";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomCommands, roomDefinitions, roomSessions } from "@/server/db/schema/room-control";
+import { roomRoles } from "@/server/db/schema";
 import { HOST_RECONNECT_GRACE_MS } from "@/features/room/domain/host-controls";
+import {
+  electionOrder,
+  ownerTakingOver,
+  type HostCandidate,
+} from "@/features/room/domain/room-host";
+import type { RoomRole } from "@/features/room/domain/room-role";
 import { createAuditRecorder } from "@/server/audit.server";
 import { activeAccount, memberInSession, type ControlSession } from "./session-store.server";
 
@@ -16,14 +23,7 @@ export async function reconcileSessionPresence(
 ): Promise<ControlSession> {
   if (session.status === "closed") return session;
   const host = await hostStatus(tx, session, participants);
-  if (host.present) {
-    const [updated] = await tx
-      .update(roomSessions)
-      .set({ status: "active", hostMissingAt: null, emptySince: null })
-      .where(eq(roomSessions.id, session.id))
-      .returning();
-    return updated ?? session;
-  }
+  if (host.present) return keepHostOrHandToOwner(tx, session, participants);
   const times = presenceTimes(session, participants.length, now);
   const emptySince = times.emptySince;
   const missingSince = host.ineligible
@@ -67,34 +67,88 @@ export async function reconcileSessionPresence(
   return waiting ?? session;
 }
 
+/** The host is here; the owner, once in the call too, takes over. */
+async function keepHostOrHandToOwner(
+  tx: DbExecutor,
+  session: ControlSession,
+  participants: readonly ParticipantInfo[],
+) {
+  const owner = ownerTakingOver(
+    session.hostUserId,
+    await hostCandidates(tx, session, participants),
+  );
+  if (owner) return handHostTo(tx, session, owner, "owner_present", {});
+  const [updated] = await tx
+    .update(roomSessions)
+    .set({ status: "active", hostMissingAt: null, emptySince: null })
+    .where(eq(roomSessions.id, session.id))
+    .returning();
+  return updated ?? session;
+}
+
 async function electHost(
   tx: DbExecutor,
   session: ControlSession,
   participants: readonly ParticipantInfo[],
   changes: { hostMissingAt: Date; emptySince: Date | null; status: ControlSession["status"] },
 ) {
-  for (const participant of participants.toSorted(
-    (a, b) => Number(a.joinedAt - b.joinedAt) || a.identity.localeCompare(b.identity),
-  )) {
+  const [first] = electionOrder(await hostCandidates(tx, session, participants));
+  if (!first) return undefined;
+  return handHostTo(tx, session, first.identity, "host_absent", changes);
+}
+
+async function handHostTo(
+  tx: DbExecutor,
+  session: ControlSession,
+  hostUserId: string,
+  reason: "host_absent" | "owner_present",
+  changes: Partial<Pick<ControlSession, "hostMissingAt" | "emptySince" | "status">>,
+) {
+  const [handed] = await tx
+    .update(roomSessions)
+    .set({ ...changes, status: "active", hostUserId, hostMissingAt: null, emptySince: null })
+    .where(eq(roomSessions.id, session.id))
+    .returning();
+  await tx.insert(roomCommands).values({ sessionId: session.id, kind: "sync" });
+  await createAuditRecorder("system").record(tx, {
+    action: "room.host_transfer",
+    resourceType: "room_session",
+    resourceId: session.id,
+    metadata: { motivo: reason, anfitriao: hostUserId },
+  });
+  return handed ?? session;
+}
+
+/** Accounts in the call that may host it: admitted, not removed, active and eligible. */
+async function hostCandidates(
+  tx: DbExecutor,
+  session: ControlSession,
+  participants: readonly ParticipantInfo[],
+): Promise<HostCandidate[]> {
+  const roles = await savedRoles(tx, session);
+  const candidates: HostCandidate[] = [];
+  for (const participant of participants) {
     const member = await memberInSession(tx, session.id, participant.identity);
     if (!member?.admittedAt || member.excludedAt) continue;
     const account = await activeAccount(tx, participant.identity);
     if (!account || !(await eligibleHost(tx, session, account.id))) continue;
-    const [elected] = await tx
-      .update(roomSessions)
-      .set({ ...changes, hostUserId: account.id, hostMissingAt: null })
-      .where(eq(roomSessions.id, session.id))
-      .returning();
-    await tx.insert(roomCommands).values({ sessionId: session.id, kind: "sync" });
-    await createAuditRecorder("system").record(tx, {
-      action: "room.host_transfer",
-      resourceType: "room_session",
-      resourceId: session.id,
-      metadata: { motivo: "host_absent", anfitriao: account.id },
+    candidates.push({
+      identity: account.id,
+      role: roles.get(account.id) ?? "participant",
+      joinedAt: participant.joinedAt,
     });
-    return elected ?? session;
   }
-  return undefined;
+  return candidates;
+}
+
+/** Owner and moderators saved for the session's room. */
+async function savedRoles(tx: DbExecutor, session: ControlSession) {
+  const rows = await tx
+    .select({ userId: roomRoles.userId, role: roomRoles.role })
+    .from(roomRoles)
+    .innerJoin(roomDefinitions, eq(roomDefinitions.code, roomRoles.roomCode))
+    .where(eq(roomDefinitions.id, session.definitionId));
+  return new Map<string, RoomRole>(rows.map((row) => [row.userId, row.role]));
 }
 
 async function hostStatus(

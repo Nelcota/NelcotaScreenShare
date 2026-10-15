@@ -84,7 +84,7 @@ export const SHARE_SUPPORT_TEXT: Record<
   "screen-only": {
     tone: "ok",
     title: "Seu navegador compartilha a tela.",
-    detail: "O áudio do computador não vai junto: para isso, use o Chrome ou o Edge.",
+    detail: "O som do computador não vai junto. Para isso, use o Chrome ou o Edge.",
   },
   safari: {
     tone: "warn",

@@ -20,6 +20,7 @@ import { ControlDock } from "@/features/room/ui/dock/ControlDock";
 import { ScreenStage } from "@/features/room/ui/stage/ScreenStage";
 import { cn } from "@/lib/utils";
 import { AloneWelcome } from "./AloneWelcome";
+import { JoinRequests } from "./JoinRequests";
 import { ParticipantTile } from "./ParticipantTile";
 import { RoomTopBar } from "./RoomTopBar";
 
@@ -99,10 +100,12 @@ function CornerMascot({
 /** People: a grid without a stage; with a stage, a side strip. */
 function PeopleArea({
   participants,
+  roomCode,
   sharingIds,
   hasStage,
 }: {
   participants: Participant[];
+  roomCode: string;
   sharingIds: Set<string>;
   hasStage: boolean;
 }) {
@@ -124,6 +127,7 @@ function PeopleArea({
         <ParticipantTile
           key={participant.identity}
           participant={participant}
+          roomCode={roomCode}
           isSharing={sharingIds.has(participant.identity)}
           compact={hasStage}
         />
@@ -136,11 +140,13 @@ function PeopleArea({
 export function RoomLayout({
   code,
   maxParticipants,
+  roomName,
   isAdmin,
   onLeave,
 }: {
   code: string;
   maxParticipants: number;
+  roomName: string | null;
   isAdmin: boolean;
   onLeave: () => void;
 }) {
@@ -188,12 +194,14 @@ export function RoomLayout({
           code={code}
           participants={participants}
           maxParticipants={maxParticipants}
+          roomName={roomName}
           isAdmin={isAdmin}
           connection={connection}
         />
       </header>
 
       <ConnectionNotices connection={connection} />
+      <JoinRequests code={code} />
 
       <main
         className={cn(
@@ -215,7 +223,12 @@ export function RoomLayout({
         {alone ? (
           <AloneWelcome code={code} share={share} everyoneLeft={hadCompany} />
         ) : (
-          <PeopleArea participants={participants} sharingIds={sharingIds} hasStage={hasStage} />
+          <PeopleArea
+            participants={participants}
+            roomCode={code}
+            sharingIds={sharingIds}
+            hasStage={hasStage}
+          />
         )}
       </main>
 

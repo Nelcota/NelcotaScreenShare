@@ -30,7 +30,7 @@ function withoutEchoingAudio(tracks: LocalTrack[]): LocalTrack[] {
 
   audio.stop();
   toast.info(
-    "O som do computador ficou de fora: ele levaria a voz da sala de volta para todos. Para compartilhar som, escolha uma aba.",
+    "O som do computador ficou de fora para não gerar eco. Para compartilhar som, escolha uma aba.",
   );
   return tracks.filter((track) => track !== audio);
 }

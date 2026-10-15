@@ -8,7 +8,7 @@ test("both sharing menus use the saved profile and it persists for the next call
   const person = await newParticipant(browser, "Perfil Tela");
   try {
     await fakeScreenCapture(person.page);
-    await joinRoom(person.page, newRoomCode());
+    await joinRoom(person.page, await newRoomCode());
     await person.page.getByRole("button", { name: "Compartilhar minha tela", exact: true }).click();
     const menu = person.page.getByRole("dialog", { name: "Opções de compartilhamento" });
     const profile = menu.getByLabel("Qualidade do compartilhamento");
@@ -49,7 +49,7 @@ test("both sharing menus use the saved profile and it persists for the next call
     await person.page.keyboard.press("Escape");
     await expect(profile).toBeHidden();
     await person.page.reload();
-    await joinRoom(person.page, newRoomCode());
+    await joinRoom(person.page, await newRoomCode());
     await person.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     await expect(profile).toHaveValue("data-saver");
   } finally {

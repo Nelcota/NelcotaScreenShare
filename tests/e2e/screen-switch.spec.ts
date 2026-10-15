@@ -16,7 +16,7 @@ test("switches shared screens, clears pointing and recovers when the selected sh
   const viewer = await newParticipant(browser, "Assistindo Telas");
   await fakeScreenCapture(first.page);
   await fakeScreenCapture(second.page);
-  const code = newRoomCode();
+  const code = await newRoomCode();
   await joinRoom(first.page, code);
   await joinRoom(second.page, code);
   await joinRoom(viewer.page, code);

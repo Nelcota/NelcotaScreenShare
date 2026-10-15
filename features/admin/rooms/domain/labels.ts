@@ -1,4 +1,5 @@
 import type { BadgeTone } from "@/components/StatusBadge";
+import type { RoomAccess } from "@/features/room/domain/room-access";
 import { ROOM_STATUSES, type RoomStatus } from "./search-params";
 
 /** `filter`: the plural shown in the status filter. */
@@ -21,11 +22,17 @@ export function roomStatus(room: { status: "active" | "finished"; deleted: boole
   return "encerrada";
 }
 
+/** How people get into a room created with "Criar sala". */
+export const ACCESS_LABELS: Record<RoomAccess, string> = {
+  open: "Livre",
+  approval: "Com aprovação",
+};
+
 /** Leave reason of a participation. */
 export const LEAVE_REASON_LABELS: Record<string, string> = {
   left: "Saiu",
   disconnected: "Caiu a conexão",
-  removed_by_admin: "Removido pelo painel",
+  removed_by_admin: "Removido da chamada",
   room_closed: "Sala encerrada",
   unknown: "Desconhecido",
 };

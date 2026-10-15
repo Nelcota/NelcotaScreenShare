@@ -1,6 +1,7 @@
 import { ServerError, TrackSource, type ParticipantInfo } from "livekit-server-sdk";
 import { roomService } from "./room-service.server";
 import { mayShareScreen } from "@/features/room/domain/host-controls";
+import { ROLE_ATTRIBUTE, type RoomRole } from "@/features/room/domain/room-role";
 import type { ControlSession } from "./session-store.server";
 
 /** Media administration stays behind the existing server gateway. */
@@ -27,7 +28,8 @@ export const controlGateway = {
       if (!(error instanceof ServerError && error.status === 404)) throw error;
     }
   },
-  async sync(session: ControlSession) {
+  /** Applies the session's current permissions and the room's saved roles to everyone in it. */
+  async sync(session: ControlSession, roles: ReadonlyMap<string, RoomRole> = new Map()) {
     const participants = await this.participants(session.mediaRoomName);
     for (const participant of participants) {
       const permitted = mayShareScreen(
@@ -42,6 +44,7 @@ export const controlGateway = {
       // LiveKit SetPermission removes already published tracks of revoked sources.
       try {
         await roomService().updateParticipant(session.mediaRoomName, participant.identity, {
+          attributes: { [ROLE_ATTRIBUTE]: roles.get(participant.identity) ?? "participant" },
           permission: {
             canPublish: true,
             canPublishSources: sources,

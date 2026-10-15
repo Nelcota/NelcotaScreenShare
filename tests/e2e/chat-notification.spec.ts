@@ -18,7 +18,7 @@ test("remote chat shows a notice and the selected sound, while open chat and mut
       return original.call(this);
     };
   });
-  const code = newRoomCode();
+  const code = await newRoomCode();
   await joinRoom(receiver.page, code);
   await joinRoom(sender.page, code);
   await receiver.page.getByRole("button", { name: /^Chat/ }).click();

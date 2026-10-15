@@ -9,6 +9,9 @@ import { roomCaller } from "./room-caller.server";
 import { lockControlRoom, memberInSession, sessionByMediaName } from "./session-store.server";
 import { controlGateway } from "./control-gateway.server";
 import { reconcileSessionPresence } from "./session-presence.server";
+import { roomRoleOf } from "./room-roles.server";
+import { closeEndsRoom, hostCommandsFor } from "@/features/room/domain/room-host";
+import { roomRoles } from "@/server/db/schema";
 
 export async function readControlState(
   db: Database,
@@ -34,14 +37,24 @@ export async function readControlState(
       .select({ status: roomCommands.status })
       .from(roomCommands)
       .where(and(eq(roomCommands.sessionId, session.id), ne(roomCommands.status, "applied")));
+    const mayHost =
+      !member.excludedAt && (await canHostDefinition(tx, definition.definition, identity));
+    const isHost = session.hostUserId === identity && mayHost;
+    const role = mayHost
+      ? await roomRoleOf(tx, { roomCode: room, userId: identity })
+      : "participant";
+    const [owner] = await tx
+      .select({ userId: roomRoles.userId })
+      .from(roomRoles)
+      .where(and(eq(roomRoles.roomCode, room), eq(roomRoles.role, "owner")))
+      .limit(1);
     return {
       sessionId,
       permanent: definition.definition.kind !== "ad_hoc",
       hostIdentity: session.hostUserId,
-      isHost:
-        session.hostUserId === identity &&
-        !member.excludedAt &&
-        (await canHostDefinition(tx, definition.definition, identity)),
+      isHost,
+      commands: [...hostCommandsFor({ isHost, role })],
+      endsRoom: closeEndsRoom({ kind: definition.definition.kind, hasOwner: owner !== undefined }),
       locked: session.admissionLocked,
       policy: session.sharePolicy,
       allowed: session.allowedSharers,

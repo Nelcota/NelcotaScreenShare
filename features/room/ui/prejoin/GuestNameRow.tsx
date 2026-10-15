@@ -46,7 +46,7 @@ export function GuestNameRow({
         </p>
       ) : null}
       <p className="text-sm text-ink-muted">
-        Você entra como convidado, sem criar conta.{" "}
+        Você entra como convidado.{" "}
         <Link
           viewTransition
           to={signInHref}

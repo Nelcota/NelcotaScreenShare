@@ -5,12 +5,14 @@ import { HAND_ATTRIBUTE } from "@/features/room/domain/data-channel";
 import { useRef, type RefObject } from "react";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { participantLabel, participantName } from "@/features/room/domain/participant-label";
-import { initials } from "@/lib/initials";
+import { ParticipantAvatar } from "./ParticipantAvatar";
 import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { HostBadge } from "./HostBadge";
+import { ParticipantCard } from "./ParticipantCard";
 
 interface ParticipantTileProps {
   participant: Participant;
+  roomCode: string;
   isSharing: boolean;
   compact: boolean;
 }
@@ -56,7 +58,12 @@ function useSpeakingPulse(
   );
 }
 
-export function ParticipantTile({ participant, isSharing, compact }: ParticipantTileProps) {
+export function ParticipantTile({
+  participant,
+  roomCode,
+  isSharing,
+  compact,
+}: ParticipantTileProps) {
   const scope = useRef<HTMLDivElement>(null);
   const isSpeaking = useIsSpeaking(participant);
   const isMuted = useIsMuted({ participant, source: Track.Source.Microphone });
@@ -81,12 +88,13 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
             aria-hidden="true"
             className="pointer-events-none absolute -inset-1.5 -z-10 rounded-full bg-brand/40 opacity-0 blur-md"
           />
-          <div
-            aria-hidden="true"
-            className="grid size-14 place-items-center rounded-full bg-surface-3 text-lg font-medium text-ink ring-1 ring-line"
-          >
-            {initials(name)}
-          </div>
+          <ParticipantCard participant={participant} roomCode={roomCode} isSharing={isSharing}>
+            <ParticipantAvatar
+              participant={participant}
+              roomCode={roomCode}
+              className="size-14 bg-surface-3 text-lg font-medium text-ink ring-1 ring-line"
+            />
+          </ParticipantCard>
           <div
             data-ring
             aria-hidden="true"
@@ -150,12 +158,13 @@ export function ParticipantTile({ participant, isSharing, compact }: Participant
         />
         <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,rgb(255_255_255/0.04),transparent)]" />
 
-        <div
-          className="grid size-20 place-items-center rounded-full bg-surface-3 text-2xl font-medium text-ink ring-1 ring-line sm:size-24 sm:text-3xl"
-          aria-hidden="true"
-        >
-          {initials(name)}
-        </div>
+        <ParticipantCard participant={participant} roomCode={roomCode} isSharing={isSharing}>
+          <ParticipantAvatar
+            participant={participant}
+            roomCode={roomCode}
+            className="size-20 bg-surface-3 text-2xl font-medium text-ink ring-1 ring-line sm:size-24 sm:text-3xl"
+          />
+        </ParticipantCard>
 
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
           <span className="glass inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium">

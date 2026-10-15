@@ -1,4 +1,5 @@
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { createdRoom } from "./database";
 import { E2E_ACCESS_PASSWORD, E2E_URL } from "./env";
 
 export const PASSWORD = "senha-do-participante-e2e";
@@ -51,22 +52,22 @@ export async function expectNoHorizontalScroll(page: Page) {
 
 let roomSequence = 0;
 
-/** A new, valid room code for each test. */
-export function newRoomCode(): string {
+/** A new room for each test, already created. */
+export async function newRoomCode(): Promise<string> {
   roomSequence += 1;
-  const tail = `${Date.now().toString(36).slice(-4)}${roomSequence}`.padEnd(4, "x").slice(0, 4);
-  return `e2e-${tail}-sala`;
+  // The sequence keeps codes made in the same millisecond apart.
+  return createdRoom(`e2e-${Date.now().toString(36).slice(-6)}${roomSequence.toString(36)}-sala`);
 }
 
 /** Opens the room, goes through pre-join (room password) and waits for the room to load. */
 export async function joinRoom(page: Page, code: string, { micOn = true } = {}) {
   await page.goto(`/sala/${code}`);
-  await expect(page.getByLabel("Senha da sala (quem te convidou sabe)")).toBeVisible();
+  await expect(page.getByLabel("Senha da sala")).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }),
   ).toBeEnabled();
   if (!micOn) await page.getByRole("switch").first().click();
-  await page.getByLabel("Senha da sala (quem te convidou sabe)").fill(E2E_ACCESS_PASSWORD);
+  await page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
   await page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
   await expect(page.getByRole("button", { name: /Sair/ })).toBeVisible();
 }

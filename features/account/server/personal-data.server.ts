@@ -2,8 +2,11 @@ import { workspacePersonalData } from "./workspace-export.server";
 import { and, count, desc, eq, gt, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
+import { ROOM_ROLE_IN_EXPORT, TOKEN_RESULT_IN_EXPORT } from "@/features/room/domain/export-labels";
 import {
+  roomBans,
   roomParticipations,
+  roomRoles,
   rooms,
   shareSessions,
   tokenRequests,
@@ -44,7 +47,7 @@ export async function personalData(db: DbExecutor, userId: string) {
   const participations = await db
     .select({
       sala: rooms.code,
-      nomeNaSala: roomParticipations.displayName,
+      nome_na_sala: roomParticipations.displayName,
       entrou: roomParticipations.joinedAt,
       saiu: roomParticipations.leftAt,
       ip: sql<string | null>`host(${roomParticipations.ip})`,
@@ -66,6 +69,22 @@ export async function personalData(db: DbExecutor, userId: string) {
     .from(tokenRequests)
     .where(eq(tokenRequests.userId, userId))
     .orderBy(desc(tokenRequests.createdAt));
+
+  const roomsCreated = await db
+    .select({ sala: roomDefinitions.code, criada_em: roomDefinitions.createdAt })
+    .from(roomDefinitions)
+    .where(and(eq(roomDefinitions.ownerUserId, userId), eq(roomDefinitions.kind, "ad_hoc")))
+    .orderBy(desc(roomDefinitions.createdAt));
+  const roles = await db
+    .select({ sala: roomRoles.roomCode, papel: roomRoles.role, desde: roomRoles.createdAt })
+    .from(roomRoles)
+    .where(eq(roomRoles.userId, userId))
+    .orderBy(desc(roomRoles.createdAt));
+  const bans = await db
+    .select({ sala: roomBans.roomCode, quando: roomBans.createdAt })
+    .from(roomBans)
+    .where(eq(roomBans.identity, userId))
+    .orderBy(desc(roomBans.createdAt));
 
   const definitions = await db
     .select({
@@ -97,8 +116,15 @@ export async function personalData(db: DbExecutor, userId: string) {
     sessoes_ativas: sessions,
     // Access records: kept for 6 months (Marco Civil, art. 15).
     participacoes_em_salas: participations,
-    pedidos_de_entrada: tokenLog,
-    salas_criadas: definitions,
+    pedidos_de_entrada: tokenLog.map((attempt) => ({
+      ...attempt,
+      resultado: TOKEN_RESULT_IN_EXPORT[attempt.resultado],
+    })),
+    salas_criadas: roomsCreated,
+    papeis_em_salas: roles.map((role) => ({ ...role, papel: ROOM_ROLE_IN_EXPORT[role.papel] })),
+    // Kept for a week after each ban.
+    banimentos_de_chamadas: bans,
+    salas_permanentes: definitions,
     admissoes_em_chamadas: admissions,
   };
 }

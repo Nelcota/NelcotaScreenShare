@@ -50,7 +50,7 @@ export function MascotSettingsForm({
   const [values, setValues] = useState(initial);
   const baseId = useId();
   const save = useOperation(saveMascotSettings, {
-    onSuccess: () => toast.success("Salvo. Novas páginas já abrem com a saturação nova."),
+    onSuccess: () => toast.success("Salvo. Vale para as próximas páginas."),
     onError: toastError("Confira os valores e tente de novo."),
   });
   const pending = save.isPending;
@@ -69,8 +69,8 @@ export function MascotSettingsForm({
     >
       <h2 className="text-xl font-semibold tracking-[-0.025em]">Saturação do mascote</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        0% deixa o mascote cinza, 100% é a arte original e 200% deixa as cores mais vivas. A prévia
-        muda na hora; o site só muda depois de salvar.
+        0% deixa o mascote cinza, 100% mantém a arte original e 200% deixa as cores mais vivas. O
+        site só muda depois de salvar.
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -120,7 +120,7 @@ export function MascotSettingsForm({
 
       {canEdit ? null : (
         <p className="mt-6 text-sm text-ink-muted">
-          Só o dono do painel altera esta configuração. Você vê a prévia, mas não pode salvar.
+          Só o dono do painel pode salvar esta configuração.
         </p>
       )}
 

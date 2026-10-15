@@ -22,6 +22,11 @@ function deps(overrides: Partial<TokenDeps> = {}): TokenDeps {
     countParticipants: () => Promise.resolve(0),
     redeemInvite: () => Promise.resolve(true),
     hostPresent: () => Promise.resolve(true),
+    roomExists: () => Promise.resolve(true),
+    roleOf: () => Promise.resolve("participant"),
+    bannedFromCall: () => Promise.resolve(false),
+    accessOf: () => Promise.resolve("open"),
+    awaitApproval: () => Promise.resolve({ approved: false, requestId: "pedido-1" }),
     ...overrides,
   };
 }
@@ -58,7 +63,7 @@ describe("who joins the room", () => {
     expect(decision).toEqual({
       ok: true,
       log: "granted",
-      grant: { identity: "ana", name: "Ana", room: "sala-teste" },
+      grant: { identity: "ana", name: "Ana", room: "sala-teste", role: "participant" },
     });
   });
 
@@ -216,7 +221,12 @@ describe("guests (no account)", () => {
     expect(decision).toEqual({
       ok: true,
       log: "granted",
-      grant: { identity: `convidado-${GUEST.guestId}`, name: "Bia", room: "sala" },
+      grant: {
+        identity: `convidado-${GUEST.guestId}`,
+        name: "Bia",
+        room: "sala",
+        role: "participant",
+      },
     });
   });
 
@@ -267,5 +277,159 @@ describe("guests (no account)", () => {
     );
     expect(decision).toMatchObject({ error: "rate_limited", retryAfterSeconds: 9 });
     expect(hitAccountLimit).toHaveBeenCalledWith(`convidado-${GUEST.guestId}`);
+  });
+});
+
+describe("role in the room", () => {
+  it("the account gets its saved role in that room", async () => {
+    const roleOf = vi.fn(() => Promise.resolve("owner" as const));
+    const decision = await decideTokenRequest(
+      ANA,
+      body({ room: "Sala-Teste" }),
+      OPEN,
+      deps({ roleOf }),
+    );
+    expect(decision).toMatchObject({ ok: true, grant: { role: "owner" } });
+    expect(roleOf).toHaveBeenCalledWith("sala-teste", "ana");
+  });
+
+  it("guests are participants", async () => {
+    const roleOf = vi.fn(() => Promise.resolve("owner" as const));
+    const decision = await decideTokenRequest(
+      { guestId: "4d1f0a3e-8a5b-4c39-9f0e-2b7c1d6e9a10" },
+      body({ room: "sala", guestName: "Bia" }),
+      OPEN,
+      deps({ roleOf }),
+    );
+    expect(decision).toMatchObject({ ok: true, grant: { role: "participant" } });
+    expect(roleOf).not.toHaveBeenCalled();
+  });
+});
+
+describe("rooms nobody created", () => {
+  it("an account is refused before the password and the invite", async () => {
+    const passwordMatches = vi.fn(() => true);
+    const redeemInvite = vi.fn(() => Promise.resolve(true));
+    const decision = await decideTokenRequest(
+      ANA,
+      body({ room: "bzk-i123-askjndjkaw", password: "certa" }),
+      { ...OPEN, accessPassword: "certa" },
+      deps({ roomExists: () => Promise.resolve(false), passwordMatches, redeemInvite }),
+    );
+    expect(decision).toMatchObject({ ok: false, error: "room_not_found", log: "room_not_found" });
+    expect(messageOf(decision)).toBe("Esta sala não existe. Confira o link.");
+    expect(passwordMatches).not.toHaveBeenCalled();
+    expect(redeemInvite).not.toHaveBeenCalled();
+  });
+
+  it("a guest is refused too", async () => {
+    const decision = await decideTokenRequest(
+      { guestId: "4d1f0a3e-8a5b-4c39-9f0e-2b7c1d6e9a10" },
+      body({ room: "sala", guestName: "Bia" }),
+      OPEN,
+      deps({ roomExists: () => Promise.resolve(false) }),
+    );
+    expect(decision).toMatchObject({ ok: false, error: "room_not_found" });
+  });
+});
+
+describe("banned from the call", () => {
+  it("refuses a banned account before the password", async () => {
+    const bannedFromCall = vi.fn(() => Promise.resolve(true));
+    const passwordMatches = vi.fn(() => true);
+    const decision = await decideTokenRequest(
+      ANA,
+      body({ room: "Sala", password: "certa" }),
+      { ...OPEN, accessPassword: "certa" },
+      deps({ bannedFromCall, passwordMatches }),
+    );
+    expect(decision).toMatchObject({ ok: false, error: "banned", log: "banned" });
+    expect(bannedFromCall).toHaveBeenCalledWith("sala", "ana");
+    expect(passwordMatches).not.toHaveBeenCalled();
+  });
+
+  it("refuses a banned guest by the guest identity", async () => {
+    const bannedFromCall = vi.fn(() => Promise.resolve(true));
+    const guestId = "4d1f0a3e-8a5b-4c39-9f0e-2b7c1d6e9a10";
+    const decision = await decideTokenRequest(
+      { guestId },
+      body({ room: "sala", guestName: "Bia" }),
+      OPEN,
+      deps({ bannedFromCall }),
+    );
+    expect(decision).toMatchObject({ ok: false, error: "banned" });
+    expect(bannedFromCall).toHaveBeenCalledWith("sala", `convidado-${guestId}`);
+  });
+});
+
+describe("rooms with approval", () => {
+  const approval = { accessOf: () => Promise.resolve("approval" as const) };
+
+  it("the owner and moderators go straight in", async () => {
+    const awaitApproval = vi.fn();
+    for (const role of ["owner", "moderator"] as const) {
+      const decision = await decideTokenRequest(
+        ANA,
+        body({ room: "sala" }),
+        OPEN,
+        deps({ ...approval, awaitApproval, roleOf: () => Promise.resolve(role) }),
+      );
+      expect(decision.ok).toBe(true);
+    }
+    expect(awaitApproval).not.toHaveBeenCalled();
+  });
+
+  it("a participant waits with a request to follow, and an accepted one gets in", async () => {
+    const waiting = await decideTokenRequest(ANA, body({ room: "sala" }), OPEN, deps(approval));
+    expect(waiting).toMatchObject({
+      ok: false,
+      error: "awaiting_approval",
+      log: "awaiting_approval",
+      requestId: "pedido-1",
+    });
+
+    const awaitApproval = vi.fn(() => Promise.resolve({ approved: true as const }));
+    const requestId = "0199c6f0-0000-7000-8000-0000000000aa";
+    const admitted = await decideTokenRequest(
+      ANA,
+      body({ room: "sala", requestId }),
+      OPEN,
+      deps({ ...approval, awaitApproval }),
+    );
+    expect(admitted.ok).toBe(true);
+    expect(awaitApproval).toHaveBeenCalledWith({
+      room: "sala",
+      requester: { userId: "ana" },
+      name: "Ana",
+      requestId,
+    });
+  });
+
+  it("a guest asks too, after the host check", async () => {
+    const awaitApproval = vi.fn(() =>
+      Promise.resolve({ approved: false as const, requestId: "p" }),
+    );
+    const decision = await decideTokenRequest(
+      { guestId: "g1" },
+      body({ room: "sala", guestName: "Visita" }),
+      OPEN,
+      deps({ ...approval, awaitApproval }),
+    );
+    expect(decision).toMatchObject({ ok: false, error: "awaiting_approval", requestId: "p" });
+    expect(awaitApproval).toHaveBeenCalledWith(
+      expect.objectContaining({ requester: { guestId: "g1" }, name: "Visita" }),
+    );
+  });
+
+  it("an open room never asks", async () => {
+    const awaitApproval = vi.fn();
+    const decision = await decideTokenRequest(
+      ANA,
+      body({ room: "sala" }),
+      OPEN,
+      deps({ awaitApproval }),
+    );
+    expect(decision.ok).toBe(true);
+    expect(awaitApproval).not.toHaveBeenCalled();
   });
 });

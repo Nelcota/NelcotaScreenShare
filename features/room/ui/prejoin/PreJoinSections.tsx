@@ -56,7 +56,7 @@ export function PreJoinHeader({
         {invite ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-1.5 text-sm font-medium text-ink">
             <Ticket className="size-3.5 text-brand-soft" aria-hidden="true" />
-            Você tem convite: não precisa de senha
+            Com convite, sem senha
           </span>
         ) : null}
       </div>

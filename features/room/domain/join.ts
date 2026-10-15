@@ -17,6 +17,8 @@ export interface JoinChoices {
 export interface JoinFailure {
   /** Session expired or email not verified: go to the right screen and come back later. */
   redirect?: "login" | "verify-email";
+  /** Banned, or the room is gone: the room page loads again and shows why, without the form. */
+  reloadRoom?: boolean;
   /** Error marked on the password field (and focus on it). */
   passwordField: boolean;
   /** An attempt error (password, data) makes it grumpy; a server or network failure, worried. */
@@ -29,6 +31,9 @@ export function joinFailure(code: TokenErrorCode | "network_error"): JoinFailure
   }
   if (code === "email_unverified") {
     return { redirect: "verify-email", passwordField: false, mood: "worried" };
+  }
+  if (code === "banned" || code === "room_not_found") {
+    return { reloadRoom: true, passwordField: false, mood: "worried" };
   }
   if (code === "invalid_password") return { passwordField: true, mood: "grumpy" };
   if (code === "invalid_request") return { passwordField: false, mood: "grumpy" };
@@ -56,7 +61,7 @@ export function presenceText(online: number, max: number, guest = false): Presen
     };
   }
   if (online === 0) {
-    return { kind: "empty", text: "Ninguém na sala ainda: você será a primeira pessoa." };
+    return { kind: "empty", text: "Ninguém na sala ainda." };
   }
   return {
     kind: "some",

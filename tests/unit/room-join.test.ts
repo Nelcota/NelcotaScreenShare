@@ -48,6 +48,12 @@ describe("token request failure in the pre-join screen", () => {
     expect(joinFailure("email_unverified").redirect).toBe("verify-email");
   });
 
+  it("banned or a room that is gone: the room page loads again instead of showing an error", () => {
+    expect(joinFailure("banned").reloadRoom).toBe(true);
+    expect(joinFailure("room_not_found").reloadRoom).toBe(true);
+    expect(joinFailure("room_full").reloadRoom).toBeUndefined();
+  });
+
   it("user error makes it grumpy; server or network error, worried", () => {
     expect(joinFailure("invalid_password")).toEqual({ passwordField: true, mood: "grumpy" });
     expect(joinFailure("invalid_request")).toEqual({ passwordField: false, mood: "grumpy" });
@@ -82,7 +88,9 @@ describe("LiveKit error messages", () => {
 
   it("disconnect: other tab, removed, room ended; own leave without message", () => {
     expect(disconnectMessage(DisconnectReason.DUPLICATE_IDENTITY)).toContain("outra aba");
-    expect(disconnectMessage(DisconnectReason.PARTICIPANT_REMOVED)).toContain("removido");
+    expect(disconnectMessage(DisconnectReason.PARTICIPANT_REMOVED)).toContain(
+      "tirou você da chamada",
+    );
     expect(disconnectMessage(DisconnectReason.ROOM_DELETED)).toContain("encerrada");
     expect(disconnectMessage(DisconnectReason.CLIENT_INITIATED)).toBeUndefined();
   });

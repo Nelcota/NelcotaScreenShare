@@ -2,6 +2,7 @@ import { routeLoader } from "@/server/route-loader.server";
 import { useLoaderData, type MetaFunction } from "react-router";
 
 import { HomeScene } from "@/features/home/ui/HomeScene";
+import { CreateRoomOnArrival } from "@/features/home/ui/CreateRoomOnArrival";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { getEnv } from "@/server/env.server";
 import { INDEXABLE, originFromMatches, pageMeta } from "@/lib/seo";
@@ -23,25 +24,30 @@ const NOTICES: Record<string, string> = {
 };
 
 export const loader = routeLoader(async ({ searchParams }) => {
-  const { erro, aviso } = searchParams;
+  const { erro, aviso, criar } = searchParams;
   const current = await getUserSession();
-
   return {
     erro,
     aviso,
     account: current ? { name: current.user.name, image: current.user.image } : null,
+    // Back from sign-up or sign-in after "Criar sala": the room is created on arrival.
+    createRoomOnArrival: criar === "sala" && current !== null,
     maxParticipants: getEnv().MAX_PARTICIPANTS,
   };
 });
 
 export default function HomePage() {
-  const { erro, aviso, account, maxParticipants } = useLoaderData<typeof loader>();
+  const { erro, aviso, account, maxParticipants, createRoomOnArrival } =
+    useLoaderData<typeof loader>();
   return (
-    <HomeScene
-      invalidCode={erro === "codigo"}
-      account={account}
-      maxParticipants={maxParticipants}
-      notice={noticeFor(NOTICES, aviso)}
-    />
+    <>
+      <HomeScene
+        invalidCode={erro === "codigo"}
+        account={account}
+        maxParticipants={maxParticipants}
+        notice={noticeFor(NOTICES, aviso)}
+      />
+      {createRoomOnArrival ? <CreateRoomOnArrival /> : null}
+    </>
   );
 }

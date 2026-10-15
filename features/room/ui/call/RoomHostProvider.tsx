@@ -120,7 +120,8 @@ export function RoomHostProvider({
   const available = Boolean(
     sessionId &&
     fresh &&
-    state?.isHost &&
+    state &&
+    state.commands.length > 0 &&
     connection === ConnectionState.Connected &&
     !state.closed &&
     !state.removed,

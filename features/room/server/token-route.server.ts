@@ -1,11 +1,11 @@
 import { forbiddenCrossSite, isCrossSiteMutation } from "@/server/origin-guard.server";
 import { getUserAuth } from "@/features/auth/server/participant-auth.server";
 import {
-  TOKEN_ERROR_STATUS,
   type TokenAccount,
   type TokenGuest,
   type TokenRefusal,
 } from "@/features/room/domain/issue-token";
+import { TOKEN_ERROR_STATUS } from "@/features/room/domain/token-error-status";
 import { issueRoomToken } from "@/features/room/server/issue-token.server";
 import { newGuestSession, readGuestId } from "@/features/room/server/guest-session.server";
 import { clientIpFrom } from "@/server/client-ip.server";
@@ -22,9 +22,10 @@ function rejection(
   message: string,
   retryAfterSeconds?: number,
   headers: Record<string, string> = {},
+  requestId?: string,
 ) {
   return Response.json(
-    { error, message },
+    { error, message, ...(requestId === undefined ? {} : { requestId }) },
     {
       status: TOKEN_ERROR_STATUS[error],
       headers: {
@@ -103,6 +104,7 @@ export async function requestRoomToken(request: Request) {
     result.error,
     result.message,
     "retryAfterSeconds" in result ? result.retryAfterSeconds : undefined,
-    headers,
+    { ...headers, "Cache-Control": "no-store" },
+    "requestId" in result ? result.requestId : undefined,
   );
 }

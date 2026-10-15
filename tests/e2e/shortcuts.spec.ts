@@ -6,7 +6,7 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
 }) => {
   const { page, context } = await newParticipant(browser, "Atalhos Teste");
   try {
-    await joinRoom(page, newRoomCode(), { micOn: false });
+    await joinRoom(page, await newRoomCode(), { micOn: false });
     const dock = page.getByRole("navigation", { name: "Controles da chamada", exact: true });
     const chatInput = page.getByPlaceholder("Escreva para a sala", { exact: true });
     await page.keyboard.press("c");
@@ -51,7 +51,7 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
 test("typing and modified or repeated keys do not toggle the microphone", async ({ browser }) => {
   const { page, context } = await newParticipant(browser, "Atalhos Campos");
   try {
-    await joinRoom(page, newRoomCode(), { micOn: false });
+    await joinRoom(page, await newRoomCode(), { micOn: false });
     const microphoneOff = page.getByRole("button", { name: "Ligar microfone", exact: true });
     await page.keyboard.press("c");
     const input = page.getByPlaceholder("Escreva para a sala", { exact: true });

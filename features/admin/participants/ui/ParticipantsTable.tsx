@@ -59,7 +59,7 @@ function Filters({ exportHref }: { exportHref: string | null }) {
     <>
       <FilterSearch
         label="Nome ou e-mail"
-        placeholder="Buscar (sem acento também)"
+        placeholder="Buscar"
         value={params.q}
         onChange={(term) =>
           void setParams({ q: term || null, ...resetPage }, { limitUrlUpdates: debounce(350) })

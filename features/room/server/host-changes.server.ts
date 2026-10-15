@@ -5,6 +5,18 @@ import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessions, roomSessionMembers } from "@/server/db/schema/room-control";
 import { ActionError } from "@/server/operations/action-error";
 import type { HostCommand } from "@/features/room/domain/host-controls";
+import { canModerate } from "@/features/room/domain/moderation";
+import { closeEndsRoom } from "@/features/room/domain/room-host";
+import type { RoomRole } from "@/features/room/domain/room-role";
+import { roomRoles } from "@/server/db/schema";
+import { roomRoleOf } from "./room-roles.server";
+import { transferOwnership } from "./role-changes.server";
+
+/** Who gives the command: their account and the role saved for the room. */
+interface HostActor {
+  identity: string;
+  role: RoomRole;
+}
 import { activeAccount, memberInSession, type ControlSession } from "./session-store.server";
 
 async function transferHost(
@@ -40,7 +52,7 @@ export async function applyHostChange(
   session: ControlSession,
   input: HostCommand,
   participants: readonly ParticipantInfo[],
-  actor: string,
+  actor: HostActor,
 ): Promise<{ kind: "sync" | "remove" | "close"; targetIdentity?: string }> {
   if (input.kind === "lock") {
     await tx
@@ -60,17 +72,26 @@ export async function applyHostChange(
     return { kind: "sync" };
   }
   if (input.kind === "transfer") {
-    await transferHost(tx, session, input.identity, participants, actor);
+    await transferHost(tx, session, input.identity, participants, actor.identity);
+    // From the owner, the room goes too: otherwise the owner, still here, would take the
+    // host back at once.
+    if (actor.role === "owner")
+      await transferOwnership(tx, {
+        roomCode: await codeOf(tx, session),
+        fromUserId: actor.identity,
+        toUserId: input.identity,
+      });
     return { kind: "sync", targetIdentity: input.identity };
   }
   if (input.kind === "remove") {
-    if (input.identity === actor)
+    if (input.identity === actor.identity)
       throw new ActionError("Para sair, use Sair da sala ou transfira a função de anfitrião.");
+    await assertMayRemove(tx, session, actor, input.identity);
     const member = await memberInSession(tx, session.id, input.identity);
     if (!member?.admittedAt) throw new ActionError("Esta pessoa não pertence à chamada.");
     await tx
       .update(roomSessionMembers)
-      .set({ excludedAt: new Date() })
+      .set({ excludedAt: new Date(), excludedByUserId: actor.identity, excludedByAdminId: null })
       .where(
         and(
           eq(roomSessionMembers.sessionId, session.id),
@@ -83,11 +104,60 @@ export async function applyHostChange(
     .update(roomSessions)
     .set({ status: "closed", closedAt: session.closedAt ?? new Date(), admissionLocked: true })
     .where(eq(roomSessions.id, session.id));
+  await closeRoomWithoutOwner(tx, session);
+  return { kind: "close" };
+}
+
+/**
+ * The host and the owner remove anyone; a moderator, as co-host, removes participants
+ * only, never the host, the owner or another moderator.
+ */
+async function assertMayRemove(
+  tx: DbExecutor,
+  session: ControlSession,
+  actor: HostActor,
+  identity: string,
+) {
+  if (session.hostUserId === actor.identity || actor.role === "owner") return;
+  const roomCode = await codeOf(tx, session);
+  const target = isAccountIdentity(identity)
+    ? await roomRoleOf(tx, { roomCode, userId: identity })
+    : "participant";
+  if (identity === session.hostUserId || !canModerate(actor.role, target))
+    throw new ActionError("Moderadores só removem participantes.");
+}
+
+/** A room someone owns stays for the next call; only an ownerless ad hoc room closes. */
+async function closeRoomWithoutOwner(tx: DbExecutor, session: ControlSession) {
+  const [definition] = await tx
+    .select({ code: roomDefinitions.code, kind: roomDefinitions.kind })
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.id, session.definitionId));
+  if (!definition) return;
+  const [owner] = await tx
+    .select({ userId: roomRoles.userId })
+    .from(roomRoles)
+    .where(and(eq(roomRoles.roomCode, definition.code), eq(roomRoles.role, "owner")))
+    .limit(1);
+  if (!closeEndsRoom({ kind: definition.kind, hasOwner: owner !== undefined })) return;
   await tx
     .update(roomDefinitions)
     .set({ closedAt: new Date() })
-    .where(and(eq(roomDefinitions.id, session.definitionId), eq(roomDefinitions.kind, "ad_hoc")));
-  return { kind: "close" };
+    .where(eq(roomDefinitions.id, session.definitionId));
+}
+
+async function codeOf(tx: DbExecutor, session: ControlSession) {
+  const [definition] = await tx
+    .select({ code: roomDefinitions.code })
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.id, session.definitionId));
+  if (!definition) throw new ActionError("Esta chamada não está disponível.");
+  return definition.code;
+}
+
+/** Accounts are UUIDs; guests (`convidado-…`) have no saved role. */
+function isAccountIdentity(identity: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identity);
 }
 
 export function hostAuditMetadata(input: HostCommand) {

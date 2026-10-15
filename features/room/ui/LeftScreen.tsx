@@ -1,5 +1,5 @@
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-import { ArrowLeft, Check, Link2, Lock, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, Home, Link2, Lock, Plus, RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link, useLocation, useViewTransitionState } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ function GuestSignUp({ guest, joined }: { guest: boolean; joined: boolean }) {
   return (
     <div data-anim="left" className="panel flex w-full flex-col items-center gap-3 rounded-2xl p-5">
       <p className="text-base text-pretty">
-        Quer abrir suas próprias salas? Crie uma conta grátis em poucos segundos.
+        Quer abrir suas próprias salas? Crie uma conta grátis.
       </p>
       <Button asChild variant="secondary">
         <Link viewTransition to="/cadastro">
@@ -187,7 +187,7 @@ export function LeftScreen({
           ) : (
             <Button asChild size="lg" data-primary="">
               <Link viewTransition to="/">
-                <Plus aria-hidden="true" />
+                {reason === "ended" ? <Plus aria-hidden="true" /> : <Home aria-hidden="true" />}
                 {reason === "ended" ? "Criar nova sala" : "Ir para o início"}
               </Link>
             </Button>
@@ -220,7 +220,7 @@ export function LeftScreen({
           className="flex items-center gap-1.5 text-sm text-pretty text-ink-subtle"
         >
           <Lock className="size-3.5 shrink-0" aria-hidden="true" />
-          O chat foi apagado e nada da chamada foi gravado.
+          O chat da sala foi apagado.
         </p>
       ) : null}
     </section>

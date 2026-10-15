@@ -107,4 +107,52 @@ describe("maintenance", () => {
     const state = Object.fromEntries(rows.map((row) => [row.id, row.processedAt !== null]));
     expect(state).toMatchObject({ EV_pendente_antigo: true, EV_chegando: false });
   });
+
+  it("clears requests to enter a room after a week", async () => {
+    const code = `sala-pedidos-${Date.now().toString(36)}`;
+    await db.insert(schema.roomDefinitions).values({ code });
+    const request = (createdDaysAgo: number) => ({
+      roomCode: code,
+      guestId: crypto.randomUUID(),
+      displayName: "Visita",
+      status: "expired" as const,
+      createdAt: ago(createdDaysAgo),
+      expiresAt: ago(createdDaysAgo),
+    });
+    const [old] = await db.insert(schema.roomJoinRequests).values(request(8)).returning();
+    const [fresh] = await db.insert(schema.roomJoinRequests).values(request(1)).returning();
+
+    const report = await runMaintenance(db);
+
+    expect(report.joinRequests).toBeGreaterThanOrEqual(1);
+    const left = await db
+      .select({ id: schema.roomJoinRequests.id })
+      .from(schema.roomJoinRequests)
+      .where(eq(schema.roomJoinRequests.roomCode, code));
+    expect(left.map((row) => row.id)).toEqual([fresh!.id]);
+    expect(left.map((row) => row.id)).not.toContain(old!.id);
+  });
+});
+
+describe("room bans", () => {
+  it("are deleted a week after the ban; recent ones stay", async () => {
+    const [oldBan, recentBan] = await db
+      .insert(schema.roomBans)
+      .values([
+        {
+          roomCode: "ban-velho",
+          identity: "pessoa",
+          livekitRoomSid: "RM_velha",
+          createdAt: ago(8),
+        },
+        { roomCode: "ban-novo", identity: "pessoa", livekitRoomSid: "RM_nova" },
+      ])
+      .returning();
+    const report = await runMaintenance(db);
+    expect(report.roomBans).toBeGreaterThanOrEqual(1);
+    const left = await db.select({ id: schema.roomBans.id }).from(schema.roomBans);
+    const ids = left.map((row) => row.id);
+    expect(ids).not.toContain(oldBan!.id);
+    expect(ids).toContain(recentBan!.id);
+  });
 });

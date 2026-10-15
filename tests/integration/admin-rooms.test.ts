@@ -11,11 +11,24 @@ vi.mock("@/server/request-context.server", () => ({
   requestMemo: (load: () => unknown) => load,
   requestHeaders: () => requestHeaders.current,
 }));
+// LiveKit for "remove from the call": who is connected, and the current call's sid.
+const liveKit = vi.hoisted(() => ({ connected: new Set<string>(), removed: [] as string[] }));
+vi.mock("@/features/room/server/livekit-gateway.server", () => ({
+  liveKitGateway: {
+    roomSid: () => Promise.resolve("RM_chamada-atual"),
+    removeParticipant: (_room: string, identity: string) => {
+      if (!liveKit.connected.has(identity)) return Promise.resolve(false);
+      liveKit.removed.push(identity);
+      return Promise.resolve(true);
+    },
+  },
+}));
 process.env.ADMIN_AUTH_SECRET = "segredo-admin-de-teste-0123456789abcdef0123456789";
 const { adminSession } = await import("./support/admin-session");
 const actions = await import("@/features/admin/rooms/actions.server");
 const { hashInviteToken } = await import("@/features/room/server/invites.server");
 const { searchPanelAction } = await import("@/features/admin/search/actions.server");
+const { removedFromCall } = await import("@/features/admin/rooms/server/room-removals.server");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
@@ -79,7 +92,7 @@ describe("delete and restore", () => {
     const result = await actions.restoreRoomsAction({ ids: [old.id] });
     assert.equal(
       result.serverError,
-      "Nada para restaurar (o código pode já estar em uso por outra sala).",
+      "Nada para restaurar. O código pode já estar em uso por outra sala.",
     );
   });
 
@@ -198,6 +211,150 @@ describe("invites", () => {
       validityHours: null,
     });
     assert.equal(denied.serverError, "Você não tem permissão para fazer isso.");
+  });
+});
+
+/** Someone connected right now to a live room. */
+async function inCall(identity: string) {
+  const live = await room("active");
+  const [participation] = await db
+    .insert(schema.roomParticipations)
+    .values({
+      roomId: live.id,
+      livekitIdentity: identity,
+      livekitSid: `PA_${crypto.randomUUID()}`,
+      joinedAt: new Date(Date.now() - 30_000),
+    })
+    .returning({ id: schema.roomParticipations.id });
+  assert.ok(participation);
+  liveKit.connected.add(identity);
+  return { live, participationId: participation.id };
+}
+
+describe("remove from the call", () => {
+  test("kicks and audits; the person is not banned", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const { live, participationId } = await inCall(identity);
+    requestHeaders.current = admin.headers;
+    const result = await actions.removeParticipantAction({ participationId, action: "kick" });
+    assert.deepEqual(result.data, { removed: true });
+    assert.ok(liveKit.removed.includes(identity));
+    const bans = await db
+      .select()
+      .from(schema.roomBans)
+      .where(eq(schema.roomBans.identity, identity));
+    assert.equal(bans.length, 0);
+    const [audit] = await db
+      .select({ action: schema.auditLogs.action })
+      .from(schema.auditLogs)
+      .where(eq(schema.auditLogs.resourceId, live.id));
+    assert.equal(audit?.action, "room.participant_kick");
+  });
+
+  test("bans for the current call, recorded with the admin", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const { live, participationId } = await inCall(identity);
+    requestHeaders.current = admin.headers;
+    const result = await actions.removeParticipantAction({ participationId, action: "ban" });
+    assert.deepEqual(result.data, { removed: true });
+    const [ban] = await db
+      .select()
+      .from(schema.roomBans)
+      .where(eq(schema.roomBans.identity, identity));
+    assert.equal(ban?.roomCode, live.code);
+    assert.equal(ban?.livekitRoomSid, "RM_chamada-atual");
+    assert.equal(ban?.bannedByAdminId, admin.id);
+  });
+
+  test("someone who already left, and a viewer, are refused", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const { participationId } = await inCall(identity);
+    requestHeaders.current = viewer.headers;
+    const denied = await actions.removeParticipantAction({ participationId, action: "kick" });
+    assert.equal(denied.serverError, "Você não tem permissão para fazer isso.");
+
+    await db
+      .update(schema.roomParticipations)
+      .set({ leftAt: new Date() })
+      .where(eq(schema.roomParticipations.id, participationId));
+    requestHeaders.current = admin.headers;
+    const gone = await actions.removeParticipantAction({ participationId, action: "kick" });
+    assert.equal(gone.serverError, "Essa pessoa já saiu da sala.");
+  });
+
+  test("a removal LiveKit refuses leaves no audit row behind", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const { live, participationId } = await inCall(identity);
+    // Still listed in the database, but no longer connected to LiveKit.
+    liveKit.connected.delete(identity);
+    requestHeaders.current = admin.headers;
+    const result = await actions.removeParticipantAction({ participationId, action: "kick" });
+    assert.equal(result.serverError, "Essa pessoa já saiu da sala.");
+    const audits = await db
+      .select()
+      .from(schema.auditLogs)
+      .where(eq(schema.auditLogs.resourceId, live.id));
+    assert.equal(audits.length, 0);
+  });
+});
+
+/** Someone banned from the call by the panel, with the name typed for it. */
+async function banned(identity: string) {
+  const { live, participationId } = await inCall(identity);
+  await db
+    .update(schema.roomParticipations)
+    .set({ displayName: "Diego" })
+    .where(eq(schema.roomParticipations.id, participationId));
+  requestHeaders.current = admin.headers;
+  const result = await actions.removeParticipantAction({ participationId, action: "ban" });
+  assert.deepEqual(result.data, { removed: true });
+  return live;
+}
+
+const liveKitDown = () => Promise.reject(new Error("offline"));
+
+describe("let a banned person back", () => {
+  test("lists the ban with the name used in the call, made from the panel", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const live = await banned(identity);
+    const removals = await removedFromCall(db, live);
+    assert.equal(removals?.length, 1);
+    assert.equal(removals?.[0]?.name, "Diego");
+    assert.deepEqual(removals?.[0]?.removedBy, { kind: "panel" });
+  });
+
+  test("lifts the ban for this call and audits it; a second time is refused", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const live = await banned(identity);
+    const result = await actions.readmitParticipantAction({ roomId: live.id, identity });
+    assert.deepEqual(result.data, { readmitted: true });
+    assert.deepEqual(await removedFromCall(db, live), []);
+    const [audit] = await db
+      .select({ action: schema.auditLogs.action })
+      .from(schema.auditLogs)
+      .where(
+        and(
+          eq(schema.auditLogs.resourceId, live.id),
+          eq(schema.auditLogs.action, "room.participant_unban"),
+        ),
+      );
+    assert.ok(audit);
+
+    const again = await actions.readmitParticipantAction({ roomId: live.id, identity });
+    assert.equal(again.serverError, "Essa pessoa já pode voltar.");
+  });
+
+  test("a viewer cannot let anyone back", async () => {
+    const identity = `convidado-${crypto.randomUUID()}`;
+    const live = await banned(identity);
+    requestHeaders.current = viewer.headers;
+    const denied = await actions.readmitParticipantAction({ roomId: live.id, identity });
+    assert.equal(denied.serverError, "Você não tem permissão para fazer isso.");
+  });
+
+  test("without an answer from LiveKit the list is unavailable, not empty", async () => {
+    const live = await room("active");
+    assert.equal(await removedFromCall(db, live, liveKitDown), null);
   });
 });
 

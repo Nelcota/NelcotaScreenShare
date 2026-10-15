@@ -1,4 +1,7 @@
 import { GUEST_IDENTITY_PREFIX } from "./participant-label";
+import { checkApproval, type ApprovalRequest, type ApprovalResult } from "./join-approval";
+import type { RoomAccess } from "./room-access";
+import type { RoomRole } from "./room-role";
 import { tokenRequestSchema, type TokenErrorCode } from "./token-contract";
 
 /**
@@ -7,7 +10,10 @@ import { tokenRequestSchema, type TokenErrorCode } from "./token-contract";
  * has a test (tests/unit/issue-token.test.ts).
  */
 
-/** Result recorded in token_requests; the database's `token_result` enum is built from it. */
+/**
+ * Result recorded in token_requests; the database's `token_result` enum is built from it, in
+ * the same order: each migration adds the new value before "error".
+ */
 export const TOKEN_LOG_RESULTS = [
   "granted",
   "wrong_password",
@@ -22,6 +28,9 @@ export const TOKEN_LOG_RESULTS = [
   "room_locked",
   "room_removed",
   "room_closed",
+  "room_not_found",
+  "banned",
+  "awaiting_approval",
   "error",
 ] as const;
 
@@ -63,12 +72,24 @@ export interface TokenDeps {
   redeemInvite: (invite: string, room: string, accountId: string) => Promise<boolean>;
   /** Is someone with an account connected? Guests only join a room that has a host. */
   hostPresent: (room: string) => Promise<boolean>;
+  /** Was the room created? Any other code is refused. */
+  roomExists: (room: string) => Promise<boolean>;
+  /** The account's saved role in the room. */
+  roleOf: (room: string, accountId: string) => Promise<RoomRole>;
+  /** Was this identity banned from the call happening now in the room? */
+  bannedFromCall: (room: string, identity: string) => Promise<boolean>;
+  /** Open entry or entry with approval. */
+  accessOf: (room: string) => Promise<RoomAccess>;
+  /** Lets in an accepted request once, or opens the request and returns its id to follow. */
+  awaitApproval: (request: ApprovalRequest) => Promise<ApprovalResult>;
 }
 
 export interface TokenGrant {
   identity: string;
   name: string;
   room: string;
+  /** Saved room role; grants built by the host controls carry none (plain participant). */
+  role?: RoomRole;
   canShare?: boolean;
 }
 
@@ -83,24 +104,8 @@ export type TokenDecision =
       log: TokenLogResult;
       message: string;
       retryAfterSeconds?: number;
+      requestId?: string;
     };
-
-/** HTTP status of each refusal (the body carries the code and the message). */
-export const TOKEN_ERROR_STATUS: Record<TokenRefusal, number> = {
-  unauthenticated: 401,
-  blocked: 403,
-  email_unverified: 403,
-  rate_limited: 429,
-  invalid_request: 400,
-  invalid_password: 401,
-  room_full: 409,
-  invite_invalid: 403,
-  host_absent: 409,
-  room_locked: 403,
-  room_removed: 403,
-  room_closed: 409,
-  server_error: 502,
-};
 
 export const SERVER_ERROR_MESSAGE =
   "A sala está indisponível no momento. Aguarde alguns segundos e tente de novo.";
@@ -118,6 +123,10 @@ function refuse(
     message,
     ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
   };
+}
+
+function granted(grant: TokenGrant): TokenDecision {
+  return { ok: true, grant, log: "granted" };
 }
 
 function invalidMessage(field: PropertyKey | undefined): string {
@@ -145,7 +154,7 @@ function checkAccount(
     return refuse(
       "blocked",
       "blocked",
-      "Sua conta não pode entrar em salas. Fale com o suporte se achar que é um engano.",
+      "Sua conta não pode entrar em salas. Se for um engano, fale com o suporte.",
     );
   }
   if (policy.requireVerifiedEmail && !account.emailVerified) {
@@ -186,7 +195,7 @@ function checkPassword(password: string | undefined, deps: TokenDeps): TokenDeci
   return refuse(
     "invalid_password",
     "wrong_password",
-    "Essa senha não confere. Confira a senha com quem enviou o convite e tente de novo.",
+    "Senha incorreta. Confira com quem enviou o convite.",
   );
 }
 
@@ -207,12 +216,28 @@ function parseRequest(body: ReadBody) {
   return parsed.data;
 }
 
+/** Only rooms created through "Criar sala" exist. */
+async function checkRoomExists(room: string, deps: TokenDeps) {
+  if (await deps.roomExists(room)) return undefined;
+  return refuse("room_not_found", "room_not_found", "Esta sala não existe. Confira o link.");
+}
+
 async function checkCapacity(room: string, identity: string, policy: TokenPolicy, deps: TokenDeps) {
   if ((await deps.countParticipants(room, identity)) < policy.maxParticipants) return undefined;
   return refuse(
     "room_full",
     "room_full",
     `A sala está cheia (máximo de ${policy.maxParticipants} pessoas). Aguarde alguém sair e tente de novo.`,
+  );
+}
+
+/** Banned from this call: refused before the password, so a ban cannot be guessed past. */
+async function checkBan(room: string, identity: string, deps: TokenDeps) {
+  if (!(await deps.bannedFromCall(room, identity))) return undefined;
+  return refuse(
+    "banned",
+    "banned",
+    "Você foi removido desta chamada e não pode voltar até ela terminar.",
   );
 }
 
@@ -223,7 +248,8 @@ async function decideGuest(
   policy: TokenPolicy,
   deps: TokenDeps,
 ): Promise<TokenDecision> {
-  const limit = deps.hitAccountLimit(`${GUEST_IDENTITY_PREFIX}${guest.guestId}`);
+  const identity = `${GUEST_IDENTITY_PREFIX}${guest.guestId}`;
+  const limit = deps.hitAccountLimit(identity);
   if (!limit.ok) {
     return refuse(
       "rate_limited",
@@ -234,7 +260,9 @@ async function decideGuest(
   }
   const request = parseRequest(body);
   if ("ok" in request) return request;
-  const { room, password, invite, guestName } = request;
+  const { room, password, invite, guestName, requestId } = request;
+  const missing = await checkRoomExists(room, deps);
+  if (missing) return missing;
   if (guestName === undefined) {
     return refuse("invalid_request", "invalid", "Digite seu nome para entrar na sala.");
   }
@@ -246,11 +274,12 @@ async function decideGuest(
       "Este convite é para quem tem conta. Entre na sua conta para usá-lo.",
     );
   }
+  const banned = await checkBan(room, identity, deps);
+  if (banned) return banned;
   if (policy.accessPassword) {
     const wrong = checkPassword(password, deps);
     if (wrong) return wrong;
   }
-  const identity = `${GUEST_IDENTITY_PREFIX}${guest.guestId}`;
   const full = await checkCapacity(room, identity, policy, deps);
   if (full) return full;
   if (!(await deps.hostPresent(room))) {
@@ -260,11 +289,14 @@ async function decideGuest(
       "A sala ainda não começou. Espere quem te convidou entrar e tente de novo.",
     );
   }
-  return {
-    ok: true,
-    grant: { identity, name: guestName, room },
-    log: "granted",
-  };
+  const waiting = await checkApproval(
+    { room, requester: { guestId: guest.guestId }, name: guestName, requestId },
+    "participant",
+    deps,
+  );
+  if (waiting) return waiting;
+  // Guests have no saved identity, so they are never owners or moderators.
+  return granted({ identity, name: guestName, room, role: "participant" });
 }
 
 /**
@@ -284,7 +316,12 @@ export async function decideTokenRequest(
 
   const request = parseRequest(body);
   if ("ok" in request) return request;
-  const { room, password, invite } = request;
+  const { room, password, invite, requestId } = request;
+  const missing = await checkRoomExists(room, deps);
+  if (missing) return missing;
+
+  const banned = await checkBan(room, checked.id, deps);
+  if (banned) return banned;
 
   // A dashboard invite replaces the access password (it is validated further below).
   if (policy.accessPassword && invite === undefined) {
@@ -302,5 +339,12 @@ export async function decideTokenRequest(
       "Este convite expirou, foi revogado ou já atingiu o limite de pessoas. Peça um novo a quem convidou.",
     );
   }
-  return { ok: true, grant: { identity: checked.id, name: checked.name, room }, log: "granted" };
+  const role = await deps.roleOf(room, checked.id);
+  const waiting = await checkApproval(
+    { room, requester: { userId: checked.id }, name: checked.name, requestId },
+    role,
+    deps,
+  );
+  if (waiting) return waiting;
+  return granted({ identity: checked.id, name: checked.name, room, role });
 }

@@ -140,8 +140,8 @@ export function ShortcutsPanel() {
       </dl>
       <p className="mt-3 text-xs text-ink-subtle">
         {settings?.enabled === false
-          ? "Atalhos desligados nesta chamada. Use os botões ou ligue novamente quando quiser."
-          : "Desligue para jogar sem acionar a chamada. Não disparam enquanto você digita."}
+          ? "Atalhos desligados nesta chamada."
+          : "Desligue para jogar sem acionar a chamada."}
       </p>
     </>
   );

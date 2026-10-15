@@ -12,8 +12,8 @@ const COPY = {
   failed: {
     code: "Algo deu errado",
     title: "Não deu para abrir.",
-    rest: "Não foi você.",
-    text: "Tente de novo em instantes. Se continuar, volte ao início e abra a página outra vez.",
+    rest: "Erro do nosso lado.",
+    text: "Tente de novo em instantes ou volte ao início.",
   },
 } as const;
 

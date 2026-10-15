@@ -1,3 +1,4 @@
+import { pageSlotRef } from "@/lib/page-slot";
 import { ArrowLeft, ArrowRight, Headphones, Ticket } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,7 @@ export function PreJoinHeader({
       />
       <div className="flex flex-col items-center gap-2">
         {/* Other features show a short notice here, e.g. who will be called on joining. */}
-        <div id="pre-join-notice" className="empty:hidden" />
+        <div id="pre-join-notice" ref={pageSlotRef("pre-join-notice")} className="empty:hidden" />
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pronto para entrar?</h1>
         <div className="flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1">
           <RoomLine code={code} name={roomName} hideCode={streamerMode} />

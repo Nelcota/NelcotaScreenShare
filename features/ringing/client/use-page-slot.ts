@@ -1,19 +1,16 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
+import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
+import { pageSlot, subscribePageSlots } from "@/lib/page-slot";
 
 /**
- * An empty element another feature leaves on its page (by id) for this one to fill through a
- * portal; followed as that page mounts and unmounts it. Null while inactive or absent.
+ * An empty element another feature leaves on its page (by id, with `pageSlotRef`) for this one
+ * to fill through a portal; followed as that page mounts and unmounts it. Null while inactive
+ * or absent.
  */
 export function usePageSlot(id: string, active = true) {
-  const subscribe = useCallback(
-    (onChange: () => void) => {
-      if (!active) return () => {};
-      const observer = new MutationObserver(onChange);
-      observer.observe(document.body, { childList: true, subtree: true });
-      return () => observer.disconnect();
-    },
-    [active],
+  return useSyncExternalStore(
+    active ? subscribePageSlots : subscribeNothing,
+    () => (active ? pageSlot(id) : null),
+    () => null,
   );
-  const findSlot = () => (active ? document.getElementById(id) : null);
-  return useSyncExternalStore(subscribe, findSlot, () => null);
 }

@@ -1,3 +1,4 @@
+import { pageSlotRef } from "@/lib/page-slot";
 import { Check, Copy } from "lucide-react";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { useId, useRef } from "react";
@@ -40,7 +41,11 @@ export function InviteCard({ code }: { code: string }) {
             Chame o time
           </h2>
           {/* Other features add a way to invite here, e.g. ringing friends. */}
-          <div id="room-invite-actions" className="empty:hidden" />
+          <div
+            id="room-invite-actions"
+            ref={pageSlotRef("room-invite-actions")}
+            className="empty:hidden"
+          />
         </div>
         <div className="flex min-w-0 gap-2">
           <label htmlFor={`${titleId}-link`} className="sr-only">

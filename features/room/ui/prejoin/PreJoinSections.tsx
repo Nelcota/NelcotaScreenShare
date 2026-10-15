@@ -71,7 +71,8 @@ export function PreJoinHeader({
         </h1>
         <div className="flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1">
           <RoomLine code={code} name={roomName} hideCode={streamerMode} />
-          <InviteLinkButton code={code} />
+          {/* Whoever opens the room passes the link on; a guest just received it. */}
+          {guest ? null : <InviteLinkButton code={code} />}
         </div>
         <PresenceLine presence={presence} max={maxParticipants} guest={guest} />
         {invite ? (

@@ -7,6 +7,7 @@ import { UnreadCount } from "@/components/UnreadCount";
 import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
 import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
+import { NoFriendsYet } from "@/features/friends/ui/NoFriendsYet";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -126,9 +127,7 @@ function FriendsBody({
       </div>
       <nav aria-label="Amigos" className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-3">
         {friends.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-ink-muted">
-            Você ainda não tem amigos aqui. Passe seu código para alguém.
-          </p>
+          <NoFriendsYet code={code} />
         ) : (
           <FriendGroups
             friends={shown}

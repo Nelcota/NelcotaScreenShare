@@ -1,6 +1,7 @@
 import { useRouteLoaderData } from "react-router";
 import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
+import { NoFriendsYet } from "@/features/friends/ui/NoFriendsYet";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
 import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
@@ -27,9 +28,7 @@ function PhoneFriends() {
       </div>
       <nav aria-label="Seus amigos" className="flex flex-col">
         {app.friends.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-ink-muted">
-            Você ainda não tem amigos aqui. Passe seu código para alguém.
-          </p>
+          <NoFriendsYet code={app.code} />
         ) : (
           <FriendGroups
             friends={app.friends}

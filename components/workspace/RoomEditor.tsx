@@ -1,7 +1,9 @@
 import { useId, useState } from "react";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formText } from "@/lib/utils";
 import { Field } from "@/components/Field";
 
@@ -15,6 +17,40 @@ export interface RoomValues {
 function nameProblem(name: string): string | undefined {
   if (name.trim().length < 2) return "Use pelo menos 2 caracteres.";
   return undefined;
+}
+
+/** A setting turned on or off, with what it means under it. */
+function OptionCheckbox({
+  name,
+  defaultChecked,
+  label,
+  hint,
+}: {
+  name: string;
+  defaultChecked: boolean;
+  label: string;
+  hint: string;
+}) {
+  const id = useId();
+  return (
+    <div className="flex items-start gap-3 text-sm">
+      <Checkbox
+        id={id}
+        name={name}
+        defaultChecked={defaultChecked}
+        aria-describedby={`${id}-hint`}
+        className="mt-0.5"
+      />
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={id} className="leading-snug font-normal">
+          {label}
+        </Label>
+        <p id={`${id}-hint`} className="text-xs text-ink-muted">
+          {hint}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function RoomEditor({
@@ -37,6 +73,7 @@ export function RoomEditor({
   const shownError = nameError ?? error;
   return (
     <form
+      noValidate
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
@@ -69,35 +106,19 @@ export function RoomEditor({
           onChange={() => setNameError(undefined)}
         />
       </Field>
-      <label className="flex items-start gap-3 text-sm">
-        <input
-          type="checkbox"
-          name="guests"
-          defaultChecked={initial?.allowGuests ?? !team}
-          className="mt-1"
-        />
-        <span>
-          Permitir convidados pelo link
-          <p className="mt-1 text-xs text-ink-muted">
-            Convidados só entram depois que a chamada começar.
-          </p>
-        </span>
-      </label>
+      <OptionCheckbox
+        name="guests"
+        defaultChecked={initial?.allowGuests ?? !team}
+        label="Permitir convidados pelo link"
+        hint="Convidados só entram depois que a chamada começar."
+      />
       {team ? (
-        <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            name="host"
-            defaultChecked={initial?.memberCanHost ?? false}
-            className="mt-1"
-          />
-          <span>
-            Membros podem iniciar e assumir a chamada
-            <p className="mt-1 text-xs text-ink-muted">
-              Donos e gestores sempre podem ser anfitriões.
-            </p>
-          </span>
-        </label>
+        <OptionCheckbox
+          name="host"
+          defaultChecked={initial?.memberCanHost ?? false}
+          label="Membros podem iniciar e assumir a chamada"
+          hint="Donos e gestores sempre podem ser anfitriões."
+        />
       ) : null}
       <Button disabled={pending} type="submit">
         {initial ? "Salvar sala" : "Criar sala"}

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { NavLink } from "react-router";
 import { Mascot } from "@/features/mascot/ui/Mascot";
 import { splitByPresence, type FriendStatus } from "@/features/friends/domain/friend-lists";
@@ -66,22 +66,29 @@ export function FriendGroups({
   unreadByFriend?: Readonly<Record<string, number>>;
   before?: ReactNode;
 }) {
+  const onlineId = useId();
+  const offlineId = useId();
   const { online, offline } = splitByPresence(friends);
   const unreadOf = (friend: FriendStatus) => unreadByFriend[friend.id] ?? 0;
   return (
     <>
       {before}
-      <h2 className={GROUP_TITLE}>Online — {online.length}</h2>
+      {/* Labels, not headings: the column comes before the page's h1. */}
+      <p id={onlineId} className={GROUP_TITLE}>
+        Online — {online.length}
+      </p>
       {online.length === 0 ? <NobodyOnline /> : null}
-      <ul className="mt-1 flex flex-col gap-0.5">
+      <ul aria-labelledby={onlineId} className="mt-1 flex flex-col gap-0.5">
         {online.map((friend) => (
           <FriendLine key={friend.id} friend={friend} unread={unreadOf(friend)} />
         ))}
       </ul>
       {offline.length > 0 ? (
         <>
-          <h2 className={cn(GROUP_TITLE, "pt-4")}>Offline — {offline.length}</h2>
-          <ul className="mt-1 flex flex-col gap-0.5">
+          <p id={offlineId} className={cn(GROUP_TITLE, "pt-4")}>
+            Offline — {offline.length}
+          </p>
+          <ul aria-labelledby={offlineId} className="mt-1 flex flex-col gap-0.5">
             {offline.map((friend) => (
               <FriendLine key={friend.id} friend={friend} unread={unreadOf(friend)} />
             ))}

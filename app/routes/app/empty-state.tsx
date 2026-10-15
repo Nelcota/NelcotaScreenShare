@@ -7,9 +7,12 @@ import { cn } from "@/lib/utils";
  * replaces it with their page.
  */
 export function AppEmptyState({
+  title,
   invalidCode = false,
   className,
 }: {
+  /** The page's h1, for screen readers: the screen itself has no title to show. */
+  title: string;
   invalidCode?: boolean;
   className?: string;
 }) {
@@ -20,6 +23,7 @@ export function AppEmptyState({
         className,
       )}
     >
+      <h1 className="sr-only">{title}</h1>
       <div className="w-full max-w-md">
         <HomeStart invalidCode={invalidCode} compact />
       </div>

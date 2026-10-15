@@ -45,7 +45,7 @@ export default function FriendsTab() {
   return (
     <>
       <PhoneFriends />
-      <AppEmptyState className="max-sm:hidden" />
+      <AppEmptyState title="Amigos" className="max-sm:hidden" />
     </>
   );
 }

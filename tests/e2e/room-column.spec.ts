@@ -14,6 +14,8 @@ test("signed in, the friends column stays on the room's screens, as the rail in 
     // On a short window the panel scrolls, and its top is not cut off.
     await page.setViewportSize({ width: 800, height: 600 });
     const heading = page.getByRole("heading", { name: "Pronto para entrar?" });
+    // The focused field may have scrolled the panel down: scrolling back must reach the title.
+    await heading.scrollIntoViewIfNeeded();
     const panelTop = (await page.getByRole("main").boundingBox())?.y ?? 0;
     expect((await heading.boundingBox())?.y ?? -1).toBeGreaterThan(panelTop);
     await page.setViewportSize({ width: 1280, height: 720 });

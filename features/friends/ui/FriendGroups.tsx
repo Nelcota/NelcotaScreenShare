@@ -75,7 +75,7 @@ export function FriendGroups({
       {before}
       {/* Labels, not headings: the column comes before the page's h1. */}
       <p id={onlineId} className={GROUP_TITLE}>
-        Online — {online.length}
+        Online · {online.length}
       </p>
       {online.length === 0 ? <NobodyOnline /> : null}
       <ul aria-labelledby={onlineId} className="mt-1 flex flex-col gap-0.5">
@@ -86,7 +86,7 @@ export function FriendGroups({
       {offline.length > 0 ? (
         <>
           <p id={offlineId} className={cn(GROUP_TITLE, "pt-4")}>
-            Offline — {offline.length}
+            Offline · {offline.length}
           </p>
           <ul aria-labelledby={offlineId} className="mt-1 flex flex-col gap-0.5">
             {offline.map((friend) => (

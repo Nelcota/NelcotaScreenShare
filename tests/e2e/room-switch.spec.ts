@@ -103,7 +103,10 @@ test("joining in a second tab asks first and confirming ends the call in the fir
     await dialog.getByRole("button", { name: "Entrar aqui", exact: true }).click();
     await expect(second.getByRole("button", { name: "Sair da sala", exact: true })).toBeVisible();
     await expect(
-      first.page.getByRole("heading", { name: "Você está na sala em outro lugar", exact: true }),
+      first.page.getByRole("heading", {
+        name: "Você está nesta chamada em outra aba",
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(first.page.getByText("Você entrou numa sala em outra aba.")).toBeVisible();
   } finally {

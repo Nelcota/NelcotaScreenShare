@@ -38,7 +38,7 @@ export function InviteCard({ code }: { code: string }) {
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <h2 id={titleId} className="text-sm font-semibold">
-            Chame o time
+            Chamar pessoas
           </h2>
           {/* Other features add a way to invite here, e.g. ringing friends. */}
           <div

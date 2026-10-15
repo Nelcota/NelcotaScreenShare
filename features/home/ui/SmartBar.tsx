@@ -175,11 +175,7 @@ export function SmartBar({
   const input = parseRoomInput(text);
   const hint = linkError
     ? {
-        text: (
-          <ErrorHint>
-            Esse convite não é válido. Confira o código ou peça um novo link a quem enviou.
-          </ErrorHint>
-        ),
+        text: <ErrorHint>Esse código de sala não existe. Confira o link.</ErrorHint>,
         tone: "error" as const,
       }
     : hintFor(input);

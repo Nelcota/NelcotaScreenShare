@@ -138,7 +138,7 @@ export function RoomSession({
 
   function leave(notice: LeaveNotice | undefined, startedAt: number | undefined) {
     // The leave screen is not on display: the notice goes to a toast instead.
-    if (minimized) toast.info(notice?.message ?? "Você saiu da sala.");
+    if (minimized) toast.info(notice?.message ?? "Você saiu da chamada.");
     changePhase({
       kind: "left",
       reason: notice?.reason ?? "self",

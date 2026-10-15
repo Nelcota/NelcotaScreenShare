@@ -91,7 +91,7 @@ test("the minimized call drags, stops sharing and leaves after confirming", asyn
     .getByRole("button", { name: "Sair", exact: true })
     .click();
   await expect(card).toHaveCount(0);
-  await expect(page.getByText("Você saiu da sala.")).toBeVisible();
+  await expect(page.getByText("Você saiu da chamada.")).toBeVisible();
   await context.close();
 });
 

@@ -45,10 +45,10 @@ test("streamer mode hides every invitation and can reveal them again", async ({ 
   expect(await page.locator("body").innerText()).not.toContain(code);
   await page.getByRole("button", { name: "Sair da sala", exact: true }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();
-  await expect(page.getByText("Você saiu da sala", { exact: true })).toBeVisible();
+  await expect(page.getByText("Você saiu da chamada", { exact: true })).toBeVisible();
   expect(await page.locator("body").innerText()).not.toContain(code);
   await expect(page.getByRole("button", { name: "Copiar link", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Voltar para a sala", exact: true }).click();
+  await page.getByRole("button", { name: "Voltar à chamada", exact: true }).click();
   await expect(page.getByRole("button", { name: "Copiar convite", exact: true })).toHaveCount(0);
   await expect(page).toHaveURL(/\/sala$/);
   await page.reload();

@@ -470,8 +470,8 @@ test.describe("in the room", () => {
       .getByRole("alertdialog")
       .getByRole("button", { name: "Sair", exact: true })
       .click();
-    await expect(caio.page.getByText("Você saiu da sala")).toBeVisible();
-    await caio.page.getByRole("button", { name: "Voltar para a sala" }).click();
+    await expect(caio.page.getByText("Você saiu da chamada")).toBeVisible();
+    await caio.page.getByRole("button", { name: "Voltar à chamada" }).click();
     await expect(caio.page.getByLabel("Senha da sala")).toBeVisible();
     await caio.context.close();
   });

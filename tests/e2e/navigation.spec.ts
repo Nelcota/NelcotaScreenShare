@@ -73,7 +73,9 @@ test("pre-join keeps the return from the account page and the call uses only the
   await expect(page.getByRole("navigation", { name: "Sala", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: /Sair/ }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Você saiu da sala", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Você saiu da chamada", exact: true }),
+  ).toBeVisible();
   await expect(navbar).toHaveCount(1);
   await expect(menu).toBeVisible();
   await context.close();

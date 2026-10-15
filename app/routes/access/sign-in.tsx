@@ -11,6 +11,7 @@ import { accessContext } from "@/features/auth/domain/access-context";
 import { APP_START, safeReturnPath } from "@/features/auth/domain/return-path";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { noticeFor } from "@/lib/notice";
+import { SESSION_ENDED_NOTICE } from "@/features/auth/domain/session-ended";
 
 export const meta = () => [{ title: "Entrar · Nelcota" }];
 
@@ -18,6 +19,7 @@ const NOTICES: Record<string, string> = {
   senha: "Senha alterada. Entre com a nova senha.",
   saiu: "Você saiu da sua conta.",
   sessao: "Sua sessão expirou. Entre de novo para continuar.",
+  [SESSION_ENDED_NOTICE]: "Sua sessão foi encerrada em outro aparelho.",
 };
 
 export const loader = routeLoader(async ({ searchParams }) => {

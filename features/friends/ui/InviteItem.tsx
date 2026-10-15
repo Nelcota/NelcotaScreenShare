@@ -1,5 +1,5 @@
 import { UserPlus } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -19,15 +19,13 @@ const RELATION_LINE: Partial<Record<FriendRelation, string>> = {
   blocked: "Você bloqueou essa pessoa. Desbloqueie abaixo para adicionar.",
 };
 
+/** A link, not a click handler: middle click, prefetch and the link's meaning come with it. */
 function IgnoreButton() {
-  const navigate = useNavigate();
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => void navigate(REQUESTS_PATH, { replace: true, viewTransition: true })}
-    >
-      Ignorar
+    <Button size="sm" variant="outline" asChild>
+      <Link to={REQUESTS_PATH} replace viewTransition>
+        Ignorar
+      </Link>
     </Button>
   );
 }

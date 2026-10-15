@@ -1,18 +1,22 @@
 import {
   Ban,
+  Ellipsis,
+  Eraser,
   ImageOff,
-  UserPen,
-  LockOpen,
-  LogOut,
   MailCheck,
-  RotateCcw,
   ShieldOff,
-  ShieldX,
   Trash2,
+  UserPen,
 } from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { ParticipantStatus } from "@/features/admin/participants/domain/search-params";
 import { availableActions } from "@/features/admin/participants/domain/available-actions";
 import { BLOCK_DESCRIPTION } from "@/features/admin/participants/domain/labels";
@@ -36,20 +40,72 @@ interface ParticipantSelection {
   ids: string[];
 }
 
-function ActionButtons({
-  id,
-  selection,
-  show,
-  operations,
-  openDialog,
-}: {
+type ActionProps = {
   id: string;
   selection: ParticipantSelection;
   show: ReturnType<typeof availableActions>;
   operations: ParticipantOperations;
   openDialog: (dialog: Dialog) => void;
-}) {
-  const { unblock, resend, restore } = operations;
+};
+
+/** Account upkeep, rarely used: kept in a menu so the main actions stand out. */
+function MoreActions({ id, show, operations, openDialog }: ActionProps) {
+  const { resend } = operations;
+  const any =
+    show.resendVerification ||
+    show.disableTwoFactor ||
+    show.removePhoto ||
+    show.resetName ||
+    show.anonymize;
+  if (!any) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline">
+          <Ellipsis aria-hidden="true" />
+          Mais ações
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-52">
+        {show.resendVerification ? (
+          <DropdownMenuItem disabled={resend.isPending} onSelect={() => resend.execute({ id })}>
+            <MailCheck aria-hidden="true" />
+            Reenviar verificação
+          </DropdownMenuItem>
+        ) : null}
+        {show.disableTwoFactor ? (
+          <DropdownMenuItem onSelect={() => openDialog("disableTwoFactor")}>
+            <ShieldOff aria-hidden="true" />
+            Desligar 2FA
+          </DropdownMenuItem>
+        ) : null}
+        {show.removePhoto ? (
+          <DropdownMenuItem onSelect={() => openDialog("removePhoto")}>
+            <ImageOff aria-hidden="true" />
+            Remover foto
+          </DropdownMenuItem>
+        ) : null}
+        {show.resetName ? (
+          <DropdownMenuItem onSelect={() => openDialog("resetName")}>
+            <UserPen aria-hidden="true" />
+            Redefinir nome
+          </DropdownMenuItem>
+        ) : null}
+        {show.anonymize ? (
+          <DropdownMenuItem variant="destructive" onSelect={() => openDialog("anonymize")}>
+            <Eraser aria-hidden="true" />
+            Anonimizar (LGPD)
+          </DropdownMenuItem>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The main actions in view; only the destructive ones carry an icon. */
+function ActionButtons(props: ActionProps) {
+  const { id, selection, show, operations, openDialog } = props;
+  const { unblock, restore } = operations;
   return (
     <>
       {show.unblock ? (
@@ -58,7 +114,6 @@ function ActionButtons({
           disabled={unblock.isPending}
           onClick={() => unblock.execute({ selection })}
         >
-          <LockOpen aria-hidden="true" />
           Desbloquear
         </Button>
       ) : null}
@@ -70,36 +125,7 @@ function ActionButtons({
       ) : null}
       {show.revokeSessions ? (
         <Button variant="outline" onClick={() => openDialog("revokeSessions")}>
-          <LogOut aria-hidden="true" />
           Encerrar sessões
-        </Button>
-      ) : null}
-      {show.resendVerification ? (
-        <Button
-          variant="outline"
-          disabled={resend.isPending}
-          onClick={() => resend.execute({ id })}
-        >
-          <MailCheck aria-hidden="true" />
-          Reenviar verificação
-        </Button>
-      ) : null}
-      {show.disableTwoFactor ? (
-        <Button variant="outline" onClick={() => openDialog("disableTwoFactor")}>
-          <ShieldOff aria-hidden="true" />
-          Desligar 2FA
-        </Button>
-      ) : null}
-      {show.removePhoto ? (
-        <Button variant="outline" onClick={() => openDialog("removePhoto")}>
-          <ImageOff aria-hidden="true" />
-          Remover foto
-        </Button>
-      ) : null}
-      {show.resetName ? (
-        <Button variant="outline" onClick={() => openDialog("resetName")}>
-          <UserPen aria-hidden="true" />
-          Redefinir nome
         </Button>
       ) : null}
       {show.restore ? (
@@ -108,20 +134,14 @@ function ActionButtons({
           disabled={restore.isPending}
           onClick={() => restore.execute({ ids: [id] })}
         >
-          <RotateCcw aria-hidden="true" />
           Restaurar
         </Button>
       ) : null}
+      <MoreActions {...props} />
       {show.delete ? (
         <Button variant="destructive" onClick={() => openDialog("delete")}>
           <Trash2 aria-hidden="true" />
           Excluir
-        </Button>
-      ) : null}
-      {show.anonymize ? (
-        <Button variant="destructive" onClick={() => openDialog("anonymize")}>
-          <ShieldX aria-hidden="true" />
-          Anonimizar (LGPD)
         </Button>
       ) : null}
     </>

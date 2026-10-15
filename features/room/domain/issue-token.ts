@@ -243,7 +243,7 @@ async function checkBan(room: string, identity: string, deps: TokenDeps) {
   return refuse(
     "banned",
     "banned",
-    "Tiraram você desta chamada. Você pode voltar quando ela terminar.",
+    "Você não está mais nesta chamada. Você pode voltar quando ela terminar.",
   );
 }
 

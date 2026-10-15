@@ -35,7 +35,7 @@ const COPY: Record<LeaveReason, { title: string; expression: Expression; rejoin:
     },
     ended: { title: "A sala foi encerrada", expression: "neutral", rejoin: null },
     removed: {
-      title: "Tiraram você da chamada",
+      title: "Você não está mais na chamada",
       expression: "neutral",
       rejoin: null,
     },

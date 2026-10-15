@@ -56,7 +56,9 @@ export function scheduleRoomControls(getDatabase: () => Database) {
   let pending: Promise<void> | undefined;
   const timer = setInterval(() => {
     pending ??= maintainRoomControls(getDatabase())
-      .catch(() => logger.warn("room control maintenance failed; retrying"))
+      .catch((error: unknown) =>
+        logger.warn({ err: error }, "room control maintenance failed; retrying"),
+      )
       .finally(() => {
         pending = undefined;
       });

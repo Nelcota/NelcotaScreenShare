@@ -17,8 +17,13 @@ const { adminUrl, template, worker, workerUrl } = testDatabases(
 );
 await adminQuery(adminUrl, [`CREATE DATABASE ${ident(worker)} TEMPLATE ${ident(template)}`]);
 
-// Runs after the file's own hooks have closed their pools; FORCE ends any left open.
-afterAll(() => adminQuery(adminUrl, [`DROP DATABASE IF EXISTS ${ident(worker)} WITH (FORCE)`]));
+// Runs after the file's own hooks. Close the runtime pool too; never force-terminate
+// sockets still shutting down after pool.end(), which can emit an uncaught 57P01.
+afterAll(async () => {
+  const { closeDb } = await import("@/server/db/index.server");
+  await closeDb();
+  await adminQuery(adminUrl, [`DROP DATABASE IF EXISTS ${ident(worker)}`]);
+});
 
 // The app code reads the database and keys from here.
 Object.assign(process.env, {

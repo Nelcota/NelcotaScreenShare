@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addFriend, newFriendCode } from "@/features/friends/actions";
+import { copyFriendCode } from "@/features/friends/client/copy-friend-code";
 import { copyText } from "@/lib/clipboard";
 import { useOperation } from "@/lib/operations/use-operation";
 
@@ -16,16 +17,7 @@ function OwnCode({ code }: { code: string }) {
     <div className="rounded-2xl bg-surface-2 p-4 text-center">
       <p className="text-sm text-ink-muted">Seu código</p>
       <p className="mt-1 font-mono text-3xl font-semibold tracking-widest">{code}</p>
-      <Button
-        className="mt-3"
-        onClick={() =>
-          void copyText(code, {
-            context: "Could not copy the friend code",
-            success: "Código copiado.",
-            failure: "Não foi possível copiar. Anote o código.",
-          })
-        }
-      >
+      <Button className="mt-3" onClick={() => void copyFriendCode(code)}>
         <Copy aria-hidden="true" />
         Copiar
       </Button>

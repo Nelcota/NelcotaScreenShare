@@ -215,7 +215,6 @@ export function ScreenStage({ shares, invites, focused, onFocus }: ScreenStagePr
             <button
               type="button"
               aria-label={showMetrics ? "Ocultar FPS e ping" : "Mostrar FPS e ping"}
-              aria-pressed={showMetrics}
               onClick={() => setShowMetrics(!showMetrics)}
               className="glass pointer-events-auto grid size-9 place-items-center rounded-xl text-ink-muted hover:text-ink"
             >

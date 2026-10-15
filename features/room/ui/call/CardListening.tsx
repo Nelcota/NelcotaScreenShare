@@ -70,7 +70,7 @@ export function VoiceLine({ participant }: { participant: Participant }) {
 export function MuteAllItem({ participant }: { participant: Participant }) {
   const { settings, toggleMute } = useParticipantAudio(participant.identity);
   return (
-    <CardMenuItem icon={<VolumeX />} aria-pressed={settings.muted} onClick={toggleMute}>
+    <CardMenuItem icon={<VolumeX />} onClick={toggleMute}>
       {settings.muted ? "Voltar a ouvir" : "Silenciar tudo"}
     </CardMenuItem>
   );

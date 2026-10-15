@@ -69,7 +69,6 @@ export function RoomCard({
           variant="ghost"
           disabled={pending || (Boolean(room.archivedAt) && !room.favorite)}
           aria-label={room.favorite ? `Desfavoritar ${room.name}` : `Favoritar ${room.name}`}
-          aria-pressed={room.favorite}
           onClick={() => onCommand({ kind: "favorite", roomId: room.id, favorite: !room.favorite })}
         >
           <Star className={room.favorite ? "fill-status-away text-status-away" : undefined} />

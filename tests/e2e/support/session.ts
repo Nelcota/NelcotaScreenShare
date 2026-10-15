@@ -1,8 +1,22 @@
-import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import {
+  expect,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { createdRoom } from "./database";
 import { E2E_ACCESS_PASSWORD, E2E_URL } from "./env";
 
 export const PASSWORD = "senha-do-participante-e2e";
+
+/** Picks an option in a design-system select (a combobox with a list, not a native select). */
+export async function chooseOption(scope: Page | Locator, label: string, option: string) {
+  await scope.getByRole("combobox", { name: label }).click();
+  // The list opens in a portal, outside a popover or dialog the select may sit in.
+  const page = "page" in scope ? scope.page() : scope;
+  await page.getByRole("option", { name: option, exact: true }).click();
+}
 
 let sequence = 0;
 

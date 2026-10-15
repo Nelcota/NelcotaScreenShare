@@ -1,23 +1,12 @@
 import { Link, type MetaFunction } from "react-router";
 import {
   ArrowRight,
-  Ban,
   Clock,
   Download,
-  Flag,
-  Hand,
-  Handshake,
-  History,
-  Hourglass,
-  Landmark,
-  MessageSquare,
-  ScrollText,
   ShieldCheck,
   Trash2,
-  UserRound,
   UserRoundCheck,
   VideoOff,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -112,14 +101,14 @@ function PurposeAndRetentionSections() {
       </p>
       <PrivacySection id="por-que" index={3} title="Por quê">
         <PrivacyList>
-          <PrivacyItem icon={Wrench} title="Para você usar o serviço">
+          <PrivacyItem title="Para você usar o serviço">
             Criar e entrar em salas e falar com seus amigos.
           </PrivacyItem>
-          <PrivacyItem icon={Landmark} title="Para cumprir a lei">
+          <PrivacyItem title="Para cumprir a lei">
             Registros de acesso a aplicações são guardados por 6 meses (Marco Civil da Internet,
             art. 15).
           </PrivacyItem>
-          <PrivacyItem icon={ShieldCheck} title="Para segurança">
+          <PrivacyItem title="Para segurança">
             Evitar abuso, bloquear tentativas de invasão e investigar incidentes.
           </PrivacyItem>
         </PrivacyList>
@@ -127,45 +116,20 @@ function PurposeAndRetentionSections() {
 
       <PrivacySection id="por-quanto-tempo" index={4} title="Por quanto tempo">
         <PrivacyList>
+          <PrivacyItem title="Conta" aside={<Duration>Enquanto existir</Duration>} />
+          <PrivacyItem title="Registros de acesso (IP)" aside={<Duration>6 meses</Duration>} />
+          <PrivacyItem title="Registros de auditoria (IP)" aside={<Duration>5 anos</Duration>} />
+          <PrivacyItem title="Mensagens" aside={<Duration>Até quem enviou apagar</Duration>} />
           <PrivacyItem
-            icon={UserRound}
-            title="Conta"
-            aside={<Duration>Enquanto existir</Duration>}
-          />
-          <PrivacyItem
-            icon={History}
-            title="Registros de acesso (IP)"
-            aside={<Duration>6 meses</Duration>}
-          />
-          <PrivacyItem
-            icon={ScrollText}
-            title="Registros de auditoria (IP)"
-            aside={<Duration>5 anos</Duration>}
-          />
-          <PrivacyItem
-            icon={MessageSquare}
-            title="Mensagens"
-            aside={<Duration>Até quem enviou apagar</Duration>}
-          />
-          <PrivacyItem
-            icon={Flag}
             title="Cópia da mensagem denunciada"
             aside={<Duration>Até a denúncia ser avaliada</Duration>}
           />
-          <PrivacyItem
-            icon={Handshake}
-            title="Amigos e bloqueios"
-            aside={<Duration>Até você desfazer</Duration>}
-          >
+          <PrivacyItem title="Amigos e bloqueios" aside={<Duration>Até você desfazer</Duration>}>
             Ou até excluir a conta.
           </PrivacyItem>
-          <PrivacyItem icon={Hand} title="Pedidos de entrada" aside={<Duration>7 dias</Duration>} />
-          <PrivacyItem icon={Ban} title="Remoções de chamada" aside={<Duration>7 dias</Duration>} />
-          <PrivacyItem
-            icon={Hourglass}
-            title="Nome nas participações"
-            aside={<Duration>12 meses</Duration>}
-          >
+          <PrivacyItem title="Pedidos de entrada" aside={<Duration>7 dias</Duration>} />
+          <PrivacyItem title="Remoções de chamada" aside={<Duration>7 dias</Duration>} />
+          <PrivacyItem title="Nome nas participações" aside={<Duration>12 meses</Duration>}>
             Depois disso, anonimizado.
           </PrivacyItem>
         </PrivacyList>

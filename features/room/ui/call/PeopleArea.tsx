@@ -53,6 +53,7 @@ export function PeopleArea({
             isSharing={sharingIds.has(participant.identity)}
             screenInvite={invites.get(participant.identity)}
             compact={hasStage}
+            shrunkOnPhone={shrinkOwn && participant.isLocal}
             onEnlarge={() => onEnlarge(participant.identity)}
           />
         </div>

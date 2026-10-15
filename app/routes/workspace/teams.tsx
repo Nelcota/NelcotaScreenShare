@@ -5,7 +5,11 @@ import { workspaceUser } from "@/features/rooms/server/workspace-loader.server";
 import { entitlement } from "@/features/rooms/server/entitlements.server";
 import { myTeams } from "@/features/team/server/queries.server";
 import { TeamListPage } from "@/features/team/ui/TeamListPage";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 export const meta = () => [{ title: "Times · Nelcota" }, { name: "robots", content: "noindex" }];
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
+
 export const loader = routeLoader(async () => {
   const current = await workspaceUser("/times");
   return {

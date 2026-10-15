@@ -45,6 +45,7 @@ import manrope from "@fontsource-variable/manrope/files/manrope-latin-wght-norma
 import "./globals.css";
 import { NotificationsRuntime } from "@/features/notifications/ui/NotificationsRuntime";
 import { RingRuntime } from "@/features/ringing/ui/RingRuntime";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 
 export const middleware = [requestMiddleware];
 export const links: LinksFunction = () => [
@@ -57,6 +58,9 @@ export const meta = () => [
     content: "Compartilhamento de tela no navegador para times de tecnologia.",
   },
 ];
+
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
 
 export const loader = ({ request, context }: LoaderFunctionArgs) =>
   withRequest(request, context, async () => {

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addFriend, newFriendCode } from "@/features/friends/actions";
 import { copyFriendCode } from "@/features/friends/client/copy-friend-code";
+import { ADD_FRIEND_DONE } from "@/features/friends/domain/friendship";
 import { copyText } from "@/lib/clipboard";
 import { useOperation } from "@/lib/operations/use-operation";
 
@@ -25,11 +26,6 @@ function OwnCode({ code }: { code: string }) {
   );
 }
 
-const SENT: Record<"sent" | "friends", string> = {
-  sent: "Pedido enviado.",
-  friends: "Vocês agora são amigos.",
-};
-
 /** The other person's e-mail or code. */
 function AddForm() {
   const fieldId = useId();
@@ -38,7 +34,7 @@ function AddForm() {
   const add = useOperation(addFriend, {
     onSuccess: ({ data }) => {
       setValue("");
-      setMessage({ text: SENT[data.status], ok: true });
+      setMessage({ text: ADD_FRIEND_DONE[data.status], ok: true });
     },
     onError: ({ error }) =>
       setMessage({ text: error.serverError ?? "Não foi possível agora.", ok: false }),

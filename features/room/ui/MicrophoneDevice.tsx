@@ -1,5 +1,6 @@
 import { Bluetooth, Camera, Headphones, Mic, Phone, Star, type LucideIcon } from "lucide-react";
 import type { MicrophoneOption } from "@/features/room/domain/microphone-options";
+import { Hint } from "@/components/Hint";
 import { cn } from "@/lib/utils";
 
 const ICONS = { system: Mic, microphone: Mic, headset: Headphones, camera: Camera };
@@ -61,13 +62,12 @@ export function DeviceBadges({ option }: { option: MicrophoneOption }) {
         );
       })}
       {option.detail === "Bluetooth" ? (
-        <span
-          title="Bluetooth"
-          className="grid size-6 shrink-0 place-items-center rounded-full bg-info/15 text-info"
-        >
-          <Bluetooth className="size-4" aria-hidden="true" />
-          <span className="sr-only">Bluetooth</span>
-        </span>
+        <Hint text="Bluetooth">
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-info/15 text-info">
+            <Bluetooth className="size-4" aria-hidden="true" />
+            <span className="sr-only">Bluetooth</span>
+          </span>
+        </Hint>
       ) : option.detail ? (
         <span className="shrink-0 text-xs text-ink-subtle">{option.detail}</span>
       ) : null}

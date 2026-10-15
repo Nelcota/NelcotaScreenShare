@@ -35,7 +35,12 @@ import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const STATUS_LABEL = { online: "Online", away: "Ausente", busy: "Ocupado", offline: "Offline" };
+const STATUS_LABEL = {
+  online: "Online",
+  away: "Ausente",
+  busy: "Não perturbe",
+  offline: "Offline",
+};
 
 export interface OpenConversation {
   conversation: Pick<ConversationItem, "id" | "kind" | "name" | "others" | "status">;

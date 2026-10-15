@@ -92,7 +92,7 @@ export function useCallFriend(friend: { id: string; name: string }) {
 
 /**
  * "Chamar" for a friend who can take a call; "Chamando…" with Cancelar while it rings.
- * Ocupado shows it disabled; Invisível and Offline show nothing.
+ * Não perturbe shows it disabled; Invisível and Offline show nothing.
  */
 export function CallButton({
   friend,
@@ -119,7 +119,7 @@ export function CallButton({
   }
   const busy = friend.status === "busy";
   return (
-    <Hint text={busy ? "Ocupado agora" : undefined}>
+    <Hint text={busy ? "Não perturbe" : undefined}>
       <Button
         type="button"
         variant="brand-outline"
@@ -142,7 +142,7 @@ const ICON =
 
 /** Why the round button cannot call now, for the hint. */
 const UNAVAILABLE: Partial<Record<Status, string>> = {
-  busy: "Ocupado agora",
+  busy: "Não perturbe",
   offline: "Offline agora",
 };
 

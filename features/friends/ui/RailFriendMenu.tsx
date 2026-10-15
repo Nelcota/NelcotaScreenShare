@@ -35,7 +35,7 @@ function useOpenMessages(friendId: string) {
   };
 }
 
-/** Chamar, Cancelar while it rings, or Chamar disabled for someone Ocupado. */
+/** Chamar, Cancelar while it rings, or Chamar disabled for someone in Não perturbe. */
 function CallItem({ friend }: { friend: FriendStatus }) {
   const { ringId, calling } = useCalling(friend.id);
   const { call, starting } = useCallFriend(friend);
@@ -54,7 +54,7 @@ function CallItem({ friend }: { friend: FriendStatus }) {
           <Phone aria-hidden="true" className="size-4" />
           Chamar
         </span>
-        <span className="pl-6 text-xs">Ocupado agora</span>
+        <span className="pl-6 text-xs">Não perturbe</span>
       </DropdownMenuItem>
     );
   }

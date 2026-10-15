@@ -89,7 +89,7 @@ export function DeleteAccountForm({
       {ownedTeamCount ? (
         <div className="flex flex-col gap-3 rounded-xl border border-danger/30 p-3 text-sm">
           <p>
-            Você é dono de {ownedTeamCount} time(s).{" "}
+            Você tem {ownedTeamCount === 1 ? "1 time" : `${ownedTeamCount} times`}.{" "}
             <Link className="underline" to="/times">
               Transfira a propriedade
             </Link>{" "}

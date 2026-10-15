@@ -50,7 +50,7 @@ export async function mayRingInto(
 
 /**
  * Whether a friend can be rung right now: still friends without a block, and Online or
- * Ausente as their friends see them (Ocupado, Invisível and Offline do not ring).
+ * Ausente as their friends see them (Não perturbe, Invisível and Offline do not ring).
  */
 export async function canRing(
   db: DbExecutor,

@@ -46,6 +46,9 @@ export function columnExtras(data: { friends: PickableFriend[]; groups: ColumnGr
 const TAB =
   "relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-xs font-semibold text-ink-muted aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink";
 
+/** A tapped tab lights up while its page loads, instead of waiting for it. */
+const TAB_OPENING = "bg-surface-3/60 text-ink";
+
 function PhoneTab({
   to,
   icon,
@@ -58,7 +61,11 @@ function PhoneTab({
   count?: number;
 }) {
   return (
-    <NavLink viewTransition to={to} className={TAB}>
+    <NavLink
+      viewTransition
+      to={to}
+      className={({ isPending }) => (isPending ? `${TAB} ${TAB_OPENING}` : TAB)}
+    >
       {icon}
       {label}
       <UnreadCount count={count} className="top-1 right-auto left-[calc(50%+0.25rem)]" />

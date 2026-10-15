@@ -1,6 +1,6 @@
 import { PanelLeftClose } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigation } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { Hint } from "@/components/Hint";
 import { UnreadCount } from "@/components/UnreadCount";
@@ -8,6 +8,7 @@ import { AddMenu, type AddMenuItem } from "@/features/friends/ui/AddMenu";
 import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { NoFriendsYet } from "@/features/friends/ui/NoFriendsYet";
+import { opensTab } from "@/features/friends/domain/opening-tab";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ export interface ColumnTab {
 
 /** Every tab shows its name, so it reads without a hint (touch has none). */
 function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
+  const navigation = useNavigation();
+  // Clicked and still loading: it lights up at once instead of waiting for the page.
+  const opening = !active && opensTab(navigation.location?.pathname, tab.href);
   const badge = tab.badge ?? 0;
   const label = badge > 0 ? `${tab.label}: ${badge}` : tab.label;
   return (
@@ -33,7 +37,8 @@ function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
       to={tab.href}
       aria-label={label}
       aria-current={active ? "page" : undefined}
-      className="relative inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong"
+      data-opening={opening || undefined}
+      className="relative inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong data-opening:bg-surface-3/60 data-opening:text-ink"
     >
       <span>{tab.label}</span>
       <UnreadCount count={badge} aria-hidden="true" className="static ring-0" />

@@ -1,6 +1,7 @@
 import { and, asc, eq, lte, ne } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { roomCommands, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
+import { logger } from "@/server/logger.server";
 import { controlGateway } from "./control-gateway.server";
 import { savedRolesIn } from "./room-roles.server";
 import { lockControlRoom, sessionByMediaName } from "./session-store.server";
@@ -75,6 +76,14 @@ export async function retryRoomCommands(db: Database, now = new Date()) {
     .where(and(ne(roomCommands.status, "applied"), lte(roomCommands.nextAttemptAt, now)))
     .orderBy(asc(roomCommands.createdAt))
     .limit(50);
-  for (const command of commands) await applyRoomCommand(db, command.id);
+  // One command that breaks (a lock timeout, a row gone mid-way) waits for the next round;
+  // it does not hold up the other rooms' commands behind it.
+  for (const command of commands) {
+    try {
+      await applyRoomCommand(db, command.id);
+    } catch (error) {
+      logger.warn({ err: error, commandId: command.id }, "room command retry failed");
+    }
+  }
   return commands.length;
 }

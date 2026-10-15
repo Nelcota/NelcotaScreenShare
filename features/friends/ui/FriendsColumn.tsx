@@ -1,4 +1,4 @@
-import { PanelLeftClose, type LucideIcon } from "lucide-react";
+import { PanelLeftClose } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
@@ -19,37 +19,25 @@ export interface ColumnTab {
   id: string;
   label: string;
   href: string;
-  icon: LucideIcon;
   /** Unread or pending items, shown as a count on the tab. */
   badge?: number;
 }
 
-/** The open tab shows its name; the others only their icon, named in the hint. */
+/** Every tab shows its name, so it reads without a hint (touch has none). */
 function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
-  const Icon = tab.icon;
   const badge = tab.badge ?? 0;
   const label = badge > 0 ? `${tab.label}: ${badge}` : tab.label;
   return (
-    <Hint text={active ? undefined : tab.label}>
-      <Link
-        viewTransition
-        to={tab.href}
-        aria-label={label}
-        aria-current={active ? "page" : undefined}
-        className={cn(
-          "relative inline-flex h-8 items-center justify-center gap-1 rounded-full text-sm font-semibold text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong",
-          active ? "min-w-0 flex-1 px-1.5" : "w-8 shrink-0",
-        )}
-      >
-        <Icon className="size-4 shrink-0" aria-hidden="true" />
-        {active ? <span className="truncate">{tab.label}</span> : null}
-        <UnreadCount
-          count={badge}
-          aria-hidden="true"
-          className={active ? "static ring-0" : undefined}
-        />
-      </Link>
-    </Hint>
+    <Link
+      viewTransition
+      to={tab.href}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      className="relative inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong"
+    >
+      <span>{tab.label}</span>
+      <UnreadCount count={badge} aria-hidden="true" className="static ring-0" />
+    </Link>
   );
 }
 

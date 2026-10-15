@@ -18,9 +18,9 @@ import type { WorkspaceColumn } from "./workspace-column.server";
 export function columnTabs(counts: { requests: number; unread: number }): ColumnTab[] {
   const badge = counts.requests + counts.unread;
   return [
-    { id: "amigos", label: "Amigos", href: "/amigos", icon: Users, badge },
-    { id: "salas", label: "Salas", href: "/salas", icon: Video },
-    { id: "times", label: "Times", href: "/times", icon: UsersRound },
+    { id: "amigos", label: "Amigos", href: "/amigos", badge },
+    { id: "salas", label: "Salas", href: "/salas" },
+    { id: "times", label: "Times", href: "/times" },
   ];
 }
 

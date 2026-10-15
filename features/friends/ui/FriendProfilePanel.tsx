@@ -16,35 +16,34 @@ export interface FriendProfileView {
 }
 
 function mutualLabel(total: number) {
-  if (total === 0) return "Nenhum amigo em comum";
   if (total === 1) return "1 amigo em comum";
   return `${total} amigos em comum`;
 }
 
+/** Only when there are some: "Nenhum amigo em comum" told nothing. */
 function MutualFriends({ mutual }: { mutual: FriendProfileView["mutual"] }) {
+  if (mutual.total === 0) return null;
   return (
     <section aria-label="Amigos em comum" className="flex flex-col gap-2">
       <h3 className="text-xs font-semibold tracking-wide text-ink-subtle uppercase">
         Amigos em comum
       </h3>
-      {mutual.total > 0 ? (
-        <ul className="flex -space-x-2" aria-label={mutualLabel(mutual.total)}>
-          {mutual.shown.map((person) => (
-            <li key={person.id}>
-              <Hint text={person.name}>
-                <span className="block rounded-full">
-                  <span className="sr-only">{person.name}</span>
-                  <InitialsAvatar
-                    name={person.name}
-                    source={friendPhotoPath(person.id)}
-                    className="size-8 bg-brand/15 text-xs font-medium text-brand-soft ring-2 ring-surface"
-                  />
-                </span>
-              </Hint>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <ul className="flex -space-x-2" aria-label={mutualLabel(mutual.total)}>
+        {mutual.shown.map((person) => (
+          <li key={person.id}>
+            <Hint text={person.name}>
+              <span className="block rounded-full">
+                <span className="sr-only">{person.name}</span>
+                <InitialsAvatar
+                  name={person.name}
+                  source={friendPhotoPath(person.id)}
+                  className="size-8 bg-brand/15 text-xs font-medium text-brand-soft ring-2 ring-surface"
+                />
+              </span>
+            </Hint>
+          </li>
+        ))}
+      </ul>
       <p className="text-sm text-ink-muted">{mutualLabel(mutual.total)}</p>
     </section>
   );

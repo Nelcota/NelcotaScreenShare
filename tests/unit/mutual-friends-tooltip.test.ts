@@ -26,3 +26,23 @@ describe("controls in the app's own look", () => {
     expect(html).not.toContain('title="Caio"');
   });
 });
+
+function profileWithMutual(total: number) {
+  return {
+    id: "a",
+    name: "Bia",
+    code: "NELC-ABCDEF",
+    since: "outubro de 2026",
+    mutual: { shown: total ? [{ id: "b", name: "Caio" }] : [], total },
+  };
+}
+
+/** UX-10: "Amigos em comum: Nenhum amigo em comum" added a section that said nothing. */
+test("the profile shows mutual friends only when there are some", () => {
+  expect(
+    render(createElement(FriendProfilePanel, { profile: profileWithMutual(0), status: "online" })),
+  ).not.toContain("em comum");
+  expect(
+    render(createElement(FriendProfilePanel, { profile: profileWithMutual(1), status: "online" })),
+  ).toContain("1 amigo em comum");
+});

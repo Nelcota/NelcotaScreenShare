@@ -21,7 +21,7 @@ test("every column tab shows its name, not only the open one", () => {
               tabs: columnTabs({ requests: 0, unread: 0 }),
               activeTab: "salas",
               friends: [],
-              extras: { actions: null, groups: null, unreadByFriend: {} },
+              extras: { groups: null, unreadByFriend: {} },
               requests: 0,
               code: "NELC-TWCR54",
               linkPath: "/amigo/x",

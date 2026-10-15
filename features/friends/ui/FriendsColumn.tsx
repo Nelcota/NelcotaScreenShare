@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { Hint } from "@/components/Hint";
 import { UnreadCount } from "@/components/UnreadCount";
-import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
+import { AddMenu, type AddMenuItem } from "@/features/friends/ui/AddMenu";
 import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { NoFriendsYet } from "@/features/friends/ui/NoFriendsYet";
@@ -75,8 +75,8 @@ function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
 export interface ColumnExtras {
   /** Unread messages by friend, on their photo. */
   unreadByFriend: Readonly<Record<string, number>>;
-  /** Beside "Adicionar amigo": "Criar grupo". */
-  actions?: ReactNode;
+  /** In the "+" menu, after "Adicionar amigo": "Criar grupo". */
+  addItems?: readonly AddMenuItem[];
   /** Above the friends while nobody is searching: "Grupos". */
   groups?: ReactNode;
 }
@@ -110,8 +110,7 @@ function FriendsBody({
           className="flex-1"
         />
         <RequestsButton count={requests} />
-        {extras.actions}
-        <AddFriendDialog code={code} linkPath={linkPath} />
+        <AddMenu code={code} linkPath={linkPath} items={extras.addItems} />
       </div>
       <nav aria-label="Amigos" className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-3">
         {friends.length === 0 ? (

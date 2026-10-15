@@ -3,10 +3,11 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { UnreadCount } from "@/components/UnreadCount";
 import { WorkspaceColumnList } from "@/components/workspace/WorkspaceColumnList";
+import type { AddMenuItem } from "@/features/friends/ui/AddMenu";
 import type { ColumnTab } from "@/features/friends/ui/FriendsColumn";
 import type { ColumnGroup } from "@/features/messages/server/conversation-list.server";
 import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
-import { CreateGroupDialog, type PickableFriend } from "@/features/messages/ui/CreateGroupDialog";
+import { CreateGroupWindow, type PickableFriend } from "@/features/messages/ui/CreateGroupDialog";
 import type { WorkspaceColumn } from "./workspace-column.server";
 
 /**
@@ -24,10 +25,20 @@ export function columnTabs(counts: { requests: number; unread: number }): Column
   ];
 }
 
+/** "Criar grupo" in the column's "+" menu, opening the messages' window. */
+export function createGroupItem(friends: PickableFriend[]): AddMenuItem {
+  return {
+    id: "grupo",
+    label: "Criar grupo",
+    icon: UsersRound,
+    window: (state) => <CreateGroupWindow friends={friends} {...state} />,
+  };
+}
+
 /** What the messages add to the friends column: "Criar grupo" and the "Grupos" section. */
 export function columnExtras(data: { friends: PickableFriend[]; groups: ColumnGroup[] }) {
   return {
-    actions: <CreateGroupDialog friends={data.friends} />,
+    addItems: [createGroupItem(data.friends)],
     groups: <ColumnGroups groups={data.groups} />,
   };
 }

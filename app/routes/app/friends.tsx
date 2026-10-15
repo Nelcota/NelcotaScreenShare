@@ -1,11 +1,11 @@
 import { useRouteLoaderData } from "react-router";
-import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
+import { AddMenu } from "@/features/friends/ui/AddMenu";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { NoFriendsYet } from "@/features/friends/ui/NoFriendsYet";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { StatusStrip } from "@/features/friends/ui/StatusStrip";
 import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
-import { CreateGroupDialog } from "@/features/messages/ui/CreateGroupDialog";
+import { createGroupItem } from "./column-parts";
 import { AppEmptyState } from "./empty-state";
 import type { loader as appLoader } from "./layout";
 
@@ -20,8 +20,7 @@ function PhoneFriends() {
       <div className="flex items-center gap-3 px-1">
         <h1 className="flex-1 text-2xl font-semibold tracking-tight">Amigos</h1>
         <RequestsButton count={app.requests} />
-        <CreateGroupDialog friends={app.friends} />
-        <AddFriendDialog code={app.code} linkPath={app.linkPath} />
+        <AddMenu code={app.code} linkPath={app.linkPath} items={[createGroupItem(app.friends)]} />
       </div>
       <div className="glass overflow-hidden rounded-2xl [&>div]:border-t-0">
         <StatusStrip account={app.account} status={app.ownStatus} />

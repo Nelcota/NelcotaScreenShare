@@ -13,7 +13,7 @@ test("signed in, the friends column stays on the room's screens, as the rail in 
     await expect(column.getByRole("button", { name: "Recolher amigos" })).toBeVisible();
     // On a short window the panel scrolls, and its top is not cut off.
     await page.setViewportSize({ width: 800, height: 600 });
-    const heading = page.getByRole("heading", { name: "Pronto para entrar?" });
+    const heading = page.getByRole("heading", { name: "Tudo certo para entrar?" });
     // The focused field may have scrolled the panel down: scrolling back must reach the title.
     await heading.scrollIntoViewIfNeeded();
     const panelTop = (await page.getByRole("main").boundingBox())?.y ?? 0;
@@ -40,7 +40,7 @@ test("a guest's pre-join keeps the plain header, without the column", async ({ b
   const page = await context.newPage();
   try {
     await page.goto(`/sala/${await newRoomCode()}`);
-    await expect(page.getByRole("heading", { name: "Pronto para entrar?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tudo certo para entrar?" })).toBeVisible();
     await expect(page.getByRole("complementary", { name: "Amigos" })).toHaveCount(0);
   } finally {
     await context.close();

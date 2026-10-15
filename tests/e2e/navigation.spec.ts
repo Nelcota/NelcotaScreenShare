@@ -54,7 +54,7 @@ test("pre-join keeps the return from the account page and the call uses only the
     `/conta?voltar=${encodeURIComponent(`/sala/${code}`)}`,
   );
   await expect(
-    page.getByRole("heading", { name: "Pronto para entrar?", exact: true }),
+    page.getByRole("heading", { name: "Tudo certo para entrar?", exact: true }),
   ).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("prejoin-desktop.png"), fullPage: true });
   await account.click();

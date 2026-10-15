@@ -75,7 +75,7 @@ function RequestCard({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-base font-medium">{request.name}</span>
           <span className="block truncate text-sm text-ink-muted">
-            {request.guest ? "Convidado quer entrar" : "Quer entrar"}
+            {request.guest ? "Sem conta · quer entrar" : "Quer entrar"}
           </span>
         </span>
       </div>

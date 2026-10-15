@@ -51,7 +51,7 @@ export function NameEditor({ code }: { code: string }) {
     }
     showOwnName(localParticipant, result.name);
     setDraft(undefined);
-    toast.success("Nome atualizado para todos na sala.");
+    toast.success("Nome atualizado na sala.");
     if (guest) return rememberName(result.name);
     // The header and other pages read the account's name from the loaders.
     void revalidator.revalidate();

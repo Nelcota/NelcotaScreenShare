@@ -53,7 +53,7 @@ test("going to another room during a call asks first: Ficar keeps the call, conf
     await dialog.getByRole("button", { name: "Trocar de sala", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/sala/${next}$`));
     await expect(
-      page.getByRole("heading", { name: "Pronto para entrar?", exact: true }),
+      page.getByRole("heading", { name: "Tudo certo para entrar?", exact: true }),
     ).toBeVisible();
     await expect(minimized).toHaveCount(0);
     await expect(page.getByRole("dialog", { name: "Trocar de sala?" })).toHaveCount(0);
@@ -62,7 +62,7 @@ test("going to another room during a call asks first: Ficar keeps the call, conf
     await page.goto("/");
     await openRoomFromHome(page, await newRoomCode());
     await expect(
-      page.getByRole("heading", { name: "Pronto para entrar?", exact: true }),
+      page.getByRole("heading", { name: "Tudo certo para entrar?", exact: true }),
     ).toBeVisible();
     await expect(page.getByRole("dialog", { name: "Trocar de sala?" })).toHaveCount(0);
   } finally {

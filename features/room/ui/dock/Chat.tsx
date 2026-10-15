@@ -62,7 +62,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
           if (!next) editor.setDeletingId(undefined);
         }}
         title="Apagar mensagem?"
-        description="Ela some para todos na sala. Quem já leu pode ter visto."
+        description="Ela some da sala. Quem já leu pode ter visto."
         confirmLabel="Apagar"
         danger
         pending={editor.busy}

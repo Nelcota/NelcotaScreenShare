@@ -14,7 +14,7 @@ import { useConnectedCallRoom } from "@/features/ringing/client/call-connection"
 import { ringFriend } from "@/features/ringing/client/calling";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
-/** The spot above "Pronto para entrar?" kept free for notices like this one. */
+/** The spot above "Tudo certo para entrar?" kept free for notices like this one. */
 const NOTICE_SLOT_ID = "pre-join-notice";
 
 /** A fallback if the call's signal is missed: the server learns of the join by webhook. */

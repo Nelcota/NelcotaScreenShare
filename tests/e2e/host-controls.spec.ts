@@ -62,7 +62,7 @@ test("host lock rejects prefetched admission and guests; sharing restriction pre
     await member.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     await member.page.getByRole("button", { name: /^Tela inteira/ }).click();
     await expect(member.page.getByLabel("Prévia da sua tela")).toBeVisible();
-    await chooseOption(host.page, "Quem pode compartilhar tela", "Só o anfitrião");
+    await chooseOption(host.page, "Quem pode compartilhar tela", "Só quem controla a chamada");
     await expect(member.page.getByLabel("Prévia da sua tela")).toBeHidden();
     await expect(
       member.page.getByRole("button", { name: "Compartilhamento restrito pelo anfitrião" }),
@@ -171,7 +171,7 @@ test("admitted participant reconnects under lock and host authority survives nav
     await host.page.getByRole("button", { name: "Controles do anfitrião" }).click();
     await host.page.getByRole("switch", { name: "Bloquear novas entradas" }).click();
     await expect(host.page.getByRole("switch", { name: "Bloquear novas entradas" })).toBeChecked();
-    await chooseOption(host.page, "Quem pode compartilhar tela", "Só o anfitrião");
+    await chooseOption(host.page, "Quem pode compartilhar tela", "Só quem controla a chamada");
     await expect(
       member.page.getByRole("button", { name: "Compartilhamento restrito pelo anfitrião" }),
     ).toBeVisible();
@@ -193,7 +193,7 @@ test("admitted participant reconnects under lock and host authority survives nav
     await expect(host.page.getByRole("switch", { name: "Bloquear novas entradas" })).toBeChecked();
     await expect(
       host.page.getByRole("combobox", { name: "Quem pode compartilhar tela" }),
-    ).toHaveText("Só o anfitrião");
+    ).toHaveText("Só quem controla a chamada");
   } finally {
     await Promise.all([host.context.close(), member.context.close()]);
   }

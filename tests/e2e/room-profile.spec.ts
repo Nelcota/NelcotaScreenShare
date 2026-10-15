@@ -15,9 +15,7 @@ test("edit the profile during a call and return without joining again", async ({
   await page.getByRole("button", { name: "Mais opções", exact: true }).click();
   await page.getByLabel("Seu nome na sala", { exact: true }).fill("Nome Durante Chamada");
   await page.getByRole("button", { name: "Salvar", exact: true }).click();
-  await expect(
-    page.getByText("Nome atualizado para todos na sala.", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Nome atualizado na sala.", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Configurações" }).click();
   await expect(page).toHaveURL(new RegExp(`/conta\\?voltar=%2Fsala%2F${code}$`));
   await expect(page.getByLabel("Seu nome na sala", { exact: true })).toHaveCount(0);
@@ -53,14 +51,12 @@ test("a guest's mobile rename reaches others and is remembered for the next invi
     await guest.page.getByRole("button", { name: "Salvar", exact: true }).click();
     // Your own tile changes at once; the others get it once the server writes it.
     await expect(guest.page.getByText(/^Visitante Renomeado \(convidado\)/).first()).toBeVisible();
+    await expect(guest.page.getByText("Nome atualizado na sala.", { exact: true })).toBeVisible();
     await expect(
-      guest.page.getByText("Nome atualizado para todos na sala.", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      observer.page.getByText("Visitante Renomeado (convidado)", { exact: true }),
+      observer.page.getByText("Visitante Renomeado (sem conta)", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
     await expect(
-      observer.page.getByText("Visitante Original (convidado)", { exact: true }),
+      observer.page.getByText("Visitante Original (sem conta)", { exact: true }),
     ).toBeHidden();
     await guest.page.keyboard.press("Escape");
     await guest.page.getByRole("button", { name: "Sair da sala", exact: true }).click();

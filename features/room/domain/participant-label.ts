@@ -50,7 +50,7 @@ export function participantName(
 ): string {
   if (!participant) return "Alguém";
   const name = participant.name || participant.identity;
-  return isGuestIdentity(participant.identity) ? `${name} (convidado)` : name;
+  return isGuestIdentity(participant.identity) ? `${name} (sem conta)` : name;
 }
 
 /** How the room refers to you. */

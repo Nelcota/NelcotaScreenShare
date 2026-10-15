@@ -590,11 +590,11 @@ test.describe("in the room", () => {
     await joinRoom(gil.page, code);
     await join.click();
     await expect(iris.getByRole("button", { name: /Sair/ })).toBeVisible();
-    await expect(gil.page.getByText("Iris Convidada (convidado) entrou na sala")).toBeVisible();
+    await expect(gil.page.getByText("Iris Convidada (sem conta) entrou na sala")).toBeVisible();
 
     // The guest's hand goes through the server too (signed guest cookie).
     await iris.keyboard.press("h");
-    await expect(gil.page.getByText("✋ Iris Convidada (convidado) levantou a mão")).toBeVisible();
+    await expect(gil.page.getByText("✋ Iris Convidada (sem conta) levantou a mão")).toBeVisible();
 
     await iris.getByRole("button", { name: "Sair da sala" }).click();
     await iris.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();

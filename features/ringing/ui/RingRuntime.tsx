@@ -135,7 +135,7 @@ function useEndNotices(outgoing: readonly OutgoingRing[]) {
 export function RingRuntime() {
   const ringing = useRouteLoaderData<typeof rootLoader>("root")?.ringing ?? null;
   useEndNotices(ringing?.outgoing ?? []);
-  const pushed = usePushedRing();
+  const pushed = usePushedRing(ringing);
   // The loaders decide; the ring that came with the nudge only fills the gap until they reload.
   const incoming = ringing?.incoming[0] ?? pushed;
   if (!ringing) return null;

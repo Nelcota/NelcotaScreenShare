@@ -58,6 +58,7 @@ export function TeamListPage() {
           uma ativação própria, feita pela equipe Nelcota.
         </p>
         <form
+          noValidate
           className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault();

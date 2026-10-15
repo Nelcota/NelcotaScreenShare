@@ -1,14 +1,11 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useLoaderData, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { RoomCollection } from "@/components/workspace/RoomCollection";
 import { FormError } from "@/components/FormError";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { formText } from "@/lib/utils";
 import { useOperation } from "@/lib/operations/use-operation";
 import { fieldErrorOf } from "@/lib/operations/field-error";
 import { roomWorkspaceAction } from "@/features/rooms/actions";
@@ -16,12 +13,12 @@ import { teamWorkspaceAction } from "../actions";
 import { managesTeam } from "../domain/team-policy";
 import { TeamMembers } from "./TeamMembers";
 import { TeamInvitations } from "./TeamInvitations";
+import { TeamNameForm } from "./TeamNameForm";
 import type { loader } from "@/app/routes/workspace/team";
 
 export function TeamPage() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const id = useId();
   const [deleting, setDeleting] = useState(false);
   const [invitationLink, setInvitationLink] = useState<string>();
   const action = useOperation(teamWorkspaceAction, {
@@ -78,31 +75,12 @@ export function TeamPage() {
       {managing ? (
         <section className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-5">
           <h2 className="text-xl font-semibold">Configurações do time</h2>
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              action.execute({
-                kind: "rename",
-                teamId: data.team.id,
-                name: formText(new FormData(event.currentTarget), "name"),
-              });
-            }}
-          >
-            <Label htmlFor={id}>Nome do time</Label>
-            <Input
-              key={data.team.name}
-              id={id}
-              name="name"
-              defaultValue={data.team.name}
-              minLength={2}
-              maxLength={80}
-              required
-            />
-            <Button type="submit" disabled={action.isPending}>
-              Salvar nome
-            </Button>
-          </form>
+          <TeamNameForm
+            name={data.team.name}
+            pending={action.isPending}
+            error={fieldErrorOf(action.result, "name")}
+            onRename={(name) => action.execute({ kind: "rename", teamId: data.team.id, name })}
+          />
           {data.role === "owner" ? (
             <>
               <p className="text-sm text-ink-muted">

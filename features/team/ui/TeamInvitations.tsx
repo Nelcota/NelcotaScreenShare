@@ -1,12 +1,20 @@
-import { useId } from "react";
+import { useId, useState } from "react";
+import { ChoiceSelect } from "@/components/ChoiceSelect";
+import { Field } from "@/components/Field";
+import { FormError } from "@/components/FormError";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { EMAIL_PATTERN } from "@/features/auth/domain/sign-up";
 import { copyWorkspaceLink } from "@/components/workspace/RoomCard";
 import { formText } from "@/lib/utils";
 import type { TeamCommand } from "../domain/commands";
 import { Notice } from "@/components/Notice";
 import { TIME_ZONE } from "@/lib/format";
+
+const ROLE_OPTIONS = [
+  { value: "member", label: "Membro" },
+  { value: "manager", label: "Gestor" },
+] as const;
 
 export function TeamInvitations({
   teamId,
@@ -34,6 +42,7 @@ export function TeamInvitations({
   onCommand: (command: TeamCommand) => void;
 }) {
   const id = useId();
+  const [emailError, setEmailError] = useState<string>();
   return (
     <section className="panel flex flex-col gap-4 rounded-2xl p-5">
       <h2 className="text-xl font-semibold">Convites</h2>
@@ -42,33 +51,48 @@ export function TeamInvitations({
         conta com este e-mail confirmado.
       </p>
       <form
+        noValidate
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
+          const email = formText(data, "email").trim();
+          if (!EMAIL_PATTERN.test(email)) return setEmailError("Digite um e-mail válido.");
+          setEmailError(undefined);
           onCommand({
             kind: "invite",
             teamId,
-            email: formText(data, "email"),
+            email,
             role: data.get("role") === "manager" ? "manager" : "member",
           });
         }}
       >
-        <Label htmlFor={id}>E-mail da pessoa</Label>
-        <Input id={id} name="email" type="email" required maxLength={254} disabled={!active} />
+        <Field
+          id={id}
+          label="E-mail da pessoa"
+          footer={<FormError id={`${id}-error`} message={emailError} />}
+        >
+          <Input
+            name="email"
+            type="email"
+            required
+            maxLength={254}
+            disabled={!active}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? `${id}-error` : undefined}
+            onChange={() => setEmailError(undefined)}
+          />
+        </Field>
         {canInviteManagers ? (
-          <>
-            <Label htmlFor={`${id}-role`}>Função no time</Label>
-            <select
+          <Field id={`${id}-role`} label="Função no time">
+            <ChoiceSelect
               id={`${id}-role`}
               name="role"
-              className="rounded-xl border border-line bg-surface-2 p-3"
+              className="h-11 w-full bg-surface-2"
+              options={ROLE_OPTIONS}
               disabled={!active}
-            >
-              <option value="member">Membro</option>
-              <option value="manager">Gestor</option>
-            </select>
-          </>
+            />
+          </Field>
         ) : null}
         <Button disabled={pending || !active} type="submit">
           Gerar convite

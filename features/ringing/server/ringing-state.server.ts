@@ -1,5 +1,9 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { incomingRings, outgoingRings } from "@/features/ringing/server/ring-service.server";
+import {
+  incomingRings,
+  outgoingRings,
+  RINGS_SINCE,
+} from "@/features/ringing/server/ring-service.server";
 import { identitiesIn } from "@/features/room/server/livekit-gateway.server";
 import { mediaRoomIn } from "@/features/room/server/session-store.server";
 import { logger } from "@/server/logger.server";
@@ -45,5 +49,6 @@ export async function ringingState(db: DbExecutor, userId: string) {
     incoming: incomingRings(userId),
     outgoing: outgoingRings(userId),
     callRoom: await currentCallRoom(db, userId),
+    serverStart: RINGS_SINCE,
   };
 }

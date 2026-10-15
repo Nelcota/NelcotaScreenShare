@@ -6,6 +6,9 @@ export const RING_SOUND_MS = 60_000;
 const RING_SILENT_MS = 30_000;
 export const RING_DURATION_MS = RING_SOUND_MS + RING_SILENT_MS;
 
+/** What the caller reads when the server restarted mid-ring. */
+export const DROPPED_CALL = "A chamada caiu. Chame de novo.";
+
 /** How long "Ninguém atendeu" or "<Nome> recusou" stays available to the caller. */
 export const MISSED_NOTICE_MS = 15_000;
 

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { answerJoin, joinRequests, roomAccess } from "@/features/room/actions";
+import { answerJoin, joinRequests } from "@/features/room/actions";
+import { managesRoomAccess } from "@/features/room/domain/room-access";
+import { useLocalRoomRole } from "@/features/room/hooks/use-room-roles";
 import { initials } from "@/lib/initials";
 import { useOperation } from "@/lib/operations/use-operation";
 import { logBrowserWarning } from "@/lib/telemetry.client";
@@ -16,14 +18,16 @@ const SHOWN = 3;
 
 /** Polls the waiting requests while this person manages the room. */
 function usePendingRequests(code: string) {
+  const canManage = managesRoomAccess(useLocalRoomRole());
   const [requests, setRequests] = useState<Request[]>([]);
   useEffect(() => {
+    if (!canManage) return;
     let active = true;
     let timer: number | undefined;
     async function poll() {
       try {
         const result = await joinRequests({ room: code });
-        if (active && result.data) setRequests(result.data.requests);
+        if (active) setRequests(result.data?.requests ?? []);
       } catch (error) {
         // A dropped connection must not stop the checks: the next one tries again.
         logBrowserWarning("Join requests check failed", error);
@@ -31,17 +35,16 @@ function usePendingRequests(code: string) {
         if (active) timer = window.setTimeout(() => void poll(), CHECK_EVERY_MS);
       }
     }
-    async function start() {
-      const access = await roomAccess({ room: code });
-      if (active && access.data?.canManage) void poll();
-    }
-    void start();
+    void poll();
     return () => {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [code]);
-  return { requests, drop: (id: string) => setRequests((all) => all.filter((r) => r.id !== id)) };
+  }, [code, canManage]);
+  return {
+    requests: canManage ? requests : [],
+    drop: (id: string) => setRequests((all) => all.filter((r) => r.id !== id)),
+  };
 }
 
 function RequestCard({

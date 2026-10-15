@@ -1,4 +1,8 @@
-import { useRoomContext } from "@livekit/components-react";
+import {
+  useLocalParticipant,
+  useParticipantAttribute,
+  useRoomContext,
+} from "@livekit/components-react";
 import { RoomEvent, type Participant } from "livekit-client";
 import { useEffect, useState } from "react";
 import { participantName } from "@/features/room/domain/participant-label";
@@ -7,6 +11,12 @@ import { parseRoomRole, ROLE_ATTRIBUTE, type RoomRole } from "@/features/room/do
 
 function roleOf(participant: Participant): RoomRole {
   return parseRoomRole(participant.attributes[ROLE_ATTRIBUTE]);
+}
+
+/** The server's current room role, including promotions and demotions during the call. */
+export function useLocalRoomRole(): RoomRole {
+  const { localParticipant } = useLocalParticipant();
+  return parseRoomRole(useParticipantAttribute(ROLE_ATTRIBUTE, { participant: localParticipant }));
 }
 
 /**

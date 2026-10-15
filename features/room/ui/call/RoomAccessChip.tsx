@@ -7,8 +7,10 @@ import {
   ROOM_ACCESS_HINT,
   ROOM_ACCESS_LABEL,
   ROOM_ACCESS_MODES,
+  managesRoomAccess,
   type RoomAccess,
 } from "@/features/room/domain/room-access";
+import { useLocalRoomRole } from "@/features/room/hooks/use-room-roles";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
 
@@ -25,18 +27,21 @@ function AccessIcon({ access }: { access: RoomAccess }) {
  * see it while the room asks for approval.
  */
 export function RoomAccessChip({ code }: { code: string }) {
+  const role = useLocalRoomRole();
   const [state, setState] = useState<{ access: RoomAccess; canManage: boolean } | null>(null);
   useEffect(() => {
     let active = true;
     async function load() {
       const result = await roomAccess({ room: code });
-      if (active && result.data) setState(result.data);
+      if (active && result.data) {
+        setState({ ...result.data, canManage: result.data.canManage && managesRoomAccess(role) });
+      }
     }
     void load();
     return () => {
       active = false;
     };
-  }, [code]);
+  }, [code, role]);
 
   const [open, setOpen] = useState(false);
   const [previous, setPrevious] = useState<RoomAccess | null>(null);
@@ -60,7 +65,7 @@ export function RoomAccessChip({ code }: { code: string }) {
 
   if (!state) return null;
   const label = ROOM_ACCESS_LABEL[state.access];
-  if (!state.canManage) {
+  if (!state.canManage || !managesRoomAccess(role)) {
     if (state.access === "open") return null;
     return (
       <span className={cn(CHIP, "text-ink-muted")}>

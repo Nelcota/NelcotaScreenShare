@@ -30,6 +30,16 @@ export function visibleFriendshipTo(viewerId: string) {
   );
 }
 
+/** Who this account blocked, by name; accounts that left are hidden. */
+export async function blockedPeople(db: DbExecutor, userId: string): Promise<FriendPerson[]> {
+  return db
+    .select({ id: users.id, name: users.name })
+    .from(userBlocks)
+    .innerJoin(users, eq(users.id, userBlocks.blockedId))
+    .where(and(eq(userBlocks.blockerId, userId), activeUser))
+    .orderBy(asc(users.name));
+}
+
 /** Everyone on the friends page, sorted by name; accounts that left are hidden. */
 export async function friendLists(db: DbExecutor, userId: string): Promise<FriendLists> {
   const rows = await db
@@ -51,12 +61,7 @@ export async function friendLists(db: DbExecutor, userId: string): Promise<Frien
       ),
     )
     .orderBy(asc(users.name));
-  const blocked = await db
-    .select({ id: users.id, name: users.name })
-    .from(userBlocks)
-    .innerJoin(users, eq(users.id, userBlocks.blockedId))
-    .where(and(eq(userBlocks.blockerId, userId), activeUser))
-    .orderBy(asc(users.name));
+  const blocked = await blockedPeople(db, userId);
 
   return {
     friends: rows.filter((row) => row.status === "accepted").map(person),

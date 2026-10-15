@@ -2,8 +2,7 @@ import { ownedTeams } from "@/features/account/server/workspace-privacy.server";
 import { routeLoader } from "@/server/route-loader.server";
 import { useLoaderData } from "react-router";
 
-import { Check, CircleCheck, Download, ShieldAlert, ShieldCheck } from "lucide-react";
-import type { ReactNode } from "react";
+import { CircleCheck, Download, ShieldAlert, ShieldCheck } from "lucide-react";
 import { revokeMyOtherSessions, revokeMySession } from "@/features/account/actions";
 import { AccountHealth } from "@/features/account/ui/AccountHealth";
 import { ChangeEmailForm } from "@/features/account/ui/ChangeEmailForm";
@@ -35,7 +34,6 @@ import { requireUser } from "@/features/auth/server/participant-session.server";
 import { getDb } from "@/server/db/index.server";
 import { userSessions } from "@/server/db/schema";
 import { getEnv } from "@/server/env.server";
-import { cn } from "@/lib/utils";
 import { noticeFor } from "@/lib/notice";
 import { Notice } from "@/components/Notice";
 
@@ -45,25 +43,7 @@ const NOTICES: Record<string, string> = {
   email: "E-mail confirmado e atualizado.",
 };
 
-function StatusChip({ ok, children }: { ok: boolean; children: ReactNode }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-        ok ? "bg-brand/12 text-brand-soft" : "bg-warning/12 text-warning",
-      )}
-    >
-      {ok ? (
-        <Check className="size-3.5" aria-hidden="true" />
-      ) : (
-        <ShieldAlert className="size-3.5" aria-hidden="true" />
-      )}
-      {children}
-    </span>
-  );
-}
-
-/** Who you are: the card with the photo, name, e-mail and the account status. */
+/** Who you are: the card with the photo, name and e-mail. The checklist below tells what is missing. */
 function IdentityCard({
   user,
 }: {
@@ -71,8 +51,6 @@ function IdentityCard({
     name: string;
     email: string;
     image: string | null;
-    emailVerified: boolean;
-    twoFactorEnabled: boolean;
   };
 }) {
   return (
@@ -80,14 +58,6 @@ function IdentityCard({
       <ProfilePhotoForm image={user.image}>
         <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{user.name}</h1>
         <p className="mt-1 text-sm [overflow-wrap:anywhere] text-ink-muted">{user.email}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <StatusChip ok={user.emailVerified}>
-            {user.emailVerified ? "E-mail confirmado" : "E-mail pendente"}
-          </StatusChip>
-          <StatusChip ok={user.twoFactorEnabled}>
-            {user.twoFactorEnabled ? "Duas etapas ativa" : "Duas etapas desativada"}
-          </StatusChip>
-        </div>
       </ProfilePhotoForm>
     </header>
   );

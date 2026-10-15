@@ -3,7 +3,7 @@ import { Archive } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "./StatusScreen";
-import { lazy, Suspense, useEffect, useEffectEvent, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { CallShell, ScreenShell } from "./RoomShell";
 import { requestToken } from "@/features/room/client/api";
@@ -84,15 +84,14 @@ export function RoomSession({
   renderColumn,
 }: RoomSessionProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "prejoin" });
+  // The parent hears about the call where the phase changes, not from an effect after it.
+  function changePhase(next: Phase) {
+    setPhase(next);
+    onCallChange(next.kind === "room");
+  }
   // Only the first pre-join after accepting a ring joins on its own.
   const answered = useAnsweredCall();
   const [autoJoin, setAutoJoin] = useState(answered);
-  const inCall = phase.kind === "room";
-  const reportCall = useEffectEvent(onCallChange);
-
-  useEffect(() => {
-    reportCall(inCall);
-  }, [inCall]);
 
   // New attempt with a new token: the previous one may have expired (10 min TTL).
   async function retry(choices: JoinChoices, attempt: number, startedAt: number) {
@@ -103,10 +102,10 @@ export function RoomSession({
       guestName: choices.guestName,
     });
     if (!result.ok) {
-      setPhase({ kind: "left", reason: "failed", message: result.message });
+      changePhase({ kind: "left", reason: "failed", message: result.message });
       return;
     }
-    setPhase({
+    changePhase({
       kind: "room",
       choices: {
         ...choices,
@@ -122,7 +121,7 @@ export function RoomSession({
   function leave(notice: LeaveNotice | undefined, startedAt: number | undefined) {
     // The leave screen is not on display: the notice goes to a toast instead.
     if (minimized) toast.info(notice?.message ?? "Você saiu da sala.");
-    setPhase({
+    changePhase({
       kind: "left",
       reason: notice?.reason ?? "self",
       message: notice?.message,
@@ -191,7 +190,7 @@ export function RoomSession({
           autoJoin={autoJoin}
           onJoin={(choices) => {
             setAutoJoin(false);
-            setPhase({
+            changePhase({
               kind: "room",
               choices,
               attempt: 0,
@@ -208,7 +207,7 @@ export function RoomSession({
           message={phase.message}
           durationMs={phase.durationMs}
           guest={userName === null}
-          onRejoin={() => setPhase({ kind: "prejoin" })}
+          onRejoin={() => changePhase({ kind: "prejoin" })}
         />
       )}
     </ScreenShell>

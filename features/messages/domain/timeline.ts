@@ -144,3 +144,20 @@ export function groupTimeline(
   for (const item of items) place(dayOf(days, item.createdAt, now), item);
   return days;
 }
+
+/**
+ * Everything seen of a conversation joined with its newest page, by id (ids sort in time
+ * order). The page wins for the messages it covers: an edit shows, and a message from that
+ * stretch that is no longer in it was deleted. Older messages stay, so new ones arriving
+ * after "Mensagens anteriores" never open a gap.
+ */
+export function mergeMessages<M extends { id: string }>(
+  seen: readonly M[],
+  page: readonly M[],
+): M[] {
+  const pageStart = page[0]?.id;
+  const kept = seen.filter((message) => pageStart !== undefined && message.id < pageStart);
+  const byId = new Map(kept.map((message) => [message.id, message]));
+  for (const message of page) byId.set(message.id, message);
+  return [...byId.values()].toSorted((one, other) => (one.id < other.id ? -1 : 1));
+}

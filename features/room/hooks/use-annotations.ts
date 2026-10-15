@@ -122,8 +122,15 @@ export function useAnnotations(
     };
   }, [roomCode, sessionId, trackSid, refresh, apply]);
   useEffect(() => {
+    // The same list when nothing expired: a new array would redraw the stage twice a second
+    // for every viewer, even with no mark on it.
     const timer = setInterval(
-      () => setMarks((list) => list.filter((mark) => mark.expiresAt > Date.now())),
+      () =>
+        setMarks((list) => {
+          const now = Date.now();
+          if (list.every((mark) => mark.expiresAt > now)) return list;
+          return list.filter((mark) => mark.expiresAt > now);
+        }),
       500,
     );
     return () => clearInterval(timer);

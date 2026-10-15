@@ -1,18 +1,17 @@
 import type { RoomTitle } from "@/features/room/domain/room-title";
-import { useLocalParticipant, useParticipantInfo } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { Check, Copy, Ellipsis, LayoutDashboard } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useRouteLoaderData } from "react-router";
+import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
 import { NavBar, NavBrand, NavDivider, NavPopover } from "@/components/shell/NavBar";
 import { navItemClass } from "@/components/shell/nav-item-class";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
-import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { useRoomName } from "@/features/room/hooks/use-room-roles";
 import { cn } from "@/lib/utils";
 import { NameEditor } from "./NameEditor";
@@ -190,12 +189,10 @@ export function RoomTopBar({
   const streamer = useStreamerMode();
   const streamerId = useId();
   const name = useRoomName(participants, roomName);
-  const { localParticipant } = useLocalParticipant();
-  // Read from the info hook: the identity arrives on connecting, on the same object, and a
-  // value derived from the object alone stays as it was before the call (React Compiler).
-  const { identity } = useParticipantInfo({ participant: localParticipant });
-  // The way back to the start, like everywhere else; the call goes on minimized.
-  const startHref = startPath(!isGuestIdentity(identity ?? localParticipant.identity));
+  // The way back to the start, like everywhere else; the call goes on minimized. From the
+  // page's account, not the call's identity: that one is empty until the call connects.
+  const signedIn = useRouteLoaderData<typeof rootLoader>("root")?.account != null;
+  const startHref = startPath(signedIn);
   return (
     <NavBar aria-label="Sala" className="mx-auto max-w-5xl">
       <NavBrand href={startHref} showName={false} className="max-sm:hidden" />

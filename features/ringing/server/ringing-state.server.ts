@@ -7,7 +7,7 @@ import type { DbExecutor } from "@/server/db/index.server";
 import { roomParticipations, rooms } from "@/server/db/schema";
 
 /** The room of the call the person is in right now, from the open participation. */
-async function currentCallRoom(db: DbExecutor, userId: string): Promise<string | null> {
+export async function currentCallRoom(db: DbExecutor, userId: string): Promise<string | null> {
   const [row] = await db
     .select({ code: rooms.code })
     .from(roomParticipations)

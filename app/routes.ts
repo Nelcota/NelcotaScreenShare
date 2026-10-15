@@ -81,6 +81,7 @@ export default [
   route("api/amigos/foto", "routes/api/friends/photo.ts"),
   route("api/sala/papel", "routes/api/room/role.ts"),
   route("api/amigos/presenca", "routes/api/friends/presence.ts"),
+  route("api/chamadas/sala", "routes/api/ringing/call-room.ts"),
   route("api/eventos", "routes/api/events.ts"),
   route("api/sala/anotacoes", "routes/api/room/annotations.ts"),
   route("api/sala/controles", "routes/api/room/controls.ts"),

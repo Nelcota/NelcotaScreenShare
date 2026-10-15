@@ -6,6 +6,7 @@ import { Hint } from "@/components/Hint";
 import { Button } from "@/components/ui/button";
 import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { createRoomAction } from "@/features/room/actions";
+import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { callGroup } from "@/features/ringing/actions";
 import { cancelCalling, ringFriend, useCalling } from "@/features/ringing/client/calling";
 import { savePendingCall, type PendingCall } from "@/features/ringing/client/pending-call";
@@ -82,7 +83,12 @@ export function useCallFriend(friend: { id: string; name: string }) {
       const result = await ringFriend({ friendId: friend.id }, (active) =>
         openRoom({ kind: "friend", friendId: friend.id, name: friend.name }, active),
       );
-      if (result && !result.data) toast.error(result.serverError ?? "Unable to call right now.");
+      if (!result) return;
+      if (result.data) {
+        offerNotifications();
+        return;
+      }
+      toast.error(result.serverError ?? "Unable to call right now.");
     } finally {
       setStarting(false);
     }
@@ -208,7 +214,11 @@ export function GroupCallButton({
     const result = await callGroup({ conversationId });
     if (result.data?.needsRoom) await openRoom({ kind: "group", conversationId, name });
     setStarting(false);
-    if (!result.data) toast.error(result.serverError ?? "Não foi possível chamar agora.");
+    if (!result.data) {
+      toast.error(result.serverError ?? "Não foi possível chamar agora.");
+      return;
+    }
+    offerNotifications();
   };
   return (
     <Button

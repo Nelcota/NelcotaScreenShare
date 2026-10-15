@@ -204,7 +204,7 @@ export default function AccountPage() {
 
           <SettingsSection
             id="dispositivos"
-            title="Dispositivos"
+            title="Sessões"
             description="Onde sua conta está conectada. Encerre as sessões que você não reconhece."
           >
             <SettingsBlock>

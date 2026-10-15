@@ -9,6 +9,7 @@ import { parseRoomRole, ROLE_ATTRIBUTE, type RoomRole } from "@/features/room/do
 import type { FriendRelation } from "@/features/friends/domain/friend-lists";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { loadFriendRelation } from "@/features/friends/client/friend-relation-cache";
 import { CardFriendItem, useFriendRelation } from "./CardFriendButton";
 import { MuteAllItem, VoiceLine } from "./CardListening";
 import { CardModeration } from "./CardModeration";
@@ -199,10 +200,19 @@ export function ParticipantCard({
 }: CardProps & { children: ReactNode; className?: string }) {
   const { plain } = useParticipantName(props.participant);
   const isMobile = useIsMobile();
+  const { participant } = props;
+  const account = !participant.isLocal && !isGuestIdentity(participant.identity);
+  // Pointing at the photo starts the friendship check, so the card opens with it.
+  const prefetch = () => {
+    if (account) void loadFriendRelation(participant.identity);
+  };
   const trigger = (
     <button
       type="button"
       aria-label={`Ver ${plain}`}
+      onPointerEnter={prefetch}
+      onFocus={prefetch}
+      onPointerDown={prefetch}
       className={cn(
         "rounded-full outline-none focus-visible:ring-3 focus-visible:ring-brand-soft",
         className,

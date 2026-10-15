@@ -188,7 +188,6 @@ export function ProvisionForm({ subjects, canEdit }: { subjects: Subjects; canEd
   const [subject, setSubject] = useState<Subject>("account");
   const [selected, setSelected] = useState("");
   const rows: Row[] = subject === "account" ? subjects.accounts : subjects.teams;
-  const current = rows.find((row) => row.id === selected);
   return (
     <div className="flex flex-col gap-6">
       <SearchForm />
@@ -221,8 +220,10 @@ export function ProvisionForm({ subjects, canEdit }: { subjects: Subjects; canEd
             onValueChange={setSelected}
           />
         </Field>
+        {/* A new subject starts from its saved values. Not keyed on updatedAt: the save itself
+            revalidates the page, and a remount there wiped the success message. */}
         <ProvisionFields
-          key={`${subject}/${selected}/${String(current?.pro?.updatedAt ?? "")}`}
+          key={`${subject}/${selected}`}
           rows={rows}
           subject={subject}
           selected={selected}

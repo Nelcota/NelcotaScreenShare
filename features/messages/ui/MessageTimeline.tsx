@@ -1,5 +1,7 @@
 import { Phone, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { deleteMessage } from "@/features/messages/actions";
 import type { Gif } from "@/features/messages/domain/klipy";
 import {
@@ -56,21 +58,35 @@ function GifView({ gif, at, own }: { gif: Gif | null; at: Date; own: boolean }) 
   );
 }
 
-/** Only your own messages can be deleted; they disappear for everyone. */
+/** Only your own messages can be deleted, after confirming; they disappear for everyone. */
 function DeleteButton({ messageId }: { messageId: string }) {
+  const [confirming, setConfirming] = useState(false);
   const remove = useOperation(deleteMessage, {
+    onSuccess: () => setConfirming(false),
     onError: () => toast.error("Não foi possível apagar agora."),
   });
   return (
-    <button
-      type="button"
-      aria-label="Apagar mensagem"
-      disabled={remove.isPending}
-      onClick={() => remove.execute({ messageId })}
-      className="grid size-8 shrink-0 place-items-center self-center rounded-full text-danger opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-danger/10 pointer-coarse:opacity-100"
-    >
-      <Trash2 className="size-4" aria-hidden="true" />
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label="Apagar mensagem"
+        disabled={remove.isPending}
+        onClick={() => setConfirming(true)}
+        className="grid size-8 shrink-0 place-items-center self-center rounded-full text-danger opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-danger/10 pointer-coarse:opacity-100"
+      >
+        <Trash2 className="size-4" aria-hidden="true" />
+      </button>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Apagar mensagem?"
+        description="Ela some para todos na conversa."
+        confirmLabel="Apagar"
+        danger
+        pending={remove.isPending}
+        onConfirm={() => remove.execute({ messageId })}
+      />
+    </>
   );
 }
 

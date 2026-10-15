@@ -1,5 +1,10 @@
 import { useTransition } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useRouteLoaderData } from "react-router";
+import { toast } from "sonner";
+import type { loader as rootLoader } from "@/app/root";
+import { addFriend } from "@/features/friends/actions";
+import { ADD_FRIEND_DONE } from "@/features/friends/domain/friendship";
+import { useOperation } from "@/lib/operations/use-operation";
 import { MascotPair } from "@/features/mascot/ui/MascotPair";
 import { useCreateRoom } from "@/features/home/hooks/use-create-room";
 import { SmartBar } from "./SmartBar";
@@ -17,6 +22,11 @@ export function HomeStart({
   focusShortcut?: boolean;
 }) {
   const navigate = useNavigate();
+  const signedIn = Boolean(useRouteLoaderData<typeof rootLoader>("root")?.account);
+  const add = useOperation(addFriend, {
+    onSuccess: ({ data }) => toast.success(ADD_FRIEND_DONE[data.status]),
+    onError: ({ error }) => toast.error(error.serverError ?? "Não foi possível agora."),
+  });
   const [joining, startTransition] = useTransition();
   const creating = useCreateRoom();
   const pending = joining || creating.pending;
@@ -37,6 +47,7 @@ export function HomeStart({
       mascot={<MascotPair pending={pending} compact={compact} />}
       focusShortcut={focusShortcut}
       compact={compact}
+      onAddFriend={signedIn ? (code) => add.execute({ target: code }) : undefined}
     />
   );
 }

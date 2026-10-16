@@ -19,7 +19,23 @@ test("cancelling an optimistic call stops a ring created by a delayed request", 
       [caller.email, callee.email],
     );
     await callee.page.goto("/inicio");
-    await joinRoom(caller.page, await newRoomCode(), { micOn: false });
+    const code = await newRoomCode();
+    await joinRoom(caller.page, code, { micOn: false });
+    // CI LiveKit has no webhook target. Seed the projection of this real, connected caller.
+    await sql(
+      `insert into rooms (code) values ($1)
+       on conflict (code) where deleted_at is null do nothing`,
+      [code],
+    );
+    await sql(
+      `insert into room_participations (room_id, user_id, livekit_identity, livekit_sid, joined_at)
+       select r.id, u.id, u.id::text, 'e2e-call-' || u.id::text, now()
+       from rooms r, users u where r.code = $1 and r.deleted_at is null and u.email = $2
+       and not exists (
+         select 1 from room_participations p where p.user_id = u.id and p.left_at is null
+       )`,
+      [code, caller.email],
+    );
     await caller.page
       .getByRole("navigation", { name: "Sala", exact: true })
       .getByRole("link", { name: "Nelcota, início", exact: true })

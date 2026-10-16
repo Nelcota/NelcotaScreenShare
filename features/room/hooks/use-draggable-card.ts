@@ -12,7 +12,12 @@ import {
   saveCardOffset,
   savedCardOffset,
 } from "@/features/room/client/saved-card-position";
-import { clampOffset, nudgeOffset, type CardOffset } from "@/features/room/domain/card-position";
+import {
+  clampOffset,
+  nudgeOffset,
+  snapToCorner,
+  type CardOffset,
+} from "@/features/room/domain/card-position";
 
 interface DragStart {
   pointerX: number;
@@ -43,6 +48,12 @@ function startsOnControl(target: EventTarget): boolean {
 
 /** A press that moves less than this, in pixels, is still a click. */
 const CLICK_SLOP = 4;
+/** How long the dropped card takes to slide into its corner. */
+const SNAP_MS = 200;
+
+function reducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 /**
  * The card goes where the person drags it, always whole on screen, and stays there next
@@ -56,6 +67,8 @@ export function useDraggableCard(
 ) {
   const [offset, setOffset] = useState<CardOffset | undefined>();
   const [dragging, setDragging] = useState(false);
+  // Sliding into its corner after a drop (no slide with reduced motion).
+  const [snapping, setSnapping] = useState(false);
   const start = useRef<DragStart | null>(null);
   // Whether the last press moved the card: a press that did not is a click.
   const moved = useRef(false);
@@ -87,6 +100,7 @@ export function useDraggableCard(
       target: event.target,
     };
     moved.current = false;
+    setSnapping(false);
     // Without dragging (phones) a press is only watched for a tap.
     if (!enabled) return;
     card.setPointerCapture(event.pointerId);
@@ -114,7 +128,11 @@ export function useDraggableCard(
     if (!enabled) return;
     card.releasePointerCapture(event.pointerId);
     setDragging(false);
-    saveCardOffset(currentOffset(card));
+    if (!moved.current) return;
+    const settled = snapToCorner(currentOffset(card), measure(card), viewport());
+    setSnapping(!reducedMotion());
+    setOffset(settled);
+    saveCardOffset(settled);
   }
 
   /** The browser took the press over (a scroll, a gesture): never a tap. */
@@ -151,7 +169,16 @@ export function useDraggableCard(
 
   return {
     dragging,
-    style: enabled && offset ? { right: offset.right, bottom: offset.bottom } : undefined,
+    style:
+      enabled && offset
+        ? {
+            right: offset.right,
+            bottom: offset.bottom,
+            transition: snapping
+              ? `right ${SNAP_MS}ms ease-out, bottom ${SNAP_MS}ms ease-out`
+              : undefined,
+          }
+        : undefined,
     handlers: {
       onPointerDown,
       onPointerMove,

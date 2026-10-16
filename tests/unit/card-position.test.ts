@@ -1,5 +1,10 @@
-import { expect, test } from "vitest";
-import { clampOffset, nudgeOffset, parseOffset } from "@/features/room/domain/card-position";
+import { describe, expect, it, test } from "vitest";
+import {
+  clampOffset,
+  nudgeOffset,
+  parseOffset,
+  snapToCorner,
+} from "@/features/room/domain/card-position";
 
 const card = { width: 300, height: 52 };
 const viewport = { width: 1280, height: 720 };
@@ -43,4 +48,32 @@ test("arrow keys move the card; Shift moves it further", () => {
   expect(nudgeOffset(offset, "ArrowUp", true)).toEqual({ right: 100, bottom: 164 });
   expect(nudgeOffset(offset, "ArrowDown", false)).toEqual({ right: 100, bottom: 84 });
   expect(nudgeOffset(offset, "Enter", false)).toBeUndefined();
+});
+
+describe("a dropped card", () => {
+  const callCard = { width: 300, height: 80 };
+  const screen = { width: 1280, height: 800 };
+
+  it("goes to the nearest corner: below the top bar, above a message box", () => {
+    // Near the top left.
+    expect(snapToCorner({ right: 900, bottom: 600 }, callCard, screen)).toEqual({
+      right: 1280 - 300 - 16,
+      bottom: 800 - 80 - 80,
+    });
+    // Near the bottom right.
+    expect(snapToCorner({ right: 40, bottom: 30 }, callCard, screen)).toEqual({
+      right: 16,
+      bottom: 96,
+    });
+    // Near the top right, close to an edge but not a corner.
+    expect(snapToCorner({ right: 200, bottom: 650 }, callCard, screen)).toEqual({
+      right: 16,
+      bottom: 640,
+    });
+  });
+
+  it("stays where it was dropped in the middle of the screen", () => {
+    const middle = { right: 490, bottom: 360 };
+    expect(snapToCorner(middle, callCard, screen)).toEqual(middle);
+  });
 });

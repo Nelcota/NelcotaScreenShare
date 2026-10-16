@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import {
+  incomingView,
+  type IncomingRing,
   isRinging,
   MISSED_NOTICE_MS,
   RING_DURATION_MS,
-  type IncomingRing,
   type OutgoingRing,
   type Ring,
 } from "@/features/ringing/domain/ring";
@@ -18,11 +19,6 @@ interface EndNotice {
   calleeName: string;
   state: "missed" | "declined";
   until: number;
-}
-
-function incomingView(ring: Ring): IncomingRing {
-  const { id, callerId, callerName, roomCode, startedAt, expiresAt } = ring;
-  return { id, callerId, callerName, roomCode, startedAt, expiresAt };
 }
 
 /**
@@ -86,6 +82,16 @@ export function createRingStore(
     return ring;
   }
 
+  /** The caller left the call: every ring they started into it stops, with no notice. */
+  function cancelFromRoom(callerId: string, roomCode: string): Ring[] {
+    sweep();
+    const stopped = [...rings.values()].filter(
+      (ring) => ring.callerId === callerId && ring.roomCode === roomCode,
+    );
+    for (const ring of stopped) rings.delete(ring.id);
+    return stopped;
+  }
+
   /** The callee says no: the ring ends for both and the caller is told who declined. */
   function decline(ringId: string, calleeId: string): Ring | null {
     sweep();
@@ -129,5 +135,25 @@ export function createRingStore(
     return [...ringing, ...gone];
   }
 
-  return { start, cancel, decline, accept, incomingFor, outgoingFrom, sweep };
+  /** When the next ring runs out or the next notice goes away; null when nothing is left. */
+  function nextDeadline(): number | null {
+    const deadlines = [
+      ...[...rings.values()].map((ring) => ring.expiresAt),
+      ...[...notices.values()].map((notice) => notice.until),
+    ];
+    if (deadlines.length === 0) return null;
+    return Math.min(...deadlines);
+  }
+
+  return {
+    start,
+    cancel,
+    cancelFromRoom,
+    decline,
+    accept,
+    incomingFor,
+    outgoingFrom,
+    sweep,
+    nextDeadline,
+  };
 }

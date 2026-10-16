@@ -1,5 +1,5 @@
-import { Check, SquarePen } from "lucide-react";
-import { useId, useState } from "react";
+import { Check, Plus, UsersRound } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
@@ -14,9 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { friendPhotoPath } from "@/features/friends/domain/friend-lists";
-import { createGroupConversation, openDirectConversation } from "@/features/messages/actions";
-import { firstName, joinNames } from "@/features/messages/domain/conversation-display";
-import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME_LENGTH } from "@/features/messages/domain/conversation";
+import { createGroupConversation } from "@/features/messages/actions";
+import { MAX_GROUP_MEMBERS } from "@/features/messages/domain/conversation";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +27,8 @@ export interface PickableFriend {
 
 /** Friends you can add besides yourself. */
 const MAX_PICKED = MAX_GROUP_MEMBERS - 1;
+/** A group has you and at least two friends; one friend is their conversation. */
+const MIN_PICKED = 2;
 
 function PickRow({
   friend,
@@ -83,60 +84,28 @@ function useStart(onDone: () => void) {
     onDone();
     void navigate(`/mensagens/${conversationId}`, { viewTransition: true });
   };
-  const direct = useOperation(openDirectConversation, {
-    onSuccess: ({ data }) => open(data.conversationId),
-    onError,
-  });
   const group = useOperation(createGroupConversation, {
     onSuccess: ({ data }) => open(data.conversationId),
     onError,
   });
-  return { direct, group, pending: direct.isPending || group.isPending };
+  return { group, pending: group.isPending };
 }
 
-/** "Nova conversa": one friend opens the conversation, two or more make a group. */
-function NewConversationForm({
-  friends,
-  onDone,
-}: {
-  friends: PickableFriend[];
-  onDone: () => void;
-}) {
-  const nameId = useId();
+/** "Criar grupo": pick two or more friends; the group is named after them. */
+function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: () => void }) {
   const [picked, setPicked] = useState<string[]>([]);
-  const [name, setName] = useState("");
   const start = useStart(onDone);
-  const pickedFriends = friends.filter((friend) => picked.includes(friend.id));
-  const isGroup = picked.length > 1;
+  const pickedEnough = picked.length >= MIN_PICKED;
   const toggle = (id: string) =>
     setPicked((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
-  const submit = () => {
-    const [only] = picked;
-    if (!isGroup && only) return start.direct.execute({ userId: only });
-    start.group.execute({ memberIds: picked, name: name.trim() || null });
-  };
+  const submit = () => start.group.execute({ memberIds: picked, name: null });
   return (
     <div className="flex min-h-0 flex-col gap-4">
-      {isGroup ? (
-        <label htmlFor={nameId} className="flex flex-col gap-2 text-sm font-medium">
-          Nome do grupo
-          <input
-            id={nameId}
-            value={name}
-            maxLength={MAX_GROUP_NAME_LENGTH}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={`${joinNames(pickedFriends.map((friend) => firstName(friend.name)))} e você`}
-            className="h-11 rounded-xl border border-line-strong bg-surface-2 px-3 text-base font-normal outline-none placeholder:text-ink-subtle focus:border-brand-soft"
-          />
-        </label>
-      ) : null}
       <p className="flex justify-between px-2 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
         <span>Amigos</span>
-        <span>
-          {picked.length} de {MAX_PICKED}
-        </span>
+        <span>Até {MAX_PICKED} amigos</span>
       </p>
       {friends.length === 0 ? (
         <p className="px-2 text-sm text-ink-muted">Adicione amigos para conversar.</p>
@@ -155,34 +124,36 @@ function NewConversationForm({
       )}
       <Button
         size="lg"
-        disabled={picked.length === 0 || start.pending}
+        disabled={!pickedEnough || start.pending}
         onClick={submit}
         className="w-full"
       >
-        {isGroup ? "Criar grupo" : "Abrir conversa"}
+        Criar grupo
       </Button>
     </div>
   );
 }
 
-export function NewConversationDialog({ friends }: { friends: PickableFriend[] }) {
+/** "Criar grupo" in the column's header, next to "Adicionar amigo". */
+export function CreateGroupDialog({ friends }: { friends: PickableFriend[] }) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Hint text="Nova conversa">
+      <Hint text="Criar grupo">
         <DialogTrigger
-          aria-label="Nova conversa"
+          aria-label="Criar grupo"
           className="grid size-9 shrink-0 place-items-center rounded-full border border-brand-soft/70 text-brand-soft transition-colors hover:border-brand hover:bg-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-brand"
         >
-          <SquarePen className="size-4" aria-hidden="true" />
+          <span aria-hidden="true" className="relative">
+            <UsersRound className="size-4" />
+            <Plus className="absolute -top-1 -right-1.5 size-2.5" strokeWidth={3.5} />
+          </span>
         </DialogTrigger>
       </Hint>
       <DialogContent className="max-w-md rounded-3xl" showCloseButton>
-        <DialogTitle>Nova conversa</DialogTitle>
-        <DialogDescription className="sr-only">
-          Um amigo abre a conversa. Dois ou mais criam um grupo.
-        </DialogDescription>
-        {open ? <NewConversationForm friends={friends} onDone={() => setOpen(false)} /> : null}
+        <DialogTitle>Criar grupo</DialogTitle>
+        <DialogDescription className="sr-only">Escolha dois ou mais amigos.</DialogDescription>
+        {open ? <NewGroupForm friends={friends} onDone={() => setOpen(false)} /> : null}
       </DialogContent>
     </Dialog>
   );

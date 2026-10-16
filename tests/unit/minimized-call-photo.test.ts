@@ -12,6 +12,7 @@ const remote = vi.hoisted(() => ({
 }));
 vi.mock("@livekit/components-react", () => ({
   useParticipants: () => [remote],
+  useParticipantTracks: () => [],
   useRoomContext: () => ({ name: "nelcota-019a0000-0000-7000-8000-000000000002" }),
   useParticipantInfo: () => ({ name: remote.name }),
 }));

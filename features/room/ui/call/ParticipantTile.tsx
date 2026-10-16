@@ -19,6 +19,7 @@ import { SwitchCameraButton } from "./SwitchCameraButton";
 import { cn } from "@/lib/utils";
 import { HostBadge } from "./HostBadge";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
+import { ShareTileCard } from "./ShareTileCard";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -27,6 +28,8 @@ interface ParticipantTileProps {
   compact: boolean;
   /** Enlarges this person's camera on the stage (only while it is on). */
   onEnlarge?: () => void;
+  /** Their screen, shared and not watched here yet: the tile becomes its "Assistir" card. */
+  screenInvite?: string;
 }
 
 /** Soft pulse on the border of whoever is speaking. */
@@ -174,6 +177,7 @@ export function ParticipantTile({
   isSharing,
   compact,
   onEnlarge,
+  screenInvite,
 }: ParticipantTileProps) {
   const scope = useRef<HTMLDivElement>(null);
   const isSpeaking = useIsSpeaking(participant);
@@ -183,6 +187,9 @@ export function ParticipantTile({
   const handRaised = useParticipantAttribute(HAND_ATTRIBUTE, { participant }) === "1";
   const camera = useCamera(participant);
   useSpeakingPulse(scope, isSpeaking, compact);
+  const share = { participant, roomCode, name, muted: isMuted, deafened: isDeafened, isSpeaking };
+  if (screenInvite && !compact)
+    return <ShareTileCard scope={scope} trackSid={screenInvite} {...share} />;
 
   if (compact) {
     // Stage in use: round avatar with the name below (FaceTime style).

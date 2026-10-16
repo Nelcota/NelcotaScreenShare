@@ -2,7 +2,7 @@ import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { useLocalParticipant, useParticipantAttribute } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

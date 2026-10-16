@@ -1,6 +1,6 @@
 import { useDataChannel, useRoomContext } from "@livekit/components-react";
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
 import {
   acceptAnnotation,

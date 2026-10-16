@@ -5,6 +5,7 @@ import { friendCode } from "@/features/friends/server/friend-codes.server";
 import { friendLinkToken } from "@/features/friends/server/friend-links.server";
 import { friendLists } from "@/features/friends/server/friend-list.server";
 import { chosenStatus, shownStatuses } from "@/features/friends/server/presence-status.server";
+import { columnConversations } from "@/features/messages/server/conversation-list.server";
 import type { DbExecutor } from "@/server/db/index.server";
 
 /**
@@ -16,11 +17,12 @@ export async function friendsSidebarData(
   user: { id: string; name: string; image?: string | null },
   request: Request,
 ) {
-  const [lists, code, token, ownStatus] = await Promise.all([
+  const [lists, code, token, ownStatus, conversations] = await Promise.all([
     friendLists(db, user.id),
     friendCode(db, user.id),
     friendLinkToken(db, user.id),
     chosenStatus(db, user.id),
+    columnConversations(db, user.id),
   ]);
   const statuses = await shownStatuses(
     db,
@@ -33,6 +35,8 @@ export async function friendsSidebarData(
       status: statuses.get(friend.id) ?? ("offline" as const),
     })),
     ownStatus,
+    unreadByFriend: conversations.unreadByFriend,
+    groups: conversations.groups,
     requests: lists.received.length,
     code: formatFriendCode(code),
     linkPath: friendLinkPath(token),

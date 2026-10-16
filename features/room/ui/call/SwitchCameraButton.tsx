@@ -1,7 +1,7 @@
 import { useMediaDeviceSelect, useRoomContext } from "@livekit/components-react";
 import { SwitchCamera } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { Hint } from "@/components/Hint";
 import { saveCamera } from "@/features/room/client/saved-media";
 import { nextCamera } from "@/features/room/domain/camera-switch";

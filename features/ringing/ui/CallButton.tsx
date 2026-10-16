@@ -1,11 +1,12 @@
 import { Phone, X } from "lucide-react";
 import { useState } from "react";
-import { useLocation, useNavigate, useRouteLoaderData } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
-import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
+import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { createRoomAction } from "@/features/room/actions";
-import { callFriend, callGroup, cancelCall } from "@/features/ringing/actions";
+import { callGroup } from "@/features/ringing/actions";
+import { cancelCalling, ringFriend, useCalling } from "@/features/ringing/client/calling";
 import { savePendingCall, type PendingCall } from "@/features/ringing/client/pending-call";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +40,8 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 function useOpenRoom() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  return async (waiting: Waiting) => {
+  return async (waiting: Waiting, active: () => boolean = () => true) => {
+    if (!active()) return;
     const here = roomOnPage(pathname);
     if (here) {
       savePendingCall({ ...waiting, room: here });
@@ -47,13 +49,15 @@ function useOpenRoom() {
     }
     // A room opened by Chamar asks for approval: whoever is rung still goes straight in.
     const created = await createRoomAction({ access: "approval" });
+    if (!active()) return;
     const room = created.data ? codeFromPath(created.data.path) : null;
     if (!created.data || !room) {
       toast.error(created.serverError ?? "Não foi possível criar a sala.");
       return;
     }
     savePendingCall({ ...waiting, room });
-    void navigate(created.data.path, { viewTransition: true });
+    // Whoever pressed Chamar already chose to call: the new room joins without the pre-join.
+    void navigate(answeredCallPath(created.data.path), { viewTransition: true });
   };
 }
 
@@ -66,12 +70,14 @@ export function useCallFriend(friend: { id: string; name: string }) {
   const [starting, setStarting] = useState(false);
   const call = async () => {
     setStarting(true);
-    const result = await callFriend({ friendId: friend.id });
-    if (result.data?.needsRoom) {
-      await openRoom({ kind: "friend", friendId: friend.id, name: friend.name });
+    try {
+      const result = await ringFriend({ friendId: friend.id }, (active) =>
+        openRoom({ kind: "friend", friendId: friend.id, name: friend.name }, active),
+      );
+      if (result && !result.data) toast.error(result.serverError ?? "Unable to call right now.");
+    } finally {
+      setStarting(false);
     }
-    setStarting(false);
-    if (!result.data) toast.error(result.serverError ?? "Não dá para chamar agora.");
   };
   return { call, starting };
 }
@@ -87,15 +93,14 @@ export function CallButton({
   friend: { id: string; name: string; status: Status };
   className?: string;
 }) {
-  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
-  const ringing = outgoing.find((ring) => ring.calleeId === friend.id && ring.state === "ringing");
+  const { ringId, calling } = useCalling(friend.id);
   const { call, starting } = useCallFriend(friend);
   if (friend.status === "offline") return null;
-  if (ringing) {
+  if (calling) {
     return (
       <button
         type="button"
-        onClick={() => void cancelCall({ ringId: ringing.id })}
+        onClick={() => cancelCalling(friend.id, ringId)}
         aria-label={`Chamando ${firstName(friend.name)}. Cancelar`}
         className={cn(OUTLINE, "border-line-strong text-ink-muted hover:text-ink", className)}
       >
@@ -143,15 +148,14 @@ export function IconCallButton({
 }: {
   friend: { id: string; name: string; status: Status };
 }) {
-  const outgoing = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.outgoing ?? [];
-  const ringing = outgoing.find((ring) => ring.calleeId === friend.id && ring.state === "ringing");
+  const { ringId, calling } = useCalling(friend.id);
   const { call, starting } = useCallFriend(friend);
-  if (ringing) {
+  if (calling) {
     return (
       <Hint text="Cancelar chamada">
         <button
           type="button"
-          onClick={() => void cancelCall({ ringId: ringing.id })}
+          onClick={() => cancelCalling(friend.id, ringId)}
           aria-label={`Chamando ${firstName(friend.name)}. Cancelar`}
           className={cn(ICON, "bg-brand text-brand-ink motion-safe:animate-pulse")}
         >

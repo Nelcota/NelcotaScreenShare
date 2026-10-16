@@ -1,7 +1,7 @@
 import { useLocalParticipant } from "@livekit/components-react";
 import { Headphones, Square } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { Button } from "@/components/ui/button";
 import { currentMicrophone } from "@/features/room/client/saved-microphone";
 import { captureMicrophone } from "@/features/room/client/microphone-preview";

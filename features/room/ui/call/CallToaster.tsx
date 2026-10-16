@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { CALL_TOASTER_ID } from "@/features/room/client/call-notices";
+import { CALL_TOASTER_ID, setCallToasterShown } from "@/features/room/client/call-notices";
 
 /**
  * Room notices during the call: top right, right under the top bar, at most two compact
@@ -7,6 +8,10 @@ import { CALL_TOASTER_ID } from "@/features/room/client/call-notices";
  * covered. Errors with "Tentar de novo" stay on the app's toaster.
  */
 export function CallToaster() {
+  useEffect(() => {
+    setCallToasterShown(true);
+    return () => setCallToasterShown(false);
+  }, []);
   return (
     <Toaster
       id={CALL_TOASTER_ID}
@@ -19,8 +24,8 @@ export function CallToaster() {
       toastOptions={{
         classNames: {
           toast:
-            "cn-toast font-sans w-fit! max-w-80! ml-auto! rounded-full! px-4! py-2! min-h-0! gap-0! text-sm! shadow-soft!",
-          title: "truncate font-medium",
+            "cn-toast font-sans w-fit! max-w-96! ml-auto! rounded-3xl! px-4! py-2! min-h-0! gap-2! text-sm! shadow-soft!",
+          title: "line-clamp-3 font-medium",
         },
       }}
     />

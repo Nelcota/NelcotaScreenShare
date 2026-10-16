@@ -45,11 +45,11 @@ describe("friend photos", () => {
       .where(inArray(users.id, [ana.id, bia.id]));
 
     as(ana);
-    expect((await photoOf(bia)).status).toBe(404);
+    expect((await photoOf(bia)).status).toBe(204);
     expect((await friends.friendRelation({ userId: bia.id })).data?.relation).toBe("none");
     await friends.sendFriendRequest({ userId: bia.id });
     // Asking a stranger does not reveal their photo.
-    expect((await photoOf(bia)).status).toBe(404);
+    expect((await photoOf(bia)).status).toBe(204);
     expect((await friends.friendRelation({ userId: bia.id })).data?.relation).toBe("sent");
 
     // Bia sees who is asking.
@@ -62,11 +62,25 @@ describe("friend photos", () => {
     as(bia);
     await friends.blockUser({ userId: ana.id });
     as(ana);
-    expect((await photoOf(bia)).status).toBe(404);
+    expect((await photoOf(bia)).status).toBe(204);
 
     as(caio);
-    expect((await photoOf(bia)).status).toBe(404);
+    expect((await photoOf(bia)).status).toBe(204);
     requestHeaders.current = new Headers();
     expect((await photoOf(bia)).status).toBe(401);
+  });
+
+  test("a friend without a photo is an empty answer, cached for a minute", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    as(ana);
+    await friends.sendFriendRequest({ userId: bia.id });
+    as(bia);
+    await friends.answerFriendRequest({ userId: ana.id, accept: true });
+    as(ana);
+    const response = await photoOf(bia);
+    expect(response.status).toBe(204);
+    expect(response.headers.get("cache-control")).toBe("private, max-age=60");
+    expect(await response.text()).toBe("");
   });
 });

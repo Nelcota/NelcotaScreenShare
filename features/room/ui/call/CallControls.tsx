@@ -5,21 +5,13 @@
 import {
   useConnectionState,
   useParticipants,
+  useParticipantTracks,
   useLocalParticipant,
 } from "@livekit/components-react";
-import { ConnectionState, type Participant } from "livekit-client";
-import {
-  Headphones,
-  HeadphoneOff,
-  Mic,
-  MicOff,
-  MonitorOff,
-  MonitorUp,
-  PhoneOff,
-  Undo2,
-} from "lucide-react";
+import { ConnectionState, Track, type Participant } from "livekit-client";
+import { Headphones, HeadphoneOff, Mic, MicOff, MonitorOff, PhoneOff, Undo2 } from "lucide-react";
 import { Popover } from "radix-ui";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Hint } from "@/components/Hint";
@@ -40,7 +32,10 @@ const ICON_BUTTON =
 const NEUTRAL = "bg-surface-2 text-ink hover:bg-surface-3";
 const OFF = "bg-danger/10 text-danger hover:bg-danger/15";
 
-/** One person in the call: photo or initials, the mint ring while they speak, a sign while they share. */
+/**
+ * One person in the call: photo or initials and a thin mint ring while they speak. Too
+ * small for a sharing sign: their tile shows it, and screen readers still hear it.
+ */
 function Face({
   participant,
   speaking,
@@ -51,7 +46,8 @@ function Face({
   roomCode: string;
 }) {
   const name = participantLabel(participant);
-  const sharing = participant.isScreenShareEnabled;
+  // From the published tracks: the participant object alone would not redraw.
+  const sharing = useParticipantTracks([Track.Source.ScreenShare], participant.identity).length > 0;
   const status = [speaking ? "falando" : "", sharing ? "compartilhando a tela" : ""]
     .filter(Boolean)
     .join(", ");
@@ -61,18 +57,10 @@ function Face({
         participant={participant}
         roomCode={roomCode}
         className={cn(
-          "size-8 border border-line-strong bg-surface-2 text-[0.6875rem] font-semibold text-ink ring-2 transition-shadow",
+          "size-8 border border-line-strong bg-surface-2 text-[0.6875rem] font-semibold text-ink ring-[1.5px] transition-shadow",
           speaking ? "ring-brand-soft" : "ring-surface",
         )}
       />
-      {sharing ? (
-        <span
-          aria-hidden="true"
-          className="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full bg-brand text-brand-ink ring-2 ring-surface"
-        >
-          <MonitorUp className="size-2.5" />
-        </span>
-      ) : null}
       <span className="sr-only">{status ? `${name}, ${status}` : name}</span>
     </li>
   );

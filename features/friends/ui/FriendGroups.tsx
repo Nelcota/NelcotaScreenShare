@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { Mascot } from "@/features/mascot/ui/Mascot";
 import { splitByPresence, type FriendStatus } from "@/features/friends/domain/friend-lists";
@@ -8,19 +9,31 @@ import { cn } from "@/lib/utils";
 
 const GROUP_TITLE = "px-2 pt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase";
 
+const ROW =
+  "group relative flex items-center rounded-2xl transition-colors hover:bg-surface-3 has-[a[aria-current=page]]:bg-surface-3";
+
+const ROW_LINK =
+  "flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 focus-visible:outline-2 focus-visible:outline-brand";
+
+function unreadLabel(count: number): string {
+  if (count <= 0) return "";
+  return count === 1 ? ", 1 mensagem nova" : `, ${count} mensagens novas`;
+}
+
 /**
  * One friend: opens the conversation with them; "Chamar" and "…" show on hover or focus
- * (always on touch screens). Their profile sits beside the conversation.
+ * (always on touch screens). Unread messages show on the photo.
  */
-function FriendLine({ friend }: { friend: FriendStatus }) {
+function FriendLine({ friend, unread }: { friend: FriendStatus; unread: number }) {
   return (
-    <li className="group relative flex items-center rounded-2xl transition-colors hover:bg-surface-3 has-[a[aria-current=page]]:bg-surface-3">
+    <li className={ROW}>
       <NavLink
         viewTransition
         to={`/amigos/${friend.id}/conversa`}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 focus-visible:outline-2 focus-visible:outline-brand"
+        aria-label={`${friend.name}${unreadLabel(unread)}`}
+        className={ROW_LINK}
       >
-        <FriendAvatar friend={friend} />
+        <FriendAvatar friend={friend} unread={unread} />
         <span className={cn("min-w-0 flex-1", friend.status === "offline" && "opacity-70")}>
           <span className="block truncate text-sm font-semibold">{friend.name}</span>
           <span className="block text-xs text-ink-muted">{presenceLabel(friend)}</span>
@@ -43,16 +56,26 @@ function NobodyOnline() {
   );
 }
 
-/** Friends split into Online and Offline. */
-export function FriendGroups({ friends }: { friends: FriendStatus[] }) {
+/** Friends split into Online and Offline, after what the page puts first (the groups). */
+export function FriendGroups({
+  friends,
+  unreadByFriend = {},
+  before,
+}: {
+  friends: FriendStatus[];
+  unreadByFriend?: Readonly<Record<string, number>>;
+  before?: ReactNode;
+}) {
   const { online, offline } = splitByPresence(friends);
+  const unreadOf = (friend: FriendStatus) => unreadByFriend[friend.id] ?? 0;
   return (
     <>
+      {before}
       <h2 className={GROUP_TITLE}>Online — {online.length}</h2>
       {online.length === 0 ? <NobodyOnline /> : null}
       <ul className="mt-1 flex flex-col gap-0.5">
         {online.map((friend) => (
-          <FriendLine key={friend.id} friend={friend} />
+          <FriendLine key={friend.id} friend={friend} unread={unreadOf(friend)} />
         ))}
       </ul>
       {offline.length > 0 ? (
@@ -60,7 +83,7 @@ export function FriendGroups({ friends }: { friends: FriendStatus[] }) {
           <h2 className={cn(GROUP_TITLE, "pt-4")}>Offline — {offline.length}</h2>
           <ul className="mt-1 flex flex-col gap-0.5">
             {offline.map((friend) => (
-              <FriendLine key={friend.id} friend={friend} />
+              <FriendLine key={friend.id} friend={friend} unread={unreadOf(friend)} />
             ))}
           </ul>
         </>

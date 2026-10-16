@@ -9,7 +9,7 @@ import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
 
-/** A tab at the top of the column: Amigos, Mensagens, Salas and Times. */
+/** A tab at the top of the column: Amigos, Salas and Times. */
 export interface ColumnTab {
   id: string;
   label: string;
@@ -99,13 +99,25 @@ function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
   );
 }
 
+/** What another feature adds to the friends list; the page that draws the column composes it. */
+export interface ColumnExtras {
+  /** Unread messages by friend, on their photo. */
+  unreadByFriend: Readonly<Record<string, number>>;
+  /** Beside "Adicionar amigo": "Criar grupo". */
+  actions?: ReactNode;
+  /** Above the friends while nobody is searching: "Grupos". */
+  groups?: ReactNode;
+}
+
 function FriendsBody({
   friends,
+  extras,
   requests,
   code,
   linkPath,
 }: {
   friends: FriendStatus[];
+  extras: ColumnExtras;
   requests: number;
   code: string;
   linkPath: string;
@@ -125,11 +137,12 @@ function FriendsBody({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar amigo"
+            placeholder="Buscar"
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-subtle"
           />
         </label>
         <RequestsButton count={requests} />
+        {extras.actions}
         <AddFriendDialog code={code} linkPath={linkPath} />
       </div>
       <nav aria-label="Amigos" className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-3">
@@ -138,7 +151,11 @@ function FriendsBody({
             Você ainda não tem amigos aqui. Passe seu código para alguém.
           </p>
         ) : (
-          <FriendGroups friends={shown} />
+          <FriendGroups
+            friends={shown}
+            unreadByFriend={extras.unreadByFriend}
+            before={wanted ? null : extras.groups}
+          />
         )}
       </nav>
     </>
@@ -153,6 +170,7 @@ export function FriendsColumn({
   tabs,
   activeTab,
   friends,
+  extras,
   requests,
   code,
   linkPath,
@@ -163,6 +181,7 @@ export function FriendsColumn({
   tabs: ColumnTab[];
   activeTab: string;
   friends: FriendStatus[];
+  extras: ColumnExtras;
   requests: number;
   code: string;
   linkPath: string;
@@ -179,7 +198,13 @@ export function FriendsColumn({
         <CollapseButton onCollapse={onCollapse} />
       </div>
       {children ?? (
-        <FriendsBody friends={friends} requests={requests} code={code} linkPath={linkPath} />
+        <FriendsBody
+          friends={friends}
+          extras={extras}
+          requests={requests}
+          code={code}
+          linkPath={linkPath}
+        />
       )}
     </div>
   );

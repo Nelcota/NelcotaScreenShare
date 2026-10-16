@@ -8,7 +8,7 @@ export default [
     route("amigos/pedidos", "routes/app/friend-requests.tsx"),
     route("amigos/:id", "routes/app/friend.tsx"),
     route("conta", "routes/app/account.tsx"),
-    route("mensagens", "routes/app/messages.tsx"),
+    route("mensagens", "routes/app/messages.ts"),
     route("mensagens/:conversa", "routes/app/conversation.tsx"),
     route("salas", "routes/workspace/rooms.tsx"),
     route("salas/:id", "routes/workspace/history.tsx"),

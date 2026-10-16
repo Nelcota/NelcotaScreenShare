@@ -180,3 +180,24 @@ export async function unreadSummary(db: DbExecutor, userId: string): Promise<Unr
     .limit(1);
   return { total: counted?.total ?? 0, latest: latest ?? null };
 }
+
+/** A group in the friends column: name, members and unread count. */
+export type ColumnGroup = Pick<ConversationSummary, "id" | "kind" | "name" | "others" | "unread">;
+
+/**
+ * What the friends column shows of the conversations: unread counts on each friend's photo
+ * (their direct conversation) and the groups, most recent first.
+ */
+export async function columnConversations(db: DbExecutor, userId: string) {
+  const list = await conversationList(db, userId);
+  const unreadByFriend: Record<string, number> = {};
+  for (const conversation of list) {
+    const [other] = conversation.others;
+    if (conversation.kind !== "direct" || !other || conversation.unread === 0) continue;
+    unreadByFriend[other.id] = conversation.unread;
+  }
+  const groups: ColumnGroup[] = list
+    .filter((conversation) => conversation.kind === "group")
+    .map(({ id, kind, name, others, unread }) => ({ id, kind, name, others, unread }));
+  return { unreadByFriend, groups };
+}

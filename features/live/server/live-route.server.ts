@@ -1,5 +1,5 @@
 import { getUserSession } from "@/features/auth/server/participant-session.server";
-import { NUDGE_EVENT, type LiveTopic } from "@/features/live/domain/live-topics";
+import { DATA_EVENT, NUDGE_EVENT, type LiveTopic } from "@/features/live/domain/live-topics";
 import { liveBus, type LiveBus } from "@/features/live/server/live-bus.server";
 import { createRateLimiter } from "@/server/rate-limit.server";
 
@@ -26,8 +26,9 @@ const encoder = new TextEncoder();
 
 const noop = () => {};
 
-function nudgeMessage(topic: LiveTopic) {
-  return `event: ${NUDGE_EVENT}\ndata: ${topic}\n\n`;
+function nudgeMessage(topic: LiveTopic, data?: unknown) {
+  if (data === undefined) return `event: ${NUDGE_EVENT}\ndata: ${topic}\n\n`;
+  return `event: ${DATA_EVENT}\ndata: ${JSON.stringify({ topic, data })}\n\n`;
 }
 
 /** The stream of one tab: nudges for this account and a comment that keeps it open. */
@@ -43,7 +44,7 @@ function liveStream(userId: string, signal: AbortSignal, bus: LiveBus, keepAlive
           stop();
         }
       };
-      const unsubscribe = bus.subscribe(userId, (topic) => send(nudgeMessage(topic)));
+      const unsubscribe = bus.subscribe(userId, (topic, data) => send(nudgeMessage(topic, data)));
       const timer = setInterval(() => send(": keep-alive\n\n"), keepAliveMs);
       const onAbort = () => {
         stop();

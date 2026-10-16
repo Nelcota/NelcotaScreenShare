@@ -20,6 +20,16 @@ describe("nudge batcher", () => {
     expect(run).toHaveBeenCalledTimes(2);
   });
 
+  test("now reloads at once and takes the waiting reload with it", () => {
+    const run = vi.fn();
+    const batcher = createNudgeBatcher(run, 300);
+    batcher.nudge();
+    batcher.now();
+    expect(run).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(1_000);
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   test("cancel drops a pending reload", () => {
     const run = vi.fn();
     const batcher = createNudgeBatcher(run, 300);

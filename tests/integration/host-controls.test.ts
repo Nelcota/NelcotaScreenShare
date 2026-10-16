@@ -8,7 +8,7 @@ import {
   roomSessions,
 } from "@/server/db/schema/room-control";
 import { auditLogs } from "@/server/db/schema/audit";
-import { roomRoles } from "@/server/db/schema";
+import { roomParticipations, roomRoles, rooms, shareSessions } from "@/server/db/schema";
 import { applyRoleChange } from "@/features/room/server/role-changes.server";
 import { reserveAdmission } from "@/features/room/server/session-admission.server";
 import { controlGateway } from "@/features/room/server/control-gateway.server";
@@ -166,6 +166,26 @@ test("transport failure preserves policy/audit and retry applies current state",
   expect(applied?.status).toBe("applied");
 });
 
+test("one room failing in maintenance does not hold up the others", async () => {
+  const broken = await controlledRoom();
+  const room = await controlledRoom();
+  vi.spyOn(controlGateway, "sync").mockRejectedValueOnce(new Error("unavailable"));
+  const failed = await room.command({ kind: "lock", locked: true });
+  expect(failed.status).toBe("failed");
+  vi.spyOn(controlGateway, "participants").mockImplementation(async (media) => {
+    if (media === broken.mediaRoomName) throw new Error("LiveKit down for this room");
+    return online.get(media) ?? [];
+  });
+  await expect(
+    maintainRoomControls(getDb(), new Date(Date.now() + 6_000)),
+  ).resolves.toBeUndefined();
+  const [applied] = await getDb()
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, failed.commandId));
+  expect(applied?.status).toBe("applied");
+});
+
 test("host absence respects grace and elects oldest admitted active account", async () => {
   const room = await controlledRoom();
   const db = getDb();
@@ -188,11 +208,42 @@ test("empty call expires without making definition terminal; old JWT cannot open
   const [initial] = await db.select().from(roomSessions).where(eq(roomSessions.id, room.sessionId));
   if (!initial) throw new Error("Missing session");
   const now = new Date();
+  // Someone LiveKit dropped without a participant_left: still "in the call" with a share.
+  const [record] = await db.insert(rooms).values({ code: room.code }).returning();
+  if (!record) throw new Error("Missing room");
+  const [left] = await db
+    .insert(roomParticipations)
+    .values({
+      roomId: record.id,
+      sessionId: room.sessionId,
+      livekitIdentity: room.other,
+      livekitSid: `PA_${crypto.randomUUID()}`,
+      joinedAt: new Date(now.getTime() - 60_000),
+    })
+    .returning();
+  if (!left) throw new Error("Missing participation");
+  await db.insert(shareSessions).values({
+    roomId: record.id,
+    participationId: left.id,
+    trackSid: `TR_${crypto.randomUUID()}`,
+    startedAt: new Date(now.getTime() - 30_000),
+  });
   const waiting = await db.transaction((tx) => reconcileSessionPresence(tx, initial, [], now));
   const closed = await db.transaction((tx) =>
     reconcileSessionPresence(tx, waiting, [], new Date(now.getTime() + 60_001)),
   );
   expect(closed.status).toBe("closed");
+  const [gone] = await db
+    .select()
+    .from(roomParticipations)
+    .where(eq(roomParticipations.id, left.id));
+  expect(gone?.leaveReason).toBe("unknown");
+  expect(gone?.leftAt).not.toBeNull();
+  const shares = await db
+    .select({ endedAt: shareSessions.endedAt })
+    .from(shareSessions)
+    .where(eq(shareSessions.participationId, left.id));
+  expect(shares.every((share) => share.endedAt !== null)).toBe(true);
   const token = await liveKitGateway.signToken(grant(room.mediaRoomName, room.host));
   await expect(authorizeSignal(db, token)).rejects.toMatchObject({ code: "room_closed" });
   const [definition] = await db

@@ -6,7 +6,9 @@ import {
   type RemoteParticipant,
   type RemoteTrackPublication,
 } from "livekit-client";
-import { useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
+import { playPeerSound } from "@/features/room/audio/call-sounds";
+import { useDeafen } from "@/features/room/ui/dock/Deafen";
 import {
   addToNoticeGroup,
   noticeGroupMessage,
@@ -31,6 +33,11 @@ function showGroupedNotice(group: NoticeGroup) {
  */
 export function useRoomNotices() {
   const room = useRoomContext();
+  const { deafened } = useDeafen();
+  // Not hearing the room: nobody's coming and going makes a sound either.
+  const playPeer = useEffectEvent((sound: "peer-joined" | "peer-left") => {
+    if (!deafened) void playPeerSound(sound);
+  });
 
   useEffect(() => {
     const participants = new Map<string, Set<string>>();
@@ -60,11 +67,13 @@ export function useRoomNotices() {
       if (participants.has(participant.identity)) return;
       participants.set(participant.identity, new Set());
       announce("joined", participant);
+      playPeer("peer-joined");
     };
     const left = (participant: RemoteParticipant) => {
       if (room.state !== ConnectionState.Connected) return;
       if (!participants.delete(participant.identity)) return;
       announce("left", participant);
+      playPeer("peer-left");
     };
     const published = (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (room.state !== ConnectionState.Connected) return;

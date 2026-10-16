@@ -1,4 +1,5 @@
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { UnreadCount } from "@/components/UnreadCount";
 import { friendPhotoPath, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import { SHOWN_STATUS_LABEL, type ShownStatus } from "@/features/friends/domain/presence-status";
 import { cn } from "@/lib/utils";
@@ -11,18 +12,21 @@ export const STATUS_DOT: Record<ShownStatus, string> = {
   offline: "border-2 border-ink-subtle bg-surface",
 };
 
-/** A friend's photo with the status mark. */
+/** A friend's photo with the status mark and, when there are any, their unread messages. */
 export function FriendAvatar({
   friend,
+  unread = 0,
   size = "size-9 text-sm",
   dot = "size-3 ring-2",
 }: {
   friend: FriendStatus;
+  unread?: number;
   size?: string;
   dot?: string;
 }) {
   return (
     <span className="relative shrink-0">
+      <UnreadCount count={unread} />
       <InitialsAvatar
         name={friend.name}
         source={friendPhotoPath(friend.id)}

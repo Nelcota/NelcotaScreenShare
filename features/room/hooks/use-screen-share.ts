@@ -2,7 +2,7 @@ import { useLocalParticipant } from "@livekit/components-react";
 import { ScreenSharePresets, Track, type LocalTrack, type VideoEncoding } from "livekit-client";
 import { useEffect, useState } from "react";
 import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import {
   canRestrictOwnAudio,
   capturesCall,

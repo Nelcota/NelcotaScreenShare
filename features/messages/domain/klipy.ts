@@ -80,3 +80,17 @@ export function matchRequestedSlugs(requested: readonly string[], gifs: readonly
   });
   return new Map(pairs);
 }
+
+/**
+ * Keeps a bounded memory of GIFs: the newest entry goes last, so once full the one seen
+ * longest ago is dropped. Setting a known key again moves it to the end.
+ */
+export function rememberBounded<K, V>(memory: Map<K, V>, key: K, value: V, max: number): void {
+  memory.delete(key);
+  while (memory.size >= max) {
+    const oldest = memory.keys().next();
+    if (oldest.done) break;
+    memory.delete(oldest.value);
+  }
+  memory.set(key, value);
+}

@@ -26,7 +26,9 @@ import {
   type ConversationProfile,
 } from "@/features/messages/ui/ConversationProfile";
 import { GroupCallButton, IconCallButton } from "@/features/ringing/ui/CallButton";
+import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { useOperation } from "@/lib/operations/use-operation";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABEL = { online: "Online", away: "Ausente", busy: "Ocupado", offline: "Offline" };
 
@@ -44,7 +46,7 @@ export interface OpenConversation {
 function MoreMenu({ conversation }: { conversation: OpenConversation["conversation"] }) {
   const navigate = useNavigate();
   const leave = useOperation(leaveGroup, {
-    onSuccess: () => void navigate("/mensagens", { replace: true, viewTransition: true }),
+    onSuccess: () => void navigate("/amigos", { replace: true, viewTransition: true }),
     onError: () => toast.error("Não foi possível sair agora."),
   });
   const [other] = conversation.others;
@@ -198,6 +200,8 @@ export function ConversationView({
   const latestId = data.messages.at(-1)?.id;
   const older = useOlder(conversation.id, data.messages[0]?.id, data.hasMore);
   useMarkRead(conversation.id, latestId);
+  // Opening a conversation is a good moment to offer notifications, with the tab in front.
+  useEffect(() => offerNotifications(), []);
   const scroller = useStickToBottom(latestId);
   const profilePanel = useProfileOpen();
   const showProfile = profile !== undefined && profilePanel.open;
@@ -247,12 +251,18 @@ export function ConversationView({
             </p>
           )}
         </div>
-        {showProfile ? (
+        {profile ? (
+          // Stays mounted so it can slide open and closed; closed, it is out of reach.
           <aside
             aria-label="Perfil"
-            className="hidden w-72 shrink-0 overflow-y-auto border-l border-line lg:block"
+            aria-hidden={!showProfile}
+            inert={!showProfile}
+            className={cn(
+              "hidden shrink-0 overflow-hidden border-line transition-[width,opacity] duration-(--motion-surface) ease-(--ease-out-smooth) motion-reduce:transition-none lg:block",
+              showProfile ? "w-72 border-l opacity-100" : "w-0 opacity-0",
+            )}
           >
-            {profile.panel}
+            <div className="h-full w-72 overflow-y-auto">{profile.panel}</div>
           </aside>
         ) : null}
       </div>

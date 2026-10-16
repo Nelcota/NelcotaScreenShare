@@ -51,8 +51,8 @@ export default function ConversationPage() {
       leading={
         <Link
           viewTransition
-          to="/mensagens"
-          aria-label="Voltar às mensagens"
+          to="/amigos"
+          aria-label="Voltar aos amigos"
           className="grid size-9 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-surface-3 hover:text-ink sm:hidden"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />

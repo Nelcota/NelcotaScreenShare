@@ -1,6 +1,6 @@
-import type { Ring } from "@/features/ringing/domain/ring";
+import { incomingView, type Ring } from "@/features/ringing/domain/ring";
 import { createRingStore } from "@/features/ringing/server/ring-store.server";
-import { notifyUsers } from "@/features/live/server/live-bus.server";
+import { notifyUserWithData, notifyUsers } from "@/features/live/server/live-bus.server";
 
 /** Both sides reload: the card appears, changes or goes away. */
 function nudge(userIds: readonly string[]) {
@@ -15,34 +15,63 @@ const ringStore = createRingStore(Date.now, (ended) => nudge([ended.callerId, en
 
 type RingInput = Parameters<typeof ringStore.start>[0];
 
-/** When the time runs out, the callee's card goes away and the caller sees "Ninguém atendeu". */
-function scheduleEnd(ring: Ring) {
-  const timer = setTimeout(() => ringStore.sweep(), Math.max(0, ring.expiresAt - Date.now()) + 50);
-  timer.unref?.();
+/**
+ * One timer for the whole store, set to the next deadline: when a ring runs out the callee's
+ * card goes away and the caller sees "Ninguém atendeu"; then the notice is cleared. Nothing
+ * is left behind per ring or per person, whether it ended, was answered or was replaced.
+ */
+let sweepTimer: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleSweep() {
+  clearTimeout(sweepTimer);
+  sweepTimer = undefined;
+  const deadline = ringStore.nextDeadline();
+  if (deadline === null) return;
+  sweepTimer = setTimeout(
+    () => {
+      ringStore.sweep();
+      scheduleSweep();
+    },
+    Math.max(0, deadline - Date.now()) + 50,
+  );
+  sweepTimer.unref?.();
 }
 
+/** The callee's nudge carries the card, so it shows before their page reloads. */
 export function startRing(input: RingInput): Ring {
   const ring = ringStore.start(input);
-  scheduleEnd(ring);
-  nudge([ring.callerId, ring.calleeId]);
+  scheduleSweep();
+  nudge([ring.callerId]);
+  notifyUserWithData(ring.calleeId, "ring", incomingView(ring));
   return ring;
 }
 
 export function cancelRing(ringId: string, callerId: string): Ring | null {
   const ring = ringStore.cancel(ringId, callerId);
+  scheduleSweep();
   if (ring) nudge([ring.callerId, ring.calleeId]);
   return ring;
+}
+
+/** The caller left before anyone answered: the cards go away, and nobody gets a notice. */
+export function cancelRingsFromRoom(callerId: string, roomCode: string): Ring[] {
+  const stopped = ringStore.cancelFromRoom(callerId, roomCode);
+  scheduleSweep();
+  for (const ring of stopped) nudge([ring.callerId, ring.calleeId]);
+  return stopped;
 }
 
 /** The callee's card goes away and the caller sees "<Nome> recusou" at once. */
 export function declineRing(ringId: string, calleeId: string): Ring | null {
   const ring = ringStore.decline(ringId, calleeId);
+  scheduleSweep();
   if (ring) nudge([ring.callerId, ring.calleeId]);
   return ring;
 }
 
 export function acceptRing(ringId: string, calleeId: string): Ring | null {
   const ring = ringStore.accept(ringId, calleeId);
+  scheduleSweep();
   if (ring) nudge([ring.callerId, ring.calleeId]);
   return ring;
 }

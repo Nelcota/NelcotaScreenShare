@@ -16,6 +16,14 @@ describe("live bus", () => {
     expect(bia).not.toHaveBeenCalled();
   });
 
+  test("carries data only when there is some", () => {
+    const bus = createLiveBus();
+    const bia = vi.fn();
+    bus.subscribe("bia", bia);
+    bus.notify(["bia"], "ring", { id: "toque" });
+    expect(bia).toHaveBeenCalledExactlyOnceWith("ring", { id: "toque" });
+  });
+
   test("a closed stream stops hearing and leaves nothing behind", () => {
     const bus = createLiveBus();
     const first = vi.fn();

@@ -13,6 +13,7 @@ import {
 import type { RoomRole } from "@/features/room/domain/room-role";
 import { createAuditRecorder } from "@/server/audit.server";
 import { activeAccount, memberInSession, type ControlSession } from "./session-store.server";
+import { closeSessionLeftovers } from "./session-leftovers.server";
 
 /** Presence can trigger an audited election; webhook metadata never grants a role. */
 export async function reconcileSessionPresence(
@@ -36,6 +37,7 @@ export async function reconcileSessionPresence(
       .where(eq(roomSessions.id, session.id))
       .returning();
     await tx.insert(roomCommands).values({ sessionId: session.id, kind: "close" });
+    await closeSessionLeftovers(tx, session.id, emptySince);
     return closed ?? session;
   }
   const changes = {

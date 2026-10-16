@@ -2,6 +2,7 @@ import { RoomContext } from "@livekit/components-react";
 import { useState } from "react";
 import { useAnnounceCall } from "@/features/room/hooks/use-call-tabs";
 import { useRoomConnection } from "@/features/room/hooks/use-room-connection";
+import { playCallSound } from "@/features/room/audio/call-sounds";
 import { useApplyMediaSettings } from "@/features/room/hooks/use-apply-media-settings";
 import { OTHER_TAB_TOOK_OVER } from "@/features/room/domain/room-switch";
 import { DeafenProvider } from "@/features/room/ui/dock/Deafen";
@@ -42,6 +43,11 @@ export function RoomView({
   onRetry,
 }: RoomViewProps) {
   const { room, connectError, leave } = useRoomConnection(choices, code, onLeave);
+  // "Sair" (dock or minimized card): your own sound, unlike someone else leaving.
+  const leaveOnPurpose = () => {
+    void playCallSound("leave");
+    leave();
+  };
   useApplyMediaSettings(room);
   const [shortcutsEnabled, setShortcutsEnabled] = useState(true);
   // Another tab of this browser joined a call: this one leaves, with the reason on screen.
@@ -82,13 +88,13 @@ export function RoomView({
                         maxParticipants={maxParticipants}
                         roomName={roomName}
                         isAdmin={isAdmin}
-                        onLeave={() => leave()}
+                        onLeave={leaveOnPurpose}
                       />
                     </ReactionsProvider>
                   </div>
                 </ShortcutScope>
               </ShortcutSettings>
-              {minimized ? <MinimizedCall code={code} onLeave={() => leave()} /> : <CallToaster />}
+              {minimized ? <MinimizedCall code={code} onLeave={leaveOnPurpose} /> : <CallToaster />}
             </MicTestProvider>
           </DeafenProvider>
         </ScreenWatchProvider>

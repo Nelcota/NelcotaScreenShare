@@ -6,7 +6,7 @@ import {
 } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import { useRoomShortcut } from "@/lib/hooks/use-shortcut-keys";
 import { useChatToasts } from "@/features/room/hooks/use-chat-toasts";

@@ -27,6 +27,8 @@ const { incomingRings, outgoingRings } =
   await import("@/features/ringing/server/ring-service.server");
 const { admitByRing } = await import("@/features/ringing/server/ring-admission.server");
 const { createRoom } = await import("@/features/room/server/room-codes.server");
+const { mediaRoomIn } = await import("@/features/room/server/session-store.server");
+const { endRingsOnLeave } = await import("@/features/ringing/server/ring-on-leave.server");
 const { roomAccessOf, saveRoomAccess } = await import("@/features/room/server/room-access.server");
 const rooms = await import("@/features/room/actions.server");
 const { consumeApproval } = await import("@/features/room/server/join-requests.server");
@@ -189,6 +191,49 @@ describe("calling a friend", () => {
     expect((await ringing.callFriend({ friendId: bia.id, room: caioRoom })).serverError).toBe(
       "Não dá para chamar agora.",
     );
+  });
+
+  test("rings from someone else's room as soon as LiveKit has the caller, before the webhook", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    const caio = await verifiedParticipant(db, handler, { name: "Caio" });
+    await friends(ana.id, bia.id);
+    markOnline(bia.id);
+    const caioRoom = await createRoom(db, caio.id);
+    connected.set(await mediaRoomIn(db, caioRoom), [caio.id, ana.id]);
+
+    as(ana);
+    const called = await ringing.callFriend({ friendId: bia.id, room: caioRoom });
+    expect(incomingRings(bia.id).map((ring) => ring.id)).toEqual([called.data?.ringId]);
+  });
+});
+
+async function ringingFriend() {
+  const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+  const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+  await friends(ana.id, bia.id);
+  markOnline(bia.id);
+  const code = await createRoom(db, ana.id);
+  as(ana);
+  await ringing.callFriend({ friendId: bia.id, room: code });
+  const left = { event: "participant_left", participant: { identity: ana.id } };
+  return { ana, bia, code, left: { ...left, room: { name: await mediaRoomIn(db, code) } } };
+}
+
+describe("the caller leaving", () => {
+  test("stops the ring for the friend, with no notice for the caller", async () => {
+    const { ana, bia, left } = await ringingFriend();
+    expect(incomingRings(bia.id)).toHaveLength(1);
+    expect(await endRingsOnLeave(db, left)).toBe(1);
+    expect(incomingRings(bia.id)).toEqual([]);
+    expect(outgoingRings(ana.id)).toEqual([]);
+  });
+
+  test("keeps it while the caller is still in the call from another tab", async () => {
+    const { ana, bia, left } = await ringingFriend();
+    connected.set(left.room.name, [ana.id]);
+    expect(await endRingsOnLeave(db, left)).toBe(0);
+    expect(incomingRings(bia.id)).toHaveLength(1);
   });
 });
 

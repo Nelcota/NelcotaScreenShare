@@ -1,6 +1,6 @@
 import { UserCheck, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { answerFriendRequest, friendRelation, sendFriendRequest } from "@/features/friends/actions";
 import type { FriendRelation } from "@/features/friends/domain/friend-lists";
 import { useOperation } from "@/lib/operations/use-operation";

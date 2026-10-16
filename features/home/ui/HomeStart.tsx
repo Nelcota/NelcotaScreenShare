@@ -7,6 +7,8 @@ import { ADD_FRIEND_DONE } from "@/features/friends/domain/friendship";
 import { useOperation } from "@/lib/operations/use-operation";
 import { MascotPair } from "@/features/mascot/ui/MascotPair";
 import { useCreateRoom } from "@/features/home/hooks/use-create-room";
+import { roomPath } from "@/features/room/domain/room-code";
+import { useActiveCallCode } from "@/features/room/hooks/use-active-call";
 import { SmartBar } from "./SmartBar";
 
 /** "Link or code" bar with the pair of mascots, which reacts while the room opens. */
@@ -30,6 +32,7 @@ export function HomeStart({
   const [joining, startTransition] = useTransition();
   const creating = useCreateRoom();
   const pending = joining || creating.pending;
+  const activeCall = useActiveCallCode();
 
   // Keeps the content visible while the route loads. Pending also ends when navigating back.
   function openRoom(href: string) {
@@ -44,6 +47,9 @@ export function HomeStart({
       pending={pending}
       onNavigate={openRoom}
       onCreateRoom={creating.createRoom}
+      onBackToCall={
+        activeCall ? () => void navigate(roomPath(activeCall), { viewTransition: true }) : undefined
+      }
       mascot={<MascotPair pending={pending} compact={compact} />}
       focusShortcut={focusShortcut}
       compact={compact}

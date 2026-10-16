@@ -19,3 +19,11 @@ export const OWN_SCREEN_SOUND_LABEL: Record<OwnScreenSound, string> = {
 /** Turning the sound back on needs a new share when none was captured. */
 export const ABSENT_SOUND_NOTICE =
   "Para levar o som, compartilhe de novo e marque a opção de áudio no seletor do navegador.";
+
+/**
+ * Does a viewer hear this screen? Only while its sound is published and its sharer has not
+ * turned it off.
+ */
+export function screenSoundAudible(audio: { isMuted: boolean } | undefined): boolean {
+  return ownScreenSound(audio) === "on";
+}

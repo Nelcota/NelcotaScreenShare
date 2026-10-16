@@ -124,15 +124,26 @@ work. The database pool is lazy and startup does not run queries or migrations.
 
 GitHub secrets (`production` environment): `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_USER`, `MIGRATOR_DATABASE_URL`, `COOLIFY_DEPLOY_WEBHOOK`, `COOLIFY_TOKEN`. Variables: `APP_URL`, `DEPLOY_DOCKER_NETWORK` (default `coolify`), `PUBLIC_SENTRY_DSN` (optional). On the server, the deploy user needs `docker login ghcr.io` once.
 
-#### Interim deployment from Git
+#### Automatic deployment from Git
 
-If GitHub Actions is unavailable or the GHCR pipeline has not been configured, keep the Coolify resource on **Dockerfile**, with the Git source pointing to `https://github.com/Nelcota/NelcotaScreenShare`, Docker build cache enabled and `SOURCE_COMMIT` available only at runtime. The production resource currently uses this path. Automatic deployments are disabled: merge a batch of reviewed changes, then deploy `main` once from Coolify. Git submodules and Git LFS are disabled because this repository uses neither.
+Production uses the **Dockerfile** build pack with the Git source pointing to
+`https://github.com/Nelcota/NelcotaScreenShare`, branch `main`, Docker build cache
+enabled and `SOURCE_COMMIT` available at runtime. A signed GitHub push webhook
+triggers automatic deployments after protected PRs merge. Git submodules, Git LFS
+and preview deployments remain disabled.
 
-Before deploying a batch, check for pending database migrations. The app does not migrate on startup; apply new migrations with the migration user and the new image before deploying code that requires them. Keep the rolling update and `/api/ready` health check enabled. The production resource uses a 10-second start period, a 5-second interval and timeout, and 10 retries.
+The [Coolify release gate](../deploy/coolify/README.md) backs up PostgreSQL, verifies
+the archive and runs migrations from the candidate's immutable image in a separate
+job before the web server starts. Any failure blocks readiness and the rolling
+update retains the healthy version. The runtime application keeps its restricted
+`nelcota_app` role. Keep the gate's root-owned bind mount and custom entrypoint on
+the resource; the native pre-deployment hook runs the old image and is not used.
+The `/api/ready` health check allows a 30-second start period, a 5-second interval
+and timeout, and 60 retries.
 
-If a burst has already filled the queue, cancel queued deployments of superseded commits, let any rolling update in progress finish, and deploy the current `main`. Check `/api/ready` for the expected commit SHA and a healthy database. The CI builds the Docker image once and shares its BuildKit cache with the GHCR publication job.
-
-To enable the GHCR pipeline, first resolve any GitHub Actions billing block, configure the secrets and variables above, and enable the `Deploy` workflow. Verify image publication and migrations before switching the Coolify resource to **Docker Image**. Keep direct Git auto-deploy disabled so only the pipeline triggers production deployments.
+The optional GHCR `Deploy` workflow above remains disabled and unconfigured while
+this direct Git path is active. Do not enable a second production trigger without
+coordinating immutable release selection and the same backup/migration gate.
 
 #### Required checks on main
 

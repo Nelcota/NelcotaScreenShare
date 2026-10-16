@@ -3,9 +3,11 @@ import { ScreenSharePresets, Track, type LocalTrack, type VideoEncoding } from "
 import { useEffect, useState } from "react";
 import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
 import { callToast as toast } from "@/features/room/client/call-notices";
+import { captureScreenTracks } from "@/features/room/client/screen-capture";
 import {
   canRestrictOwnAudio,
   capturesCall,
+  computerAudioOptions,
   echoesRoomAudio,
   shareSupportMessage,
   showsCaptureBar,
@@ -135,7 +137,7 @@ export function useScreenShare() {
     const preset = ScreenSharePresets[options.preset];
     setBusy(true);
     try {
-      const tracks = await localParticipant.createScreenTracks({
+      const tracks = await captureScreenTracks({
         // Opens the browser picker directly on the tab chosen in our menu.
         video: { displaySurface: surface },
         audio: audio
@@ -149,7 +151,7 @@ export function useScreenShare() {
             }
           : false,
         // Only where the browser can strip the room from it (see `withoutEchoingAudio`).
-        systemAudio: audio && canRestrictOwnAudio() ? "include" : "exclude",
+        ...computerAudioOptions(audio, canRestrictOwnAudio()),
         selfBrowserSurface: "exclude",
         surfaceSwitching: "include",
         contentHint: options.contentHint,

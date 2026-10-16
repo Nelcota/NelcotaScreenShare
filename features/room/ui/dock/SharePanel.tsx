@@ -33,7 +33,7 @@ const OPTIONS: {
     title: "Janela",
     description: "Um aplicativo específico",
     icon: AppWindow,
-    silentNote: "Janelas vão sem áudio",
+    silentNote: "Vai sem áudio neste navegador: atualize ou escolha uma aba",
   },
   {
     surface: "browser",

@@ -31,12 +31,14 @@ vi.mock("@livekit/components-react", () => ({
   useLocalParticipant: () => ({
     isScreenShareEnabled: false,
     localParticipant: {
-      createScreenTracks: capture.createScreenTracks,
       publishTrack: capture.publishTrack,
       unpublishTrack: capture.unpublishTrack,
       setScreenShareEnabled: capture.setScreenShareEnabled,
     },
   }),
+}));
+vi.mock("@/features/room/client/screen-capture", () => ({
+  captureScreenTracks: capture.createScreenTracks,
 }));
 vi.mock("@/features/room/client/saved-share-profile", () => ({
   savedShareProfile: () => capture.profile,
@@ -91,6 +93,23 @@ test.each([
     });
   },
 );
+
+test.each(["monitor", "window"] as const)(
+  "a %s with sound asks the picker for the computer audio",
+  async (surface) => {
+    await useScreenShare().start({ surface, audio: true });
+    expect(capture.createScreenTracks).toHaveBeenCalledWith(
+      expect.objectContaining({ systemAudio: "include", windowAudio: "system" }),
+    );
+  },
+);
+
+test("a share without sound asks the picker for no computer audio", async () => {
+  await useScreenShare().start({ surface: "window", audio: false });
+  expect(capture.createScreenTracks).toHaveBeenCalledWith(
+    expect.objectContaining({ audio: false, systemAudio: "exclude", windowAudio: "exclude" }),
+  );
+});
 
 test.each(["text", "video", "data-saver"] as const)(
   "%s discards unsafe computer audio before publication",

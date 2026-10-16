@@ -9,6 +9,7 @@ import {
   mailSenderSchema,
   type MailSenderSettings,
 } from "@/features/admin/mail/domain/sender";
+import { MAX_ADMIN_LINKS } from "@/features/admin/participants/domain/admin-link";
 
 /**
  * App settings edited in /admin. Each group is one row in
@@ -48,6 +49,22 @@ export const mailSenderSettings = {
   schema: mailSenderSchema,
   defaults: MAIL_SENDER_DEFAULTS,
 } satisfies SettingGroup<MailSenderSettings>;
+
+const adminLinkSchema = z.object({
+  userIds: z.array(z.uuid()).max(MAX_ADMIN_LINKS, `Até ${MAX_ADMIN_LINKS} contas.`),
+});
+
+export type AdminLinkSettings = z.infer<typeof adminLinkSchema>;
+
+/**
+ * App accounts that show "Abrir o painel" in Configurações, picked one by one by the owner.
+ * The link only opens the panel's own sign-in, which still asks for the 2FA code.
+ */
+export const adminLinkSettings = {
+  key: "admin_link",
+  schema: adminLinkSchema,
+  defaults: { userIds: [] },
+} satisfies SettingGroup<AdminLinkSettings>;
 
 /**
  * In-memory cache, per process: the layout reads the mascot on every page and the

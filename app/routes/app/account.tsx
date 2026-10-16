@@ -5,6 +5,8 @@ import { useLoaderData } from "react-router";
 import { CircleCheck, Download, ShieldAlert, ShieldCheck } from "lucide-react";
 import { revokeMyOtherSessions, revokeMySession } from "@/features/account/actions";
 import { AccountHealth } from "@/features/account/ui/AccountHealth";
+import { AdminPanelSection } from "@/features/account/ui/AdminPanelSection";
+import { hasAdminLink } from "@/features/admin/settings/server/admin-link.server";
 import { ChangeEmailForm } from "@/features/account/ui/ChangeEmailForm";
 import { ChangePasswordForm } from "@/features/account/ui/ChangePasswordForm";
 import { DeleteAccountForm } from "@/features/account/ui/DeleteAccountForm";
@@ -123,6 +125,7 @@ export const loader = routeLoader(async ({ searchParams }) => {
   return {
     ownedTeamCount: (await ownedTeams(getDb(), current.user.id)).length,
     blocked: await blockedPeople(getDb(), current.user.id),
+    adminLink: await hasAdminLink(current.user.id),
     currentId: current.session.id,
     back,
     sessions,
@@ -147,6 +150,7 @@ export default function AccountPage() {
     requireEmailVerification,
     ownedTeamCount,
     blocked,
+    adminLink,
   } = useLoaderData<typeof loader>();
   return (
     <div className="relative">
@@ -252,6 +256,8 @@ export default function AccountPage() {
               <BlockedList people={blocked} />
             </SettingsBlock>
           </SettingsSection>
+
+          {adminLink ? <AdminPanelSection /> : null}
 
           <SettingsSection id="excluir" title="Encerrar conta" danger>
             <ExpandableRow

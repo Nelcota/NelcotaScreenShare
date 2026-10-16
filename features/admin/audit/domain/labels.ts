@@ -30,6 +30,7 @@ const ACTION_LABELS: Record<string, string> = {
   "user.two_factor_disable": "Desligou o 2FA do participante",
   "user.photo_remove": "Removeu a foto do participante",
   "user.name_reset": "Redefiniu o nome do participante",
+  "user.admin_link": "Mudou o link do painel do participante",
   "user.export": "Exportou participantes",
   "room.update": "Alterou a nota da sala",
   "room.access_update": "Mudou a entrada da sala",

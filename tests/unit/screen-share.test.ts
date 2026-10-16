@@ -15,6 +15,8 @@ const capture = vi.hoisted(() => ({
   toastInfo: vi.fn(),
   toastError: vi.fn(),
   reportError: vi.fn(),
+  logWarning: vi.fn(),
+  startAudio: vi.fn<() => Promise<void>>(),
 }));
 vi.mock("@/features/room/ui/call/RoomHostProvider", () => ({
   useRoomHost: () => ({ canShare: capture.canShare }),
@@ -28,6 +30,7 @@ vi.mock("react", async (original) => ({
   ],
 }));
 vi.mock("@livekit/components-react", () => ({
+  useRoomContext: () => ({ startAudio: capture.startAudio }),
   useLocalParticipant: () => ({
     isScreenShareEnabled: false,
     localParticipant: {
@@ -49,7 +52,10 @@ vi.mock("@/features/room/domain/share-support", async (original) => ({
   ...(await original<typeof ShareSupport>()),
   canRestrictOwnAudio: () => true,
 }));
-vi.mock("@/lib/telemetry.client", () => ({ reportBrowserError: capture.reportError }));
+vi.mock("@/lib/telemetry.client", () => ({
+  reportBrowserError: capture.reportError,
+  logBrowserWarning: capture.logWarning,
+}));
 vi.mock("sonner", () => ({ toast: { info: capture.toastInfo, error: capture.toastError } }));
 
 const { useScreenShare } = await import("@/features/room/hooks/use-screen-share");
@@ -69,6 +75,7 @@ beforeEach(() => {
   capture.createScreenTracks.mockResolvedValue([screenTrack()]);
   capture.publishTrack.mockResolvedValue(undefined);
   capture.unpublishTrack.mockResolvedValue(undefined);
+  capture.startAudio.mockResolvedValue(undefined);
 });
 
 test.each([
@@ -165,4 +172,41 @@ test("host restriction does not open capture or publish a screen", async () => {
     "O anfitrião restringiu o compartilhamento de tela.",
     expect.objectContaining({ className: "pointer-events-none" }),
   );
+});
+
+function watchableScreenTrack() {
+  const video = screenTrack();
+  return {
+    ...video,
+    mediaStreamTrack: { ...video.mediaStreamTrack, addEventListener: vi.fn() },
+  };
+}
+
+function safeScreenAudio() {
+  return {
+    source: Track.Source.ScreenShareAudio,
+    stop: vi.fn(),
+    mediaStreamTrack: { getSettings: () => ({ restrictOwnAudio: true }) },
+  };
+}
+
+test("a capture with sound unlocks the room's playback, as LiveKit's own capture does", async () => {
+  capture.createScreenTracks.mockResolvedValue([watchableScreenTrack(), safeScreenAudio()]);
+  await useScreenShare().start({ surface: "monitor", audio: true });
+  expect(capture.startAudio).toHaveBeenCalledOnce();
+});
+
+test("a capture without sound leaves the room's playback alone", async () => {
+  await useScreenShare().start({ surface: "monitor", audio: true });
+  expect(capture.startAudio).not.toHaveBeenCalled();
+});
+
+test("a blocked playback only warns and the screen still goes out", async () => {
+  const video = watchableScreenTrack();
+  capture.createScreenTracks.mockResolvedValue([video, safeScreenAudio()]);
+  capture.startAudio.mockRejectedValue(new DOMException("Blocked", "NotAllowedError"));
+  await useScreenShare().start({ surface: "monitor", audio: true });
+  await vi.waitFor(() => expect(capture.logWarning).toHaveBeenCalledOnce());
+  expect(capture.publishTrack).toHaveBeenCalledWith(video, expect.anything());
+  expect(capture.toastError).not.toHaveBeenCalled();
 });

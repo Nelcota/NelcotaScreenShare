@@ -1,5 +1,5 @@
 import { LogIn } from "lucide-react";
-import { Link, useNavigate, useRevalidator } from "react-router";
+import { Link, useNavigate, useRevalidator, useSearchParams } from "react-router";
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import { AccessTabs } from "./AccessTabs";
@@ -16,6 +16,7 @@ import type { AccessContext } from "@/features/auth/domain/access-context";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
+import { twoFactorStep } from "@/features/auth/domain/participant-sign-in-next";
 import { formText } from "@/lib/utils";
 
 /** Errors the person caused (credentials) make the mascot angry; the rest, worried. */
@@ -31,6 +32,7 @@ export function SignInForm({
   notice?: string | undefined;
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const revalidator = useRevalidator();
   const emailId = useId();
   const passwordId = useId();
@@ -71,9 +73,11 @@ export function SignInForm({
       return;
     }
     forgetTypedEmail();
-    // With 2FA, Better Auth goes to /entrar/2fa (the client's onTwoFactorRedirect).
-    if (result && "twoFactorRedirect" in result && result.twoFactorRedirect) {
+    // With 2FA the code comes next; an in-app navigation keeps a call going.
+    const codePage = twoFactorStep(result, searchParams.get("voltar"));
+    if (codePage) {
       nodMascot();
+      void navigate(codePage, { replace: true, viewTransition: true });
       return;
     }
     celebrateMascot();

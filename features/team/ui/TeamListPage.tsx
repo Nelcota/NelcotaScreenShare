@@ -30,7 +30,10 @@ function TeamsWithoutPro() {
         Um time é um grupo fixo de pessoas, com salas que ficam sempre no mesmo link e o histórico
         das chamadas.
       </p>
-      <p className="font-medium">Só no Pro.</p>
+      <p className="max-w-sm">
+        <span className="font-medium">Só no Pro.</span>{" "}
+        <span className="text-ink-muted">Recebeu um convite? Abra o link que te mandaram.</span>
+      </p>
       <Button asChild className="mt-2">
         <Link viewTransition to="/#precos">
           Entrar na lista do Pro

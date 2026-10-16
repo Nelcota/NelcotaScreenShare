@@ -1,0 +1,77 @@
+# Weekly version updates, grouped so they arrive as few PRs. New releases wait
+# 3 days first: a compromised version is usually caught and yanked within days.
+# Security updates are not delayed.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Sao_Paulo
+    cooldown:
+      default-days: 3
+    versioning-strategy: increase
+    open-pull-requests-limit: 10
+    labels: [dependencies]
+    groups:
+      # React, React Router and types move together.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+          - react-router
+          - "@react-router/*"
+      # Everything else, except auth and database: those always come in their own reviewed PR.
+      dependencies:
+        patterns: ["*"]
+        exclude-patterns:
+          - better-auth
+          - "@better-auth/*"
+          - drizzle-orm
+          - drizzle-kit
+          - pg
+          - "@node-rs/argon2"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Sao_Paulo
+    cooldown:
+      default-days: 3
+    labels: [dependencies]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Sao_Paulo
+    cooldown:
+      default-days: 3
+    labels: [dependencies]
+    ignore:
+      # A Postgres major requires pg_upgrade.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Sao_Paulo
+    cooldown:
+      default-days: 3
+    labels: [dependencies, ci]
+    groups:
+      actions:
+        patterns: ["*"]

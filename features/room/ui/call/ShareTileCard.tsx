@@ -9,6 +9,7 @@ import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { ParticipantAvatar } from "./ParticipantAvatar";
 import { ParticipantCard } from "./ParticipantCard";
 import { SoundBadge } from "./SoundBadge";
+import { TILE_SURFACE } from "./tile-surface";
 
 /** A screen-like pattern for before the first frame (or a browser that cannot send one). */
 function NeutralScreen() {
@@ -70,14 +71,14 @@ export function ShareTileCard({
       key="share"
       ref={scope}
       data-flip-id={`tile-${participant.identity}`}
-      className="relative isolate aspect-video w-full shrink-0 rounded-3xl"
+      className="group/tile relative isolate aspect-video w-full shrink-0 rounded-3xl"
     >
       <div
         data-glow
         aria-hidden="true"
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
-      <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-tile-line bg-tile shadow-soft">
+      <div className={TILE_SURFACE}>
         {image ? <ScreenPreview image={image} /> : <NeutralScreen />}
         <div aria-hidden="true" className="absolute inset-0 bg-canvas/40" />
         <div

@@ -12,6 +12,18 @@ const databaseUrlSchema = z.url({
 
 const appUrlSchema = z.preprocess(emptyToUndefined, z.url().optional());
 
+/**
+ * Some hosts keep the quotes around a value pasted from a .env file, which breaks the
+ * sender: one pair wrapping the whole value is removed. The format is checked when
+ * sending (`mail.server`), so a bad sender never takes the site down.
+ */
+function unquoteMailFrom(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  const wrapped = /^(["'])(.*)\1$/s.exec(trimmed);
+  return emptyToUndefined(wrapped ? wrapped[2]?.trim() : trimmed);
+}
+
 export const logLevelSchema = z.preprocess(
   emptyToUndefined,
   z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).optional(),
@@ -80,10 +92,13 @@ const envSchema = z
       emptyToUndefined,
       z.url({ protocol: /^smtps?$/, error: "SMTP_URL must be smtp:// or smtps://" }).optional(),
     ),
-    MAIL_FROM: z.preprocess(emptyToUndefined, z.string().min(3).optional()),
+    MAIL_FROM: z.preprocess(unquoteMailFrom, z.string().min(3).optional()),
     // Optional observability. Only the public DSN is sent to the browser.
     SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
     PUBLIC_SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
+    // Issues page of the Sentry project (e.g. https://org.sentry.io/issues/?project=123): the
+    // admin panel links each recent error to its events there. Optional.
+    SENTRY_ISSUES_URL: z.preprocess(emptyToUndefined, z.url({ protocol: /^https$/ }).optional()),
     LOG_LEVEL: logLevelSchema,
     // Commit SHA, set by CI in the image (shows up in /api/ready and in Sentry).
     APP_VERSION: z.preprocess(emptyToUndefined, z.string().max(64).optional()),

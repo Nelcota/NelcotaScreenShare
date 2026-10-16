@@ -162,6 +162,27 @@
       "when": 1791819311694,
       "tag": "0022_room_session_exclusions",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791819312694,
+      "tag": "0023_mail_deliveries",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791819313694,
+      "tag": "0024_app_errors",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791819314694,
+      "tag": "0025_audit_logs_retention",
+      "breakpoints": true
     }
   ]
 }

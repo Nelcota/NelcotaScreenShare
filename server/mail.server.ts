@@ -3,6 +3,9 @@ import { setTimeout } from "node:timers/promises";
 import { createTransport, type Transporter } from "nodemailer";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
+import { recordMailDelivery } from "@/server/mail-deliveries.server";
+import { recipientDomain, type MailProvider } from "@/features/admin/mail/domain/delivery";
+import { isValidSender } from "@/lib/mail-sender";
 export { mailLayout } from "@/server/mail-layout.server";
 
 export interface MailMessage {
@@ -40,6 +43,29 @@ const PROVIDER_ERROR_NAMES = new Set([
   "service_unavailable",
   "invalid_from_address",
 ]);
+
+/** The sender's domain is configuration, safe to log; it must be verified at Resend. */
+function senderDomain(sender: string): string | undefined {
+  const match = /@([^\s@<>"]+)>?$/.exec(sender);
+  return match?.[1];
+}
+
+/** Logs a sender that no provider accepts; only its domain reaches the log. */
+function senderIsValid(sender: string): boolean {
+  if (isValidSender(sender)) return true;
+  logger.error(
+    { event: "mail.misconfigured", senderDomain: senderDomain(sender) },
+    'MAIL_FROM must be "no-reply@domain.com" or "Name <no-reply@domain.com>"',
+  );
+  return false;
+}
+
+/** Called on boot: a bad sender shows up in the log before the first e-mail fails. */
+export function checkMailSender(): void {
+  const { MAIL_FROM } = getEnv();
+  if (!MAIL_FROM) return;
+  senderIsValid(MAIL_FROM);
+}
 
 function providerMessageId(result: unknown): string | undefined {
   if (!result || typeof result !== "object" || !("id" in result)) return undefined;
@@ -104,30 +130,54 @@ async function postToResend(
   }
 }
 
+/** A delivery the provider did not accept, with only safe details for the history. */
+export class MailDeliveryError extends Error {
+  readonly reason: string;
+  readonly attempts: number;
+
+  constructor(message: string, { reason, attempts }: { reason: string; attempts: number }) {
+    super(message);
+    this.name = "MailDeliveryError";
+    this.reason = reason;
+    this.attempts = attempts;
+  }
+}
+
+interface SentMail {
+  attempts: number;
+  messageId: string | undefined;
+}
+
+function failureReason(status: number | undefined, reason: string | undefined, failure?: string) {
+  if (reason) return reason;
+  if (status !== undefined) return `HTTP ${status}`;
+  return failure ?? "unknown";
+}
+
 /** Retries reuse one key, including when a timeout hides an accepted request. */
-async function sendWithResend(message: MailMessage, apiKey: string, sender: string): Promise<void> {
+async function sendWithResend(
+  message: MailMessage,
+  apiKey: string,
+  sender: string,
+): Promise<SentMail> {
   const headers = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
     "Idempotency-Key": randomUUID(),
   };
   const body = JSON.stringify({ from: sender, ...message });
+  const domain = senderDomain(sender);
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     const { response, failure } = await postToResend(headers, body);
 
     if (response?.ok) {
-      const result = await readProviderResult(response);
+      const messageId = providerMessageId(await readProviderResult(response));
       logger.info(
-        {
-          event: "mail.accepted",
-          provider: "resend",
-          messageId: providerMessageId(result),
-          attempt,
-        },
+        { event: "mail.accepted", provider: "resend", messageId, attempt },
         "e-mail accepted by provider",
       );
-      return;
+      return { attempts: attempt, messageId };
     }
 
     const status = response?.status;
@@ -135,43 +185,167 @@ async function sendWithResend(message: MailMessage, apiKey: string, sender: stri
     const transient = status === undefined || status === 429 || status >= 500;
     if (!transient || attempt === 3) {
       logger.error(
-        { event: "mail.failed", provider: "resend", status, failure, reason, attempt },
+        {
+          event: "mail.failed",
+          provider: "resend",
+          status,
+          failure,
+          reason,
+          attempt,
+          senderDomain: domain,
+        },
         "e-mail delivery failed",
       );
-      throw new Error(
+      throw new MailDeliveryError(
         status === undefined
           ? "Resend request failed or timed out"
           : `Resend rejected e-mail delivery (HTTP ${status})`,
+        { reason: failureReason(status, reason, failure), attempts: attempt },
       );
     }
 
     logger.warn(
-      { event: "mail.retry", provider: "resend", status, failure, reason, attempt },
+      {
+        event: "mail.retry",
+        provider: "resend",
+        status,
+        failure,
+        reason,
+        attempt,
+        senderDomain: domain,
+      },
       "retrying e-mail delivery",
     );
     await setTimeout(500 * 2 ** (attempt - 1));
   }
+  throw new MailDeliveryError("Resend request failed", { reason: "unknown", attempts: 3 });
+}
+
+// Nodemailer error codes are fixed identifiers (EAUTH, ECONNECTION, EENVELOPE…).
+const SMTP_ERROR_CODE = /^E[A-Z]{2,20}$/;
+
+function smtpFailureReason(error: unknown): string {
+  if (!error || typeof error !== "object") return "unknown";
+  if ("code" in error && typeof error.code === "string" && SMTP_ERROR_CODE.test(error.code)) {
+    return error.code;
+  }
+  return error instanceof Error ? error.name : "unknown";
+}
+
+async function sendWithSmtp(message: MailMessage, url: string, sender: string | undefined) {
+  transporter ??= createTransport(url);
+  try {
+    const info: unknown = await transporter.sendMail({ from: sender, ...message });
+    logger.info({ event: "mail.accepted", provider: "smtp" }, "e-mail accepted by provider");
+    const messageId =
+      info && typeof info === "object" && "messageId" in info && typeof info.messageId === "string"
+        ? info.messageId
+        : undefined;
+    return { attempts: 1, messageId };
+  } catch (error) {
+    const reason = smtpFailureReason(error);
+    // Only the fixed error code: SMTP messages can carry addresses.
+    logger.error({ event: "mail.failed", provider: "smtp", reason }, "e-mail delivery failed");
+    throw new MailDeliveryError("SMTP rejected e-mail delivery", { reason, attempts: 1 });
+  }
+}
+
+type DeliveredBy = Exclude<MailProvider, "none">;
+
+/** Sends through one provider and records the outcome either way. */
+async function deliverAndRecord(
+  message: MailMessage,
+  provider: DeliveredBy,
+  send: () => Promise<SentMail>,
+): Promise<void> {
+  const base = {
+    subject: message.subject.slice(0, 200),
+    recipientDomain: recipientDomain(message.to),
+    provider,
+  };
+  try {
+    const sent = await send();
+    await recordMailDelivery({
+      ...base,
+      status: "accepted",
+      reason: null,
+      attempts: sent.attempts,
+      providerMessageId: sent.messageId?.slice(0, 200) ?? null,
+    });
+  } catch (error) {
+    const failure =
+      error instanceof MailDeliveryError
+        ? { reason: error.reason.slice(0, 100), attempts: error.attempts }
+        : { reason: error instanceof Error ? error.name : "unknown", attempts: 0 };
+    await recordMailDelivery({ ...base, status: "failed", providerMessageId: null, ...failure });
+    throw error;
+  }
+}
+
+function missingSender(): never {
+  throw new MailDeliveryError("MAIL_FROM is required for Resend delivery", {
+    reason: "missing_sender",
+    attempts: 0,
+  });
 }
 
 /**
  * Transactional e-mail. Production failures never log links or recipients.
  * Development without a provider logs the content for local testing.
+ * Every attempt leaves a line in `mail_deliveries` for the panel.
  */
+function configuredProvider(
+  resendKey: string | undefined,
+  smtpUrl: string | undefined,
+): MailProvider {
+  if (resendKey) return "resend";
+  if (smtpUrl) return "smtp";
+  return "none";
+}
+
+/** A malformed MAIL_FROM is refused by every provider: record it instead of trying. */
+async function refuseInvalidSender(message: MailMessage, provider: MailProvider): Promise<never> {
+  await recordMailDelivery({
+    subject: message.subject.slice(0, 200),
+    recipientDomain: recipientDomain(message.to),
+    provider,
+    status: "not_sent",
+    reason: "invalid_sender",
+    attempts: 0,
+    providerMessageId: null,
+  });
+  throw new MailDeliveryError("MAIL_FROM is not a valid sender address", {
+    reason: "invalid_sender",
+    attempts: 0,
+  });
+}
+
 export async function sendMail(message: MailMessage): Promise<void> {
   const { RESEND_API_KEY, SMTP_URL, MAIL_FROM } = getEnv();
+  if (MAIL_FROM && !senderIsValid(MAIL_FROM)) {
+    await refuseInvalidSender(message, configuredProvider(RESEND_API_KEY, SMTP_URL));
+  }
   if (RESEND_API_KEY) {
-    if (!MAIL_FROM) throw new Error("MAIL_FROM is required for Resend delivery");
-    await sendWithResend(message, RESEND_API_KEY, MAIL_FROM);
+    await deliverAndRecord(message, "resend", () =>
+      MAIL_FROM ? sendWithResend(message, RESEND_API_KEY, MAIL_FROM) : missingSender(),
+    );
     return;
   }
-  if (!SMTP_URL) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("E-mail delivery is not configured");
-    }
-    logUndeliveredMail(message);
+  if (SMTP_URL) {
+    await deliverAndRecord(message, "smtp", () => sendWithSmtp(message, SMTP_URL, MAIL_FROM));
     return;
   }
-  transporter ??= createTransport(SMTP_URL);
-  await transporter.sendMail({ from: MAIL_FROM, ...message });
-  logger.info({ event: "mail.accepted", provider: "smtp" }, "e-mail accepted by provider");
+  await recordMailDelivery({
+    subject: message.subject.slice(0, 200),
+    recipientDomain: recipientDomain(message.to),
+    provider: "none",
+    status: "not_sent",
+    reason: "no_provider",
+    attempts: 0,
+    providerMessageId: null,
+  });
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("E-mail delivery is not configured");
+  }
+  logUndeliveredMail(message);
 }

@@ -21,6 +21,9 @@ const ACTION_LABELS: Record<string, string> = {
   "user.sessions_revoke": "Encerrou sessões do participante",
   "user.verification_resend": "Reenviou confirmação de e-mail",
   "user.anonymize": "Anonimizou participante (LGPD)",
+  "user.two_factor_disable": "Desligou o 2FA do participante",
+  "user.photo_remove": "Removeu a foto do participante",
+  "user.name_reset": "Redefiniu o nome do participante",
   "user.export": "Exportou participantes",
   "room.update": "Alterou a nota da sala",
   "room.access_update": "Mudou a entrada da sala",
@@ -37,11 +40,13 @@ const ACTION_LABELS: Record<string, string> = {
   "room.remove": "Removeu pessoa da chamada",
   "room.close": "Encerrou a sala para todos",
   "share_session.export": "Exportou compartilhamentos",
+  "pro_interest.export": "Exportou a lista de espera do Pro",
   "room_invite.create": "Criou convite de sala",
   "room_invite.revoke": "Revogou convite de sala",
   "room.participant_kick": "Removeu pessoa da chamada",
   "room.participant_ban": "Baniu pessoa da chamada",
   "room.participant_unban": "Deixou pessoa voltar à chamada",
+  "mail.test": "Enviou e-mail de teste",
   "room.moderator_grant": "Tornou moderador na sala",
   "room.moderator_revoke": "Tirou moderador da sala",
   "room.owner_transfer": "Passou a sala para outra pessoa",
@@ -58,6 +63,8 @@ const RESOURCE_LABELS: Record<string, string> = {
   room_session: "Chamada",
   room_invite: "Convite de sala",
   share_session: "Compartilhamento",
+  mail: "E-mail",
+  pro_interest: "Lista de espera do Pro",
 };
 
 export function actionLabel(action: string): string {

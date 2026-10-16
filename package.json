@@ -28,8 +28,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.ts",
     "db:bootstrap:dev": "docker compose -f docker-compose.dev.yml up -d --wait",
-    "build:migrate": "esbuild scripts/migrate.ts --bundle --platform=node --format=esm --target=node26 --outfile=dist/migrate.mjs --external:pg-native --log-level=warning --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
-    "build:scripts": "pnpm build:migrate && esbuild scripts/create-owner.ts --bundle --platform=node --format=esm --target=node26 --outfile=dist/create-owner.mjs --external:pg-native --external:@node-rs/argon2 --external:pg --external:pino --log-level=warning --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" && esbuild scripts/seed.ts --bundle --platform=node --format=esm --target=node26 --outfile=dist/seed.mjs --packages=external --log-level=warning",
+    "build:migrate": "node scripts/build-scripts.ts migrate",
+    "build:scripts": "node scripts/build-scripts.ts",
     "admin:create-owner": "pnpm build:scripts && node --env-file-if-exists=.env.local dist/create-owner.mjs",
     "db:seed": "pnpm build:scripts && node --env-file-if-exists=.env.local dist/seed.mjs",
     "db:studio": "drizzle-kit studio"

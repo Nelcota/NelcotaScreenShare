@@ -21,6 +21,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSetting, mascotSettings } from "@/features/admin/settings/server/settings.server";
 import { withRequest } from "@/server/request-context.server";
 import { THEME_COLOR, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { useNavigationRecovery } from "@/lib/navigation-recovery";
 import { requestMiddleware } from "@/server/middleware.server";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { getEnv } from "@/server/env.server";
@@ -112,6 +113,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function App() {
   const revalidator = useRevalidator();
+  useNavigationRecovery();
   useEffect(() => {
     const revalidate = () => {
       void revalidator.revalidate();

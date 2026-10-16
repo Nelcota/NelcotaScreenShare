@@ -41,6 +41,7 @@ export const loader = routeLoader(async ({ params }) => {
       update: can(role, { participant: ["update"] }),
       delete: can(role, { participant: ["delete"] }),
       anonymize: can(role, { participant: ["anonymize"] }),
+      disableTwoFactor: can(role, { participant: ["disableTwoFactor"] }),
     },
   };
 });
@@ -69,6 +70,8 @@ export default function ParticipantPage() {
           status={account.status}
           verified={account.emailVerified}
           anonymized={account.anonymizedAt !== null}
+          twoFactor={account.twoFactorEnabled}
+          photo={account.hasPhoto}
           sessions={sessions.length}
           can={permissions}
         />

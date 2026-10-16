@@ -1,9 +1,10 @@
 import { Loader2, UserPlus } from "lucide-react";
 
 import { useOperation } from "@/lib/operations/use-operation";
-import { useId, useState, type FormEvent } from "react";
+import { useId, type FormEvent } from "react";
 import { acceptInvitation } from "@/features/auth/actions";
 import { AuthCard } from "./AuthCard";
+import { useFormError } from "./use-form-error";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export function AcceptInvitationForm({
   const nameId = useId();
   const passwordId = useId();
   const confirmId = useId();
-  const [localError, setLocalError] = useState<string>();
+  const [localError, setLocalError] = useFormError();
   const accept = useOperation(acceptInvitation);
   const serverError =
     accept.result.serverError ??

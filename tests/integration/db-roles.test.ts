@@ -26,6 +26,7 @@ beforeAll(async () => {
     REVOKE UPDATE, TRUNCATE ON token_requests FROM nelcota_app;
     REVOKE UPDATE, TRUNCATE ON livekit_events FROM nelcota_app;
     GRANT UPDATE (processed_at, error) ON livekit_events TO nelcota_app;
+    GRANT EXECUTE ON FUNCTION purge_expired_audit_logs() TO nelcota_app;
   `);
   await client.query("SET ROLE nelcota_app");
 });
@@ -157,6 +158,30 @@ describe("app role in Postgres", () => {
         /permission denied/,
       );
       expect(await errorOf("create table invasora (id int)")).toMatch(/permission denied/);
+    } finally {
+      await client.query("ROLLBACK");
+    }
+  });
+
+  it("deletes audit logs older than 5 years only through the retention function", async () => {
+    await client.query("BEGIN");
+    try {
+      const inserted = await client.query<{ id: string }>(
+        `insert into audit_logs (action, resource_type, created_at) values
+          ('user.self_delete', 'user', now() - interval '5 years 1 day'),
+          ('user.self_delete', 'user', now() - interval '4 years')
+        returning id`,
+      );
+      const [expired, kept] = inserted.rows.map((row) => row.id);
+      expect(await errorOf("delete from audit_logs where id = $1", [expired])).toMatch(
+        /permission denied/,
+      );
+      await client.query("select purge_expired_audit_logs()");
+      const left = await client.query<{ id: string }>(
+        "select id from audit_logs where id = any($1::uuid[])",
+        [[expired, kept]],
+      );
+      expect(left.rows.map((row) => row.id)).toEqual([kept]);
     } finally {
       await client.query("ROLLBACK");
     }

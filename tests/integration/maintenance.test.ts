@@ -60,6 +60,15 @@ describe("maintenance", () => {
       },
     ]);
 
+    await db.insert(schema.mailDeliveries).values([
+      { subject: "Velho", provider: "smtp", status: "accepted", createdAt: ago(31) },
+      { subject: "Novo", provider: "smtp", status: "failed", reason: "EAUTH" },
+    ]);
+    await db.insert(schema.appErrors).values([
+      { method: "GET", path: "/velho", name: "Error", message: "velho", createdAt: ago(31) },
+      { method: "GET", path: "/novo", name: "Error", message: "novo" },
+    ]);
+
     const report = await runMaintenance(db);
 
     expect(report.tokenRequests).toBeGreaterThanOrEqual(1);
@@ -80,6 +89,15 @@ describe("maintenance", () => {
 
     const events = await db.select({ id: schema.livekitEvents.id }).from(schema.livekitEvents);
     expect(events.map((row) => row.id)).toEqual(["EV_novo"]);
+
+    expect(report.mailDeliveries).toBe(1);
+    const mails = await db
+      .select({ subject: schema.mailDeliveries.subject })
+      .from(schema.mailDeliveries);
+    expect(mails).toEqual([{ subject: "Novo" }]);
+    expect(report.appErrors).toBe(1);
+    const errors = await db.select({ message: schema.appErrors.message }).from(schema.appErrors);
+    expect(errors).toEqual([{ message: "novo" }]);
   });
 
   it("reprocesses only pending events that did not just arrive", async () => {
@@ -154,5 +172,33 @@ describe("room bans", () => {
     const ids = left.map((row) => row.id);
     expect(ids).not.toContain(oldBan!.id);
     expect(ids).toContain(recentBan!.id);
+  });
+});
+
+describe("audit logs", () => {
+  it("are deleted after 5 years; younger ones stay", async () => {
+    const [expired, kept] = await db
+      .insert(schema.auditLogs)
+      .values([
+        {
+          action: "user.self_delete",
+          resourceType: "user",
+          ip: "203.0.113.9",
+          createdAt: ago(5 * 366),
+        },
+        {
+          action: "user.self_delete",
+          resourceType: "user",
+          ip: "203.0.113.9",
+          createdAt: ago(5 * 365 - 30),
+        },
+      ])
+      .returning();
+    const report = await runMaintenance(db);
+    expect(report.auditLogs).toBeGreaterThanOrEqual(1);
+    const left = await db.select({ id: schema.auditLogs.id }).from(schema.auditLogs);
+    const ids = left.map((row) => row.id);
+    expect(ids).not.toContain(expired!.id);
+    expect(ids).toContain(kept!.id);
   });
 });

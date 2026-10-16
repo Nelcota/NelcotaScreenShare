@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
-import { twoFactor } from "better-auth/plugins/two-factor";
+import { isolatedTwoFactor } from "./two-factor-plugin.server";
 import { CLIENT_IP_HEADER } from "@/server/client-ip.server";
 import { getDb, type Database } from "@/server/db/index.server";
 import {
@@ -165,7 +165,7 @@ function createAdminAuth(db: Database, secret: string) {
       },
     },
     plugins: [
-      twoFactor({
+      isolatedTwoFactor({
         issuer: "Nelcota Admin",
         schema: { twoFactor: { modelName: "adminTwoFactors" } },
         backupCodeOptions: { amount: 10, length: 10 },

@@ -24,6 +24,7 @@ export interface ParticipantRow {
   name: string;
   email: string;
   emailVerified: boolean;
+  twoFactorEnabled: boolean;
   status: ParticipantStatus;
   createdAt: string;
   lastSeenAt: string | null;
@@ -98,6 +99,7 @@ export function listParticipants(
           name: users.name,
           email: users.email,
           emailVerified: users.emailVerified,
+          twoFactorEnabled: users.twoFactorEnabled,
           status: statusExpression,
           createdAt: users.createdAt,
           lastSeenAt: users.lastSeenAt,
@@ -143,6 +145,7 @@ export async function getParticipantDetail(db: DbExecutor, id: string) {
       email: users.email,
       emailVerified: users.emailVerified,
       twoFactorEnabled: users.twoFactorEnabled,
+      hasPhoto: sql<boolean>`${users.image} is not null`,
       status: statusExpression,
       blockedAt: users.blockedAt,
       blockReason: users.blockReason,

@@ -1,6 +1,7 @@
 import { workspacePersonalData } from "./workspace-export.server";
 import { and, count, desc, eq, gt, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
+import { profileChangesOf } from "@/features/admin/participants/server/moderation-export.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import { ROOM_ROLE_IN_EXPORT, TOKEN_RESULT_IN_EXPORT } from "@/features/room/domain/export-labels";
 import {
@@ -124,6 +125,7 @@ export async function personalData(db: DbExecutor, userId: string) {
     papeis_em_salas: roles.map((role) => ({ ...role, papel: ROOM_ROLE_IN_EXPORT[role.papel] })),
     // Kept for a week after each ban.
     banimentos_de_chamadas: bans,
+    alteracoes_feitas_pela_equipe: await profileChangesOf(db, userId),
     salas_permanentes: definitions,
     admissoes_em_chamadas: admissions,
   };

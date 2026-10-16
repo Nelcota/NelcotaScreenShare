@@ -1,5 +1,7 @@
 export * from "./admin-auth";
 export * from "./audit";
+export * from "./mail";
+export * from "./errors";
 export * from "./marketing";
 export * from "./room-access";
 export * from "./rooms";

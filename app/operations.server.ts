@@ -16,6 +16,9 @@ import {
   revokeParticipantSessionsAction,
   resendVerificationAction,
   anonymizeParticipantAction,
+  disableParticipantTwoFactorAction,
+  removeParticipantPhotoAction,
+  resetParticipantNameAction,
 } from "@/features/admin/participants/actions.server";
 import {
   deleteRoomsAction,
@@ -27,6 +30,7 @@ import {
   readmitParticipantAction,
 } from "@/features/admin/rooms/actions.server";
 import { closeGhostRoomAction } from "@/features/admin/live/actions.server";
+import { sendTestMailAction } from "@/features/admin/mail/actions.server";
 import { searchPanelAction } from "@/features/admin/search/actions.server";
 import { saveMascotSettings } from "@/features/admin/settings/actions.server";
 import { acceptInvitation } from "@/features/auth/actions.server";
@@ -61,6 +65,9 @@ export const operations: OperationHandlers = {
   "admin-participants-revokeParticipantSessionsAction": revokeParticipantSessionsAction,
   "admin-participants-resendVerificationAction": resendVerificationAction,
   "admin-participants-anonymizeParticipantAction": anonymizeParticipantAction,
+  "admin-participants-disableParticipantTwoFactorAction": disableParticipantTwoFactorAction,
+  "admin-participants-removeParticipantPhotoAction": removeParticipantPhotoAction,
+  "admin-participants-resetParticipantNameAction": resetParticipantNameAction,
   "admin-rooms-deleteRoomsAction": deleteRoomsAction,
   "admin-rooms-restoreRoomsAction": restoreRoomsAction,
   "admin-rooms-updateRoomNoteAction": updateRoomNoteAction,
@@ -68,6 +75,7 @@ export const operations: OperationHandlers = {
   "admin-rooms-revokeInviteAction": revokeInviteAction,
   "admin-rooms-removeParticipantAction": removeParticipantAction,
   "admin-rooms-readmitParticipantAction": readmitParticipantAction,
+  "admin-mail-sendTestMailAction": sendTestMailAction,
   "admin-search-searchPanelAction": searchPanelAction,
   "admin-settings-saveMascotSettings": saveMascotSettings,
   "auth-acceptInvitation": acceptInvitation,

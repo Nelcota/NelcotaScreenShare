@@ -1,21 +1,21 @@
 import { Link, type MetaFunction } from "react-router";
 import {
   ArrowRight,
+  Ban,
   Clock,
   Download,
+  Flag,
   Fingerprint,
+  Hand,
+  Handshake,
   Hourglass,
-  KeyRound,
   Landmark,
-  Mail,
-  MessageSquareOff,
-  MicOff,
-  MonitorOff,
+  MessageSquare,
+  ScrollText,
   ShieldCheck,
   Trash2,
   UserRound,
   UserRoundCheck,
-  UsersRound,
   VideoOff,
   Wrench,
   type LucideIcon,
@@ -26,6 +26,7 @@ import { ParticipantHeader } from "@/components/shell/ParticipantHeader";
 import { SiteFooter } from "@/components/shell/SiteFooter";
 import { PrivacyItem, PrivacyList, PrivacySection } from "@/features/privacy/ui/PrivacySection";
 import { PrivacyToc } from "@/features/privacy/ui/PrivacyToc";
+import { StoredDataSections } from "@/features/privacy/ui/StoredDataSections";
 import { INDEXABLE, originFromMatches, pageMeta } from "@/lib/seo";
 
 export const handle = INDEXABLE;
@@ -50,25 +51,18 @@ const HIGHLIGHTS: { icon: LucideIcon; title: string; text: string }[] = [
   {
     icon: VideoOff,
     title: "Nada da chamada é gravado",
-    text: "Áudio, vídeo, tela e chat passam ao vivo e somem quando a sala acaba.",
+    text: "Áudio, vídeo, tela e o chat da sala passam ao vivo e somem quando a sala acaba.",
   },
   {
     icon: ShieldCheck,
     title: "Só o necessário",
-    text: "Conta, segurança e registros de acesso exigidos por lei.",
+    text: "Conta, segurança, mensagens e registros de acesso exigidos por lei.",
   },
   {
     icon: UserRoundCheck,
     title: "Você no controle",
     text: "Baixe seus dados ou exclua a conta.",
   },
-];
-
-const NOT_STORED: { icon: LucideIcon; label: string }[] = [
-  { icon: MicOff, label: "Áudio" },
-  { icon: VideoOff, label: "Vídeo" },
-  { icon: MonitorOff, label: "Telas compartilhadas" },
-  { icon: MessageSquareOff, label: "Mensagens do chat" },
 ];
 
 function RightsLink({
@@ -107,68 +101,6 @@ function Duration({ children }: { children: ReactNode }) {
   );
 }
 
-function StoredDataSections() {
-  return (
-    <>
-      <PrivacySection
-        id="o-que-guardamos"
-        index={1}
-        title="O que guardamos"
-        description="Os dados ligados à sua conta, divididos pelo motivo de existirem."
-      >
-        <PrivacyList>
-          <PrivacyItem icon={UserRound} title="Conta">
-            Nome de exibição, e-mail, senha (guardada só como hash argon2id) e, se você escolher, a
-            foto de perfil, sem os metadados da imagem. Nome e foto aparecem para quem está nas
-            mesmas salas; a foto pode ser trocada ou removida em Minha conta.
-          </PrivacyItem>
-          <PrivacyItem icon={KeyRound} title="Segurança">
-            Sessões ativas (IP e navegador) e, se você ativar, o segredo da verificação em duas
-            etapas, cifrado.
-          </PrivacyItem>
-          <PrivacyItem icon={Fingerprint} title="Uso">
-            Em quais salas você entrou, quando entrou e saiu, e quando compartilhou a tela, com o IP
-            de acesso.
-          </PrivacyItem>
-          <PrivacyItem icon={UsersRound} title="Convidados sem conta">
-            O nome que a pessoa digitou para a sala, quando entrou e saiu, e o IP de acesso, com os
-            mesmos prazos dos registros de uso.
-          </PrivacyItem>
-          <PrivacyItem icon={UsersRound} title="Salas permanentes e times">
-            Nomes e configurações de salas e times, favoritos, funções dos membros e ativação do Pro
-            beta. O histórico do time mostra data, duração e totais de pessoas e telas, sem IPs ou
-            conteúdo da chamada. Convites guardam o e-mail destinatário, a função e os prazos; o
-            link completo não fica armazenado.
-          </PrivacyItem>
-          <PrivacyItem icon={Mail} title="Lista de espera do Pro">
-            Só o e-mail de quem pediu para ser avisado, até enviarmos o aviso do lançamento. Para
-            sair da lista antes, é só pedir.
-          </PrivacyItem>
-        </PrivacyList>
-      </PrivacySection>
-
-      <PrivacySection
-        id="o-que-nao-guardamos"
-        index={2}
-        title="O que não guardamos"
-        description="Não gravamos áudio, vídeo, telas compartilhadas nem mensagens do chat. Anotações temporárias somem em até 10 segundos e seus desenhos não ficam armazenados."
-      >
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {NOT_STORED.map(({ icon: Icon, label }) => (
-            <li
-              key={label}
-              className="flex flex-col items-start gap-3 rounded-2xl border border-brand/25 bg-brand/8 p-4"
-            >
-              <Icon className="size-5 text-brand-soft" aria-hidden="true" />
-              <span className="text-sm font-medium">{label}</span>
-            </li>
-          ))}
-        </ul>
-      </PrivacySection>
-    </>
-  );
-}
-
 function PurposeAndRetentionSections() {
   return (
     <>
@@ -181,7 +113,7 @@ function PurposeAndRetentionSections() {
       <PrivacySection id="por-que" index={3} title="Por quê">
         <PrivacyList>
           <PrivacyItem icon={Wrench} title="Para você usar o serviço">
-            Criar e entrar em salas.
+            Criar e entrar em salas e falar com seus amigos.
           </PrivacyItem>
           <PrivacyItem icon={Landmark} title="Para cumprir a lei">
             Registros de acesso a aplicações são guardados por 6 meses (Marco Civil da Internet,
@@ -205,6 +137,30 @@ function PurposeAndRetentionSections() {
             title="Registros de acesso (IP)"
             aside={<Duration>6 meses</Duration>}
           />
+          <PrivacyItem
+            icon={ScrollText}
+            title="Registros de auditoria (IP)"
+            aside={<Duration>5 anos</Duration>}
+          />
+          <PrivacyItem
+            icon={MessageSquare}
+            title="Mensagens"
+            aside={<Duration>Até quem enviou apagar</Duration>}
+          />
+          <PrivacyItem
+            icon={Flag}
+            title="Cópia da mensagem denunciada"
+            aside={<Duration>Até a denúncia ser avaliada</Duration>}
+          />
+          <PrivacyItem
+            icon={Handshake}
+            title="Amigos e bloqueios"
+            aside={<Duration>Até você desfazer</Duration>}
+          >
+            Ou até excluir a conta.
+          </PrivacyItem>
+          <PrivacyItem icon={Hand} title="Pedidos de entrada" aside={<Duration>7 dias</Duration>} />
+          <PrivacyItem icon={Ban} title="Remoções de chamada" aside={<Duration>7 dias</Duration>} />
           <PrivacyItem
             icon={Hourglass}
             title="Nome nas participações"

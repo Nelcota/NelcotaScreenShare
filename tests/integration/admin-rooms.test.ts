@@ -372,7 +372,7 @@ describe("command palette search", () => {
       .values({ name: `Joana Côrtes ${tag}`, email: `joana-${tag}@exemplo.com` })
       .returning({ id: schema.users.id });
     requestHeaders.current = viewer.headers;
-    const byCode = await searchPanelAction({ q: target.code.slice(-8) });
+    const byCode = await searchPanelAction({ q: target.code.slice("sala-adm-".length) });
     assert.deepEqual(
       byCode.data?.rooms.map((row) => row.id),
       [target.id],

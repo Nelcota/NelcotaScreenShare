@@ -8,7 +8,7 @@ const NOT_KEPT: { icon: LucideIcon; label: string }[] = [
   { icon: Mic, label: "Áudio" },
   { icon: Video, label: "Vídeo" },
   { icon: MonitorUp, label: "Telas" },
-  { icon: MessageSquare, label: "Chat" },
+  { icon: MessageSquare, label: "Chat da sala" },
 ];
 
 /** When, in the scene's timeline, the line strikes the button (and the clock stops). */
@@ -99,12 +99,12 @@ export function PrivacyScene() {
           data-privacy-in
           className="text-[clamp(2.75rem,7vw,6rem)] leading-[0.95] font-semibold tracking-[-0.05em] text-balance"
         >
-          Nada fica <span className="text-brand-soft">gravado.</span>
+          A chamada não fica <span className="text-brand-soft">gravada.</span>
         </h2>
 
         <p data-privacy-in className="max-w-xl text-lg text-pretty text-ink-muted sm:text-xl">
-          Tudo passa ao vivo e some quando a sala acaba. Você baixa ou apaga seus dados, como prevê
-          a LGPD.
+          Áudio, vídeo, telas e o chat da sala passam ao vivo e somem quando a sala acaba. Você
+          baixa ou apaga seus dados, como prevê a LGPD.
         </p>
 
         <ul

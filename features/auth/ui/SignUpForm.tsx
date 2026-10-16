@@ -5,6 +5,7 @@ import { useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { AccessTabs } from "./AccessTabs";
 import { EmailField, forgetTypedEmail } from "./EmailField";
 import { AuthCard } from "./AuthCard";
+import { useFormError } from "./use-form-error";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { celebrateMascot, upsetMascot } from "@/features/mascot/client/events";
@@ -93,7 +94,7 @@ export function SignUpForm({
   const ids = { name: useId(), email: useId(), password: useId(), guide: useId(), error: useId() };
   const nameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useFormError();
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
   const [personal, setPersonal] = useState<string[]>([]);

@@ -18,16 +18,17 @@ export const statements = {
   adminInvitation: ["create", "revoke"],
   // Panel
   dashboard: ["read"],
-  participant: ["read", "update", "delete", "export", "anonymize"],
+  participant: ["read", "update", "delete", "export", "anonymize", "disableTwoFactor"],
   room: ["read", "update", "delete", "export"],
   shareSession: ["read", "export"],
   live: ["read", "kick", "close"],
   roomInvite: ["create", "revoke"],
+  mail: ["read", "test"],
   audit: ["read", "export"],
   settings: ["read", "update"],
   beta: ["read", "update"],
   lgpd: ["read", "handle"],
-  system: ["dbHealth"],
+  system: ["dbHealth", "status"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -42,10 +43,12 @@ export const roles = {
     shareSession: ["read", "export"],
     live: ["read", "kick", "close"],
     roomInvite: ["create", "revoke"],
+    mail: ["read", "test"],
     audit: ["read"],
     settings: ["read"],
     beta: ["read", "update"],
     lgpd: ["read"],
+    system: ["status"],
   }),
   viewer: ac.newRole({
     dashboard: ["read"],

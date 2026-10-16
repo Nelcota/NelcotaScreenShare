@@ -76,6 +76,10 @@ BEGIN
   IF to_regclass('public.audit_logs') IS NOT NULL THEN
     REVOKE UPDATE, DELETE, TRUNCATE ON audit_logs FROM nelcota_app;
   END IF;
+  -- Retention (0025): the app deletes expired audit rows only through this function.
+  IF to_regprocedure('public.purge_expired_audit_logs()') IS NOT NULL THEN
+    GRANT EXECUTE ON FUNCTION purge_expired_audit_logs() TO nelcota_app;
+  END IF;
   IF to_regclass('public.token_requests') IS NOT NULL THEN
     REVOKE UPDATE, TRUNCATE ON token_requests FROM nelcota_app;
   END IF;

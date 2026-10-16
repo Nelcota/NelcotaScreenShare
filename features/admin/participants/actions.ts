@@ -28,3 +28,15 @@ export const anonymizeParticipantAction = operation<
   Parameters<typeof server.anonymizeParticipantAction>[0],
   NonNullable<Awaited<ReturnType<typeof server.anonymizeParticipantAction>>["data"]>
 >("admin-participants-anonymizeParticipantAction");
+export const disableParticipantTwoFactorAction = operation<
+  Parameters<typeof server.disableParticipantTwoFactorAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.disableParticipantTwoFactorAction>>["data"]>
+>("admin-participants-disableParticipantTwoFactorAction");
+export const removeParticipantPhotoAction = operation<
+  Parameters<typeof server.removeParticipantPhotoAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.removeParticipantPhotoAction>>["data"]>
+>("admin-participants-removeParticipantPhotoAction");
+export const resetParticipantNameAction = operation<
+  Parameters<typeof server.resetParticipantNameAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.resetParticipantNameAction>>["data"]>
+>("admin-participants-resetParticipantNameAction");

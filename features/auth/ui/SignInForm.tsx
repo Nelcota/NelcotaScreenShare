@@ -5,6 +5,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import { AccessTabs } from "./AccessTabs";
 import { EmailField, forgetTypedEmail } from "./EmailField";
 import { AuthCard } from "./AuthCard";
+import { useFormError } from "./use-form-error";
 import { FormNotice } from "./FormNotice";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -35,7 +36,7 @@ export function SignInForm({
   const passwordId = useId();
   const errorId = useId();
   const passwordRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useFormError();
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

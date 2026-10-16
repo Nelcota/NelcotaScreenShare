@@ -45,6 +45,7 @@ The operations mechanism has one place per role: descriptor and hook in `lib/ope
 - [ADR 0004: language and naming](adr/0004-language-and-naming.md).
 - [ADR 0005: React Router Framework Mode](adr/0005-react-router-framework.md).
 - [ADR 0006: room definitions and session authority](adr/0006-room-definitions-and-session-authority.md).
+- [ADR 0007: room ownership and the session host](adr/0007-room-ownership-and-host.md).
 
 The [historical plans](archive/README.md) preserve the diagnosis and decisions of earlier stages. This guide, the main README and the ADRs describe the current structure.
 

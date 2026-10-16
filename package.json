@@ -40,7 +40,7 @@
     "@gsap/react": "^2.1.2",
     "@hono/node-server": "2.1.1",
     "@livekit/components-react": "^2.9.24",
-    "@node-rs/argon2": "2.2.1",
+    "@node-rs/argon2": "2.2.2",
     "@react-router/node": "8.4.0",
     "@sentry/react-router": "11.4.0",
     "@tanstack/react-table": "9.2.6",

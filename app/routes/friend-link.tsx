@@ -1,4 +1,4 @@
-import { Link, useLoaderData } from "react-router";
+import { data, Link, useLoaderData } from "react-router";
 import { NavBar, NavBrand } from "@/components/shell/NavBar";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,9 @@ export const loader = routeLoader(async ({ params }) => {
     redirect(`/amigos/${invite.person.id}`);
   }
   if (current) redirect(`/amigos/pedidos?convite=${encodeURIComponent(token)}`);
-  return { invite, back: encodeURIComponent(friendLinkPath(token)) };
+  const page = { invite, back: encodeURIComponent(friendLinkPath(token)) };
+  // An old or broken link is a real 404, not an empty page that answers 200.
+  return data(page, { status: invite.status === "open" ? 200 : 404 });
 });
 
 function SignInCard({
@@ -72,7 +74,13 @@ export default function FriendLinkPage() {
         {invite.status === "open" ? (
           <SignInCard person={invite.person} back={back} />
         ) : (
-          <p className="text-sm text-ink-muted">Este link não funciona mais. Peça um link novo.</p>
+          <section className="flex max-w-90 flex-col items-center gap-3 text-center">
+            <h1 className="text-xl font-semibold tracking-tight">Este link não funciona mais</h1>
+            <p className="text-sm text-ink-muted">Peça um link novo para quem te convidou.</p>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/">Ir para o início</Link>
+            </Button>
+          </section>
         )}
       </main>
     </div>

@@ -32,7 +32,7 @@ export const ACCESS_LABELS: Record<RoomAccess, string> = {
 export const LEAVE_REASON_LABELS: Record<string, string> = {
   left: "Saiu",
   disconnected: "Caiu a conexão",
-  removed_by_admin: "Removido da chamada",
+  removed_by_admin: "Retirada pelo painel",
   room_closed: "Sala encerrada",
   unknown: "Desconhecido",
 };

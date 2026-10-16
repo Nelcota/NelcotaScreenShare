@@ -216,7 +216,7 @@
   --secondary-foreground: #1f2023;
   --muted: #fdfdfd;
   --muted-foreground: #4f5157;
-  --accent: #ffffff;
+  --accent: #e6ede7;
   --accent-foreground: #1f2023;
   --destructive: #ad1a1a;
   --border: rgb(24 32 27 / 0.12);
@@ -285,9 +285,13 @@
     cursor: pointer;
   }
 
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--color-ink-muted) 55%, transparent) transparent;
+  /* Firefox only: in Chromium these standard properties replace the ::-webkit-scrollbar
+     rules below and bring back the system arrow buttons at the ends of the bar. */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--color-ink-muted) 55%, transparent) transparent;
+    }
   }
 
   ::-webkit-scrollbar {
@@ -341,6 +345,11 @@
     -webkit-text-fill-color: var(--color-ink);
     caret-color: var(--color-brand-soft);
     box-shadow: 0 0 0 1000px var(--autofill-surface) inset;
+    /* The focus ring of the Input is a box-shadow too and replaces the one above; holding
+       the background transition keeps the browser color from coming back while focused. */
+    transition:
+      background-color 600000s 0s,
+      color 600000s 0s;
   }
 
   input:autofill:focus-visible {

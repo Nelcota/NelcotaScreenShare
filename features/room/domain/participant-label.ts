@@ -23,7 +23,8 @@ function isReservedName(name: string): boolean {
 /** Name the person uses in rooms (the account's), without invisible characters. */
 export const displayNameSchema = z
   .string()
-  .transform((name) => name.replace(INVISIBLE, ""))
+  // Without invisible characters, and one space between words ("Davi   Souza" reads the same).
+  .transform((name) => name.replace(INVISIBLE, "").replace(/\s+/g, " "))
   .pipe(
     z
       .string()

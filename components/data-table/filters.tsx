@@ -22,16 +22,19 @@ function Field({
   label,
   htmlFor,
   className,
+  form = false,
   children,
 }: {
   label: string;
   htmlFor: string;
   className?: string;
+  /** In a form, the label looks like the form's other labels. */
+  form?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <Label htmlFor={htmlFor} className="text-xs text-ink-subtle">
+    <div className={cn("flex flex-col", form ? "gap-2" : "gap-1.5", className)}>
+      <Label htmlFor={htmlFor} className={form ? undefined : "text-xs text-ink-subtle"}>
         {label}
       </Label>
       {children}
@@ -74,17 +77,20 @@ export function FilterDate({
   label,
   value,
   onChange,
+  form = false,
 }: {
   label: string;
   value: string | null;
   onChange: (value: string | null) => void;
+  /** Inside a form (not a filter bar): full-height field and the form's label style. */
+  form?: boolean;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const selected = parseDateInput(value);
   return (
-    <Field label={label} htmlFor={id}>
+    <Field label={label} htmlFor={id} form={form}>
       <div className="flex gap-1">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -93,7 +99,10 @@ export function FilterDate({
               ref={triggerRef}
               type="button"
               variant="outline"
-              className="h-9 justify-start bg-surface-2 font-normal"
+              className={cn(
+                "justify-start bg-surface-2 font-normal",
+                form ? "h-11 flex-1 rounded-xl" : "h-9",
+              )}
               aria-label={`${label}: ${selected ? format(selected, "dd/MM/yyyy") : "selecionar data"}`}
             >
               <CalendarDays aria-hidden="true" />
@@ -118,7 +127,7 @@ export function FilterDate({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-9"
+            className={form ? "size-11" : "size-9"}
             aria-label={`Limpar ${label}`}
             onClick={() => {
               onChange(null);

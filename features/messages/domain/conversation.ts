@@ -2,6 +2,22 @@
 export const MAX_GROUP_MEMBERS = 10;
 export const MAX_GROUP_NAME_LENGTH = 60;
 export const MAX_MESSAGE_LENGTH = 2000;
+
+/** From here the field shows how much is left. */
+const LENGTH_NOTE_FROM = MAX_MESSAGE_LENGTH - 200;
+
+const count = new Intl.NumberFormat("pt-BR");
+
+/**
+ * The counter under the message field: nothing for ordinary messages, "1.950/2.000" close
+ * to the limit and, past it, the same counter marked over, so a pasted text is never cut.
+ */
+export function messageLengthNote(length: number): { text: string; over: boolean } | null {
+  if (length < LENGTH_NOTE_FROM) return null;
+  const text = `${count.format(length)}/${count.format(MAX_MESSAGE_LENGTH)}`;
+  return { text, over: length > MAX_MESSAGE_LENGTH };
+}
+
 /** Messages per page when scrolling back through a conversation. */
 export const MESSAGE_PAGE_SIZE = 50;
 export const MAX_GIF_FAVORITES = 200;

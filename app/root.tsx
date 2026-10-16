@@ -22,6 +22,7 @@ import { getSetting, mascotSettings } from "@/features/admin/settings/server/set
 import { withRequest } from "@/server/request-context.server";
 import { THEME_COLOR, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { useNavigationRecovery } from "@/lib/navigation-recovery";
+import { useOfflineNotice } from "@/lib/hooks/use-offline-notice";
 import { requestMiddleware } from "@/server/middleware.server";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { pendingReceivedCount } from "@/features/friends/server/friend-list.server";
@@ -131,6 +132,7 @@ export default function App() {
   usePresenceBeat(signedIn);
   useLiveUpdates(signedIn);
   useNavigationRecovery();
+  useOfflineNotice();
   useEffect(() => {
     const revalidate = () => {
       void revalidator.revalidate();

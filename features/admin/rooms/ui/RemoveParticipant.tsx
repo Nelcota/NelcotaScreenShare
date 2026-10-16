@@ -25,8 +25,8 @@ const COPY: Record<Removal, { title: string; description: string; confirm: strin
     },
   };
 
-/** A ban follows the account; someone without one can come back from a private window. */
-const GUEST_BAN_LIMIT = "Como entrou sem conta, pode voltar por uma janela anônima.";
+/** A guest has no account to ban: after it, new guests of this call ask to come in. */
+const GUEST_BAN_LIMIT = "Quem entrar sem conta nesta chamada passa a pedir para entrar.";
 
 /** Kick or ban someone who is in the room now (live.kick). */
 export function RemoveParticipant({

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Operation, OperationResult } from "./operation";
 import { runAndReport } from "@/lib/telemetry.client";
+import { createSubmitGate } from "./submit-gate";
 
 interface Callbacks<O> {
   onSuccess?: (result: { data: O }) => void;
@@ -15,6 +16,7 @@ export function useOperation<I, O>(command: Operation<I, O>, callbacks: Callback
   const callbacksRef = useRef(callbacks);
   const previous = useRef(fetcher.data);
   const [input, setInput] = useState<I>();
+  const [gate] = useState(createSubmitGate);
   useEffect(() => {
     callbacksRef.current = callbacks;
   });
@@ -31,21 +33,28 @@ export function useOperation<I, O>(command: Operation<I, O>, callbacks: Callback
   }, [fetcher.state, fetcher.data]);
   const execute = useCallback(
     (...args: undefined extends I ? [input?: I] : [input: I]) => {
-      setInput(args[0]);
       const payload = JSON.stringify({ input: args[0] });
       if (command.method === "get") {
+        setInput(args[0]);
         void runAndReport(() => submit({ payload }, { action: command.url, method: "get" }));
         return;
       }
-      void runAndReport(() =>
-        submit(payload, {
-          action: command.url,
-          method: "post",
-          encType: "application/json",
-        }),
-      );
+      // A double click would create or send twice: changes go one at a time.
+      if (!gate.enter()) return;
+      setInput(args[0]);
+      void runAndReport(async () => {
+        try {
+          await submit(payload, {
+            action: command.url,
+            method: "post",
+            encType: "application/json",
+          });
+        } finally {
+          gate.release();
+        }
+      });
     },
-    [command.url, command.method, submit],
+    [command.url, command.method, submit, gate],
   );
   return {
     execute,

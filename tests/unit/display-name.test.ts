@@ -29,3 +29,9 @@ describe("display name", () => {
     },
   );
 });
+
+describe("display name spacing", () => {
+  test("keeps one space between words", () => {
+    expect(displayNameSchema.parse("  Davi   Espaços ")).toBe("Davi Espaços");
+  });
+});

@@ -142,9 +142,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Development LiveKit
         run: |
+          livekit_image=$(docker compose -f docker-compose.livekit.yml config --images livekit)
           docker run -d --name lk --network host \
             -e LIVEKIT_KEYS="$LIVEKIT_API_KEY: $LIVEKIT_API_SECRET" \
-            livekit/livekit-server:v1.13.7 --dev --bind 0.0.0.0 --node-ip 127.0.0.1
+            "$livekit_image" --dev --bind 0.0.0.0 --node-ip 127.0.0.1
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - name: Collaboration with private signaling admission

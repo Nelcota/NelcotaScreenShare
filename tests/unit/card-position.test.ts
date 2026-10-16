@@ -1,6 +1,8 @@
 import { describe, expect, it, test } from "vitest";
 import {
   clampOffset,
+  clearOfAreas,
+  coversAny,
   nudgeOffset,
   parseOffset,
   snapToCorner,
@@ -75,5 +77,44 @@ describe("a dropped card", () => {
   it("stays where it was dropped in the middle of the screen", () => {
     const middle = { right: 490, bottom: 360 };
     expect(snapToCorner(middle, callCard, screen)).toEqual(middle);
+  });
+
+  // The start's room field, in the middle of the screen, under the dropped card.
+  const startField = { left: 400, top: 380, width: 480, height: 64 };
+
+  it("goes to the nearest corner when dropped on the start's room field", () => {
+    const middle = { right: 490, bottom: 360 };
+    expect(snapToCorner(middle, callCard, screen, [startField])).toEqual({
+      right: 16,
+      bottom: 96,
+    });
+  });
+
+  it("stays in the middle when the field is elsewhere", () => {
+    const middle = { right: 490, bottom: 360 };
+    const farField = { left: 400, top: 100, width: 480, height: 64 };
+    expect(snapToCorner(middle, callCard, screen, [farField])).toEqual(middle);
+  });
+});
+
+describe("a saved card place", () => {
+  const callCard = { width: 300, height: 80 };
+  const screen = { width: 1280, height: 800 };
+  const startField = { left: 400, top: 380, width: 480, height: 64 };
+
+  it("moves to the nearest corner when another page has its field under it", () => {
+    const middle = { right: 490, bottom: 360 };
+    expect(coversAny(middle, callCard, screen, [startField])).toBe(true);
+    expect(clearOfAreas(middle, callCard, screen, [startField])).toEqual({
+      right: 16,
+      bottom: 96,
+    });
+  });
+
+  it("stays as saved where nothing is under it", () => {
+    const corner = { right: 16, bottom: 96 };
+    expect(coversAny(corner, callCard, screen, [startField])).toBe(false);
+    expect(clearOfAreas(corner, callCard, screen, [startField])).toBe(corner);
+    expect(clearOfAreas(corner, callCard, screen, [])).toBe(corner);
   });
 });

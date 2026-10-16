@@ -252,7 +252,13 @@ export function SmartBar({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex w-full flex-col items-center gap-3">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      // The minimized call card never rests on top of this field.
+      data-call-card-clear=""
+      className="flex w-full flex-col items-center gap-3"
+    >
       <div className="relative w-full">
         {/* The feet go in front of the bar's border, without being clipped by it. */}
         <div className="relative z-20 flex justify-center">{mascot}</div>

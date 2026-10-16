@@ -7,6 +7,7 @@ import {
   type PointerEvent,
   type RefObject,
 } from "react";
+import { useLocation } from "react-router";
 import {
   clearCardOffset,
   saveCardOffset,
@@ -14,8 +15,10 @@ import {
 } from "@/features/room/client/saved-card-position";
 import {
   clampOffset,
+  clearOfAreas,
   nudgeOffset,
   snapToCorner,
+  type Area,
   type CardOffset,
 } from "@/features/room/domain/card-position";
 import { prefersReducedMotion } from "@/lib/animation/motion";
@@ -40,6 +43,14 @@ function measure(card: HTMLElement) {
 function currentOffset(card: HTMLElement): CardOffset {
   const rect = card.getBoundingClientRect();
   return { right: window.innerWidth - rect.right, bottom: window.innerHeight - rect.bottom };
+}
+
+/** What the card must never cover, such as the start's room field (`data-call-card-clear`). */
+function areasToKeepClear(): Area[] {
+  return [...document.querySelectorAll("[data-call-card-clear]")].map((element) => {
+    const { left, top, width, height } = element.getBoundingClientRect();
+    return { left, top, width, height };
+  });
 }
 
 /** Buttons and links inside the card keep working: only the card itself drags. */
@@ -69,12 +80,18 @@ export function useDraggableCard(
   const start = useRef<DragStart | null>(null);
   // Whether the last press moved the card: a press that did not is a click.
   const moved = useRef(false);
+  // Each page has its own field to keep clear: the saved place is checked again on arrival.
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const card = cardRef.current;
     if (!enabled || !card) return;
-    const fit = (wanted: CardOffset | undefined) =>
-      wanted ? clampOffset(wanted, measure(card), viewport()) : undefined;
+    const fit = (wanted: CardOffset | undefined) => {
+      if (!wanted) return undefined;
+      const size = measure(card);
+      const screen = viewport();
+      return clearOfAreas(clampOffset(wanted, size, screen), size, screen, areasToKeepClear());
+    };
     setOffset(fit(savedCardOffset()));
     // The window shrinks, or the card grows (a button appears): it stays whole on screen.
     const onResize = () => setOffset((current) => fit(current));
@@ -85,7 +102,9 @@ export function useDraggableCard(
       observer.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [cardRef, enabled]);
+    // pathname checks the saved place again on each page, whose field may sit under it.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [cardRef, enabled, pathname]);
 
   function onPointerDown(event: PointerEvent<HTMLElement>) {
     const card = cardRef.current;
@@ -126,7 +145,12 @@ export function useDraggableCard(
     card.releasePointerCapture(event.pointerId);
     setDragging(false);
     if (!moved.current) return;
-    const settled = snapToCorner(currentOffset(card), measure(card), viewport());
+    const settled = snapToCorner(
+      currentOffset(card),
+      measure(card),
+      viewport(),
+      areasToKeepClear(),
+    );
     setSnapping(!prefersReducedMotion());
     setOffset(settled);
     saveCardOffset(settled);

@@ -1,7 +1,7 @@
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { MESSAGE_PAGE_SIZE } from "@/features/messages/domain/conversation";
 import type { DbExecutor } from "@/server/db/index.server";
-import { conversations, messages, users } from "@/server/db/schema";
+import { conversations, messages, userBlocks, users } from "@/server/db/schema";
 
 export type MessageContent = { body: string; gifSlug: null } | { body: null; gifSlug: string };
 
@@ -37,11 +37,23 @@ export async function insertMessage(
   return message;
 }
 
+/**
+ * Messages this person may see: in a group, nothing from someone they blocked, even if the
+ * group is older than the block.
+ */
+export function visibleTo(viewerId: string) {
+  return sql`not exists (
+    select 1 from ${userBlocks}
+    where ${userBlocks.blockerId} = ${viewerId}::uuid and ${userBlocks.blockedId} = ${messages.authorId}
+  )`;
+}
+
 /** The newest page, or the page before a given message; oldest first, as the screen shows them. */
 export async function listMessages(
   db: DbExecutor,
   conversationId: string,
   beforeId: string | null,
+  viewerId: string,
 ): Promise<MessagePage> {
   const rows = await db
     .select({
@@ -58,6 +70,7 @@ export async function listMessages(
       and(
         eq(messages.conversationId, conversationId),
         beforeId ? lt(messages.id, beforeId) : undefined,
+        visibleTo(viewerId),
       ),
     )
     .orderBy(desc(messages.id))

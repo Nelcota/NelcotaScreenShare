@@ -1,5 +1,6 @@
 // CSV for pt-BR Excel: ";" separator, UTF-8 with BOM and protection against
-// CSV injection (a cell starting with = + - @ tab or CR becomes text, with ').
+// CSV injection (a cell starting with = + - @ tab or CR becomes text, with '). A cell
+// with a comma is quoted too: opened with "," as separator, it stays one cell.
 
 /** Byte order mark: makes Excel open the UTF-8 with accents intact. */
 export const CSV_BOM = String.fromCharCode(0xfeff);
@@ -25,7 +26,7 @@ export function csvCell(value: unknown): string {
   const raw = cellText(value);
   // Spreadsheets run a cell that starts like a formula: a leading quote keeps it as text.
   const text = FORMULA_START.test(raw) ? `'${raw}` : raw;
-  return /[";\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  return /[";,\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
 export function csvRow(values: unknown[]): string {

@@ -11,8 +11,11 @@ export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
   viewer: "Leitor",
 };
 
-/** Roles that change data: require active 2FA to use the panel. */
-export const ROLES_REQUIRING_2FA: readonly AdminRole[] = ["owner", "admin"];
+/**
+ * Roles that need active 2FA to use the panel: all of them. The reader changes nothing,
+ * but sees participants' e-mails, IPs and browsers.
+ */
+export const ROLES_REQUIRING_2FA: readonly AdminRole[] = [...ADMIN_ROLES];
 
 export function isAdminRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (ADMIN_ROLES as readonly string[]).includes(value);

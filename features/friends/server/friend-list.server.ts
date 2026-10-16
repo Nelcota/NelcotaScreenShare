@@ -39,6 +39,7 @@ export async function friendLists(db: DbExecutor, userId: string): Promise<Frien
       status: friendships.status,
       requestedBy: friendships.requestedBy,
       dismissedAt: friendships.dismissedAt,
+      withdrawnAt: friendships.withdrawnAt,
     })
     .from(friendships)
     .innerJoin(users, eq(users.id, otherSide(userId)))
@@ -63,7 +64,9 @@ export async function friendLists(db: DbExecutor, userId: string): Promise<Frien
     received: rows
       .filter((row) => row.status === "pending" && row.requestedBy !== userId && !row.dismissedAt)
       .map(person),
-    sent: rows.filter((row) => row.status === "pending" && row.requestedBy === userId).map(person),
+    sent: rows
+      .filter((row) => row.status === "pending" && row.requestedBy === userId && !row.withdrawnAt)
+      .map(person),
     blocked,
   };
 }
@@ -103,6 +106,7 @@ export async function relationTo(
       status: friendships.status,
       requestedBy: friendships.requestedBy,
       dismissedAt: friendships.dismissedAt,
+      withdrawnAt: friendships.withdrawnAt,
     })
     .from(friendships)
     .where(
@@ -116,7 +120,7 @@ export async function relationTo(
     );
   if (!row) return "none";
   if (row.status === "accepted") return "friends";
-  if (row.requestedBy === viewerId) return "sent";
+  if (row.requestedBy === viewerId) return row.withdrawnAt ? "none" : "sent";
   if (row.dismissedAt) return "none";
   return "received";
 }

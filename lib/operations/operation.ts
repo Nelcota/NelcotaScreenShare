@@ -10,6 +10,8 @@ export interface OperationResult<T> {
 export type Operation<I, O> = ((input: I) => Promise<OperationResult<O>>) & {
   url: string;
   method: "get" | "post";
+  /** Whether a success changes data the open pages show (they refresh). */
+  mutates: boolean;
 };
 
 const UNEXPECTED_RESPONSE = "Algo deu errado. Tente de novo.";
@@ -23,8 +25,16 @@ function resultSchema<O>() {
   });
 }
 
-/** Public descriptor: only URL and types; no server code or secrets. */
-export function operation<I, O>(id: string, method: "get" | "post" = "post"): Operation<I, O> {
+/**
+ * Public descriptor: only URL and types; no server code or secrets. A read that carries
+ * personal data (a search term) uses POST with `mutates: false`: kept out of the URL, and
+ * the open pages do not refresh after it.
+ */
+export function operation<I, O>(
+  id: string,
+  method: "get" | "post" = "post",
+  { mutates = method === "post" }: { mutates?: boolean } = {},
+): Operation<I, O> {
   const url = `/api/operations/${id}`;
   const execute = async (input: I): Promise<OperationResult<O>> => {
     const body = JSON.stringify({ input });
@@ -40,10 +50,10 @@ export function operation<I, O>(id: string, method: "get" | "post" = "post"): Op
     // A proxy error page or an unexpected body: the same message as any server failure.
     if (!parsed.success) return { serverError: UNEXPECTED_RESPONSE };
     const result: OperationResult<O> = parsed.data;
-    if (result.data !== undefined && method === "post") {
+    if (result.data !== undefined && mutates) {
       window.dispatchEvent(new Event("nelcota:mutation"));
     }
     return result;
   };
-  return Object.assign(execute, { url, method });
+  return Object.assign(execute, { url, method, mutates });
 }

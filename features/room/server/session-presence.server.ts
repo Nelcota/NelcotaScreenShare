@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import type { ParticipantInfo } from "livekit-server-sdk";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomCommands, roomDefinitions, roomSessions } from "@/server/db/schema/room-control";
-import { roomRoles } from "@/server/db/schema";
 import { HOST_RECONNECT_GRACE_MS } from "@/features/room/domain/host-controls";
 import {
   electionOrder,
@@ -14,6 +13,7 @@ import type { RoomRole } from "@/features/room/domain/room-role";
 import { createAuditRecorder } from "@/server/audit.server";
 import { activeAccount, memberInSession, type ControlSession } from "./session-store.server";
 import { closeSessionLeftovers } from "./session-leftovers.server";
+import { savedRolesIn } from "./room-roles.server";
 
 /** Presence can trigger an audited election; webhook metadata never grants a role. */
 export async function reconcileSessionPresence(
@@ -78,6 +78,7 @@ async function keepHostOrHandToOwner(
   const owner = ownerTakingOver(
     session.hostUserId,
     await hostCandidates(tx, session, participants),
+    session.hostGivenAt,
   );
   if (owner) return handHostTo(tx, session, owner, "owner_present", {});
   const [updated] = await tx
@@ -108,7 +109,14 @@ async function handHostTo(
 ) {
   const [handed] = await tx
     .update(roomSessions)
-    .set({ ...changes, status: "active", hostUserId, hostMissingAt: null, emptySince: null })
+    .set({
+      ...changes,
+      status: "active",
+      hostUserId,
+      hostMissingAt: null,
+      hostGivenAt: null,
+      emptySince: null,
+    })
     .where(eq(roomSessions.id, session.id))
     .returning();
   await tx.insert(roomCommands).values({ sessionId: session.id, kind: "sync" });
@@ -143,14 +151,14 @@ async function hostCandidates(
   return candidates;
 }
 
-/** Owner and moderators saved for the session's room. */
+/** Owner and moderators of the session's room, the personal room's owner included. */
 async function savedRoles(tx: DbExecutor, session: ControlSession) {
-  const rows = await tx
-    .select({ userId: roomRoles.userId, role: roomRoles.role })
-    .from(roomRoles)
-    .innerJoin(roomDefinitions, eq(roomDefinitions.code, roomRoles.roomCode))
+  const [definition] = await tx
+    .select({ code: roomDefinitions.code })
+    .from(roomDefinitions)
     .where(eq(roomDefinitions.id, session.definitionId));
-  return new Map<string, RoomRole>(rows.map((row) => [row.userId, row.role]));
+  if (!definition) return new Map<string, RoomRole>();
+  return savedRolesIn(tx, definition.code);
 }
 
 async function hostStatus(

@@ -27,7 +27,7 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
   const [name, others, page, gifFavorites] = await Promise.all([
     conversationName(db, conversationId),
     othersByConversation(db, userId, [conversationId]),
-    listMessages(db, conversationId, null).then(withGifs),
+    listMessages(db, conversationId, null, userId).then(withGifs),
     gifFavoriteSlugs(db, userId),
   ]);
   const otherId = membership.otherId;
@@ -39,16 +39,17 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
         groupCallLines(db, conversationId, page.hasMore ? oldest : new Date(0)),
       ])
     : [null, []];
-  const statuses = otherId ? await shownStatuses(db, [otherId]) : null;
-  const canSend =
-    membership.kind === "group" || (otherId !== null && (await canMessage(db, userId, otherId)));
+  const stillFriends = otherId !== null && (await canMessage(db, userId, otherId));
+  // An old conversation never shows the status of someone who blocked or unfriended you.
+  const statuses = otherId && stillFriends ? await shownStatuses(db, [otherId]) : null;
+  const canSend = membership.kind === "group" || stillFriends;
   return {
     conversation: {
       id: conversationId,
       kind: membership.kind,
       name,
       others: others.get(conversationId) ?? [],
-      status: otherId ? (statuses?.get(otherId) ?? "offline") : null,
+      status: otherId && statuses ? (statuses.get(otherId) ?? "offline") : null,
     },
     messages: page.messages,
     hasMore: page.hasMore,

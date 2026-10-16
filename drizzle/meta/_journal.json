@@ -260,6 +260,27 @@
       "when": 1791841479251,
       "tag": "0036_conversation_calls",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791986876565,
+      "tag": "0037_friend_request_withdrawn",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791993572696,
+      "tag": "0038_friend_codes_six_characters",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792009333805,
+      "tag": "0039_room_host_given_at",
+      "breakpoints": true
     }
   ]
 }

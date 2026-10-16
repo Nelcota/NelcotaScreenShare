@@ -27,7 +27,8 @@ describe("friend code", () => {
     expect(parseFriendCode("NELC-4KIQ")).toBeNull();
     expect(parseFriendCode("NELC-4KLQ")).toBeNull();
     expect(parseFriendCode("NELC-4K7")).toBeNull();
-    expect(parseFriendCode("NELC-4K7QXY")).toBeNull();
+    expect(parseFriendCode("NELC-4K7QXYZ")).toBe("4K7QXYZ");
+    expect(parseFriendCode("NELC-4K7QXYZW")).toBeNull();
     expect(parseFriendCode("")).toBeNull();
   });
 
@@ -35,17 +36,18 @@ describe("friend code", () => {
     expect(formatFriendCode("4K7Q")).toBe("NELC-4K7Q");
   });
 
-  test("draws four characters from the alphabet", () => {
+  test("draws six characters from the alphabet", () => {
     let next = 0;
     const code = randomFriendCode((max) => next++ % max);
-    expect(code).toBe(FRIEND_CODE_ALPHABET.slice(0, 4));
+    expect(code).toBe(FRIEND_CODE_ALPHABET.slice(0, 6));
     expect(parseFriendCode(code)).toBe(code);
-    expect(randomFriendCode((max) => max - 1)).toBe("ZZZZ");
+    expect(randomFriendCode((max) => max - 1)).toBe("ZZZZZZ");
   });
 
-  test("draws four characters first, five once the short ones keep clashing", () => {
-    expect([0, 1, 2, 3, 7].map(friendCodeLength)).toEqual([4, 4, 4, 5, 5]);
-    expect(randomFriendCode(() => 0, 5)).toBe("22222");
+  test("draws six characters first, seven once those keep clashing; old short codes still read", () => {
+    expect([0, 1, 2, 3, 7].map(friendCodeLength)).toEqual([6, 6, 6, 7, 7]);
+    expect(randomFriendCode(() => 0, 7)).toBe("2222222");
+    expect(parseFriendCode("NELC-4K7Q")).toBe("4K7Q");
   });
 
   test("tells an e-mail from a code", () => {

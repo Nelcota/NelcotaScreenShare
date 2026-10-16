@@ -9,6 +9,7 @@ import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import type { RoleChange } from "@/features/room/domain/role-change";
 import { parseRoomRole, ROLE_ATTRIBUTE } from "@/features/room/domain/room-role";
 import { CardMenuItem } from "./CardMenuItem";
+import { useRoomHost } from "./RoomHostProvider";
 
 const DONE: Record<RoleChange, (name: string) => string> = {
   promote: (name) => `${name} agora modera a sala.`,
@@ -27,7 +28,8 @@ function useCanChangeRoles(participant: Participant): boolean {
 
 /**
  * On someone's card, for the owner: make them a moderator or take it back, and hand the
- * room over. Handing over asks first, since the owner then stays only as a moderator.
+ * room over. Handing over asks first, since the owner then stays only as a moderator. A
+ * permanent room stays with whoever created it, so it is not handed over.
  */
 export function CardRoles({
   participant,
@@ -40,6 +42,7 @@ export function CardRoles({
   const theirRole = parseRoomRole(useParticipantAttribute(ROLE_ATTRIBUTE, { participant }));
   const [confirmingTransfer, setConfirmingTransfer] = useState(false);
   const [busy, setBusy] = useState(false);
+  const permanent = useRoomHost().state?.permanent ?? false;
   if (!canChange) return null;
   const name = participant.name || participant.identity;
 
@@ -80,9 +83,11 @@ export function CardRoles({
       >
         {theirRole === "moderator" ? "Tirar moderador" : "Tornar moderador"}
       </CardMenuItem>
-      <CardMenuItem icon={<Crown />} disabled={busy} onClick={() => setConfirmingTransfer(true)}>
-        Transferir a sala
-      </CardMenuItem>
+      {permanent ? null : (
+        <CardMenuItem icon={<Crown />} disabled={busy} onClick={() => setConfirmingTransfer(true)}>
+          Transferir a sala
+        </CardMenuItem>
+      )}
     </>
   );
 }

@@ -339,3 +339,50 @@ describe("list", () => {
     assert.deepEqual(await counts(), { [first]: 0, [second]: 0 });
   });
 });
+
+async function unverified() {
+  const [user] = await db
+    .insert(schema.users)
+    .values({ name: "Sem Confirmar", email: `reenvio-${crypto.randomUUID()}@exemplo.com` })
+    .returning({ id: schema.users.id });
+  assert.ok(user);
+  return user.id;
+}
+
+async function resendAudits(id: string) {
+  return db
+    .select()
+    .from(schema.auditLogs)
+    .where(
+      and(
+        eq(schema.auditLogs.resourceId, id),
+        eq(schema.auditLogs.action, "user.verification_resend"),
+      ),
+    );
+}
+
+describe("resend the confirmation e-mail", () => {
+  test("at most 3 per account per hour, even from the panel", async () => {
+    const id = await unverified();
+    requestHeaders.current = admin.headers;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const sent = await actions.resendVerificationAction({ id });
+      assert.deepEqual(sent.data, { sent: true });
+    }
+    const fourth = await actions.resendVerificationAction({ id });
+    assert.match(fourth.serverError ?? "", /Tente de novo mais tarde/);
+    assert.equal((await resendAudits(id)).length, 3);
+  });
+
+  test("an e-mail that fails to go out leaves no audit row", async () => {
+    const id = await unverified();
+    requestHeaders.current = admin.headers;
+    const send = vi
+      .spyOn(getUserAuth().api, "sendVerificationEmail")
+      .mockRejectedValueOnce(new Error("smtp down"));
+    const result = await actions.resendVerificationAction({ id });
+    send.mockRestore();
+    assert.ok(result.serverError);
+    assert.equal((await resendAudits(id)).length, 0);
+  });
+});

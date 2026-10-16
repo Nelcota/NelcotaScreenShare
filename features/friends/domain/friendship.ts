@@ -20,6 +20,8 @@ export interface ExistingFriendship {
   /** A pending request the receiver no longer sees (declined, or sent by someone blocked). */
   dismissed?: boolean;
   privateRequest?: boolean;
+  /** A declined request the sender cancelled: kept so sending it again stays declined. */
+  withdrawn?: boolean;
 }
 
 /** How a friendship's state reads in "Baixar meus dados". */

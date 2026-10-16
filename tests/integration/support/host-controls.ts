@@ -2,7 +2,7 @@ import { ParticipantInfo } from "livekit-server-sdk";
 import { vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/server/db/index.server";
-import { roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
+import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import { users } from "@/server/db/schema/user-auth";
 import { controlGateway } from "@/features/room/server/control-gateway.server";
 import { reserveAdmission } from "@/features/room/server/session-admission.server";
@@ -41,6 +41,8 @@ export async function controlledRoom() {
   const host = await account();
   const other = await account();
   const code = `host-${crypto.randomUUID().slice(0, 8)}`;
+  // A room exists before anyone is admitted (createRoom in the app); admission never makes one.
+  await db.insert(roomDefinitions).values({ code, ownerUserId: host });
   const admission = await reserveAdmission(db, grant(code, host), 6);
   await reserveAdmission(db, grant(code, other), 6);
   await db

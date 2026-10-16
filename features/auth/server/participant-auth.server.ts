@@ -18,6 +18,7 @@ import { mailLayout } from "@/server/mail.server";
 import { deliverAccountMail } from "./auth-mail.server";
 import { PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
 import { safeReturnPath } from "@/features/auth/domain/return-path";
+import { clearFailuresAfterReset } from "./lockout.server";
 import { hashPassword, verifyPassword } from "./password.server";
 import { AUTH_RATE_LIMIT_RULES, authHooks, FRESH_SESSION_SECONDS } from "./auth-shared.server";
 
@@ -146,6 +147,8 @@ function createUserAuth(db: Database, secret: string) {
       resetPasswordTokenExpiresIn: 30 * 60,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: sendResetPasswordMail,
+      onPasswordReset: ({ user }) =>
+        clearFailuresAfterReset(db, { secret, scope: "user", email: user.email }),
       // Sign-up with an existing e-mail: the screen responds the same (no enumeration)
       // and the e-mail owner is notified.
       onExistingUserSignUp: sendExistingAccountMail,

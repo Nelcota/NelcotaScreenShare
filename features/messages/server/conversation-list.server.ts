@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { conversationMembers, conversations, messages, users } from "@/server/db/schema";
-import type { StoredMessage } from "./messages.server";
+import { visibleTo, type StoredMessage } from "./messages.server";
 
 /** Conversations shown in the column; older ones beyond this wait for a later page. */
 const LIST_LIMIT = 100;
@@ -57,7 +57,7 @@ export async function othersByConversation(db: DbExecutor, userId: string, ids: 
   return grouped;
 }
 
-async function lastMessages(db: DbExecutor, ids: string[]) {
+async function lastMessages(db: DbExecutor, userId: string, ids: string[]) {
   const rows = await db
     .selectDistinctOn([messages.conversationId], {
       conversationId: messages.conversationId,
@@ -70,7 +70,7 @@ async function lastMessages(db: DbExecutor, ids: string[]) {
     })
     .from(messages)
     .innerJoin(users, eq(users.id, messages.authorId))
-    .where(inArray(messages.conversationId, ids))
+    .where(and(inArray(messages.conversationId, ids), visibleTo(userId)))
     .orderBy(messages.conversationId, desc(messages.id));
   return new Map(rows.map(({ conversationId, ...message }) => [conversationId, message]));
 }
@@ -91,6 +91,7 @@ async function unreadCounts(db: DbExecutor, userId: string, ids: string[]) {
       and(
         inArray(messages.conversationId, ids),
         ne(messages.authorId, userId),
+        visibleTo(userId),
         gt(
           messages.createdAt,
           sql`coalesce(${conversationMembers.lastReadAt}, ${conversationMembers.joinedAt})`,
@@ -126,7 +127,7 @@ export async function conversationList(
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
   const others = await othersByConversation(db, userId, ids);
-  const latest = await lastMessages(db, ids);
+  const latest = await lastMessages(db, userId, ids);
   const unread = await unreadCounts(db, userId, ids);
   return rows.map((row) => summarize(row, others, latest, unread));
 }
@@ -146,6 +147,7 @@ export interface UnreadSummary {
 function unreadCondition(userId: string) {
   return and(
     ne(messages.authorId, userId),
+    visibleTo(userId),
     gt(
       messages.createdAt,
       sql`coalesce(${conversationMembers.lastReadAt}, ${conversationMembers.joinedAt})`,

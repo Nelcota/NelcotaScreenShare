@@ -4,6 +4,7 @@ import { teamInvitations, teamMembers } from "@/server/db/schema/workspaces";
 import { ActionError } from "@/server/operations/action-error";
 import { requireMembership, workspaceAccount } from "./access.server";
 import { revokeTeamSessions } from "./session-revocation.server";
+import { assertMayOwnAnotherTeam } from "./team-allowance.server";
 
 async function targetMember(tx: DbExecutor, teamId: string, userId: string) {
   const [member] = await tx
@@ -35,6 +36,11 @@ export async function transferTeam(tx: DbExecutor, teamId: string, actor: string
   if (actor === userId) throw new ActionError("Escolha outra pessoa para assumir o time.");
   await targetMember(tx, teamId, userId);
   await workspaceAccount(tx, userId);
+  await assertMayOwnAnotherTeam(
+    tx,
+    userId,
+    "Essa pessoa já é dona de 3 times: o piloto permite até 3 times por conta.",
+  );
   await tx
     .update(teamMembers)
     .set({ role: "manager" })
@@ -53,7 +59,9 @@ export async function removeTeamMember(
   const target = await targetMember(tx, teamId, userId);
   if (target.role === "owner")
     throw new ActionError("O dono precisa transferir a propriedade ou excluir o time.");
-  if (actor !== userId) await requireMembership(tx, teamId, actor, "manage");
+  // Managers remove members; removing a manager is the owner's, like changing roles.
+  if (actor !== userId)
+    await requireMembership(tx, teamId, actor, target.role === "manager" ? "owner" : "manage");
   await tx
     .delete(teamMembers)
     .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)));

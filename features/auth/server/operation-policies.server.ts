@@ -2,6 +2,7 @@ import { ActionError } from "@/server/operations/action-error";
 import { SESSION_EXPIRED_MESSAGE } from "@/features/auth/domain/auth-errors";
 import { defineOperation, type BasePolicy } from "@/server/operations/define-operation.server";
 import { createAuditRecorder, type AuditRecorder } from "@/server/audit.server";
+import { getEnv } from "@/server/env.server";
 import { requestHeaders } from "@/server/request-context.server";
 import { clientIpFrom } from "@/server/client-ip.server";
 import { createRateLimiter, type RateLimiter } from "@/server/rate-limit.server";
@@ -15,6 +16,11 @@ interface Policy extends BasePolicy {
   permission?: PermissionRequest;
   fresh?: boolean;
   allowWithoutTwoFactor?: boolean;
+  /**
+   * With REQUIRE_EMAIL_VERIFICATION on, open before the e-mail is confirmed, like the pages
+   * that allow it: the account itself, rooms and teams.
+   */
+  allowUnverified?: boolean;
 }
 type AdminContext = {
   admin: AdminSession;
@@ -48,6 +54,12 @@ export const defineAdminOperation = defineOperation<Policy, AdminContext>(async 
 export const defineUserOperation = defineOperation<Policy, UserContext>(async (policy) => {
   const current = await getUserSession();
   if (!current) throw new ActionError(SESSION_EXPIRED_MESSAGE);
+  const unverified = getEnv().REQUIRE_EMAIL_VERIFICATION && !current.user.emailVerified;
+  if (unverified && !policy.allowUnverified) {
+    throw new ActionError(
+      "Confirme seu e-mail para continuar. O link está na sua caixa de entrada.",
+    );
+  }
   checkFresh(current.session.createdAt, policy);
   return { current, audit: createAuditRecorder({ userId: current.user.id }) };
 });

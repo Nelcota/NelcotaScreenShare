@@ -25,7 +25,7 @@ export interface ChangedRole {
 
 export type RoleChangeResult =
   | { ok: true; changed: ChangedRole[] }
-  | { ok: false; error: RoleChangeRefusal | "no_account" };
+  | { ok: false; error: RoleChangeRefusal | "no_account" | "permanent" };
 
 /** The owner's name, for "Sala de Ana"; `null` when the room has no owner. */
 export async function roomOwnerName(db: DbExecutor, roomCode: string): Promise<string | null> {
@@ -39,11 +39,24 @@ export async function roomOwnerName(db: DbExecutor, roomCode: string): Promise<s
   return owner?.name ?? null;
 }
 
+/**
+ * A permanent room stays with the account or team that created it, inside that plan: its
+ * owner is not handed over in a call.
+ */
+export async function isPermanentRoom(db: DbExecutor, roomCode: string): Promise<boolean> {
+  const [definition] = await db
+    .select({ kind: roomDefinitions.kind })
+    .from(roomDefinitions)
+    .where(eq(roomDefinitions.code, roomCode));
+  return definition !== undefined && definition.kind !== "ad_hoc";
+}
+
+/** An account that can take a role: not deleted and not blocked by the admin panel. */
 async function activeAccount(db: DbExecutor, userId: string): Promise<boolean> {
   const [account] = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.id, userId), isNull(users.deletedAt)));
+    .where(and(eq(users.id, userId), isNull(users.deletedAt), isNull(users.blockedAt)));
   return account !== undefined;
 }
 
@@ -72,6 +85,8 @@ export async function applyRoleChange(
       self: actorUserId === targetUserId,
     });
     if (refusal) return { ok: false, error: refusal };
+    if (change === "transfer" && (await isPermanentRoom(tx, roomCode)))
+      return { ok: false, error: "permanent" };
     if (!(await activeAccount(tx, targetUserId))) return { ok: false, error: "no_account" };
     return { ok: true, changed: await writeRoleChange(tx, input) };
   });

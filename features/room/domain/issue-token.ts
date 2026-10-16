@@ -80,6 +80,11 @@ export interface TokenDeps {
   bannedFromCall: (room: string, identity: string) => Promise<boolean>;
   /** Open entry or entry with approval. */
   accessOf: (room: string) => Promise<RoomAccess>;
+  /**
+   * Was some guest banned from the call happening now? A guest without the cookie comes
+   * back as a new one, so from then on new guests ask first, even in an open room.
+   */
+  guestBannedFromCall: (room: string) => Promise<boolean>;
   /** Lets in an accepted request once, or opens the request and returns its id to follow. */
   awaitApproval: (request: ApprovalRequest) => Promise<ApprovalResult>;
 }

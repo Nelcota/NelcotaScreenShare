@@ -69,7 +69,7 @@ function AddForm() {
           id={fieldId}
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="NELC-XXXX ou e-mail"
+          placeholder="NELC-XXXXXX ou e-mail"
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}

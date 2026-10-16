@@ -55,7 +55,12 @@ export function CardModeration({
       toast.error(result.message);
       return;
     }
-    toast.success(`${name} saiu da sala.`);
+    const guestBan = ban && isGuestIdentity(participant.identity);
+    toast.success(
+      guestBan
+        ? `${name} saiu da sala. Novos convidados agora pedem para entrar.`
+        : `${name} saiu da sala.`,
+    );
     onRemoved();
   }
 
@@ -76,7 +81,7 @@ export function CardModeration({
       </label>
       {ban && isGuestIdentity(participant.identity) ? (
         <p className="mt-2 text-sm text-ink-muted">
-          Sem conta, a pessoa ainda pode voltar por uma janela anônima.
+          Depois disso, novos convidados pedem para entrar nesta chamada.
         </p>
       ) : null}
       <div className="mt-4 flex justify-end gap-2">

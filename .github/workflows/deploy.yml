@@ -23,9 +23,10 @@ jobs:
   image:
     name: Image on GHCR
     # Only a push to main of this repository: a fork PR with a "main" branch also
-    # triggers workflow_run, and must not build an image or migrate production.
+    # triggers workflow_run, and must not build an image or migrate production. A manual
+    # run is a redeploy of main, never of another branch (it would skip CI and review).
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_repository.full_name == github.repository)

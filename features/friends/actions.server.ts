@@ -5,6 +5,7 @@ import {
   blockAccount,
   countFriends,
   deleteFriendship,
+  withdrawRequest,
   dismissRequest,
   isActiveAccount,
   lockFriendship,
@@ -114,8 +115,11 @@ export const cancelFriendRequest = defineUserOperation(
         existing?.status === "pending" &&
         existing.requestedBy === requesterId &&
         !existing.privateRequest;
-      if (!ownPending) throw new ActionError(UNAVAILABLE);
-      await deleteFriendship(tx, requesterId, parsedInput.userId, "pending");
+      if (!ownPending || existing.withdrawn) throw new ActionError(UNAVAILABLE);
+      // A declined request is kept as a marker: deleting it would let it be sent anew.
+      if (existing.dismissed) await withdrawRequest(tx, requesterId, parsedInput.userId);
+      if (!existing.dismissed)
+        await deleteFriendship(tx, requesterId, parsedInput.userId, "pending");
       await ctx.audit.record(tx, {
         action: "friend.cancel",
         resourceType: "user",

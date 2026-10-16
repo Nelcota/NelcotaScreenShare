@@ -42,6 +42,9 @@ export const friendships = pgTable(
     // A request the other side declined, or sent by someone they blocked: the sender still
     // sees it as sent, the receiver no longer sees it. Neither learns about the other.
     dismissedAt: timestamptz("dismissed_at"),
+    // The sender cancelled a request the other side had declined: it stays as a marker, so
+    // sending it again revives it still declined instead of asking anew.
+    withdrawnAt: timestamptz("withdrawn_at"),
   },
   (table) => [
     primaryKey({ columns: [table.userLowId, table.userHighId] }),
@@ -115,7 +118,7 @@ export const friendCodes = pgTable(
     code: text("code").notNull().unique(),
     createdAt: createdAt(),
   },
-  (table) => [check("friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,5}$'`)],
+  (table) => [check("friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,7}$'`)],
 );
 
 /**
@@ -129,7 +132,7 @@ export const retiredFriendCodes = pgTable(
     retiredAt: timestamptz("retired_at").notNull().defaultNow(),
   },
   (table) => [
-    check("retired_friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,5}$'`),
+    check("retired_friend_codes_code_check", sql`${table.code} ~ '^[2-9A-HJKMNP-Z]{4,7}$'`),
   ],
 );
 

@@ -1,5 +1,5 @@
 import { LogOut, SunMoon, User, Video } from "lucide-react";
-import { useOperation } from "@/lib/operations/use-operation";
+import { reportUnlessNetworkFailure } from "@/lib/telemetry.client";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import {
@@ -20,24 +20,45 @@ import { NAV_ICONS } from "./nav-icons";
 type RunCommand = (action: () => void) => void;
 type GoTo = (href: string) => void;
 
+type SearchData = NonNullable<Awaited<ReturnType<typeof searchPanelAction>>["data"]>;
+
+/** The term's results, or none when the search failed (the list shows "Nada encontrado"). */
+async function searchFor(q: string): Promise<SearchData | undefined> {
+  try {
+    return (await searchPanelAction({ q })).data;
+  } catch (error) {
+    reportUnlessNetworkFailure("Panel search failed:", error);
+    return undefined;
+  }
+}
+
+/**
+ * Called directly, not through a router fetcher: a POST there would refresh every loader of
+ * the page on each pause in typing. Answers for an old term are dropped.
+ */
 function usePanelSearch() {
   const [query, setQuery] = useState("");
-  const search = useOperation(searchPanelAction);
-  const { execute } = search;
+  const [answer, setAnswer] = useState<{ q: string; data: SearchData | undefined }>();
   const term = query.trim();
-  const results =
-    term.length >= 2 && !search.isPending && search.input?.q === term
-      ? search.result.data
-      : undefined;
+  const isPending = term.length >= 2 && answer?.q !== term;
+  const results = term.length >= 2 && answer?.q === term ? answer.data : undefined;
 
   // Searches on the server after a pause in typing.
   useEffect(() => {
     if (term.length < 2) return;
-    const timer = setTimeout(() => execute({ q: term }), 250);
-    return () => clearTimeout(timer);
-  }, [term, execute]);
+    let current = true;
+    const run = async () => {
+      const data = await searchFor(term);
+      if (current) setAnswer({ q: term, data });
+    };
+    const timer = setTimeout(() => void run(), 250);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [term]);
 
-  return { query, setQuery, term, results, isPending: search.isPending };
+  return { query, setQuery, term, results, isPending };
 }
 
 type PanelSearchResults = ReturnType<typeof usePanelSearch>["results"];

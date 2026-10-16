@@ -42,7 +42,7 @@ describe("friend profile", () => {
     await friends(bia.id, duda.id);
 
     const profile = await friendProfile(db, ana.id, bia.id);
-    expect(profile?.code).toMatch(/^NELC-[2-9A-HJKMNP-Z]{4,5}$/);
+    expect(profile?.code).toMatch(/^NELC-[2-9A-HJKMNP-Z]{6}$/);
     expect(profile?.since).toEqual(new Date("2026-10-01T12:00:00Z"));
     expect(profile?.mutual).toEqual({ shown: [{ id: caio.id, name: "Caio" }], total: 1 });
     expect(JSON.stringify(profile)).not.toContain("@");

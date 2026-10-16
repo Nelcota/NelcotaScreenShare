@@ -72,7 +72,7 @@ export const callGroup = defineUserOperation(
     const membership = await membershipOf(db, conversationId, caller.id);
     if (membership?.kind !== "group") throw new ActionError(UNAVAILABLE);
     const room = parsedInput.room ?? (await connectedCallRoom(db, caller.id));
-    if (!room) return { rang: 0, needsRoom: true };
+    if (!room) return { needsRoom: true };
     if (!(await mayRingInto(db, room, caller.id))) throw new ActionError(UNAVAILABLE);
     await recordGroupCall(db, { conversationId, roomCode: room, startedBy: caller.id });
     const ringable = await ringableMembers(db, conversationId, caller.id, room);
@@ -89,7 +89,8 @@ export const callGroup = defineUserOperation(
       });
     }
     notifyUsers(await memberIdsOf(db, conversationId), "messages");
-    return { rang: ringable.length, needsRoom: false };
+    // No count of who was rung: it would tell which members are online, friends or not.
+    return { needsRoom: false };
   },
 );
 

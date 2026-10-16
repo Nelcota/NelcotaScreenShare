@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, or, sql } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   friendPair,
   type BlockState,
@@ -64,6 +64,7 @@ export async function lockFriendship(
       requestedBy: friendships.requestedBy,
       dismissedAt: friendships.dismissedAt,
       privateRequest: friendships.privateRequest,
+      withdrawnAt: friendships.withdrawnAt,
     })
     .from(friendships)
     .where(pairCondition(one, other))
@@ -74,6 +75,7 @@ export async function lockFriendship(
     requestedBy: row.requestedBy,
     dismissed: row.dismissedAt !== null,
     privateRequest: row.privateRequest,
+    withdrawn: row.withdrawnAt !== null,
   };
 }
 
@@ -100,6 +102,19 @@ export async function blockBetween(
 /** Either one blocked the other (messages and calls use this). */
 export async function isBlockedEitherWay(db: DbExecutor, one: string, other: string) {
   return (await blockBetween(db, one, other)) !== "none";
+}
+
+/** Whether anyone among these people blocked another one of them. */
+export async function anyBlockAmong(db: DbExecutor, userIds: readonly string[]): Promise<boolean> {
+  if (userIds.length < 2) return false;
+  const [row] = await db
+    .select({ blockerId: userBlocks.blockerId })
+    .from(userBlocks)
+    .where(
+      and(inArray(userBlocks.blockerId, [...userIds]), inArray(userBlocks.blockedId, [...userIds])),
+    )
+    .limit(1);
+  return row !== undefined;
 }
 
 export async function countFriends(db: DbExecutor, userId: string): Promise<number> {
@@ -135,6 +150,7 @@ export async function countPendingSent(
         eq(friendships.requestedBy, userId),
         eq(friendships.status, "pending"),
         eq(friendships.privateRequest, privateRequest),
+        isNull(friendships.withdrawnAt),
         activeAccount(),
       ),
     );
@@ -179,10 +195,29 @@ export async function dismissRequest(db: DbExecutor, receiverId: string, request
   return dismissed.length > 0;
 }
 
+/**
+ * The sender cancels a request the other side had declined: the row stays, out of the
+ * sender's lists, so sending it again cannot reach the receiver.
+ */
+export async function withdrawRequest(db: DbExecutor, requesterId: string, targetId: string) {
+  await db
+    .update(friendships)
+    .set({ withdrawnAt: sql`now()` })
+    .where(and(pairCondition(requesterId, targetId), eq(friendships.requestedBy, requesterId)));
+}
+
+/** Sending a withdrawn request again: back in the sender's list, still declined. */
+export async function reviveRequest(db: DbExecutor, requesterId: string, targetId: string) {
+  await db
+    .update(friendships)
+    .set({ withdrawnAt: null })
+    .where(and(pairCondition(requesterId, targetId), eq(friendships.requestedBy, requesterId)));
+}
+
 export async function acceptRequest(db: DbExecutor, one: string, other: string) {
   await db
     .update(friendships)
-    .set({ status: "accepted", acceptedAt: sql`now()`, dismissedAt: null })
+    .set({ status: "accepted", acceptedAt: sql`now()`, dismissedAt: null, withdrawnAt: null })
     .where(and(pairCondition(one, other), eq(friendships.status, "pending")));
 }
 

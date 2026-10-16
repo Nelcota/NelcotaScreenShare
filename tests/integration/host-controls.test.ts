@@ -53,6 +53,7 @@ test("signaling refuses forged credentials and foreign origins before admission"
 test("concurrent host claims and capacity reservations have a single winner", async () => {
   const identities = await Promise.all([account(), account(), account()]);
   const code = "simultaneous-hosts";
+  await getDb().insert(roomDefinitions).values({ code });
   const results = await Promise.allSettled(
     identities.map((identity) => reserveAdmission(getDb(), grant(code, identity), 2)),
   );
@@ -65,6 +66,7 @@ test("concurrent host claims and capacity reservations have a single winner", as
 });
 
 test("guest cannot claim host and token reservation is not admission", async () => {
+  await getDb().insert(roomDefinitions).values({ code: "guest-no-host" });
   await expect(
     reserveAdmission(getDb(), grant("guest-no-host", "convidado-test"), 6),
   ).rejects.toMatchObject({ code: "host_absent" });
@@ -297,6 +299,26 @@ test("a moderator co-hosts: lock, sharing and removal of participants, not trans
   await expect(
     room.command({ kind: "remove", identity: third }, room.other),
   ).resolves.toMatchObject({ status: "applied" });
+});
+
+test("a host who is not the owner cannot remove the owner, back from a reconnect", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.other, "owner");
+  // The owner is reconnecting: admitted to the session, but not in LiveKit right now.
+  online.set(room.mediaRoomName, [participant(room.host)]);
+  await expect(room.command({ kind: "remove", identity: room.other })).rejects.toThrow(
+    "Ninguém remove o dono da sala",
+  );
+  const [owner] = await getDb()
+    .select({ excludedAt: roomSessionMembers.excludedAt })
+    .from(roomSessionMembers)
+    .where(
+      and(
+        eq(roomSessionMembers.sessionId, room.sessionId),
+        eq(roomSessionMembers.identity, room.other),
+      ),
+    );
+  expect(owner?.excludedAt).toBeNull();
 });
 
 test("host absence elects a moderator before an older account", async () => {

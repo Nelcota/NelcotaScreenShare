@@ -115,6 +115,28 @@ describe("friendships", () => {
     ).toBeDefined();
   });
 
+  test("cancelling a declined request and sending it again never reaches the receiver", async () => {
+    const { ana, bia } = await pair();
+    as(ana);
+    await friends.sendFriendRequest({ userId: bia.id });
+    as(bia);
+    await friends.answerFriendRequest({ userId: ana.id, accept: false });
+
+    as(ana);
+    expect(await friends.cancelFriendRequest({ userId: bia.id })).toEqual({
+      data: { status: "none" },
+    });
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("none");
+    expect((await lists.friendLists(db, ana.id)).sent).toEqual([]);
+
+    expect(await friends.sendFriendRequest({ userId: bia.id })).toEqual({
+      data: { status: "sent" },
+    });
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("sent");
+    expect((await lists.friendLists(db, bia.id)).received).toEqual([]);
+    expect(await lists.pendingReceivedCount(db, bia.id)).toBe(0);
+  });
+
   test("counts leave out accounts blocked by the admin, as the lists do", async () => {
     const { ana, bia } = await pair();
     as(bia);
@@ -211,7 +233,7 @@ describe("friendships", () => {
       expect.objectContaining({ pessoa: "Bia", situacao: "pendente", pedido_feito_por_voce: true }),
     ]);
     expect(exported.pessoas_bloqueadas).toEqual([expect.objectContaining({ pessoa: "Caio" })]);
-    expect(exported.codigo_de_amigo?.codigo).toMatch(/^[2-9A-HJKMNP-Z]{4}$/);
+    expect(exported.codigo_de_amigo?.codigo).toMatch(/^[2-9A-HJKMNP-Z]{6}$/);
 
     await db.transaction((tx) => anonymizeParticipant(tx, ana.id));
     expect(await rowBetween(ana, bia)).toBeUndefined();

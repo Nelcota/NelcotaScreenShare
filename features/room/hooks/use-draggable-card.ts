@@ -17,7 +17,7 @@ import {
   clampOffset,
   clearOfAreas,
   nudgeOffset,
-  snapToCorner,
+  snapToEdge,
   type Area,
   type CardOffset,
 } from "@/features/room/domain/card-position";
@@ -145,12 +145,7 @@ export function useDraggableCard(
     card.releasePointerCapture(event.pointerId);
     setDragging(false);
     if (!moved.current) return;
-    const settled = snapToCorner(
-      currentOffset(card),
-      measure(card),
-      viewport(),
-      areasToKeepClear(),
-    );
+    const settled = snapToEdge(currentOffset(card), measure(card), viewport(), areasToKeepClear());
     setSnapping(!prefersReducedMotion());
     setOffset(settled);
     saveCardOffset(settled);

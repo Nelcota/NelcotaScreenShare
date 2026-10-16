@@ -56,3 +56,32 @@ test("the minimized call card never rests on the start's room field", async ({ b
     await context.close();
   }
 });
+
+test("the minimized call card dropped by an edge sticks to it at the same height", async ({
+  browser,
+}) => {
+  const { page, context } = await newParticipant(browser, "Cartao Borda");
+  try {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await joinRoom(page, await newRoomCode(), { micOn: false });
+    await page.getByRole("button", { name: "Mais opções", exact: true }).click();
+    await page.getByRole("link", { name: "Configurações", exact: true }).click();
+    const card = page.getByRole("complementary", { name: "Chamada em andamento" });
+    await expect(card).toBeVisible();
+
+    const start = await box(card);
+    // Grabbed by its left side, dropped near the right edge, halfway down.
+    await dragCardTo(page, card, { x: 1280 - start.width + 4, y: 400 });
+    await expect
+      .poll(async () => {
+        const settled = await box(card);
+        return Math.round(1280 - (settled.x + settled.width));
+      })
+      .toBe(16);
+    const settled = await box(card);
+    expect(Math.abs(settled.y + settled.height / 2 - 400)).toBeLessThan(40);
+  } finally {
+    await context.close();
+  }
+});

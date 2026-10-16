@@ -1090,6 +1090,13 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "private_request": {
+          "name": "private_request",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
@@ -1505,7 +1512,7 @@
               "nulls": "last"
             },
             {
-              "expression": "coalesce(\"target_message_id\", \"target_conversation_id\", \"target_user_id\")",
+              "expression": "(case \"target_kind\" when 'message' then \"target_message_id\" when 'conversation' then \"target_conversation_id\" when 'user' then \"target_user_id\" end)",
               "asc": true,
               "isExpression": true,
               "nulls": "last"

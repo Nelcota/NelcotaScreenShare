@@ -31,4 +31,4 @@ ALTER TABLE "reports" ADD CONSTRAINT "reports_resolved_by_admin_id_admin_users_i
 CREATE INDEX "reports_queue_idx" ON "reports" USING btree ("status","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "reports_reporter_idx" ON "reports" USING btree ("reporter_id","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "reports_target_user_idx" ON "reports" USING btree ("target_user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "reports_open_unique_idx" ON "reports" USING btree ("reporter_id","target_kind",coalesce("target_message_id", "target_conversation_id", "target_user_id")) WHERE "reports"."status" = 'open';
+CREATE UNIQUE INDEX "reports_open_unique_idx" ON "reports" USING btree ("reporter_id","target_kind",(case "target_kind" when 'message' then "target_message_id" when 'conversation' then "target_conversation_id" when 'user' then "target_user_id" end)) WHERE "reports"."status" = 'open';

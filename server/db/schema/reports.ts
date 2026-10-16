@@ -56,12 +56,12 @@ export const reports = pgTable(
     index("reports_queue_idx").on(table.status, table.createdAt.desc(), table.id.desc()),
     index("reports_reporter_idx").on(table.reporterId, table.createdAt.desc()),
     index("reports_target_user_idx").on(table.targetUserId),
-    // One open report per person and target: repeating it adds nothing to the queue.
+    // Deduplicate by the reported target only; deletion must not fall back to its context.
     uniqueIndex("reports_open_unique_idx")
       .on(
         table.reporterId,
         table.targetKind,
-        sql`coalesce(${table.targetMessageId}, ${table.targetConversationId}, ${table.targetUserId})`,
+        sql`(case ${table.targetKind} when 'message' then ${table.targetMessageId} when 'conversation' then ${table.targetConversationId} when 'user' then ${table.targetUserId} end)`,
       )
       .where(sql`${table.status} = 'open'`),
   ],

@@ -5,7 +5,6 @@
 import {
   useConnectionState,
   useParticipants,
-  useRoomContext,
   useLocalParticipant,
 } from "@livekit/components-react";
 import { ConnectionState, type Participant } from "livekit-client";
@@ -42,8 +41,15 @@ const NEUTRAL = "bg-surface-2 text-ink hover:bg-surface-3";
 const OFF = "bg-danger/10 text-danger hover:bg-danger/15";
 
 /** One person in the call: photo or initials, the mint ring while they speak, a sign while they share. */
-function Face({ participant, speaking }: { participant: Participant; speaking: boolean }) {
-  const roomCode = useRoomContext().name;
+function Face({
+  participant,
+  speaking,
+  roomCode,
+}: {
+  participant: Participant;
+  speaking: boolean;
+  roomCode: string;
+}) {
   const name = participantLabel(participant);
   const sharing = participant.isScreenShareEnabled;
   const status = [speaking ? "falando" : "", sharing ? "compartilhando a tela" : ""]
@@ -77,7 +83,7 @@ function Face({ participant, speaking }: { participant: Participant; speaking: b
  * while they speak), the last one when nobody talks, and before anyone has spoken the
  * count of people, or your own face when you are alone.
  */
-export function CallSpeakers({ max = MAX_SPEAKERS }: { max?: number }) {
+export function CallSpeakers({ roomCode, max = MAX_SPEAKERS }: { roomCode: string; max?: number }) {
   const participants = useParticipants();
   const { faces, nobodyYet } = useRecentSpeakers();
   const byIdentity = new Map(
@@ -100,7 +106,12 @@ export function CallSpeakers({ max = MAX_SPEAKERS }: { max?: number }) {
   return (
     <ul aria-label="Na chamada" className="flex items-center pl-1">
       {shown.map(({ participant, speaking }) => (
-        <Face key={participant.identity} participant={participant} speaking={speaking} />
+        <Face
+          key={participant.identity}
+          participant={participant}
+          speaking={speaking}
+          roomCode={roomCode}
+        />
       ))}
     </ul>
   );

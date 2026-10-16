@@ -57,7 +57,7 @@ export function MinimizedCall({ code, onLeave }: { code: string; onLeave: () => 
         className="flex min-w-0 cursor-pointer items-center gap-2 rounded-xl py-0.5 pr-2 transition-colors hover:bg-surface-2"
       >
         <CallConnectionDot className="ml-1" />
-        <CallSpeakers max={mobile ? PHONE_FACES : undefined} />
+        <CallSpeakers roomCode={code} max={mobile ? PHONE_FACES : undefined} />
       </span>
       <span aria-hidden="true" className="h-6 w-px shrink-0 bg-line-strong max-md:hidden" />
       <span className="flex items-center gap-1">

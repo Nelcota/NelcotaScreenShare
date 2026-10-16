@@ -10,8 +10,9 @@ export const THEME_COLOR: Record<Theme, string> = { dark: "#17181a", light: "#e7
 /**
  * Runs in <head> before the first paint: applies the saved theme or, with no saved
  * choice, the system one. Keeps the page from flashing in the wrong theme.
+ * Keep this script literal; the theme tests check its colors against THEME_COLOR.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(STORAGE_KEY)})}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==="light"?${JSON.stringify(THEME_COLOR.light)}:${JSON.stringify(THEME_COLOR.dark)}})()`;
+export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("nelcota:tema")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==="light"?"#e7ebe6":"#17181a"})()`;
 
 export function currentTheme(): Theme {
   return document.documentElement.dataset.theme === "light" ? "light" : "dark";

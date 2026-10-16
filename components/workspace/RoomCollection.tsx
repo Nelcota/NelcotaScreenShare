@@ -61,6 +61,8 @@ export function RoomCollection({
   error,
   saved = 0,
   nameError,
+  addressError,
+  checkAddress,
   onCommand,
 }: {
   rooms: WorkspaceRoom[];
@@ -74,6 +76,10 @@ export function RoomCollection({
   saved?: number;
   /** The server's message for the room name, from the last save. */
   nameError?: string;
+  /** The server's message for the chosen address (format, taken, reserved), from the last save. */
+  addressError?: string;
+  /** The address rule; with it, a new room may choose its address. */
+  checkAddress?: (code: string) => string | undefined;
   onCommand: (input: RoomWorkspaceCommand) => void;
 }) {
   // The dialog stays open until the room is really created; a refused name keeps it open.
@@ -181,6 +187,8 @@ export function RoomCollection({
             team={Boolean(teamId)}
             pending={pending}
             error={nameError}
+            addressError={addressError}
+            checkAddress={checkAddress}
             onSave={(values) => onCommand({ kind: "create", teamId, ...values })}
           />
         </DialogContent>

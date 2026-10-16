@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BLOCKED_TERM_MESSAGE, hasBlockedTerm } from "@/features/moderation/domain/blocked-terms";
+import { roomAddressSchema } from "./room-address";
 
 /** A room or team name: public, so it may not carry a blocked term. */
 export const workspaceNameSchema = z
@@ -13,6 +14,8 @@ export const roomWorkspaceSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("create"),
     name: workspaceNameSchema,
+    /** Chosen address (#388); without it, one is drawn. */
+    code: roomAddressSchema.optional(),
     teamId: z.uuid().optional(),
     allowGuests: z.boolean(),
     memberCanHost: z.boolean(),

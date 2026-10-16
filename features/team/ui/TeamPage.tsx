@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useOperation } from "@/lib/operations/use-operation";
 import { fieldErrorOf } from "@/lib/operations/field-error";
 import { roomWorkspaceAction } from "@/features/rooms/actions";
+import { roomAddressProblem, roomFormErrors } from "@/features/rooms/client/room-form";
 import { teamWorkspaceAction } from "../actions";
 import { managesTeam } from "../domain/team-policy";
 import { TeamMembers } from "./TeamMembers";
@@ -48,9 +49,9 @@ export function TeamPage() {
         canCreate={managing}
         enabled={data.enabled}
         pending={rooms.isPending}
-        error={rooms.result.serverError}
         saved={savedRooms}
-        nameError={fieldErrorOf(rooms.result, "name")}
+        {...roomFormErrors(rooms.result)}
+        checkAddress={roomAddressProblem}
         onCommand={rooms.execute}
       />
       <TeamMembers

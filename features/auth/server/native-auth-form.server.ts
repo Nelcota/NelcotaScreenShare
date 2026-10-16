@@ -1,5 +1,6 @@
 import { data } from "react-router";
 import type { AuthErrorLike } from "@/features/auth/domain/auth-errors";
+import { boundAuthBody } from "./auth-body.server";
 import { logger } from "@/server/logger.server";
 
 type AuthHandler = (request: Request) => Promise<Response>;
@@ -75,4 +76,15 @@ export function redirectWithCookies(location: string, cookies: string[]): never 
 /** Back to the same page with the message under the form. */
 export function formFailure(message: string) {
   return data({ error: message }, { status: 400 });
+}
+
+/** Bound the original upload before decoding fields, including ignored fields and files. */
+export async function readAuthForm(request: Request): Promise<FormData> {
+  const bounded = await boundAuthBody(request);
+  if (bounded instanceof Response) throw bounded;
+  try {
+    return await bounded.formData();
+  } catch {
+    throw new Response("Invalid form body", { status: 400 });
+  }
 }

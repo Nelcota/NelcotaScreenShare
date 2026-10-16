@@ -4,6 +4,7 @@ import { checkSignUp } from "@/features/auth/domain/sign-up";
 import { formText } from "@/lib/utils";
 import {
   asksForSecondFactor,
+  readAuthForm,
   forwardAuthForm,
   formFailure,
   redirectWithCookies,
@@ -21,7 +22,7 @@ export async function signInFromForm(
   auth: AuthInstance,
   { done, secondFactor }: { done: string; secondFactor: string },
 ) {
-  const form = await request.formData();
+  const form = await readAuthForm(request);
   const result = await forwardAuthForm(request, auth.handle, `${auth.basePath}/sign-in/email`, {
     email: formText(form, "email").trim(),
     password: formText(form, "password"),
@@ -36,7 +37,7 @@ export async function secondFactorFromForm(
   auth: AuthInstance,
   { done }: { done: string },
 ) {
-  const form = await request.formData();
+  const form = await readAuthForm(request);
   const code = formText(form, "code").replaceAll(" ", "");
   const endpoint = formText(form, "mode") === "backup" ? "verify-backup-code" : "verify-totp";
   const result = await forwardAuthForm(
@@ -57,7 +58,7 @@ export async function passwordResetFromForm(
   auth: AuthInstance,
   { redirectTo }: { redirectTo: string },
 ) {
-  const form = await request.formData();
+  const form = await readAuthForm(request);
   const result = await forwardAuthForm(
     request,
     auth.handle,
@@ -79,7 +80,7 @@ export async function passwordChangeFromForm(
   { token, minLength, done }: { token: string | undefined; minLength: number; done: string },
 ) {
   if (!token) return formFailure("Este link não vale mais. Peça um novo.");
-  const form = await request.formData();
+  const form = await readAuthForm(request);
   const newPassword = formText(form, "password");
   const invalid = newPasswordError(newPassword, formText(form, "confirm"), minLength);
   if (invalid) return formFailure(invalid);
@@ -100,7 +101,7 @@ export async function signUpFromForm(
   auth: AuthInstance,
   { returnTo, verificationRequired }: { returnTo: string; verificationRequired: boolean },
 ) {
-  const form = await request.formData();
+  const form = await readAuthForm(request);
   const password = formText(form, "password");
   const check = checkSignUp({
     name: formText(form, "name"),
@@ -141,7 +142,7 @@ export async function invitationFromForm(
   accept: AcceptInvitation,
   { token }: { token: string },
 ) {
-  const form = await request.formData();
+  const form = await readAuthForm(request);
   const password = formText(form, "password");
   const invalid = newPasswordError(password, formText(form, "confirm"), PASSWORD_LIMITS.admin.min);
   if (invalid) return formFailure(invalid);

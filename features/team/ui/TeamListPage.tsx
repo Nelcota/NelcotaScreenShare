@@ -1,3 +1,4 @@
+import { UsersRound } from "lucide-react";
 import { useId, useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
@@ -9,12 +10,55 @@ import { useOperation } from "@/lib/operations/use-operation";
 import { formText } from "@/lib/utils";
 import { fieldErrorOf } from "@/lib/operations/field-error";
 import { workspaceNameSchema } from "@/features/rooms/domain/commands";
+import { teamsPageView } from "../domain/teams-page";
 import { teamWorkspaceAction } from "../actions";
 import type { loader } from "@/app/routes/workspace/teams";
 
 export const roleLabels = { owner: "Dono", manager: "Gestor", member: "Membro" };
-export function TeamListPage() {
-  const data = useLoaderData<typeof loader>();
+
+type TeamSummary = { id: string; name: string; role: keyof typeof roleLabels };
+
+/** No Pro and no team: what a team is, that it is Pro only, and the way to the Pro list. */
+function TeamsWithoutPro() {
+  return (
+    <section className="flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center gap-3 py-12 text-center">
+      <span className="grid size-13 place-items-center rounded-2xl bg-brand/15 text-brand-soft">
+        <UsersRound className="size-6" aria-hidden="true" />
+      </span>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight">Times</h1>
+      <p className="max-w-sm text-ink-muted">
+        Um time é um grupo fixo de pessoas, com salas que ficam sempre no mesmo link e o histórico
+        das chamadas.
+      </p>
+      <p className="font-medium">Só no Pro.</p>
+      <Button asChild className="mt-2">
+        <Link viewTransition to="/#precos">
+          Entrar na lista do Pro
+        </Link>
+      </Button>
+    </section>
+  );
+}
+
+function TeamCards({ teams }: { teams: TeamSummary[] }) {
+  if (!teams.length) return null;
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {teams.map((team) => (
+        <Link
+          key={team.id}
+          to={`/times/${team.id}`}
+          className="panel min-w-0 rounded-2xl p-6 hover:border-brand/50"
+        >
+          <h2 className="text-xl font-semibold wrap-anywhere">{team.name}</h2>
+          <p className="mt-2 text-sm text-ink-muted">{roleLabels[team.role]}</p>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function CreateTeamForm() {
   const id = useId();
   const navigate = useNavigate();
   const action = useOperation(teamWorkspaceAction, {
@@ -24,77 +68,90 @@ export function TeamListPage() {
   const [nameError, setNameError] = useState<string>();
   const shownError = nameError ?? fieldErrorOf(action.result, "name");
   return (
+    <section className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-6">
+      <h2 className="text-xl font-semibold">Criar um time</h2>
+      <p className="text-sm text-ink-muted">
+        Com o Pro beta, você cria até 3 times. A equipe Nelcota libera as salas e os convites de
+        cada time novo.
+      </p>
+      <form
+        noValidate
+        className="flex flex-col gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const name = workspaceNameSchema.safeParse(
+            formText(new FormData(event.currentTarget), "name"),
+          );
+          if (!name.success) return setNameError(name.error.issues[0]?.message);
+          setNameError(undefined);
+          action.execute({ kind: "create", name: name.data });
+        }}
+      >
+        <Label htmlFor={id}>Nome do time</Label>
+        <Input
+          id={id}
+          name="name"
+          required
+          minLength={2}
+          maxLength={80}
+          aria-invalid={shownError ? true : undefined}
+          aria-describedby={shownError ? `${id}-error` : undefined}
+          onChange={() => setNameError(undefined)}
+        />
+        <FormError id={`${id}-error`} message={shownError} />
+        <Button type="submit" disabled={action.isPending}>
+          Criar time
+        </Button>
+        <FormError message={action.result.serverError} />
+      </form>
+    </section>
+  );
+}
+
+/** Below the teams: why there is no form, or the form itself. */
+function TeamsFooter({
+  view,
+  hasTeams,
+}: {
+  view: "pro-off" | "unavailable" | "create";
+  hasTeams: boolean;
+}) {
+  if (view === "pro-off") {
+    return <p className="text-sm text-ink-muted">Pro desativado. Seus times continuam aqui.</p>;
+  }
+  if (view === "unavailable") {
+    return <output className="text-sm text-warning">Times ainda não estão disponíveis.</output>;
+  }
+  return (
+    <>
+      {hasTeams ? null : <p className="text-ink-muted">Você ainda não faz parte de um time.</p>}
+      <CreateTeamForm />
+    </>
+  );
+}
+
+export function TeamListPage() {
+  const data = useLoaderData<typeof loader>();
+  const view = teamsPageView({
+    proActive: data.pro.active,
+    enabled: data.enabled,
+    teamCount: data.teams.length,
+  });
+  if (view === "without-pro") {
+    return (
+      <WorkspaceShell account={data.account} title="Times" description="" bare>
+        <TeamsWithoutPro />
+      </WorkspaceShell>
+    );
+  }
+  return (
     <WorkspaceShell
       account={data.account}
       title="Seus times"
       description="Reúna as pessoas, mantenha as salas do time e acompanhe o histórico de chamadas."
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        {data.teams.map((team) => (
-          <Link
-            key={team.id}
-            to={`/times/${team.id}`}
-            className="panel min-w-0 rounded-2xl p-6 hover:border-brand/50"
-          >
-            <h2 className="text-xl font-semibold wrap-anywhere">{team.name}</h2>
-            <p className="mt-2 text-sm text-ink-muted">{roleLabels[team.role]}</p>
-          </Link>
-        ))}
-      </div>
-      {!data.enabled ? (
-        <output className="text-sm text-warning">
-          Times aguardam a ativação dos controles de anfitrião nesta instância.
-        </output>
-      ) : null}
-      {!data.teams.length ? (
-        <p className="text-ink-muted">
-          Você ainda não faz parte de um time. Aceite um convite ou crie seu próprio time.
-        </p>
-      ) : null}
-      <section className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold">Criar um time</h2>
-        <p className="text-sm text-ink-muted">
-          O Pro beta pessoal permite criar até 3 times. As salas e convites de cada time precisam de
-          uma ativação própria, feita pela equipe Nelcota.
-        </p>
-        <form
-          noValidate
-          className="flex flex-col gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const name = workspaceNameSchema.safeParse(
-              formText(new FormData(event.currentTarget), "name"),
-            );
-            if (!name.success) return setNameError(name.error.issues[0]?.message);
-            setNameError(undefined);
-            action.execute({ kind: "create", name: name.data });
-          }}
-        >
-          <Label htmlFor={id}>Nome do time</Label>
-          <Input
-            id={id}
-            name="name"
-            required
-            minLength={2}
-            maxLength={80}
-            disabled={!data.pro.active}
-            aria-invalid={shownError ? true : undefined}
-            aria-describedby={shownError ? `${id}-error` : undefined}
-            onChange={() => setNameError(undefined)}
-          />
-          <FormError id={`${id}-error`} message={shownError} />
-          <Button type="submit" disabled={action.isPending || !data.pro.active || !data.enabled}>
-            Criar time
-          </Button>
-          <FormError message={action.result.serverError} />
-        </form>
-        {!data.pro.active ? (
-          <output className="text-sm text-warning">
-            O Pro beta pessoal está inativo. Os times dos quais você participa continuam
-            disponíveis.
-          </output>
-        ) : null}
-      </section>
+      <TeamCards teams={data.teams} />
+      <TeamsFooter view={view} hasTeams={data.teams.length > 0} />
     </WorkspaceShell>
   );
 }

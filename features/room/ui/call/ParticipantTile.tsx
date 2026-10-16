@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { HostBadge } from "./HostBadge";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
+import { ProfileHint, TILE_SURFACE } from "./tile-surface";
 import { TileNamePill } from "./TileNamePill";
 
 interface ParticipantTileProps {
@@ -258,7 +259,7 @@ export function ParticipantTile({
       key="tile"
       ref={scope}
       data-flip-id={`tile-${participant.identity}`}
-      className="relative isolate aspect-video w-full shrink-0 rounded-3xl"
+      className="group/tile relative isolate aspect-video w-full shrink-0 rounded-3xl"
     >
       {/* Glow and ring for whoever is speaking. */}
       <div
@@ -266,7 +267,7 @@ export function ParticipantTile({
         aria-hidden="true"
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
-      <div className="[container-type:size] relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-tile-line bg-tile shadow-soft">
+      <div className={cn(TILE_SURFACE, "[container-type:size]")}>
         <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3" />
         {handRaised ? (
           <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
@@ -274,7 +275,9 @@ export function ParticipantTile({
             <span aria-hidden="true">Mão levantada</span>
             <span className="sr-only">{name} está com a mão levantada</span>
           </span>
-        ) : null}
+        ) : (
+          <ProfileHint participant={participant} roomCode={roomCode} />
+        )}
         <div
           data-ring
           aria-hidden="true"

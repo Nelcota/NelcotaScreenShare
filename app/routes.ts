@@ -70,6 +70,7 @@ export default [
   route("api/admin/auth/*", "routes/api/admin/auth.ts"),
   route("api/token", "routes/api/room/token.ts"),
   route("api/sala/mao", "routes/api/room/hand.ts"),
+  route("api/sala/som", "routes/api/room/deafen.ts"),
   route("api/sala/nome", "routes/api/room/name.ts"),
   route("api/sala/pedido", "routes/api/room/join-request.ts"),
   route("api/sala/moderar", "routes/api/room/moderate.ts"),

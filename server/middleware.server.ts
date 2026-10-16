@@ -27,7 +27,7 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(self), display-capture=(self), geolocation=()",
+    "camera=(self), microphone=(self), display-capture=(self), geolocation=()",
   );
   if (response.headers.get("Content-Type")?.includes("text/html")) {
     response.headers.set(

@@ -2,7 +2,7 @@ import { MonitorOff, MonitorUp } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { DockButton } from "./DockButton";
 import { DockPopoverContent } from "./DockPopover";
 import { SharePanel } from "./SharePanel";
@@ -40,6 +40,7 @@ function formatElapsed(total: number): string {
  */
 export function ShareMenu({ share }: { share: ScreenShareControl }) {
   const { isSharing, busy } = share;
+  const shareKey = useShortcutLabel("share");
   const support = useShareSupport();
   // Same rule as the notes before joining: phones and tablets watch, they do not share.
   const supported = support !== null && canShare(support);
@@ -68,7 +69,7 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
   }
 
   // The key only opens the menu: one stray press must not take the screen off the air.
-  useShortcut("s", () => handleOpenChange(!open), !busy && !isSharing);
+  useRoomShortcut("share", () => handleOpenChange(!open), !busy && !isSharing);
 
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
@@ -80,7 +81,7 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
           caption={busy ? "Aguarde…" : isSharing ? `Parar · ${elapsed}` : "Compartilhar"}
           shortCaption={busy ? "…" : isSharing ? elapsed : "Tela"}
           pressed={isSharing}
-          shortcut={isSharing ? undefined : "S"}
+          shortcut={isSharing ? undefined : shareKey}
           aria-disabled={!supported || !share.permitted || undefined}
           disabled={busy}
           busy={busy}

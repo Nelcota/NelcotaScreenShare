@@ -2,7 +2,6 @@ import { VideoTrack, type TrackReference } from "@livekit/components-react";
 import {
   Maximize2,
   Minimize2,
-  MonitorUp,
   MousePointerClick,
   PictureInPicture2,
   Activity,
@@ -10,14 +9,18 @@ import {
 } from "lucide-react";
 import { useRef, useState, type RefObject } from "react";
 import { Hint } from "@/components/Hint";
-import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import { usePageFullscreen } from "@/features/room/hooks/use-page-fullscreen";
 import { usePictureInPicture } from "@/features/room/hooks/use-picture-in-picture";
 import { cn } from "@/lib/utils";
 import { PointerLayer, usePointers } from "./PointerLayer";
+import { ScreenSoundControl } from "./ScreenVolume";
 import { StreamMetrics } from "./StreamMetrics";
+import { StopWatchingButton } from "./StopWatchingButton";
+import { SharePicker } from "./SharePicker";
 import { useBroadcastPresenterPing } from "@/features/room/hooks/use-presenter-ping";
+import { useStageFocusAfterWatch } from "@/features/room/hooks/use-screen-watch";
 
 import { useAnnotations } from "@/features/room/hooks/use-annotations";
 import { AnnotationLayer } from "./AnnotationLayer";
@@ -25,6 +28,8 @@ import { AnnotationTools } from "./AnnotationTools";
 
 interface ScreenStageProps {
   shares: TrackReference[];
+  /** Screens shared by others that this viewer has not chosen to watch. */
+  invites: TrackReference[];
   focused: TrackReference;
   onFocus: (trackSid: string) => void;
 }
@@ -62,10 +67,11 @@ function FullscreenButton({
   isFullscreen: boolean;
   onToggle: () => void;
 }) {
+  const key = useShortcutLabel("fullscreen");
   return (
     <StageButton
       label={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
-      shortcut="F"
+      shortcut={key}
       icon={isFullscreen ? Minimize2 : Maximize2}
       onPress={onToggle}
     />
@@ -74,14 +80,15 @@ function FullscreenButton({
 
 function PictureInPictureButton({ videoRef }: { videoRef: RefObject<HTMLVideoElement | null> }) {
   const { isPictureInPicture, canPictureInPicture, toggle } = usePictureInPicture(videoRef);
-  useShortcut("j", () => void toggle(), canPictureInPicture);
+  useRoomShortcut("popout", () => void toggle(), canPictureInPicture);
+  const popoutKey = useShortcutLabel("popout");
 
   if (!canPictureInPicture) return null;
 
   return (
     <StageButton
       label={isPictureInPicture ? "Fechar a janela" : "Abrir em janela"}
-      shortcut="J"
+      shortcut={popoutKey}
       icon={PictureInPicture2}
       onPress={() => void toggle()}
     />
@@ -89,13 +96,14 @@ function PictureInPictureButton({ videoRef }: { videoRef: RefObject<HTMLVideoEle
 }
 
 function PointingButton({ pointing, onToggle }: { pointing: boolean; onToggle: () => void }) {
+  const key = useShortcutLabel("point");
   return (
-    <Hint text={pointing ? "Parar de apontar (P)" : "Apontar na tela (P)"}>
+    <Hint text={pointing ? `Parar de apontar (${key})` : `Apontar na tela (${key})`}>
       <button
         type="button"
         onClick={onToggle}
         aria-pressed={pointing}
-        aria-keyshortcuts="P"
+        aria-keyshortcuts={key}
         aria-label={pointing ? "Parar de apontar" : "Apontar na tela"}
         className={cn(
           "glass pointer-events-auto grid size-9 place-items-center rounded-xl transition-colors",
@@ -108,48 +116,8 @@ function PointingButton({ pointing, onToggle }: { pointing: boolean; onToggle: (
   );
 }
 
-function SharePicker({
-  shares,
-  focusedSid,
-  onFocus,
-}: {
-  shares: TrackReference[];
-  focusedSid: string;
-  onFocus: (trackSid: string) => void;
-}) {
-  return (
-    <fieldset
-      // Plain toggle buttons: a tablist promises arrow keys and a tabpanel.
-      aria-label="Escolher a tela compartilhada"
-      className="glass absolute bottom-3 left-1/2 flex max-w-[calc(100%-1.5rem)] min-w-0 -translate-x-1/2 gap-1 overflow-x-auto rounded-xl p-1"
-    >
-      {shares.map((share) => {
-        const trackSid = share.publication.trackSid;
-        const active = trackSid === focusedSid;
-        return (
-          <button
-            key={trackSid}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onFocus(trackSid)}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
-              active
-                ? "bg-brand text-brand-ink"
-                : "text-ink-muted hover:bg-surface-3 hover:text-ink",
-            )}
-          >
-            <MonitorUp className="size-3.5" aria-hidden="true" />
-            {participantLabel(share.participant)}
-          </button>
-        );
-      })}
-    </fieldset>
-  );
-}
-
 /** The shared screen in focus, with its pointers, controls and screen picker. */
-export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
+export function ScreenStage({ shares, invites, focused, onFocus }: ScreenStageProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showMetrics, setShowMetrics] = useState(false);
   // Pointing mode applies to the screen it was turned on for: switching screens turns it off.
@@ -158,6 +126,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
   const { isFullscreen, canFullscreen, toggle: toggleFullscreen } = usePageFullscreen();
   const isOwnScreen = focused.participant.isLocal;
   const trackSid = focused.publication.trackSid;
+  const sectionRef = useStageFocusAfterWatch(trackSid);
   const annotations = useAnnotations(trackSid, videoRef, isOwnScreen);
   const pointing = isPointing(isOwnScreen, pointingAt, trackSid, annotations.tool !== undefined);
   const togglePointing = () => {
@@ -166,17 +135,19 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
   };
 
   useBroadcastPresenterPing();
-  useShortcut("f", () => void toggleFullscreen(), canFullscreen);
-  useShortcut("p", togglePointing, !isOwnScreen);
+  useRoomShortcut("fullscreen", () => void toggleFullscreen(), canFullscreen);
+  useRoomShortcut("point", togglePointing, !isOwnScreen);
 
   return (
     <section
+      ref={sectionRef}
+      tabIndex={-1}
       data-flip-id="stage"
       data-mascot-stage=""
       data-fullscreen={isFullscreen || undefined}
       aria-label={`Tela compartilhada por ${participantLabel(focused.participant)}`}
       className={cn(
-        "relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-line bg-black shadow-soft",
+        "relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-line bg-black shadow-soft outline-none",
         // Above the top bar, chat and dock; below tooltips (z-50) and notices.
         isFullscreen && "fixed inset-0 z-45 rounded-none border-0",
       )}
@@ -201,7 +172,7 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
             />
           </div>
           <div className="flex max-w-sm flex-col gap-1.5">
-            <p className="font-medium tracking-tight">Todos na sala estão vendo sua tela</p>
+            <p className="font-medium tracking-tight">Quem clicar em Assistir vê sua tela</p>
             <p className="text-sm text-ink-subtle">
               A prévia fica pequena para evitar o efeito espelho. Os pontos aparecem aqui.
             </p>
@@ -251,7 +222,18 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
               <Activity className="size-4" aria-hidden="true" />
             </button>
           </Hint>
-          {isOwnScreen ? null : <PointingButton pointing={pointing} onToggle={togglePointing} />}
+          {isOwnScreen ? null : (
+            <>
+              <ScreenSoundControl
+                // Another person's screen: "Voltar o som" must not bring back the last one's volume.
+                key={focused.participant.identity}
+                identity={focused.participant.identity}
+                name={participantLabel(focused.participant)}
+              />
+              <PointingButton pointing={pointing} onToggle={togglePointing} />
+              <StopWatchingButton trackSid={trackSid} />
+            </>
+          )}
           {/* Your own screen in a window would bring back the mirror effect. */}
           {isOwnScreen ? null : <PictureInPictureButton videoRef={videoRef} />}
           {canFullscreen ? (
@@ -274,12 +256,12 @@ export function ScreenStage({ shares, focused, onFocus }: ScreenStageProps) {
 
       {pointing ? (
         <p className="glass pointer-events-none absolute top-14 right-3 rounded-xl px-3 py-1.5 text-xs font-medium">
-          Clique na tela para apontar. Todos veem o ponto.
+          Clique na tela para apontar. Quem assiste vê o ponto.
         </p>
       ) : null}
 
-      {shares.length > 1 ? (
-        <SharePicker shares={shares} focusedSid={trackSid} onFocus={onFocus} />
+      {shares.length + invites.length > 1 ? (
+        <SharePicker shares={shares} invites={invites} focusedSid={trackSid} onFocus={onFocus} />
       ) : null}
     </section>
   );

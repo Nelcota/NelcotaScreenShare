@@ -163,9 +163,9 @@ test("a masked call stays connected across profile navigation and browser histor
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
     await page.getByRole("switch", { name: "Modo streamer" }).click();
     await expect(page).toHaveURL(/\/sala$/);
-    await page.getByRole("link", { name: "Editar perfil" }).click();
+    await page.getByRole("link", { name: "Configurações" }).click();
     await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
-    await page.getByRole("link", { name: "Voltar à sala", exact: true }).click();
+    await page.getByRole("link", { name: "Voltar à chamada", exact: true }).click();
     await expect(page).toHaveURL(/\/sala$/);
     await expect(page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();
     await page.goBack();
@@ -175,7 +175,7 @@ test("a masked call stays connected across profile navigation and browser histor
     await expect(page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new Event("nelcota:mutation")));
     await expect(page).toHaveURL(/\/sala$/);
-    await expect(page.getByLabel("Senha da sala (quem te convidou sabe)")).toHaveCount(0);
+    await expect(page.getByLabel("Senha da sala")).toHaveCount(0);
   } finally {
     await context.close();
   }

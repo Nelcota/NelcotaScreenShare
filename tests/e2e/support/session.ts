@@ -66,8 +66,18 @@ export async function joinRoom(page: Page, code: string, { micOn = true } = {}) 
   await expect(
     page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }),
   ).toBeEnabled();
-  if (!micOn) await page.getByRole("switch").first().click();
+  await setJoinMicrophone(page, micOn);
   await page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
   await page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
   await expect(page.getByRole("button", { name: /Sair/ })).toBeVisible();
+}
+
+/**
+ * Sets "Entrar com microfone ligado" on the pre-join. The screen remembers the last choice
+ * in this browser, so the switch is read before it is clicked.
+ */
+export async function setJoinMicrophone(page: Page, on: boolean) {
+  const microphone = page.getByRole("switch").first();
+  const checked = (await microphone.getAttribute("aria-checked")) === "true";
+  if (checked !== on) await microphone.click();
 }

@@ -38,9 +38,15 @@ export const controlGateway = {
         session.sharePolicy,
         session.allowedSharers,
       );
+      // The camera stays with the microphone: the policy only covers screen sharing.
       const sources = permitted
-        ? [TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
-        : [TrackSource.MICROPHONE];
+        ? [
+            TrackSource.MICROPHONE,
+            TrackSource.CAMERA,
+            TrackSource.SCREEN_SHARE,
+            TrackSource.SCREEN_SHARE_AUDIO,
+          ]
+        : [TrackSource.MICROPHONE, TrackSource.CAMERA];
       // LiveKit SetPermission removes already published tracks of revoked sources.
       try {
         await roomService().updateParticipant(session.mediaRoomName, participant.identity, {

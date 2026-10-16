@@ -8,7 +8,7 @@ import type { Participant } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
-import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useRoomShortcut } from "@/lib/hooks/use-shortcut-keys";
 import { useChatToasts } from "@/features/room/hooks/use-chat-toasts";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import {
@@ -121,12 +121,11 @@ export function useChatState(): ChatState {
         id: chatToastId(last.id),
         author: last.from,
         text: `${participantLabel(last.from)}: ${capChatText(last.message)}`,
-        onOpen: () => setOpenState(true),
       });
     }
   }, [open, chatMessages, showChatToast]);
 
-  useShortcut("c", () => setOpen(!open));
+  useRoomShortcut("chat", () => setOpen(!open));
 
   const unread = open
     ? 0

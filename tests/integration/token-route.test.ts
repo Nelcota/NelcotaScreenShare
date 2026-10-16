@@ -214,7 +214,12 @@ describe("token", () => {
     assert.equal(payload.name, "Dani Souza");
     const video = jsonObject.parse(payload.video);
     assert.equal(video.room, "sala-teste");
-    assert.deepEqual(video.canPublishSources, ["microphone", "screen_share", "screen_share_audio"]);
+    assert.deepEqual(video.canPublishSources, [
+      "microphone",
+      "camera",
+      "screen_share",
+      "screen_share_audio",
+    ]);
     assert.equal(video.canPublishData, true);
     // No changing one's own name in the room: the raised hand goes through the server.
     assert.equal(video.canUpdateOwnMetadata, undefined);

@@ -19,6 +19,8 @@ interface ConfirmDialogProps {
   title: string;
   description: ReactNode;
   confirmLabel: string;
+  /** Defaults to "Cancelar". */
+  cancelLabel?: string;
   danger?: boolean;
   pending?: boolean;
   /** Asks for a text (e.g. the block reason), passed on confirm. */
@@ -35,6 +37,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel = "Cancelar",
   danger,
   pending,
   reason,
@@ -101,7 +104,7 @@ export function ConfirmDialog({
           ) : null}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {cancelLabel}
             </Button>
             <Button
               type="submit"

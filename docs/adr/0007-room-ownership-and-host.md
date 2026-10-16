@@ -33,6 +33,7 @@ What changes:
 - Closing keeps a room that has an owner.
 - Transfer also changes the owner.
 - The relay signs the saved room role into the upstream token, and sync commands publish it.
+- Sync keeps the camera with the microphone.
 
 ## Consequences
 

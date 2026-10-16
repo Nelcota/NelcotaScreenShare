@@ -2,7 +2,9 @@ import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
 import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-address";
 import { useState, type ReactNode } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
+import { useRoomSwitchGuard } from "@/features/room/hooks/use-room-switch-guard";
 import { RoomSession } from "./RoomSession";
+import { RoomSwitchDialog } from "./RoomSwitchDialog";
 
 /** What the room page loads (`/sala/:codigo`). */
 export interface RoomEntry {
@@ -30,6 +32,7 @@ function HiddenRoomAddress({ entry, active }: { entry: RoomEntry; active: boolea
  * The room lives above the routes, so a call survives navigation: on the room page
  * it fills the screen; on any other page (the admin panel) it goes on minimized
  * until the person comes back. Outside a call, leaving the page discards it.
+ * Going to another room during a call asks first: confirming leaves this call.
  * `room`: the room page's data when it is the current page.
  */
 export function ActiveRoom({
@@ -41,6 +44,7 @@ export function ActiveRoom({
   renderColumn?: (inCall: boolean) => ReactNode;
 }) {
   const [call, setCall] = useState<RoomEntry>();
+  const pendingSwitch = useRoomSwitchGuard(call?.code, () => setCall(undefined));
   const entry = room ?? call;
   if (entry === undefined) return null;
 
@@ -48,7 +52,7 @@ export function ActiveRoom({
     <StreamerModeProvider>
       <HiddenRoomAddress entry={entry} active={room !== undefined} />
       <RoomSession
-        // Another room drops the current call.
+        // Another room drops the current call: unmounting disconnects it (mic and screen stop).
         key={entry.code}
         code={entry.code}
         unavailable={entry.unavailable}
@@ -65,6 +69,7 @@ export function ActiveRoom({
         renderColumn={room === undefined ? undefined : renderColumn}
         onCallChange={(inCall) => setCall(inCall ? entry : undefined)}
       />
+      <RoomSwitchDialog pending={pendingSwitch} />
     </StreamerModeProvider>
   );
 }

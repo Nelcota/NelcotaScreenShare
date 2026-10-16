@@ -173,6 +173,7 @@ export function RoomSession({
           onPrepareJoin={prepareRoomView}
           code={code}
           userName={userName}
+          userImage={userImage}
           passwordRequired={passwordRequired && !invite}
           invite={invite}
           presence={presence}

@@ -5,7 +5,7 @@ export type Theme = "dark" | "light";
 const STORAGE_KEY = "nelcota:tema";
 
 /** Browser bar color (phone) for each theme: same as `--color-canvas`. */
-export const THEME_COLOR: Record<Theme, string> = { dark: "#17181a", light: "#f4f2ee" };
+export const THEME_COLOR: Record<Theme, string> = { dark: "#17181a", light: "#e7ebe6" };
 
 /**
  * Runs in <head> before the first paint: applies the saved theme or, with no saved

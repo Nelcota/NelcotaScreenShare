@@ -40,7 +40,6 @@ function notice(id: string, identity?: string) {
     id,
     author: identity ? ({ identity } as Participant) : undefined,
     text: id,
-    onOpen: () => {},
   });
 }
 
@@ -61,6 +60,15 @@ test("unmount dismisses all active notices even before disconnect, including unk
   expect(capture.dismiss).toHaveBeenCalledWith("chat-unknown");
   expect(capture.dismiss).toHaveBeenCalledTimes(2);
   expect(capture.room?.eventNames()).toEqual([]);
+});
+
+test("a message notice goes to the call toaster, with nothing to click", () => {
+  notice("chat-pill", "ana");
+  expect(capture.toast.mock.calls[0]?.[1]).toMatchObject({
+    toasterId: "call",
+    className: "pointer-events-none",
+  });
+  expect(capture.toast.mock.calls[0]?.[1]).not.toHaveProperty("action");
 });
 
 test("auto-closed notices are released and never dismissed again on disconnect", () => {

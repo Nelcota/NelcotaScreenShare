@@ -3,11 +3,13 @@ import { useLocalParticipant, useParticipantAttribute } from "@livekit/component
 import type { Participant } from "livekit-client";
 import { useId, useState } from "react";
 import { toast } from "sonner";
+import { UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { removeFromCall } from "@/features/room/client/api";
 import { canModerate } from "@/features/room/domain/moderation";
 import { parseRoomRole, ROLE_ATTRIBUTE } from "@/features/room/domain/room-role";
+import { CardMenuItem } from "./CardMenuItem";
 import { useRoomHost } from "./RoomHostProvider";
 
 /** Whether I may remove this person: the owner removes anyone, a moderator participants. */
@@ -59,19 +61,13 @@ export function CardModeration({
 
   if (!confirming) {
     return (
-      <div className="border-t border-line pt-3">
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="flex h-10 w-full items-center justify-center rounded-xl text-base font-medium text-danger transition-colors hover:bg-danger/10"
-        >
-          Expulsar da sala
-        </button>
-      </div>
+      <CardMenuItem icon={<UserX />} danger onClick={() => setConfirming(true)}>
+        Expulsar
+      </CardMenuItem>
     );
   }
   return (
-    <div role="alertdialog" aria-label={`Expulsar ${name}?`} className="border-t border-line pt-3">
+    <div role="alertdialog" aria-label={`Expulsar ${name}?`} className="px-1 pt-1">
       <p className="text-base font-medium">Expulsar {name}?</p>
       <p className="mt-1 text-sm text-ink-muted">A pessoa sai da chamada agora.</p>
       <label htmlFor={banId} className="mt-3 flex items-center gap-2 text-sm">

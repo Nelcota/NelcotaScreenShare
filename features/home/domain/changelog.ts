@@ -24,6 +24,84 @@ export const CHANGE_LABELS: Record<ChangeKind, string> = {
  */
 export const RELEASES: Release[] = [
   {
+    date: "2026-10-12",
+    title: "Amigos, mensagens e o app depois do login",
+    changes: [
+      {
+        kind: "new",
+        text: "Amigos: adicione por e-mail, pelo código NELC ou por link de convite.",
+      },
+      { kind: "new", text: "Escolha seu status: Online, Ausente, Ocupado ou Invisível." },
+      {
+        kind: "new",
+        text: "Chame um amigo para a chamada. O toque aparece em qualquer página do Nelcota.",
+      },
+      { kind: "new", text: "Mensagens diretas e em grupo, com GIFs." },
+      { kind: "new", text: "Chame o grupo inteiro de dentro da conversa." },
+      {
+        kind: "new",
+        text: "O app ganhou uma coluna com amigos e mensagens, que acompanha você até na sala.",
+      },
+      { kind: "new", text: "Dono e moderadores da sala, que podem expulsar e banir da chamada." },
+      { kind: "new", text: "Transfira a sala para outra pessoa." },
+      { kind: "new", text: "Salas com entrada por aprovação." },
+      { kind: "new", text: "Câmera na chamada." },
+      { kind: "new", text: "Assista à tela de alguém só quando quiser." },
+      {
+        kind: "new",
+        text: "Desenhe na tela compartilhada: setas, círculos e traços que somem sozinhos.",
+      },
+      { kind: "new", text: "Volume da voz e da tela separado para cada pessoa." },
+      {
+        kind: "new",
+        text: "A chamada continua num cartão pequeno quando você sai da página da sala.",
+      },
+      { kind: "new", text: "Escolha microfone, saída de som e câmera em Minha conta." },
+      {
+        kind: "new",
+        text: "Teste o microfone na chamada ouvindo a própria voz, sem que ninguém escute.",
+      },
+      { kind: "new", text: "Troque as teclas dos atalhos da sala." },
+      { kind: "new", text: "Notificações de mensagem e de chamada com a aba em segundo plano." },
+      { kind: "new", text: "Denuncie uma pessoa, uma mensagem ou um grupo." },
+      { kind: "fix", text: "Um link de sala inventado não cria mais uma sala." },
+      { kind: "fix", text: "Trocar de sala pede confirmação e encerra a chamada da outra aba." },
+      { kind: "improvement", text: "Tema claro menos branco, com mais contraste entre as partes." },
+      { kind: "improvement", text: "Cartão de cada pessoa na sala mais simples." },
+    ],
+  },
+  {
+    date: "2026-10-11",
+    title: "Modo streamer e mais controle na chamada",
+    changes: [
+      {
+        kind: "new",
+        text: "Modo streamer: esconde o código, o link e o QR code da sala, inclusive na barra de endereço.",
+      },
+      { kind: "new", text: "Botão para parar de ouvir a sala sem sair da chamada." },
+      { kind: "new", text: "Troque seu nome durante a chamada." },
+      { kind: "new", text: "Escolha o som de aviso de mensagem nova no chat, ou desligue." },
+      {
+        kind: "new",
+        text: "Veja o FPS e o ping da tela compartilhada, inclusive de quem compartilha.",
+      },
+      { kind: "new", text: "Desligue os atalhos da sala enquanto joga." },
+      { kind: "fix", text: "Mãos levantadas aparecem com mais destaque na chamada." },
+      { kind: "fix", text: "Os avisos de quem entrou não se repetem mais ao reconectar." },
+      { kind: "fix", text: "A sala avisa quando todo mundo saiu e você ficou sozinho." },
+      { kind: "fix", text: "Dá para voltar a uma sala cheia em que você já estava." },
+      { kind: "fix", text: "O tema claro ou escuro pode ser trocado durante a chamada." },
+      { kind: "fix", text: "A foto de perfil aparece na barra do topo assim que a página abre." },
+      {
+        kind: "fix",
+        text: "O mascote fica no canto, sem trocar de pose sozinho durante a chamada.",
+      },
+      { kind: "improvement", text: "Tema claro com cores mais equilibradas." },
+      { kind: "improvement", text: "Animações suaves na página inicial." },
+      { kind: "improvement", text: "Brave na lista de navegadores compatíveis." },
+    ],
+  },
+  {
     date: "2026-10-08",
     title: "Convidados sem conta e mais recursos na sala",
     changes: [

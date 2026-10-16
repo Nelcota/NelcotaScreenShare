@@ -18,8 +18,16 @@
   --color-surface: #1f2023;
   --color-surface-2: #26272b;
   --color-surface-3: #2e2f34;
+  /* Fill of a borderless control on a surface (dock and call card buttons). */
+  --color-control: #2e2f34;
+  --color-control-hover: #393a40;
+  /* Participant tiles: the surface in the dark theme, a very light mint in the light one. */
+  --color-tile: #1f2023;
+  --color-tile-line: rgb(255 255 255 / 0.08);
   --color-line: rgb(255 255 255 / 0.08);
   --color-line-strong: rgb(255 255 255 / 0.14);
+  /* Off switch track: 3:1 against every surface and under the white thumb. */
+  --color-switch-off: #7a7b82;
 
   --color-ink: #fafafa;
   --color-ink-muted: #a1a1aa;
@@ -31,6 +39,9 @@
   --color-brand-hover: #b8ebc5;
   --color-brand-soft: #cdf2d6;
   --color-brand-ink: #14281c;
+  /* Disabled buttons: a flat fill, not a faded color. */
+  --color-disabled: #28292d;
+  --color-disabled-ink: #9a9aa3;
 
   --color-danger: #f87171;
   --color-success: #4ade80;
@@ -151,10 +162,11 @@
 }
 
 /*
- * Warm off-white background #F4F2EE with graphite text, not black.
+ * Light green-grey background #E7EBE6 with near-white surfaces on top, so the bar, the
+ * dock, the tiles and the cards stand apart from it; graphite text, not black.
  * Surfaces follow the same elevation as the dark theme: each step (surface, surface-2,
  * surface-3) sits closer to the viewer, so here it gets lighter, up to white.
- * The brand fill becomes a deep green with white text, so the call to action keeps its
+ * The brand fill becomes a vivid green with white text, so the call to action keeps its
  * weight on a light page; `brand-soft` is the dark green for text and icons.
  * Text contrast ≥ 4.5:1 on every surface, status colors included (also over
  * their own 15% tint, as in StatusBadge).
@@ -162,46 +174,53 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --color-canvas: #f4f2ee;
-  --color-surface: #faf9f6;
-  --color-surface-2: #fdfcfa;
+  --color-canvas: #e7ebe6;
+  --color-surface: #fcfdfb;
+  --color-surface-2: #f1f4f0;
   --color-surface-3: #ffffff;
-  --color-line: rgb(40 36 28 / 0.1);
-  --color-line-strong: rgb(40 36 28 / 0.17);
+  --color-control: #e4e8e3;
+  --color-control-hover: #d9ded8;
+  --color-tile: #f3f8f4;
+  --color-tile-line: rgb(27 118 64 / 0.18);
+  --color-line: rgb(24 32 27 / 0.12);
+  --color-line-strong: rgb(24 32 27 / 0.2);
+  --color-switch-off: #7f8188;
 
   --color-ink: #1f2023;
   --color-ink-muted: #4f5157;
-  --color-ink-subtle: #6a6c73;
+  --color-ink-subtle: #63666d;
 
-  --color-brand: #2f7d4a;
-  --color-brand-hover: #28703f;
-  --color-brand-soft: #236339;
+  --color-brand: #1b7640;
+  --color-brand-hover: #196f3c;
+  --color-brand-soft: #1b6b3b;
   --color-brand-ink: #ffffff;
+  --color-disabled: #f1f2f4;
+  --color-disabled-ink: #64676e;
 
-  --color-danger: #a32626;
+  --color-danger: #ad1a1a;
   --color-success: #146432;
   --color-warning: #7a4f08;
   --color-status-away: #ca8a04;
   --color-info: #1c4fb5;
   --color-violet: #6236b8;
 
-  --shadow-soft: 0 1px 0 0 rgb(255 255 255 / 0.45) inset, 0 10px 28px -18px rgb(40 34 20 / 0.28);
+  --shadow-soft: 0 1px 0 0 rgb(255 255 255 / 0.6) inset, 0 12px 30px -16px rgb(24 32 27 / 0.3);
 
-  --background: #f4f2ee;
+  --background: #e7ebe6;
   --foreground: #1f2023;
-  --card: #faf9f6;
+  --card: #fcfdfb;
   --card-foreground: #1f2023;
-  --popover: #fdfcfa;
+  --popover: #ffffff;
   --popover-foreground: #1f2023;
-  --secondary: #fdfcfa;
+  --secondary: #fdfdfd;
   --secondary-foreground: #1f2023;
-  --muted: #fdfcfa;
+  --muted: #fdfdfd;
   --muted-foreground: #4f5157;
   --accent: #ffffff;
   --accent-foreground: #1f2023;
-  --destructive: #a32626;
-  --border: rgb(40 36 28 / 0.1);
-  --input: rgb(40 36 28 / 0.14);
+  --destructive: #ad1a1a;
+  --border: rgb(24 32 27 / 0.12);
+  --input: rgb(24 24 27 / 0.14);
 }
 
 /* Mascot saturation, edited in /admin (the layout sets the per-theme values). */
@@ -439,6 +458,23 @@
 
 .toaster[data-sonner-toaster] {
   font-family: var(--font-sans);
+}
+
+/* On wide screens the open room chat is a column on the right: the room notices move to its
+ * left instead of covering the messages (24rem panel + its 1.5rem margin + a 1rem gap). */
+@media (min-width: 1024px) {
+  body:has([data-chat-open]) .toaster[data-sonner-toaster][data-x-position="right"] {
+    right: 26.5rem;
+  }
+}
+
+/* Narrower, the open chat takes almost the whole width: the room notices (who joined or left,
+ * new messages) stay hidden while it is open, since the chat already shows the messages.
+ * Errors and call notices open at the top and keep showing. */
+@media (max-width: 1023.98px) {
+  body:has([data-chat-open]) .toaster[data-sonner-toaster][data-x-position="right"] {
+    display: none;
+  }
 }
 
 /* Admin navigation shares the app's floating surfaces. Outside @layer so the

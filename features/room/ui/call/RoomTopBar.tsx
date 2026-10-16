@@ -1,31 +1,29 @@
+import { useLocalParticipant } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
+import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { Check, Copy, LayoutDashboard, MoreHorizontal } from "lucide-react";
 import { Link } from "react-router";
 import { Hint } from "@/components/Hint";
-import {
-  NavBar,
-  NavBrand,
-  NavDivider,
-  NavPopover,
-  ShortcutsPanel,
-} from "@/components/shell/NavBar";
+import { NavBar, NavBrand, NavDivider, NavPopover } from "@/components/shell/NavBar";
 import { navItemClass } from "@/components/shell/nav-item-class";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
-import { participantName } from "@/features/room/domain/participant-label";
+import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { useRoomName } from "@/features/room/hooks/use-room-roles";
 import { cn } from "@/lib/utils";
 import { NameEditor } from "./NameEditor";
 import { ParticipantAvatar } from "./ParticipantAvatar";
+import { ShortcutsHelp } from "./ShortcutsHelp";
 import { RoleBadge } from "./RoleBadge";
 import { RoomAccessChip } from "./RoomAccessChip";
 import { HostBadge } from "./HostBadge";
 import { HostParticipantMenu } from "./HostParticipantMenu";
 import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { HostControlsMenu } from "./HostControlsMenu";
+import { startPath } from "@/features/room/domain/start-path";
 import type { Connection } from "./RoomLayout";
 
 const CONNECTION_LABELS: Record<Connection, string> = {
@@ -33,6 +31,17 @@ const CONNECTION_LABELS: Record<Connection, string> = {
   connecting: "Conectando",
   reconnecting: "Reconectando",
 };
+
+/** Someone's name in the list, kept current when they rename themselves. */
+function PersonName({ participant }: { participant: Participant }) {
+  const { name } = useParticipantName(participant);
+  return (
+    <span className="truncate">
+      {name}
+      {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
+    </span>
+  );
+}
 
 /**
  * "Sala de Ana · abc-defg-hij" that copies the link; the confirmation appears on the button
@@ -144,10 +153,7 @@ function PeopleButton({
               roomCode={roomCode}
               className="size-9 shrink-0 bg-brand/20 text-sm font-medium text-brand-soft"
             />
-            <span className="truncate">
-              {participantName(participant)}
-              {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
-            </span>
+            <PersonName participant={participant} />
             <RoleBadge participant={participant} />
             <HostBadge identity={participant.identity} />
             <ParticipantAudioMenu participant={participant} />
@@ -162,7 +168,7 @@ function PeopleButton({
   );
 }
 
-/** Room link, connection state, participants, your name, shortcuts and theme. */
+/** Room link, connection state, participants, your name, shortcuts help and theme. */
 export function RoomTopBar({
   code,
   participants,
@@ -183,9 +189,12 @@ export function RoomTopBar({
   const streamer = useStreamerMode();
   const streamerId = useId();
   const name = useRoomName(participants, roomName);
+  const { localParticipant } = useLocalParticipant();
+  // The way back to the start, like everywhere else; the call goes on minimized.
+  const startHref = startPath(!isGuestIdentity(localParticipant.identity));
   return (
     <NavBar aria-label="Sala" className="mx-auto max-w-5xl">
-      <NavBrand showName={false} className="max-sm:hidden" />
+      <NavBrand href={startHref} showName={false} className="max-sm:hidden" />
       <NavDivider className="max-sm:hidden" />
       <RoomCodeButton code={code} name={name} />
       <RoomAccessChip code={code} />
@@ -217,6 +226,7 @@ export function RoomTopBar({
           </Link>
         </Hint>
       ) : null}
+      <ShortcutsHelp className="max-sm:hidden" />
       <ThemeToggle className="max-sm:hidden" />
       <NavPopover
         label="Mais opções"
@@ -237,15 +247,12 @@ export function RoomTopBar({
             Esconde o código, o link e o QR code da sala, inclusive na barra de endereço.
           </p>
         </div>
-        <div className="mb-4 border-b border-line pb-4">
+        <div className="max-sm:mb-4 max-sm:border-b max-sm:border-line max-sm:pb-4">
           <NameEditor code={code} />
         </div>
         <div className="flex items-center justify-between gap-3 sm:hidden">
           <span className="text-base font-medium">Tema claro ou escuro</span>
           <ThemeToggle />
-        </div>
-        <div className="mt-4 border-t border-line pt-4 sm:mt-0 sm:border-0 sm:pt-0">
-          <ShortcutsPanel />
         </div>
       </NavPopover>
     </NavBar>

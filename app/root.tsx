@@ -108,14 +108,15 @@ export function Layout({ children }: { children: ReactNode }) {
             {children}
           </TooltipProvider>
         </NuqsAdapter>
-        {/* Expanded and capped at 3 so notices never overlap. The bottom offset (used by the
-            room notices at the bottom right) keeps them above the call's control dock. */}
+        {/* Expanded and capped at 3 so notices never overlap. The top offset keeps them below
+            the top bar; the bottom one (used by the room notices at the bottom right) keeps
+            them above the call's control dock. */}
         <Toaster
           position="top-center"
           expand
           visibleToasts={3}
-          offset={{ bottom: "8.5rem" }}
-          mobileOffset={{ bottom: "7.5rem" }}
+          offset={{ top: "5rem", bottom: "8.5rem" }}
+          mobileOffset={{ top: "5rem", bottom: "7.5rem" }}
         />
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />

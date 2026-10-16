@@ -117,17 +117,38 @@ export interface ShareChoice {
   audio: boolean;
 }
 
+/** What a Nelcota tab in a call tells whoever captures it (Chromium's Capture Handle). */
+export const CALL_CAPTURE_HANDLE = "nelcota-call";
+
+/** Is the captured tab a Nelcota tab in a call? */
+export function capturesCall(captureHandle: { handle?: string } | null | undefined): boolean {
+  return captureHandle?.handle === CALL_CAPTURE_HANDLE;
+}
+
 /**
  * Computer audio from a whole screen or a window also carries the room's own playback.
  * Chromium 141+ strips it (`restrictOwnAudio`); without that, the others would hear their
- * own voice coming back. A tab's audio is safe: our own tab is never offered.
+ * own voice coming back. Our own tab is never offered, but another tab in a call plays
+ * a room too.
  */
 export function echoesRoomAudio(
   surface: string | undefined,
   ownAudioRestricted: boolean | undefined,
+  capturedCall = false,
 ): boolean {
+  if (capturedCall) return true;
   if (surface === "browser") return false;
   return ownAudioRestricted !== true;
+}
+
+/**
+ * Does the browser send sound from this surface? A window never does. A whole screen
+ * only where the room can be stripped from it: elsewhere the computer audio is not asked for.
+ */
+export function surfaceHasAudio(surface: ShareSurface, ownAudioRestrictable: boolean): boolean {
+  if (surface === "window") return false;
+  if (surface === "monitor") return ownAudioRestrictable;
+  return true;
 }
 
 /** Does this browser strip the page's own playback from the computer audio? (client only) */

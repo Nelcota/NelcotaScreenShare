@@ -2,18 +2,18 @@ import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent, type Participant } from "livekit-client";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { showCallNotice } from "@/features/room/client/call-notices";
 
 interface ChatToast {
   id: string;
   author: Participant | undefined;
   text: string;
-  onOpen: () => void;
 }
 
 /**
- * New-message notices during a call: shown at the bottom right, so the room's top bar
- * stays readable, and removed when their author leaves the room (or the call ends),
- * since a message from someone who is gone no longer calls for "Abrir".
+ * New-message notices during a call: a pill at the top right that clicks pass through (the
+ * chat opens from the dock, or with C), removed when their author leaves the room (or the
+ * call ends), since a message from someone who is gone is old news.
  */
 export function useChatToasts() {
   const room = useRoomContext();
@@ -43,7 +43,7 @@ export function useChatToasts() {
   }, [room]);
 
   // Stable across renders: it only touches the ref, so effects can depend on it.
-  return useCallback(({ id, author, text, onOpen }: ChatToast) => {
+  return useCallback(({ id, author, text }: ChatToast) => {
     const identity = author?.identity;
     const ids = shownByAuthor.current.get(identity) ?? new Set<string>();
     shownByAuthor.current.set(identity, ids.add(id));
@@ -54,12 +54,6 @@ export function useChatToasts() {
       current.delete(id);
       if (current.size === 0) shown.delete(identity);
     };
-    toast(text, {
-      id,
-      position: "bottom-right",
-      action: { label: "Abrir", onClick: onOpen },
-      onDismiss: release,
-      onAutoClose: release,
-    });
+    showCallNotice(text, { id, onDismiss: release, onAutoClose: release });
   }, []);
 }

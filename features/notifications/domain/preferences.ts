@@ -2,6 +2,8 @@
 export interface NotificationPreferences {
   /** Ring when someone calls you. */
   ringSound: boolean;
+  /** Short sounds when you turn your microphone or the room's sound on and off. */
+  callSounds: boolean;
   /** Show system notifications while the tab is in the background (needs the permission). */
   browserNotifications: boolean;
   /** "Agora não" on our offer: it stays quiet until this time (ms); /conta still asks. */
@@ -10,6 +12,7 @@ export interface NotificationPreferences {
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = Object.freeze({
   ringSound: true,
+  callSounds: true,
   browserNotifications: true,
   promptSnoozedUntil: 0,
 });
@@ -21,7 +24,10 @@ function savedValue(saved: object, key: keyof NotificationPreferences): unknown 
   return Object.getOwnPropertyDescriptor(saved, key)?.value;
 }
 
-function booleanOr(saved: object, key: "ringSound" | "browserNotifications"): boolean {
+function booleanOr(
+  saved: object,
+  key: "ringSound" | "callSounds" | "browserNotifications",
+): boolean {
   const value = savedValue(saved, key);
   if (typeof value === "boolean") return value;
   return DEFAULT_NOTIFICATION_PREFERENCES[key];
@@ -38,6 +44,7 @@ export function readNotificationPreferences(saved: unknown): NotificationPrefere
   if (!saved || typeof saved !== "object") return DEFAULT_NOTIFICATION_PREFERENCES;
   return Object.freeze({
     ringSound: booleanOr(saved, "ringSound"),
+    callSounds: booleanOr(saved, "callSounds"),
     browserNotifications: booleanOr(saved, "browserNotifications"),
     promptSnoozedUntil: timeOr(saved, "promptSnoozedUntil"),
   });

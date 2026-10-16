@@ -95,7 +95,7 @@ export function Composer({
           type="submit"
           aria-label="Enviar"
           disabled={!body}
-          className="disabled:bg-disabled disabled:text-disabled-ink grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-brand-ink hover:bg-brand-hover"
+          className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-brand-ink hover:bg-brand-hover disabled:bg-disabled disabled:text-disabled-ink"
         >
           <SendHorizontal className="size-4" aria-hidden="true" />
         </button>

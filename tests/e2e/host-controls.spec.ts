@@ -183,11 +183,11 @@ test("admitted participant reconnects under lock and host authority survives nav
     await expect(member.page.locator('audio[data-source="voice"]')).toHaveCount(1);
     await host.page.keyboard.press("Escape");
     await host.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await host.page.getByRole("link", { name: "Editar perfil" }).click();
+    await host.page.getByRole("link", { name: "Configurações" }).click();
     await expect(
       host.page.getByRole("complementary", { name: "Chamada em andamento" }),
     ).toBeVisible();
-    await host.page.getByRole("link", { name: "Voltar à sala", exact: true }).click();
+    await host.page.getByRole("link", { name: "Voltar à chamada", exact: true }).click();
     await host.page.getByRole("button", { name: "Controles do anfitrião" }).click();
     await expect(host.page.getByRole("switch", { name: "Bloquear novas entradas" })).toBeChecked();
     await expect(host.page.getByLabel("Quem pode compartilhar tela")).toHaveValue("host");

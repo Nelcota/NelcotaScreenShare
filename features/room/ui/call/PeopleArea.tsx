@@ -27,7 +27,7 @@ function StageStrip({
     <div
       data-mascot-participants=""
       className={cn(
-        "flex shrink-0 gap-3 overflow-x-auto p-1 lg:w-48 lg:flex-col lg:gap-4 lg:overflow-x-visible lg:overflow-y-auto",
+        "flex shrink-0 gap-3 overflow-x-auto p-1 lg:w-60 lg:flex-col lg:gap-4 lg:overflow-x-visible lg:overflow-y-auto",
         // Phone on its side: the strip would leave the stage a sliver; the top bar lists people.
         "max-lg:[@media(max-height:32rem)]:hidden",
       )}

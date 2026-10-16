@@ -1,5 +1,15 @@
 type Cell = { column: number; row: number };
 
+/** Artwork offsets keep accessories aligned with each atlas pose. */
+export const AVATAR_OFFSETS = [
+  { x: 0, y: 0 },
+  { x: 488, y: 0 },
+  { x: 998, y: 0 },
+  { x: -24, y: 512 },
+  { x: 488, y: 512 },
+  { x: 998, y: 512 },
+];
+
 const NEUTRAL: Cell = { column: 0, row: 0 };
 const EYES_CLOSED: Cell = { column: 0, row: 1 };
 
@@ -8,7 +18,7 @@ const CELLS = new Map<string, Cell>([
   ["happy", { column: 1, row: 0 }],
   ["celebrate", { column: 1, row: 0 }],
   ["highFive", { column: 1, row: 0 }],
-  ["presenting", { column: 1, row: 0 }],
+  ["welcoming", { column: 1, row: 0 }],
   ["grumpy", { column: 1, row: 1 }],
   ["worried", { column: 1, row: 1 }],
   ["skeptical", { column: 1, row: 1 }],

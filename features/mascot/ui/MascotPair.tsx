@@ -4,7 +4,7 @@ import { createPairController } from "@/features/mascot/client/pair-controller";
 import { pairActivity, type PairPhase } from "@/features/mascot/domain/pair";
 import styles from "./MascotPair.module.css";
 
-/** Both cross the bar together; a single clock keeps the meeting in sync. */
+/** One invites, the other takes its time; a shared clock keeps their high five in sync. */
 export function MascotPair({
   pending,
   compact = false,
@@ -38,7 +38,7 @@ export function MascotPair({
     controllerRef.current?.setPending(pending);
   }, [pending]);
 
-  const activity = pairActivity(suspended ? "rest" : phase, pending);
+  const activePhase = suspended ? "rest" : phase;
 
   return (
     <div
@@ -55,7 +55,8 @@ export function MascotPair({
             className={styles.mascot}
             sizes="(min-width: 640px) 384px, 336px"
             facing={phase === "return" ? "left" : "right"}
-            activity={activity}
+            activity={pairActivity(activePhase, pending, "curious")}
+            temperament="curious"
             canSleep={!pending}
           />
         </div>
@@ -64,15 +65,17 @@ export function MascotPair({
         <div className={styles.actor}>
           <Mascot
             className={styles.mascot}
+            accessory="headphones"
             sizes="(min-width: 640px) 384px, 336px"
             facing={phase === "return" ? "right" : "left"}
-            activity={activity}
+            activity={pairActivity(activePhase, pending, "calm")}
+            temperament="calm"
             canSleep={!pending}
           />
         </div>
       </div>
       <span aria-hidden="true" className={styles.message}>
-        Toca aqui!
+        High five!
       </span>
       <svg aria-hidden="true" viewBox="0 0 40 40" className={styles.contact}>
         <path d="M20 5v7m-12 0 5 5m19-5-5 5M5 25l7-2m23 2-7-2" />

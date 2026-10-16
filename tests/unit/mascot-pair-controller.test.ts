@@ -70,7 +70,7 @@ function fixture() {
 
 test("pending freezes the position and the controller resumes without restarting the encounter", () => {
   const f = fixture();
-  vi.advanceTimersByTime(7000);
+  vi.advanceTimersByTime(8200);
   expect(f.phase).toBe("approach");
   f.controller.setPending(true);
   const frozen = f.properties.get("--visitor-x");
@@ -87,7 +87,7 @@ test("pending freezes the position and the controller resumes without restarting
 
 test("resizing retargets the movement without honoring the old deadline", () => {
   const f = fixture();
-  vi.advanceTimersByTime(8800);
+  vi.advanceTimersByTime(10_000);
   f.scene.clientWidth = 1000;
   f.resize();
   vi.advanceTimersByTime(600);
@@ -99,7 +99,7 @@ test("resizing retargets the movement without honoring the old deadline", () => 
 
 test("a hidden tab and reduced motion also freeze the ready deadline", () => {
   const f = fixture();
-  vi.advanceTimersByTime(9400);
+  vi.advanceTimersByTime(10_600);
   expect(f.phase).toBe("ready");
   f.doc.hidden = true;
   f.doc.dispatchEvent(new Event("visibilitychange"));

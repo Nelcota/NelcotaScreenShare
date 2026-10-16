@@ -2,10 +2,11 @@ import { useId, useRef, useState, type CSSProperties, type RefObject } from "rea
 import { Hint } from "@/components/Hint";
 import { avatarFrame } from "@/features/mascot/domain/avatar-frames";
 import type { Expression } from "@/features/mascot/domain/face";
-import type { MascotActivity } from "@/features/mascot/domain/personality";
+import type { MascotActivity, MascotTemperament } from "@/features/mascot/domain/personality";
 import { allowsPlay } from "@/features/mascot/domain/rules";
 import { cn } from "@/lib/utils";
 import { useMascot } from "../hooks/use-mascot";
+import { MascotAccessories, type MascotAccessory } from "./MascotAccessories";
 import { SpriteEyes } from "./SpriteEyes";
 import styles from "./Mascot.module.css";
 
@@ -13,10 +14,14 @@ const atlas = "/mascot/nelcota-mint-atlas.webp";
 
 interface MascotProps {
   className?: string;
+  accessory?: MascotAccessory;
   expression?: Expression;
   canSleep?: boolean;
   sizes?: string;
   activity?: MascotActivity;
+  temperament?: MascotTemperament;
+  /** Monotonic room-arrival cue; updates greet once without remounting the mascot. */
+  welcome?: number;
   voiceLevelRef?: RefObject<number>;
   /**
    * Which way it faces. The original art looks to the left;
@@ -28,18 +33,21 @@ interface MascotProps {
 /** The mint-green mascot's poses preserve the approved art in every reaction. */
 export function Mascot({
   className,
+  accessory,
   expression = "neutral",
   canSleep = true,
   sizes = "(min-width: 640px) 624px, 528px",
   facing = "left",
   activity = "idle",
+  temperament = "curious",
+  welcome = 0,
   voiceLevelRef,
 }: MascotProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const faceRef = useRef<HTMLDivElement>(null);
   const footClipId = useId();
   const [initialPose] = useState(() => avatarFrame(expression));
-  useMascot(rootRef, faceRef, expression, canSleep, activity, voiceLevelRef);
+  useMascot(rootRef, faceRef, expression, canSleep, activity, temperament, welcome, voiceLevelRef);
   const faceStyle: CSSProperties & Record<`--${string}`, string | number> = {
     "--sprite-column": initialPose.column,
     "--sprite-row": initialPose.row,
@@ -56,6 +64,7 @@ export function Mascot({
       data-slot="mascot"
       data-expression={expression}
       data-facing={facing}
+      data-temperament={temperament}
       className={cn(
         "relative shrink-0 touch-manipulation [forced-color-adjust:none] select-none",
         styles.root,
@@ -110,6 +119,7 @@ export function Mascot({
                   "translate(calc(var(--sprite-column) * -33.333333%), calc(var(--sprite-row) * -50%))",
               }}
             >
+              <MascotAccessories accessory={accessory} layer="back" />
               <img
                 src={atlas}
                 alt=""
@@ -119,6 +129,7 @@ export function Mascot({
                 className="absolute inset-0 size-full"
               />
               <SpriteEyes />
+              <MascotAccessories accessory={accessory} layer="front" />
             </div>
             <svg viewBox="0 0 512 512" className={styles.foot}>
               <path d="M184 472 Q179 486 207 486 L235 486 Q241 480 235 474" fill="#78bd90" />

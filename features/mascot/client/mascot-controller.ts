@@ -53,13 +53,32 @@ export function createMascotController(
   inputs: MascotInputs,
 ) {
   const core = createMascotCore(root, face, renderer, inputs, () => signals.attentionTarget());
-  const { state, hands, reasons, animator, personality, move } = core;
+  const { state, hands, reasons, animator, personality, host, move } = core;
   const { setReason, clearReason, toggleReason, update } = core;
   const dropReason = (reason: Reason) => void reasons.delete(reason);
+  let pendingHost: { kind: "welcome" | "presenting"; until: number } | undefined;
+
+  function cueHost(kind: "welcome" | "presenting") {
+    if (document.hidden) return;
+    // A first arrival or share also reveals the corner; let its observer catch up.
+    if (!state.onScreen) {
+      pendingHost = { kind, until: performance.now() + 1500 };
+      return;
+    }
+    pendingHost = undefined;
+    onActivity();
+    personality.cancel();
+    if (kind === "presenting") {
+      host.present();
+      return;
+    }
+    host.welcome();
+  }
 
   const signals = listenToSignals({
     personality,
     hands,
+    host,
     onActivity,
     dropReason,
     setReason,
@@ -93,6 +112,7 @@ export function createMascotController(
     activity: inputs.activity,
     visible: () => state.onScreen && !document.hidden,
     sleeping: () => isSleeping(state.current),
+    temperament: () => inputs.temperament?.() ?? "curious",
   });
 
   const stopPageInput = subscribePageInput(
@@ -115,12 +135,14 @@ export function createMascotController(
 
   // Pauses animations off screen or with the tab hidden.
   function pauseMotion() {
+    pendingHost = undefined;
     root.dataset.motion = "paused";
     animator.pause();
     core.cancelQueuedUpdate();
     touch.cancelPress();
     core.stopBody();
     personality.cancel();
+    host.cancel();
     hands.cancel();
     sleep.stop();
   }
@@ -129,8 +151,13 @@ export function createMascotController(
   update();
 
   /** The activity changed (walking, presenting…): the context expression follows. */
+  let previousActivity: ReturnType<MascotInputs["activity"]> | undefined;
   function syncContext() {
     const nextActivity = inputs.activity();
+    if (previousActivity === nextActivity) return;
+    previousActivity = nextActivity;
+    pendingHost = undefined;
+    host.cancel();
     // A pat or "high five" in progress survives the pair's walk; anything else interrupts it.
     if (!allowsPlay(nextActivity)) personality.cancel();
     if (nextActivity !== "idle") {
@@ -139,6 +166,7 @@ export function createMascotController(
     }
     toggleReason("context", nextActivity === "idle" ? undefined : nextActivity);
     update();
+    if (nextActivity === "presenting") cueHost("presenting");
     sleep.check();
   }
   syncContext();
@@ -154,6 +182,9 @@ export function createMascotController(
     }
     onActivity();
     update();
+    const pending = pendingHost;
+    pendingHost = undefined;
+    if (pending && performance.now() < pending.until) cueHost(pending.kind);
   });
   visibility.observe(root);
 
@@ -161,6 +192,7 @@ export function createMascotController(
     /** The resting expression changed. */
     update,
     syncContext,
+    welcome: () => cueHost("welcome"),
     /** Sleep was turned on or off: turned off mid-nap, it wakes up immediately. */
     resetSleep() {
       if (!inputs.canSleep() && reasons.delete("sleep")) update();

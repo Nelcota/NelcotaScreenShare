@@ -5,10 +5,12 @@ import type { Reason } from "@/features/mascot/domain/reasons";
 import { ATTENTION_MS, reactionTo, type MascotSignal } from "@/features/mascot/domain/rules";
 import { onMascotSignal } from "@/features/mascot/client/events";
 import type { createHandMotions } from "./hand-motions";
+import type { createHostMotions } from "./host-motions";
 
 interface SignalContext {
   personality: ReturnType<typeof createPersonality>;
   hands: ReturnType<typeof createHandMotions>;
+  host: ReturnType<typeof createHostMotions>;
   onActivity: () => void;
   dropReason: (reason: Reason) => void;
   setReason: (reason: Reason, expression: Expression, durationMs?: number) => void;
@@ -39,6 +41,7 @@ export function listenToSignals(ctx: SignalContext) {
 
   function onSignal(signal: MascotSignal) {
     ctx.onActivity();
+    ctx.host.cancel();
     ctx.personality.cancel();
     const reaction = reactionTo(signal);
     for (const reason of reaction.clear) ctx.dropReason(reason);

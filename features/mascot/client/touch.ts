@@ -1,6 +1,10 @@
-import { PRESS, type Motion } from "@/features/mascot/domain/body-motions";
+import { NOD, PRESS, type Motion } from "@/features/mascot/domain/body-motions";
 import type { Expression } from "@/features/mascot/domain/face";
-import type { createPersonality, MascotActivity } from "@/features/mascot/domain/personality";
+import type {
+  createPersonality,
+  MascotActivity,
+  MascotTemperament,
+} from "@/features/mascot/domain/personality";
 import { canGreet, GREETING_COOLDOWN_MS } from "@/features/mascot/domain/rules";
 import type { createHandMotions } from "./hand-motions";
 
@@ -15,6 +19,7 @@ interface TouchContext {
   visible(): boolean;
   /** Asleep or sleepy: does not wave when loading finishes. */
   sleeping(): boolean;
+  temperament(): MascotTemperament;
 }
 
 /**
@@ -57,6 +62,10 @@ export function attachTouch(ctx: TouchContext) {
     if (!canGreet(ctx.current())) return;
     if (!ctx.visible() || performance.now() - lastGreeting < GREETING_COOLDOWN_MS) return;
     lastGreeting = performance.now();
+    if (ctx.temperament() === "calm") {
+      ctx.move(NOD);
+      return;
+    }
     if (!personality.offerHighFive()) hands.wave();
   };
 

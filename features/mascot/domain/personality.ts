@@ -10,7 +10,9 @@ export type MascotActivity =
   | "listening"
   | "presenting"
   | "walking"
+  | "noticing"
   | "greeting";
+export type MascotTemperament = "curious" | "calm";
 export type Gesture = "pet" | "highFive" | "highFiveHit" | "yawn" | "stretch" | "sneeze";
 
 /** Ignores low noise; invalid inputs never reach the springs or the CSS. */

@@ -83,6 +83,9 @@ function pairPartner(root: Element): Element | undefined {
 export function focusTarget(root: Element, focus: GazeFocus): Element | undefined {
   if (focus === "partner") return pairPartner(root);
   if (focus === "stage") return document.querySelector("[data-mascot-stage]") ?? undefined;
+  if (focus === "participants") {
+    return document.querySelector("[data-mascot-participants]") ?? undefined;
+  }
   return undefined;
 }
 

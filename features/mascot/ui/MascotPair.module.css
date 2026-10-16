@@ -25,10 +25,12 @@
 }
 
 .resident {
+  --cheer-height: -2.5%;
   left: 84%;
 }
 
 .visitor {
+  --cheer-height: -8%;
   left: 16%;
 }
 
@@ -53,6 +55,10 @@
   animation: joy 700ms ease-in-out;
 }
 
+.scene[data-phase="cheer"] .resident .actor {
+  animation-delay: 140ms;
+}
+
 .message {
   position: absolute;
   top: 21%;
@@ -69,6 +75,8 @@
   pointer-events: none;
 }
 
+.scene[data-phase="invite"] .message,
+.scene[data-phase="answer"] .message,
 .scene[data-phase="ready"] .message,
 .scene[data-phase="hit"] .message {
   opacity: 1;
@@ -117,7 +125,7 @@
     transform: translateY(0);
   }
   40% {
-    transform: translateY(-6%);
+    transform: translateY(var(--cheer-height));
   }
 }
 

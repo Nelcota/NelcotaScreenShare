@@ -26,6 +26,7 @@ export function PeopleArea({
   const shrinkOwn = !hasStage && othersPresenting(participants, sharingIds);
   return (
     <div
+      data-mascot-participants=""
       className={cn(
         hasStage
           ? cn(

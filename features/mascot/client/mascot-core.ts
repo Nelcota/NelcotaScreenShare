@@ -5,6 +5,7 @@ import {
   createPersonality,
   voiceAmount,
   type MascotActivity,
+  type MascotTemperament,
 } from "@/features/mascot/domain/personality";
 import { createReasons, type Reason } from "@/features/mascot/domain/reasons";
 import {
@@ -14,6 +15,7 @@ import {
   gazeFocus,
   isSleeping,
   listeningFace,
+  temperamentFace,
   waitingGaze,
 } from "@/features/mascot/domain/rules";
 import { prefersReducedMotion } from "@/lib/animation/motion";
@@ -21,6 +23,7 @@ import { createFaceAnimator } from "./face-animator";
 import type { FaceRenderer } from "./face-renderer";
 import { focusTarget, gazeFor, passwordEyes } from "./gaze";
 import { createHandMotions } from "./hand-motions";
+import { createHostMotions } from "./host-motions";
 
 /** What the component tells the controller (read on demand, without recreating anything). */
 export interface MascotInputs {
@@ -29,6 +32,7 @@ export interface MascotInputs {
   activity: () => MascotActivity;
   /** Voice level (0–1) for "listening". */
   voice: () => number;
+  temperament?: () => MascotTemperament;
 }
 
 /** What changes while the mascot lives; the controller and the core share this object. */
@@ -44,6 +48,7 @@ interface GestureParts {
   hands: ReturnType<typeof createHandMotions>;
   personality: ReturnType<typeof createPersonality>;
   animator: ReturnType<typeof createFaceAnimator>;
+  host: ReturnType<typeof createHostMotions>;
 }
 
 /** Face and gaze targets for the current expression. */
@@ -52,11 +57,13 @@ function createMascotLook(
   face: HTMLElement,
   state: MascotState,
   attentionTarget: () => Element | undefined,
+  inputs: MascotInputs,
 ) {
   const eyeOverride = () => passwordEyes(state.current);
 
   function faceTarget() {
-    return toFaceState(EXPRESSIONS[state.current], eyeOverride());
+    const pose = toFaceState(EXPRESSIONS[state.current], eyeOverride());
+    return temperamentFace(pose, state.current, inputs.temperament?.() ?? "curious");
   }
 
   function gazeTarget() {
@@ -124,22 +131,22 @@ function createBodyMotion(root: HTMLElement, state: MascotState) {
 
 /** Hands and gestures that the current expression does not allow stop here. */
 function settleGestures(
-  { hands, personality, animator }: GestureParts,
-  previous: Expression,
+  { hands, personality, animator, host }: GestureParts,
   current: Expression,
   eyes: readonly [number, number] | undefined,
 ) {
-  if (previous === "presenting" && current !== "presenting") hands.cancel();
   // The closed pose takes priority over a wave started before the password got focus.
   if (eyes || isSleeping(current)) hands.cancel();
   if (personality.active && (eyes || blocksPlay(current))) personality.cancel();
-  // Pairs a held pose with attention on the stage; the hand routine does not cover password eyes.
-  if (current === "presenting" && !eyes && !prefersReducedMotion()) hands.hold();
+  if (host.active && (personality.active || eyes || blocksPlay(current) || isSleeping(current))) {
+    host.cancel();
+  }
   if (eyes || current === "asleep" || prefersReducedMotion()) animator.cancelBlink();
 }
 
 /** Reduced motion: no springs or animations, straight to the final pose. */
 function snapToTargets(root: HTMLElement, renderer: FaceRenderer, parts: GestureParts) {
+  parts.host.cancel();
   root.getAnimations().forEach((animation) => animation.cancel());
   parts.hands.cancel();
   renderer.lids.forEach((lid) => lid.getAnimations().forEach((animation) => animation.cancel()));
@@ -168,7 +175,7 @@ export function createMascotCore(
   let reasonTimer = 0;
   /** Update scheduled for the next frame (several events in the same frame become one). */
   let queuedUpdate = 0;
-  const look = createMascotLook(root, face, state, attentionTarget);
+  const look = createMascotLook(root, face, state, attentionTarget, inputs);
   const animator = createMascotAnimator(root, renderer, inputs, state, look);
   const body = createBodyMotion(root, state);
 
@@ -186,7 +193,23 @@ export function createMascotCore(
       allowsPlay(inputs.activity()) &&
       !blocksPlay(state.current),
   });
-  const gestureParts: GestureParts = { hands, personality, animator };
+  const host = createHostMotions({
+    root,
+    hands,
+    react: (expression) => toggleReason("host", expression),
+    move: body.move,
+    stopMotion: body.stop,
+    presenting: () => inputs.activity() === "presenting",
+    available: () =>
+      !state.disposed &&
+      state.onScreen &&
+      !document.hidden &&
+      !prefersReducedMotion() &&
+      !look.eyeOverride() &&
+      !blocksPlay(state.current) &&
+      (inputs.activity() === "idle" || inputs.activity() === "presenting"),
+  });
+  const gestureParts: GestureParts = { hands, personality, animator, host };
 
   function setReason(reason: Reason, expression: Expression, durationMs?: number) {
     reasons.set(reason, expression, durationMs);
@@ -218,13 +241,12 @@ export function createMascotCore(
   /** Recomputes expression and gaze and animates towards them (or jumps straight there, with reduced motion). */
   function update() {
     if (state.disposed) return;
-    const previous = state.current;
     state.current = reasons.current(inputs.base());
     root.dataset.expression = state.current;
     root.dataset.motion = document.hidden || !state.onScreen ? "paused" : "active";
     scheduleReasonExpiry();
     animator.setTargets(look.gazeTarget(), look.faceTarget());
-    settleGestures(gestureParts, previous, state.current, look.eyeOverride());
+    settleGestures(gestureParts, state.current, look.eyeOverride());
     if (prefersReducedMotion()) {
       snapToTargets(root, renderer, gestureParts);
       return;
@@ -253,6 +275,7 @@ export function createMascotCore(
     cancelAnimationFrame(queuedUpdate);
     root.getAnimations().forEach((animation) => animation.cancel());
     hands.cancel();
+    host.cancel();
     personality.cancel();
     renderer.lids.forEach((lid) => lid.getAnimations().forEach((animation) => animation.cancel()));
     window.clearTimeout(reasonTimer);
@@ -264,6 +287,7 @@ export function createMascotCore(
     reasons,
     animator,
     personality,
+    host,
     eyeOverride: look.eyeOverride,
     move: body.move,
     stopBody: body.cancel,

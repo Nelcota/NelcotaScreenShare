@@ -1,3 +1,8 @@
+import {
+  CALL_END_SOUNDS,
+  RING_VOLUME,
+  type CallEnd,
+} from "@/features/notifications/domain/call-end-sounds";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 /** One ring: two short rising pairs, then silence until the next one. */
@@ -8,18 +13,23 @@ const RING_NOTES = [
   { frequency: 1047, at: 0.54, length: 0.22 },
 ] as const;
 const RING_EVERY_MS = 2_200;
-const RING_VOLUME = 0.07;
 
 let audio: AudioContext | undefined;
 
 /** Original synthesized notes (sine with a soft attack): no recordings or third-party samples. */
-function scheduleNote(context: AudioContext, frequency: number, start: number, length: number) {
+function scheduleNote(
+  context: AudioContext,
+  frequency: number,
+  start: number,
+  length: number,
+  loudness = RING_VOLUME,
+) {
   const oscillator = context.createOscillator();
   const volume = context.createGain();
   oscillator.type = "sine";
   oscillator.frequency.setValueAtTime(frequency, start);
   volume.gain.setValueAtTime(0, start);
-  volume.gain.linearRampToValueAtTime(RING_VOLUME, start + 0.012);
+  volume.gain.linearRampToValueAtTime(loudness, start + 0.012);
   volume.gain.exponentialRampToValueAtTime(0.001, start + length);
   oscillator.connect(volume);
   volume.connect(context.destination);
@@ -67,4 +77,19 @@ export function startRing(): { stop: () => void } {
   }
   const timer = window.setInterval(() => playOneRing(context), RING_EVERY_MS);
   return { stop: () => window.clearInterval(timer) };
+}
+
+/** The short sound when a call ends (missed, declined). Silent without unlocked audio. */
+export function playCallEnd(kind: CallEnd) {
+  const context = audio;
+  if (!context || context.state !== "running") return;
+  const sound = CALL_END_SOUNDS[kind];
+  const start = context.currentTime;
+  try {
+    for (const note of sound.notes) {
+      scheduleNote(context, note.frequency, start + note.at, note.length, sound.volume);
+    }
+  } catch (error) {
+    logBrowserWarning("Could not play the call end sound", error);
+  }
 }

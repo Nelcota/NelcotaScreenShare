@@ -4,6 +4,7 @@ import {
   useMessageNotifications,
   type LatestUnread,
 } from "@/features/messages/hooks/use-message-notifications";
+import { RoomFriendCaller } from "@/features/ringing/ui/RoomFriendCaller";
 import { columnTabs } from "./column-parts";
 
 /** What the room page loads for the friends column (signed in only). */
@@ -25,10 +26,13 @@ export function RoomColumn({ column, inCall }: { column: RoomColumnData; inCall:
     ? { ...column.sidebar.columnLayout, collapsed: true }
     : column.sidebar.columnLayout;
   return (
-    <FriendsSidebar
-      data={{ ...column.sidebar, columnLayout: layout }}
-      tabs={columnTabs({ requests: column.requests, unread: column.unread })}
-      activeTab="amigos"
-    />
+    <>
+      <FriendsSidebar
+        data={{ ...column.sidebar, columnLayout: layout }}
+        tabs={columnTabs({ requests: column.requests, unread: column.unread })}
+        activeTab="amigos"
+      />
+      <RoomFriendCaller friends={column.sidebar.friends} />
+    </>
   );
 }

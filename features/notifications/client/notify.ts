@@ -9,7 +9,8 @@ import {
   currentNotificationPreferences,
   updateNotificationPreferences,
 } from "@/features/notifications/client/preferences-store";
-import { startRing } from "@/features/notifications/client/ring";
+import { playCallEnd, startRing } from "@/features/notifications/client/ring";
+import type { CallEnd } from "@/features/notifications/domain/call-end-sounds";
 import {
   prepareSystemNotifications,
   showSystemNotification,
@@ -80,4 +81,11 @@ export function notify(options: NotifyOptions): NotifyHandle {
     },
   });
   return notifier(options);
+}
+
+/** A short sound when a call ends: "Ninguém atendeu" for the caller, a click on Recusar. */
+export function playCallEndSound(kind: CallEnd) {
+  if (typeof window === "undefined") return;
+  if (!currentNotificationPreferences().ringSound) return;
+  playCallEnd(kind);
 }

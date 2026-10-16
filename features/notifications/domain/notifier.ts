@@ -55,8 +55,8 @@ export interface NotifierEnvironment {
   after: (milliseconds: number, run: () => void) => () => void;
 }
 
-/** A call that nobody answers stops ringing on its own. */
-export const RING_TIMEOUT_MS = 30_000;
+/** A call that nobody answers stops ringing on its own after a minute (then rings in silence). */
+export const RING_TIMEOUT_MS = 60_000;
 
 const NOOP_HANDLE: NotifyHandle = Object.freeze({ close: () => {} });
 

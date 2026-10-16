@@ -8,6 +8,7 @@ import type { RoomPresence } from "@/features/room/domain/presence";
 import { roomLink } from "@/features/room/domain/room-code";
 import { useGuestName } from "@/features/room/hooks/use-guest-name";
 import { useMicSetup } from "@/features/room/hooks/use-mic-setup";
+import { useAutoJoin } from "@/features/room/hooks/use-auto-join";
 import { gsap, MOTION_DURATION, MOTION_QUERIES, useGSAP } from "@/lib/animation/gsap";
 import { GuestNameRow } from "./GuestNameRow";
 import { MicSetup } from "./MicSetup";
@@ -29,6 +30,8 @@ interface PreJoinProps {
   onJoin: (choices: JoinChoices) => void;
   /** Download the call UI while the token request is in flight. */
   onPrepareJoin?: () => void;
+  /** Accepted a ring: joins on its own unless the microphone or the password needs them. */
+  autoJoin?: boolean;
 }
 
 /** Who joins: the account's name (editable), or a guest's name field. */
@@ -122,6 +125,7 @@ export function PreJoin({
   maxParticipants,
   onJoin,
   onPrepareJoin,
+  autoJoin = false,
 }: PreJoinProps) {
   const scope = useRef<HTMLFormElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -145,6 +149,9 @@ export function PreJoin({
   const meterRef = useRef<HTMLDivElement>(null);
   const mic = useMicSetup(submitting, meterRef);
   useEntranceAnimation(scope);
+  // The browser still has to ask about the microphone, or a password is missing: they stay.
+  const permissionKnown = mic.permission !== "unknown" && mic.permission !== "prompt";
+  useAutoJoin(scope, autoJoin && !guest && !(passwordRequired && !invite) && permissionKnown);
 
   // Focus starts on the first missing field: the guest's name, else the access password.
   useEffect(() => {

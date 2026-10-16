@@ -7,6 +7,7 @@ import { friendCard } from "@/features/friends/server/friend-list.server";
 import { shownStatuses } from "@/features/friends/server/presence-status.server";
 import { FriendAvatar, presenceLabel } from "@/features/friends/ui/FriendAvatar";
 import { FriendMenu } from "@/features/friends/ui/FriendMenu";
+import { CallButton } from "@/features/ringing/ui/CallButton";
 import { getDb } from "@/server/db/index.server";
 import { routeLoader } from "@/server/route-loader.server";
 
@@ -56,6 +57,7 @@ export default function FriendPage() {
         <h1 className="mt-4 text-2xl font-semibold tracking-tight">{friend.name}</h1>
         <p className="mt-1 text-sm text-ink-muted">{presenceLabel(friend)}</p>
         <div className="mt-6 flex items-center gap-2">
+          <CallButton friend={friend} className="h-9 px-4" />
           <FriendMenu
             person={friend}
             size="icon"

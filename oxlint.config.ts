@@ -141,10 +141,11 @@ export default defineConfig({
                   "!@/features/mascot/ui/*",
                   "!@/features/room/ui/ShareSupportNote",
                   "!@/features/reports/ui/ReportDialog",
+                  "!@/features/ringing/ui/CallButton",
                 ],
                 allowTypeImports: true,
                 message:
-                  "Another feature's UI is not public (only the mascot, the screen share notice and the report dialog).",
+                  "Another feature's UI is not public (only the mascot, the screen share notice, the report dialog and the call button).",
               },
             ],
           },

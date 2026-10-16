@@ -14,7 +14,8 @@ import {
   conversationTitle,
   type ConversationItem,
 } from "@/features/messages/domain/conversation-display";
-import type { TimelineMessage } from "@/features/messages/domain/timeline";
+import type { TimelineCall, TimelineMessage } from "@/features/messages/domain/timeline";
+import { GroupCallBanner, type LiveGroupCall } from "@/features/messages/ui/GroupCallBanner";
 import { KlipyContext, klipyFor } from "@/features/messages/hooks/use-gif";
 import { Composer } from "@/features/messages/ui/Composer";
 import { ConversationAvatar } from "@/features/messages/ui/ConversationAvatar";
@@ -24,6 +25,7 @@ import {
   useProfileOpen,
   type ConversationProfile,
 } from "@/features/messages/ui/ConversationProfile";
+import { GroupCallButton, IconCallButton } from "@/features/ringing/ui/CallButton";
 import { useOperation } from "@/lib/operations/use-operation";
 
 const STATUS_LABEL = { online: "Online", away: "Ausente", busy: "Ocupado", offline: "Offline" };
@@ -35,6 +37,8 @@ export interface OpenConversation {
   canSend: boolean;
   klipyKey: string | null;
   gifFavorites: string[];
+  groupCall: LiveGroupCall | null;
+  calls: TimelineCall[];
 }
 
 function MoreMenu({ conversation }: { conversation: OpenConversation["conversation"] }) {
@@ -77,6 +81,7 @@ function MoreMenu({ conversation }: { conversation: OpenConversation["conversati
 
 function Header({
   conversation,
+  liveCall,
   leading,
   trailing,
   profile,
@@ -84,12 +89,14 @@ function Header({
   onToggleProfile,
 }: {
   conversation: OpenConversation["conversation"];
+  liveCall: boolean;
   leading?: ReactNode;
   trailing?: ReactNode;
   profile?: ConversationProfile;
   profileOpen: boolean;
   onToggleProfile: () => void;
 }) {
+  const [other] = conversation.others;
   const direct = conversation.kind === "direct";
   const detail = direct
     ? STATUS_LABEL[conversation.status ?? "offline"]
@@ -102,8 +109,20 @@ function Header({
         <h1 className="truncate text-base font-semibold">{conversationTitle(conversation)}</h1>
         <span className="block text-xs text-ink-muted">{detail}</span>
       </span>
+      {direct && other ? (
+        <IconCallButton
+          friend={{ id: other.id, name: other.name, status: conversation.status ?? "offline" }}
+        />
+      ) : null}
       {direct && profile ? (
         <ProfileToggle profile={profile} open={profileOpen} onToggle={onToggleProfile} />
+      ) : null}
+      {!direct && !liveCall ? (
+        <GroupCallButton
+          conversationId={conversation.id}
+          name={conversationTitle(conversation)}
+          className="h-9 max-sm:size-9 max-sm:justify-center max-sm:px-0"
+        />
       ) : null}
       {direct ? null : <MoreMenu conversation={conversation} />}
       {trailing}
@@ -188,12 +207,14 @@ export function ConversationView({
         <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
           <Header
             conversation={conversation}
+            liveCall={data.groupCall !== null}
             leading={leading}
             trailing={trailing}
             profile={profile}
             profileOpen={showProfile}
             onToggleProfile={profilePanel.toggle}
           />
+          {data.groupCall ? <GroupCallBanner call={data.groupCall} /> : null}
           <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
             {older.hasMore ? (
               <p className="pt-3 text-center">
@@ -209,6 +230,7 @@ export function ConversationView({
             ) : null}
             <MessageTimeline
               messages={[...older.older, ...data.messages]}
+              calls={data.calls}
               selfId={selfId}
               showNames={conversation.kind === "group"}
             />

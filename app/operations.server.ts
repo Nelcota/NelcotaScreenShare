@@ -74,6 +74,13 @@ import {
 } from "@/features/messages/gif-actions.server";
 import { addFriend, newFriendCode } from "@/features/friends/code-actions.server";
 import { setPresenceStatus } from "@/features/friends/status-actions.server";
+import {
+  acceptCall,
+  callFriend,
+  callGroup,
+  cancelCall,
+  declineCall,
+} from "@/features/ringing/actions.server";
 
 /**
  * Everything the browser can call through `/api/operations/:id`. The id follows
@@ -141,6 +148,11 @@ export const operations: OperationHandlers = {
   "friends-addFriend": addFriend,
   "friends-newFriendCode": newFriendCode,
   "friends-setPresenceStatus": setPresenceStatus,
+  "ringing-callFriend": callFriend,
+  "ringing-callGroup": callGroup,
+  "ringing-cancelCall": cancelCall,
+  "ringing-declineCall": declineCall,
+  "ringing-acceptCall": acceptCall,
 };
 export const readOperations = new Set([
   "admin-search-searchPanelAction",

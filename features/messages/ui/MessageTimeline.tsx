@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Phone, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteMessage } from "@/features/messages/actions";
 import type { Gif } from "@/features/messages/domain/klipy";
@@ -6,6 +6,7 @@ import {
   groupTimeline,
   messageTime,
   type MessageRun,
+  type TimelineCall,
   type TimelineMessage,
 } from "@/features/messages/domain/timeline";
 import { useNow } from "@/lib/hooks/use-now";
@@ -126,6 +127,21 @@ function MessageItem({
   );
 }
 
+/** "Bruno começou uma chamada · 21:02", centered between the bubbles. */
+function CallLine({ call }: { call: TimelineCall }) {
+  return (
+    <li className="mt-4 flex justify-center px-3">
+      <span className="flex items-center gap-2 rounded-full bg-surface-2 px-3 py-1.5 text-sm text-ink-muted">
+        <Phone className="size-4 text-success" aria-hidden="true" />
+        <span className="font-semibold text-ink">{call.starterName}</span> começou uma chamada
+        <time dateTime={call.createdAt.toISOString()} className="text-xs text-ink-subtle">
+          {messageTime(call.createdAt)}
+        </time>
+      </span>
+    </li>
+  );
+}
+
 function Run({ run, selfId, showNames }: { run: MessageRun; selfId: string; showNames: boolean }) {
   return (
     <>
@@ -145,16 +161,18 @@ function Run({ run, selfId, showNames }: { run: MessageRun; selfId: string; show
 /** The conversation, oldest first: a divider per day, then runs of the same person. */
 export function MessageTimeline({
   messages,
+  calls = [],
   selfId,
   showNames = false,
 }: {
   messages: readonly TimelineMessage[];
+  calls?: readonly TimelineCall[];
   selfId: string;
   /** In groups, whose bubble it is. */
   showNames?: boolean;
 }) {
   const now = useNow();
-  const days = groupTimeline(messages, now);
+  const days = groupTimeline(messages, now, calls);
   if (days.length === 0) {
     return <p className="px-4 py-10 text-center text-sm text-ink-muted">Nenhuma mensagem ainda.</p>;
   }
@@ -168,9 +186,13 @@ export function MessageTimeline({
             </span>
           </p>
           <ul>
-            {day.runs.map((run) => (
-              <Run key={run.messages[0]?.id} run={run} selfId={selfId} showNames={showNames} />
-            ))}
+            {day.runs.map((run) =>
+              run.type === "call" ? (
+                <CallLine key={run.id} call={run} />
+              ) : (
+                <Run key={run.messages[0]?.id} run={run} selfId={selfId} showNames={showNames} />
+              ),
+            )}
           </ul>
         </li>
       ))}

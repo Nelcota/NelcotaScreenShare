@@ -2,7 +2,7 @@ import {
   assertDefinitionAdmission,
   definitionByCode,
 } from "@/features/rooms/server/room-access.server";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 import {
   decideTokenRequest,
   SERVER_ERROR_MESSAGE,
@@ -34,11 +34,14 @@ const mayOpenJoinRequest = createJoinRequestGate();
 // Wrong password: few chances per IP, with a long window, against brute force.
 const passwordFailures = createRateLimiter({ limit: 5, windowMs: 15 * 60_000 });
 
-/** Compares in constant time (the hash equalizes lengths before timingSafeEqual). */
+/** Always compare equal-sized buffers, then require the original byte lengths to match. */
 function safeEqual(given: string, expected: string): boolean {
-  const hashA = createHash("sha256").update(given).digest();
-  const hashB = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(hashA, hashB);
+  const expectedBytes = Buffer.from(expected);
+  const givenBytes = Buffer.from(given);
+  const comparison = Buffer.alloc(expectedBytes.length);
+  givenBytes.copy(comparison);
+  const sameLength = givenBytes.length === expectedBytes.length;
+  return timingSafeEqual(comparison, expectedBytes) && sameLength;
 }
 
 export type IssueTokenResult =

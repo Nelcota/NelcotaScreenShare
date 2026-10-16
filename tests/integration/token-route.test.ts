@@ -298,6 +298,15 @@ describe("token", () => {
     assert.ok(Number(blocked.headers.get("retry-after")) > 60);
   });
 
+  test.each(["", ACCESS.slice(0, -1), `${ACCESS}extra`, `${ACCESS}\0`, "\0"])(
+    "rejects a mismatched access password without padding or truncation changing equality: %j",
+    async (password) => {
+      const response = await post({ room: "sala-ok", password, guestName: "Guest" });
+      assert.equal(response.status, 401);
+      assert.equal(await errorCode(response), "invalid_password");
+    },
+  );
+
   test("limit of 20 requests per minute per account, even when switching IPs", async () => {
     const hugo = await verifiedParticipant(db, handler);
     const cookie = hugo.jar.header();

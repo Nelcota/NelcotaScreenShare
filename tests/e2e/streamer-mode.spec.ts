@@ -45,10 +45,10 @@ test("streamer mode hides every invitation and can reveal them again", async ({ 
   expect(await page.locator("body").innerText()).not.toContain(code);
   await page.getByRole("button", { name: "Sair da sala", exact: true }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();
-  await expect(page.getByText("Você saiu da sala", { exact: true })).toBeVisible();
+  await expect(page.getByText("Você saiu da chamada", { exact: true })).toBeVisible();
   expect(await page.locator("body").innerText()).not.toContain(code);
   await expect(page.getByRole("button", { name: "Copiar link", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Voltar para a sala", exact: true }).click();
+  await page.getByRole("button", { name: "Voltar à chamada", exact: true }).click();
   await expect(page.getByRole("button", { name: "Copiar convite", exact: true })).toHaveCount(0);
   await expect(page).toHaveURL(/\/sala$/);
   await page.reload();
@@ -93,17 +93,18 @@ test("back, forward and reload preserve each hidden room without adding history 
     await page.getByLabel("Link ou código da sala", { exact: true }).first().press("Enter");
     await expectHiddenRoom(page, first);
     expect(await historyIndex(page)).toBe(startIndex + 1);
+    // Signed in, the way back leads to the app's start.
     await page.getByRole("link", { name: "Voltar ao início", exact: true }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.getByLabel("Link ou código da sala", { exact: true }).first().fill(second);
     await page.getByLabel("Link ou código da sala", { exact: true }).first().press("Enter");
     await expectHiddenRoom(page, second);
     await page.getByRole("link", { name: "Voltar ao início", exact: true }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.goBack();
     await expectHiddenRoom(page, second);
     await page.goBack();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.goBack();
     await expectHiddenRoom(page, first);
     await page.reload();
@@ -114,7 +115,7 @@ test("back, forward and reload preserve each hidden room without adding history 
     await page.goForward();
     await expectHiddenRoom(page, first);
     await page.goForward();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/inicio$/);
     await page.goForward();
     await expectHiddenRoom(page, second);
   } finally {
@@ -162,9 +163,9 @@ test("a masked call stays connected across profile navigation and browser histor
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
     await page.getByRole("switch", { name: "Modo streamer" }).click();
     await expect(page).toHaveURL(/\/sala$/);
-    await page.getByRole("link", { name: "Editar perfil" }).click();
+    await page.getByRole("link", { name: "Configurações" }).click();
     await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
-    await page.getByRole("link", { name: "Voltar à sala", exact: true }).click();
+    await page.getByRole("link", { name: "Voltar à chamada", exact: true }).click();
     await expect(page).toHaveURL(/\/sala$/);
     await expect(page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();
     await page.goBack();
@@ -174,7 +175,7 @@ test("a masked call stays connected across profile navigation and browser histor
     await expect(page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();
     await page.evaluate(() => window.dispatchEvent(new Event("nelcota:mutation")));
     await expect(page).toHaveURL(/\/sala$/);
-    await expect(page.getByLabel("Senha da sala (quem te convidou sabe)")).toHaveCount(0);
+    await expect(page.getByLabel("Senha da sala")).toHaveCount(0);
   } finally {
     await context.close();
   }

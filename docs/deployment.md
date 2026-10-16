@@ -21,7 +21,7 @@ You will create two resources on the same server: LiveKit and the app.
 2. Generate a key pair:
 
    ```bash
-   docker run --rm livekit/livekit-server:v1.13.7 generate-keys
+   docker run --rm livekit/livekit-server:v1.13.9 generate-keys
    # or: echo "API$(openssl rand -hex 6)"  and  openssl rand -base64 48
    ```
 
@@ -152,6 +152,8 @@ After all four required local checks pass, merge through the PR and deploy `main
 >
 > The IP used for rate limiting is taken from `X-Forwarded-For` counting from the end, according to `TRUSTED_PROXY_HOPS` (Traefik = 1). If `app.` also goes through the Cloudflare proxy, use `TRUSTED_PROXY_HOPS=2`. The same count tells Express which proxies to trust for `X-Forwarded-Proto`: the app must see `https` requests, or React Router refuses every browser action (400) because its `Origin` is `https://`.
 >
+> The forwarding headers (`X-Forwarded-For`, `X-Real-IP`) only count when the socket that reached the app is internal (loopback, private or link-local, as Coolify's Traefik on the Docker network). A request straight to the app's port from a public address is limited by that address, whatever it claims. With `TRUSTED_PROXY_HOPS=2` the second hop is Cloudflare: also restrict the origin's ports 80/443 to Cloudflare's ranges, or anyone who finds the server's IP can talk to Traefik directly and choose that hop.
+>
 > **Rollback:** the `:main` and `:latest` tags change on every deploy. To go back a version published in the organization, point the resource to `ghcr.io/nelcota/nelcota:<previous-sha>` (immutable tag) and redeploy; migrations are always additive (expand/contract), so the previous code works with the new schema.
 
 ### 4.1. PostgreSQL
@@ -161,6 +163,8 @@ After all four required local checks pass, merge through the PR and deploy `main
 3. Run the bootstrap once as the superuser (instructions at the top of `deploy/postgres/bootstrap.sql`) and save the three generated passwords.
 4. The App's `DATABASE_URL` uses `nelcota_app`; `MIGRATOR_DATABASE_URL` (GitHub secret) uses `nelcota_migrator`. Both with the Postgres **internal** host.
 5. Enable Coolify's scheduled backups to an S3-compatible store (daily, 03:00).
+
+> **Changing the config later:** paste the new file in Coolify and apply it. Logging settings such as `log_parameter_max_length` (slow statements logged without their values) only need a reload, not a restart: `SELECT pg_reload_conf();` as the superuser. Settings marked "restart" in `pg_settings.context` (e.g. `shared_buffers`, `shared_preload_libraries`) still need a restart.
 
 ### 5. TURN/TLS (optional, for very restrictive networks)
 

@@ -5,6 +5,8 @@ import type { createHandMotions } from "@/features/mascot/client/hand-motions";
 export type MascotActivity =
   | "idle"
   | "waiting"
+  /** Something went wrong around it (the call is reconnecting): worried until it passes. */
+  | "worried"
   | "listening"
   | "presenting"
   | "walking"

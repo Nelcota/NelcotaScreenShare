@@ -17,33 +17,29 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { adminAuthClient } from "@/features/auth/client/admin-auth-client";
 import { callAuth } from "@/features/auth/client/auth-call";
 import type { NavGroup } from "@/features/admin/shell/server/nav.server";
+import { adminBreadcrumbs, type Crumb } from "@/features/admin/shell/domain/breadcrumbs";
 import { AdminSidebar, type ShellUser } from "./AdminSidebar";
 import { CommandPalette } from "./CommandPalette";
-
-/** Labels for URL segments that are not in the navigation (e.g. "conta"). */
-const SEGMENT_LABELS: Record<string, string> = {
-  admin: "Início",
-  conta: "Minha conta",
-  "sem-permissao": "Sem permissão",
-};
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function useBreadcrumbs(groups: NavGroup[]) {
   const pathname = useLocation().pathname;
   const labels = new Map(
     groups.flatMap((group) => group.items.map((item) => [item.href, item.label])),
   );
-  const parts = pathname.split("/").filter(Boolean);
-  return parts.map((part, index) => {
-    const href = `/${parts.slice(0, index + 1).join("/")}`;
-    return {
-      href,
-      // IDs in the URL (detail pages) become "Detalhes": the page title says which one.
-      label: labels.get(href) ?? SEGMENT_LABELS[part] ?? (UUID.test(part) ? "Detalhes" : part),
-      current: index === parts.length - 1,
-    };
-  });
+  return adminBreadcrumbs(pathname, labels);
+}
+
+/** The current page, a link to an earlier page, or plain text for a segment with no page. */
+function CrumbContent({ crumb }: { crumb: Crumb }) {
+  if (crumb.current) return <BreadcrumbPage>{crumb.label}</BreadcrumbPage>;
+  if (!crumb.href) return <span className="text-ink-muted">{crumb.label}</span>;
+  return (
+    <BreadcrumbLink asChild>
+      <Link viewTransition to={crumb.href}>
+        {crumb.label}
+      </Link>
+    </BreadcrumbLink>
+  );
 }
 
 function AdminBreadcrumbs({ groups }: { groups: NavGroup[] }) {
@@ -52,18 +48,10 @@ function AdminBreadcrumbs({ groups }: { groups: NavGroup[] }) {
     <Breadcrumb className="min-w-0">
       <BreadcrumbList className="flex-nowrap">
         {crumbs.map((crumb, index) => (
-          <Fragment key={crumb.href}>
+          <Fragment key={`${index}-${crumb.label}`}>
             {index > 0 ? <BreadcrumbSeparator className="max-sm:hidden" /> : null}
             <BreadcrumbItem className={cn("max-w-48 truncate", !crumb.current && "max-sm:hidden")}>
-              {crumb.current ? (
-                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink asChild>
-                  <Link viewTransition to={crumb.href}>
-                    {crumb.label}
-                  </Link>
-                </BreadcrumbLink>
-              )}
+              <CrumbContent crumb={crumb} />
             </BreadcrumbItem>
           </Fragment>
         ))}

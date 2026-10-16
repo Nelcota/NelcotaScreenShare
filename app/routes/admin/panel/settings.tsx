@@ -9,6 +9,7 @@ import {
   MASCOT_SATURATION,
   mascotSettings,
 } from "@/features/admin/settings/server/settings.server";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Configurações · Nelcota" }];
 
@@ -24,7 +25,7 @@ export default function AdminSettingsPage() {
   const { mascot, defaults, limits, canEdit } = useLoaderData<typeof loader>();
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-[-0.025em]">Configurações</h1>
+      <AdminPageHeader title="Configurações" />
       <MascotSettingsForm initial={mascot} defaults={defaults} limits={limits} canEdit={canEdit} />
     </>
   );

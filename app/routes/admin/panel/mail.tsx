@@ -12,6 +12,7 @@ import { TestMailButton } from "@/features/admin/mail/ui/TestMailButton";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { formatNumber } from "@/lib/format";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "E-mails · Nelcota" }];
 
@@ -41,10 +42,10 @@ export default function AdminMailPage() {
   const { configuration, deliveries, counts, canTest } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">E-mails</h1>
-        <p className="mt-1 text-ink-muted">Envios de confirmação de conta e de nova senha.</p>
-      </div>
+      <AdminPageHeader
+        title="E-mails"
+        description="Envios de confirmação de conta e de nova senha."
+      />
       <Section
         title="Configuração"
         action={canTest && configuration.issues.length === 0 ? <TestMailButton /> : null}

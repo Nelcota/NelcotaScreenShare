@@ -1,4 +1,4 @@
-import { ArrowLeft, RotateCw } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 
@@ -48,7 +48,7 @@ export function ErrorScreen({
       <div className="flex flex-wrap justify-center gap-3">
         {missing ? null : (
           <Button size="lg" onClick={() => window.location.reload()}>
-            <RotateCw className="icon-spin" aria-hidden="true" />
+            <RotateCcw className="icon-spin" aria-hidden="true" />
             Tentar de novo
           </Button>
         )}

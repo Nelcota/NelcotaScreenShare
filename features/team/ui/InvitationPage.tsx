@@ -18,7 +18,7 @@ export function InvitationPage() {
       title="Convite de time"
       description="A aceitação usa sua conta e seu e-mail confirmado."
     >
-      <div className="flex max-w-lg flex-col gap-4 rounded-2xl border border-line bg-surface p-6">
+      <div className="panel flex max-w-lg flex-col gap-4 rounded-2xl p-6">
         {data.error ? (
           <p role="alert">{data.error}</p>
         ) : (

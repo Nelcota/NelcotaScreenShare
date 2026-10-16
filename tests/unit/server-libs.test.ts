@@ -36,6 +36,27 @@ test("client IP honors the number of trusted proxies", () => {
   assert.equal(getClientIp(new Headers({ "x-nelcota-peer-ip": "127.0.0.1" })), "127.0.0.1");
 });
 
+test("forwarding headers only count when the socket is an internal proxy", () => {
+  const forged = { "x-forwarded-for": "203.0.113.1", "x-real-ip": "198.51.100.7" };
+  const direct = new Headers({ ...forged, "x-nelcota-peer-ip": "198.51.100.200" });
+  assert.equal(getClientIp(direct), "198.51.100.200", "straight to the app's port");
+  assert.equal(
+    getClientIp(new Headers({ ...forged, "x-nelcota-peer-ip": "::ffff:203.0.113.50" })),
+    "203.0.113.50",
+  );
+  for (const proxy of [
+    "10.0.1.4",
+    "172.18.0.2",
+    "192.168.1.1",
+    "::1",
+    "fd00::2",
+    "::ffff:10.0.0.9",
+  ]) {
+    const viaProxy = new Headers({ ...forged, "x-nelcota-peer-ip": proxy });
+    assert.equal(getClientIp(viaProxy), "203.0.113.1", `behind ${proxy}`);
+  }
+});
+
 test("CSP allows only the app itself and LiveKit", () => {
   const prod = buildCsp({ livekitUrl: "wss://lk.exemplo.com", dev: false, nonce: "bm9uY2U=" });
   assert.match(prod, /script-src 'self' 'nonce-bm9uY2U=' 'strict-dynamic';/);
@@ -58,6 +79,17 @@ test("CSP allows only the app itself and LiveKit", () => {
     sentryDsn: "https://chave@o123.ingest.sentry.io/456",
   });
   assert.match(withSentry, /connect-src [^;]*https:\/\/o123\.ingest\.sentry\.io/);
+
+  assert.doesNotMatch(prod, /klipy/, "KLIPY only when GIFs are on");
+  const withGifs = buildCsp({
+    livekitUrl: "wss://lk.exemplo.com",
+    dev: false,
+    nonce: "bm9uY2U=",
+    gifs: true,
+  });
+  assert.match(withGifs, /connect-src [^;]*https:\/\/api\.klipy\.com/);
+  assert.match(withGifs, /img-src [^;]*https:\/\/static\.klipy\.com/);
+  assert.match(withGifs, /media-src [^;]*https:\/\/static2\.klipy\.com/);
 });
 
 test("room code: normalizes and rejects invalid formats", () => {

@@ -1,8 +1,8 @@
-import { sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { requestHeaders, requestMemo as cache } from "@/server/request-context.server";
 import { redirect } from "@/server/http.server";
 import { getDb } from "@/server/db/index.server";
-import { users } from "@/server/db/schema";
+import { userSessions, users } from "@/server/db/schema";
 import { safeReturnPath } from "@/features/auth/domain/return-path";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
@@ -56,6 +56,27 @@ export const getUserSession = cache(async (): Promise<UserSession | null> => {
     session: { id: session.id, createdAt: new Date(session.createdAt) },
   };
 });
+
+/**
+ * Whether a session opened earlier still counts: not signed out or revoked, not expired, and
+ * the account neither blocked nor deleted. For connections that outlive the request (SSE).
+ */
+export async function sessionStillValid(sessionId: string): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ id: userSessions.id })
+    .from(userSessions)
+    .innerJoin(users, eq(users.id, userSessions.userId))
+    .where(
+      and(
+        eq(userSessions.id, sessionId),
+        gt(userSessions.expiresAt, sql`now()`),
+        isNull(users.blockedAt),
+        isNull(users.deletedAt),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
+}
 
 /**
  * Requires sign-in (and a verified e-mail, when REQUIRE_EMAIL_VERIFICATION is

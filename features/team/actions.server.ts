@@ -6,7 +6,7 @@ import { teamCommandSchema } from "./domain/commands";
 import { mutateTeam } from "./server/team-mutations.server";
 const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 export const teamWorkspaceAction = defineUserOperation(
-  { name: "team.change", audit: "required" },
+  { name: "team.change", audit: "required", allowUnverified: true },
   teamCommandSchema,
   async ({ parsedInput, ctx }) => {
     if (!limiter.hit(ctx.current.user.id).ok)

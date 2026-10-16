@@ -32,7 +32,8 @@ test("sign-up through the UI, account page and ending the other session", async 
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page).toHaveURL(`${E2E_URL}/`);
+  // Signed in, the landing gives way to the app.
+  await expect(page).toHaveURL(`${E2E_URL}/inicio`);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
   // A second session (another "device") to end from the account page.
@@ -56,6 +57,10 @@ test("sign-up through the UI, account page and ending the other session", async 
   await expect(page.getByLabel("Nome na sala")).toHaveValue("Gil Novo");
   await expect(page.getByRole("button", { name: "Encerrar", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Encerrar todas as outras" }).click();
+  // Ending sessions asks first.
+  const confirm = page.getByRole("dialog", { name: "Encerrar a outra sessão?" });
+  await confirm.getByRole("button", { name: "Encerrar", exact: true }).click();
+  await expect(confirm).toBeHidden();
   await expect(page.getByRole("button", { name: "Encerrar", exact: true })).toHaveCount(0);
 
   const session = await other.context.request.get("/api/auth/get-session");
@@ -95,7 +100,7 @@ test("profile photo: preview, persistence on the account and avatar on the home 
     /^data:image\/webp;base64,/,
   );
   await page.goto("/");
-  await expect(page.locator('a[href="/conta"] [data-slot=avatar-image]')).toHaveAttribute(
+  await expect(page.locator("header [data-slot=avatar-image]")).toHaveAttribute(
     "src",
     /^data:image\/webp;base64,/,
   );
@@ -106,7 +111,7 @@ test("profile photo: preview, persistence on the account and avatar on the home 
   });
   const serverPage = await serverOnly.newPage();
   await serverPage.goto("/");
-  await expect(serverPage.locator('a[href="/conta"] [data-slot=avatar-image]')).toBeVisible();
+  await expect(serverPage.locator("header [data-slot=avatar-image]")).toBeVisible();
   await serverOnly.close();
   await joinRoom(page, await newRoomCode(), { micOn: false });
   const roomPhoto = page
@@ -152,8 +157,8 @@ test("the profile avatar falls back when a structurally valid photo cannot decod
   }, image);
   expect(status).toBe(200);
   await page.reload();
-  await expect(page.locator('a[href="/conta"] [data-slot=avatar-fallback]')).toBeVisible();
-  await expect(page.locator('a[href="/conta"] [data-slot=avatar-image]')).toHaveCount(0);
+  await expect(page.locator("header [data-slot=avatar-fallback]")).toBeVisible();
+  await expect(page.locator("header [data-slot=avatar-image]")).toHaveCount(0);
   await context.close();
 });
 

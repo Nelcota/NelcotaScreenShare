@@ -2,7 +2,7 @@ import { ConnectionError, DisconnectReason } from "livekit-client";
 import { describe, expect, it } from "vitest";
 import { connectErrorMessage, disconnectMessage } from "@/features/room/client/connection-errors";
 import { pickFocusedShare, sortByOrder, trackShareOrder } from "@/features/room/domain/focus";
-import { joinFailure, presenceText } from "@/features/room/domain/join";
+import { GUEST_WAIT_TEXT, joinFailure, presenceText } from "@/features/room/domain/join";
 import { presenceForGuests } from "@/features/room/domain/presence";
 
 const share = (sid: string, isLocal = false) => ({
@@ -65,7 +65,8 @@ describe("token request failure in the pre-join screen", () => {
 describe("who is already in the room", () => {
   it("empty, with people and full", () => {
     expect(presenceText(0, 6).kind).toBe("empty");
-    expect(presenceText(0, 6, true).text).toContain("A sala ainda não abriu");
+    expect(presenceText(0, 6, true).text).toBe(GUEST_WAIT_TEXT);
+    expect(joinFailure("host_absent")).toMatchObject({ waiting: true, passwordField: false });
     expect(presenceText(1, 6).text).toBe("1 pessoa já está na sala");
     expect(presenceText(3, 6).text).toBe("3 pessoas já estão na sala");
     expect(presenceText(6, 6)).toEqual({

@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import type { Track } from "livekit-client";
-import {
-  readStreamMetrics,
-  type StreamMetrics as Metrics,
-} from "@/features/room/domain/stream-metrics";
+import { createPingTracker, readStreamMetrics } from "@/features/room/domain/stream-metrics";
 import { usePresenterPing } from "@/features/room/hooks/use-presenter-ping";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
-const EMPTY: Metrics = { fps: null, pingMs: null };
+interface Shown {
+  fps: number | null;
+  pingMs: number | null;
+}
+
+const EMPTY: Shown = { fps: null, pingMs: null };
 
 /** Reported by the presenter's browser: viewers cannot measure someone else's connection. */
 function PresenterPing({ identity, trackSid }: { identity: string; trackSid: string }) {
@@ -28,17 +30,22 @@ export function StreamMetrics({
   trackSid: string;
   presenter: string | undefined;
 }) {
-  const [metrics, setMetrics] = useState<Metrics>(EMPTY);
+  const [metrics, setMetrics] = useState<Shown>(EMPTY);
   useEffect(() => {
     if (!track) return;
     let disposed = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let warned = false;
+    const trackPing = createPingTracker();
+    function shown(report: Iterable<unknown>): Shown {
+      const { fps, roundTrip } = readStreamMetrics(report);
+      return { fps, pingMs: trackPing(roundTrip) };
+    }
     async function sample() {
       try {
         const report = await track?.getRTCStatsReport();
         if (disposed) return;
-        setMetrics(report ? readStreamMetrics(report.values()) : EMPTY);
+        setMetrics(report ? shown(report.values()) : EMPTY);
       } catch (error) {
         if (disposed) return;
         setMetrics(EMPTY);

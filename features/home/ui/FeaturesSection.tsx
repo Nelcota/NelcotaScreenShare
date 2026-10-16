@@ -1,6 +1,6 @@
 import { Check, Mic } from "lucide-react";
 import type { ReactNode } from "react";
-import { ROOM_SHORTCUTS } from "@/lib/shortcuts";
+import { ROOM_SHORTCUTS, SHORTCUTS_HELP_KEY } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 import { WindowDots } from "./demo/RoomChrome";
 import { SectionIntro } from "./SectionIntro";
@@ -200,10 +200,13 @@ function People({ max }: { max: number }) {
   );
 }
 
+/** "Esta ajuda" only makes sense inside the call. */
+const HOME_SHORTCUTS = ROOM_SHORTCUTS.filter(({ key }) => key !== SHORTCUTS_HELP_KEY);
+
 function Keyboard() {
   return (
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2.5">
-      {ROOM_SHORTCUTS.map(({ key, action }) => (
+      {HOME_SHORTCUTS.map(({ key, action }) => (
         <li key={key} className="flex items-center gap-3 rounded-xl bg-surface-2 p-2 pr-3">
           <kbd className="grid size-10 shrink-0 place-items-center rounded-lg border border-b-[3px] border-line-strong bg-surface font-sans text-base font-semibold">
             {key}

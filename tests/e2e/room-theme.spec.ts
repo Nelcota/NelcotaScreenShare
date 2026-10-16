@@ -13,15 +13,15 @@ test("the call switches themes on desktop and mobile without disconnecting", asy
     await page.getByRole("button", { name: "Ativar modo escuro", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    const shortcuts = page.getByText("Atalhos na sala", { exact: true });
-    await expect(shortcuts).toBeVisible();
-    const menuSection = shortcuts;
+    const nameLabel = page.getByText("Seu nome na sala", { exact: true });
+    await expect(nameLabel).toBeVisible();
+    await expect(page.getByText("Atalhos na sala", { exact: true })).toBeHidden();
     expect(
-      await menuSection.evaluate((element) => {
-        const container = element.parentElement;
-        if (!container) throw new Error("Missing shortcuts container");
-        const style = getComputedStyle(container);
-        return [style.marginTop, style.paddingTop, style.borderTopWidth];
+      await nameLabel.evaluate((element) => {
+        const section = element.closest("form")?.parentElement;
+        if (!section) throw new Error("Missing name section");
+        const style = getComputedStyle(section);
+        return [style.marginBottom, style.paddingBottom, style.borderBottomWidth];
       }),
     ).toEqual(["0px", "0px", "0px"]);
     await page.keyboard.press("Escape");

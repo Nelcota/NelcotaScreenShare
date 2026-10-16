@@ -1,38 +1,4 @@
-import { Popover } from "radix-ui";
-import type { ComponentProps, ReactNode } from "react";
-import { cn } from "@/lib/utils";
-
-/**
- * Panel that opens from the dock: same glass, same offset and the same entrance
- * (rises and grows from the button) in every room menu.
- */
-export function DockPopoverContent({
-  className,
-  children,
-  ...props
-}: ComponentProps<typeof Popover.Content>) {
-  return (
-    <Popover.Portal>
-      <Popover.Content
-        data-slot="popover-content"
-        side="top"
-        align="center"
-        sideOffset={14}
-        collisionPadding={16}
-        {...props}
-        className={cn(
-          "glass z-50 origin-(--radix-popover-content-transform-origin) rounded-2xl p-2 outline-none",
-          "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-2",
-          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-          "motion-reduce:animate-none",
-          className,
-        )}
-      >
-        {children}
-      </Popover.Content>
-    </Popover.Portal>
-  );
-}
+import type { ReactNode } from "react";
 
 /** Panel title, aligned with the options' text. */
 export function DockPopoverTitle({ children, hint }: { children: ReactNode; hint?: ReactNode }) {

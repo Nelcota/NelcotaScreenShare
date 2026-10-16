@@ -1,7 +1,7 @@
 import { useConnectionState, useRoomContext } from "@livekit/components-react";
 import { ConnectionState, RoomEvent, Track } from "livekit-client";
 import { createContext, use, useEffect, useEffectEvent, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { hostCommandAction } from "@/features/room/actions";
 import {
   roomControlStateSchema,
@@ -53,7 +53,7 @@ export function RoomHostProvider({
     onLeave({
       reason: removed ? "removed" : "ended",
       message: removed
-        ? "O anfitrião removeu você desta chamada."
+        ? "Você pode voltar quando ela terminar."
         : state?.permanent
           ? "A chamada foi encerrada pelo anfitrião. O link continua disponível."
           : "A sala foi encerrada pelo anfitrião. Crie outra sala para continuar.",

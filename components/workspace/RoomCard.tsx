@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Copy, Star } from "lucide-react";
-import { toast } from "sonner";
+
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { RoomEditor } from "./RoomEditor";
 import type { RoomWorkspaceCommand } from "@/features/rooms/domain/commands";
+import { copyText } from "@/lib/clipboard";
 
 export interface WorkspaceRoom {
   id: string;
@@ -26,31 +27,38 @@ export interface WorkspaceRoom {
   favorite: boolean;
 }
 export async function copyWorkspaceLink(path: string) {
-  try {
-    await navigator.clipboard.writeText(new URL(path, location.origin).href);
-    toast.success("Link copiado.");
-  } catch {
-    toast.error("Não foi possível copiar. Abra a sala e copie o endereço.");
-  }
+  await copyText(new URL(path, location.origin).href, {
+    context: "Workspace link copy failed",
+    success: "Link copiado.",
+    failure: "Não foi possível copiar. Abra a sala e copie o endereço.",
+  });
 }
 export function RoomCard({
   room,
   pending,
+  saved,
+  nameError,
   onCommand,
 }: {
   room: WorkspaceRoom;
   pending: boolean;
+  /** Saves that went through so far: the edit dialog closes on the next one. */
+  saved: number;
+  nameError?: string;
   onCommand: (input: RoomWorkspaceCommand) => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [openedAt, setOpenedAt] = useState<number | null>(null);
+  const editing = openedAt === saved;
+  const setEditing = (open: boolean) => setOpenedAt(open ? saved : null);
   const [archiving, setArchiving] = useState(false);
   const link = `/sala/${room.code}`;
   const history = room.teamId ? `/times/${room.teamId}/salas/${room.id}` : `/salas/${room.id}`;
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    // min-w-0 and wrap-anywhere: a name with one long word wraps instead of widening the grid.
+    <article className="panel flex min-w-0 flex-col gap-4 rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold break-words">{room.name}</h2>
+          <h2 className="text-lg font-semibold wrap-anywhere">{room.name}</h2>
           <p className="mt-1 text-xs text-ink-muted">
             {room.archivedAt ? "Arquivada" : room.teamId ? "Sala de time" : "Sala pessoal"} · Link
             permanente
@@ -61,10 +69,9 @@ export function RoomCard({
           variant="ghost"
           disabled={pending || (Boolean(room.archivedAt) && !room.favorite)}
           aria-label={room.favorite ? `Desfavoritar ${room.name}` : `Favoritar ${room.name}`}
-          aria-pressed={room.favorite}
           onClick={() => onCommand({ kind: "favorite", roomId: room.id, favorite: !room.favorite })}
         >
-          <Star className={room.favorite ? "fill-yellow-300 text-yellow-300" : undefined} />
+          <Star className={room.favorite ? "fill-status-away text-status-away" : undefined} />
         </Button>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -91,9 +98,19 @@ export function RoomCard({
             <Button variant="ghost" disabled={pending} onClick={() => setEditing(true)}>
               Editar
             </Button>
-            <Button variant="ghost" disabled={pending} onClick={() => setArchiving(true)}>
-              {room.archivedAt ? "Restaurar" : "Arquivar"}
-            </Button>
+            {room.archivedAt ? (
+              <Button
+                variant="ghost"
+                disabled={pending}
+                onClick={() => onCommand({ kind: "archive", roomId: room.id, archived: false })}
+              >
+                Restaurar
+              </Button>
+            ) : (
+              <Button variant="ghost" disabled={pending} onClick={() => setArchiving(true)}>
+                Arquivar
+              </Button>
+            )}
           </>
         ) : null}
       </div>
@@ -114,26 +131,20 @@ export function RoomCard({
             }}
             team={Boolean(room.teamId)}
             pending={pending}
-            onSave={(values) => {
-              onCommand({ kind: "edit", roomId: room.id, ...values });
-              setEditing(false);
-            }}
+            error={nameError}
+            onSave={(values) => onCommand({ kind: "edit", roomId: room.id, ...values })}
           />
         </DialogContent>
       </Dialog>
       <ConfirmDialog
         open={archiving}
         onOpenChange={setArchiving}
-        title={room.archivedAt ? "Restaurar sala?" : "Arquivar sala?"}
-        description={
-          room.archivedAt
-            ? "A sala voltará a usar uma vaga do Pro beta."
-            : "Encerre a chamada ativa primeiro. O histórico continuará disponível e o link recusará novas entradas."
-        }
-        confirmLabel={room.archivedAt ? "Restaurar sala" : "Arquivar sala"}
+        title="Arquivar sala?"
+        description="Encerre a chamada ativa primeiro. O histórico continuará disponível e o link recusará novas entradas."
+        confirmLabel="Arquivar sala"
         pending={pending}
         onConfirm={() => {
-          onCommand({ kind: "archive", roomId: room.id, archived: !room.archivedAt });
+          onCommand({ kind: "archive", roomId: room.id, archived: true });
           setArchiving(false);
         }}
       />

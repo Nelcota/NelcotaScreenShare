@@ -6,7 +6,9 @@
  *   Production: docker exec -it <app-container> node create-owner.mjs owner@example.com
  *
  * Refuses if an active owner already exists (use --force only to recover access,
- * for example when the only owner lost their 2FA and backup codes).
+ * for example when the only owner lost their 2FA and backup codes). With --force and an
+ * e-mail that already has panel access, that account is locked (sessions ended, 2FA
+ * removed, audited) and the invitation brings it back with a new password and 2FA again.
  */
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,6 +16,7 @@ import {
   createAdminInvitation,
   OWNER_BOOTSTRAP_TTL_MS,
 } from "@/features/auth/server/admin-invitations.server";
+import { startOwnerRecovery } from "@/features/auth/server/owner-recovery.server";
 import { adminUsers } from "@/server/db/schema";
 import { openDb } from "./open-db";
 
@@ -38,6 +41,15 @@ if (owners.length > 0 && !force) {
     "An active owner already exists. Invite new admins from the panel. To recover access, run again with --force.",
   );
   process.exit(1);
+}
+
+const recovery = force ? await startOwnerRecovery(db, email.data) : null;
+if (recovery) {
+  console.info(
+    `\nAccess recovery for ${recovery.invitation.email}: the account is locked, its sessions ended and its 2FA removed.\nSingle-use link, valid for ${OWNER_BOOTSTRAP_TTL_MS / 60_000} minutes:\n\n  ${recovery.url}\n`,
+  );
+  console.info("Open the link, set a new password, and set up two-factor verification again.\n");
+  process.exit(0);
 }
 
 const { url, invitation } = await createAdminInvitation(db, {

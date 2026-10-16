@@ -88,3 +88,17 @@ export function microphoneOptions(devices: readonly AudioDevice[]): MicrophoneOp
     ...options,
   ];
 }
+
+/**
+ * Options offered inside the room. Without the "default" entry (Firefox, Safari),
+ * the generic option would have nothing to point to, so it is left out.
+ */
+export function roomMicrophoneOptions(devices: readonly AudioDevice[]): MicrophoneOption[] {
+  const hasDefault = devices.some((device) => device.deviceId === "default");
+  return microphoneOptions(devices).filter((option) => option.kind !== "system" || hasDefault);
+}
+
+/** The room's microphone picker only appears when there is something to choose. */
+export function hasMicrophoneChoice(options: readonly MicrophoneOption[]): boolean {
+  return options.length >= 2;
+}

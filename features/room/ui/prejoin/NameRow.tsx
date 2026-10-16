@@ -1,13 +1,21 @@
-import { Loader2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { displayNameSchema } from "@/features/room/domain/participant-label";
-import { initials } from "@/lib/initials";
 
 /** Edits the account name without leaving the pre-join screen. */
-export function NameRow({ name, onChange }: { name: string; onChange: (name: string) => void }) {
+export function NameRow({
+  name,
+  image,
+  onChange,
+}: {
+  name: string;
+  image: string | null;
+  onChange: (name: string) => void;
+}) {
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +58,7 @@ export function NameRow({ name, onChange }: { name: string; onChange: (name: str
           Seu nome na sala
         </label>
         <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
-          <input
+          <Input
             ref={inputRef}
             id={inputId}
             value={draft}
@@ -74,11 +82,9 @@ export function NameRow({ name, onChange }: { name: string; onChange: (name: str
                 setEditing(false);
               }
             }}
-            data-slot="input"
-            className="h-11 w-full min-w-0 flex-none rounded-full border border-line bg-surface-2 px-4 text-lg text-ink outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-auto sm:flex-1"
+            className="flex-none rounded-full border-line px-4 text-lg text-ink sm:w-auto sm:flex-1"
           />
-          <Button type="button" size="default" disabled={saving} onClick={() => void save()}>
-            {saving ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+          <Button type="button" size="default" loading={saving} onClick={() => void save()}>
             Salvar
           </Button>
           <Button
@@ -105,12 +111,11 @@ export function NameRow({ name, onChange }: { name: string; onChange: (name: str
 
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <span
-        aria-hidden="true"
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-medium text-brand-soft"
-      >
-        {initials(name)}
-      </span>
+      <InitialsAvatar
+        name={name}
+        source={image}
+        className="size-10 shrink-0 bg-brand/15 text-sm font-medium text-brand-soft"
+      />
       <p className="min-w-0 flex-1">
         <span className="block text-sm text-ink-muted">Você vai entrar como</span>
         <strong className="block truncate text-lg font-medium">{name}</strong>

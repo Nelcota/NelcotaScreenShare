@@ -1,5 +1,8 @@
 import { parseUrl } from "@/lib/url";
 
+/** Where people land after signing in or up, unless they came from somewhere. */
+export const APP_START = "/inicio";
+
 const BASE = "http://nelcota.local";
 
 /**

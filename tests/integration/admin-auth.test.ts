@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac, randomBytes } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { and, eq, like } from "drizzle-orm";
 import { Pool } from "pg";
@@ -14,6 +15,7 @@ import {
 } from "@/features/auth/server/admin-invitations.server";
 import * as schema from "@/server/db/schema";
 import { CookieJar, errorCode, makeCaller } from "./support/http-auth";
+import { emailHash, recordFailure } from "@/features/auth/server/lockout.server";
 import { totpFromUri } from "./support/totp";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -177,24 +179,28 @@ describe("sign-in", () => {
 
   test("5 wrong passwords lock the account, even with the right password afterwards", async () => {
     await inviteAndAccept("bloqueio@exemplo.com");
-    // A different IP on each attempt: the lock is per account, not the per-IP rate limit.
-    for (let i = 0; i < 5; i++) {
-      const res = await makeCaller(
-        handler,
-        ADMIN_AUTH_BASE_PATH,
-        `198.51.100.${i + 1}`,
-      )("/sign-in/email", {
+    // The lockout counts per account and network; Better Auth's per-IP limit stops a sixth
+    // try from one IP first, so four go through HTTP and one more is recorded directly.
+    const attacker = makeCaller(handler, ADMIN_AUTH_BASE_PATH, "198.51.100.1");
+    for (let i = 0; i < 4; i++) {
+      const res = await attacker("/sign-in/email", {
         body: { email: "bloqueio@exemplo.com", password: `errada-${i}-xxxxxx` },
       });
       assert.equal(res.status, 401);
     }
-    const locked = await makeCaller(
-      handler,
-      ADMIN_AUTH_BASE_PATH,
-      "198.51.100.99",
-    )("/sign-in/email", { body: { email: "bloqueio@exemplo.com", password: PASSWORD } });
+    const hash = emailHash(SECRET, "admin", "bloqueio@exemplo.com");
+    await recordFailure(db, { scope: "admin", hash, ip: "198.51.100.1" });
+    const locked = await attacker("/sign-in/email", {
+      body: { email: "bloqueio@exemplo.com", password: PASSWORD },
+    });
     assert.equal(locked.status, 429);
     assert.match(errorMessage(locked.body), /Muitas tentativas/);
+    // The owner, from elsewhere, still gets in.
+    const owner = makeCaller(handler, ADMIN_AUTH_BASE_PATH, "198.51.100.200");
+    const res = await owner("/sign-in/email", {
+      body: { email: "bloqueio@exemplo.com", password: PASSWORD },
+    });
+    assert.equal(res.status, 200);
   });
 
   test("a request from another origin is rejected (CSRF)", async () => {
@@ -258,6 +264,61 @@ describe("2FA TOTP", () => {
   });
 });
 
+/** A 30-day "trust this device" cookie, built the way the two-factor plugin builds it. */
+async function trustedDeviceCookie(userId: string): Promise<string> {
+  const identifier = `trust-device-${randomBytes(16).toString("hex")}`;
+  await db.insert(schema.adminVerifications).values({
+    identifier,
+    value: userId,
+    expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+  });
+  const token = createHmac("sha256", SECRET).update(`${userId}!${identifier}`).digest("base64url");
+  const value = `${token}!${identifier}`;
+  const signature = createHmac("sha256", SECRET).update(value).digest("base64");
+  return `nelcota-admin.trust_device=${encodeURIComponent(`${value}.${signature}`)}`;
+}
+
+/** An admin who turned 2FA on, and the caller with its IP. */
+async function adminWithTwoFactor(email: string) {
+  const call = newCaller();
+  const { userId } = await inviteAndAccept(email);
+  const jar = new CookieJar();
+  await call("/sign-in/email", { body: { email, password: PASSWORD }, jar });
+  const enabled = await call("/two-factor/enable", { body: { password: PASSWORD }, jar });
+  const { totpURI } = enabled.body as { totpURI: string };
+  await call("/two-factor/verify-totp", { body: { code: totpFromUri(totpURI) }, jar });
+  return { call, userId, totpURI };
+}
+
+describe("2FA on every sign-in", () => {
+  test("trusting the device is refused", async () => {
+    const { call, totpURI } = await adminWithTwoFactor("confiar@exemplo.com");
+    const jar = new CookieJar();
+    await call("/sign-in/email", {
+      body: { email: "confiar@exemplo.com", password: PASSWORD },
+      jar,
+    });
+    const trusted = await call("/two-factor/verify-totp", {
+      body: { code: totpFromUri(totpURI), trustDevice: true },
+      jar,
+    });
+    assert.equal(trusted.status, 400);
+    assert.equal(errorCode(trusted.body), "TRUST_DEVICE_DISABLED");
+    assert.equal(jar.has("trust_device"), false);
+  });
+
+  test("a device trusted before no longer skips the code", async () => {
+    const { call, userId } = await adminWithTwoFactor("antigo@exemplo.com");
+    const jar = new CookieJar();
+    jar.store(new Response(null, { headers: { "set-cookie": await trustedDeviceCookie(userId) } }));
+    const signIn = await call("/sign-in/email", {
+      body: { email: "antigo@exemplo.com", password: PASSWORD },
+      jar,
+    });
+    assert.equal((signIn.body as { twoFactorRedirect?: boolean }).twoFactorRedirect, true);
+  });
+});
+
 describe("password reset", () => {
   test("single-use token that ends all sessions", async () => {
     const call = newCaller();
@@ -306,7 +367,7 @@ async function auditOf(action: string, adminId: string) {
 }
 
 describe("auditing of sign-in events", () => {
-  test("a successful sign-in records the author; a failed one does not store the e-mail", async () => {
+  test("a successful sign-in records the author; a wrong password alone records nothing", async () => {
     const call = newCaller();
     await inviteAndAccept("auditoria@exemplo.com");
     const [user] = await db
@@ -317,15 +378,36 @@ describe("auditing of sign-in events", () => {
     const signIns = await auditFor("auth.sign_in");
     assert.ok(signIns.some((row) => row.actorAdminId === user?.id && row.resourceId === user?.id));
 
+    const before = (await auditFor("auth.sign_in_failed")).length;
     await call("/sign-in/email", {
       body: { email: "auditoria@exemplo.com", password: "senha-errada-123" },
     });
-    const failures = await auditFor("auth.sign_in_failed");
-    assert.ok(failures.length > 0);
-    for (const row of failures) {
-      assert.equal(row.actorAdminId, null);
-      assert.doesNotMatch(JSON.stringify(row), /auditoria@exemplo\.com/);
+    // The failure is counted in login_failures (for the lockout), not in the audit log.
+    assert.equal((await auditFor("auth.sign_in_failed")).length, before);
+  });
+
+  test("a lockout of a real admin is recorded once, tied to the account, without the e-mail", async () => {
+    const { userId } = await inviteAndAccept("trava-auditada@exemplo.com");
+    // All from one IP, which the lockout counts; past five, Better Auth's limit answers.
+    const attacker = makeCaller(handler, ADMIN_AUTH_BASE_PATH, "198.51.100.84");
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await attacker("/sign-in/email", {
+        body: { email: "trava-auditada@exemplo.com", password: "senha-errada-123" },
+      });
     }
+    const lockouts = (await auditFor("auth.lockout")).filter((row) => row.resourceId === userId);
+    assert.equal(lockouts.length, 1);
+    assert.doesNotMatch(JSON.stringify(lockouts), /trava-auditada@exemplo.com/);
+  });
+
+  test("wrong passwords for e-mails that are not admins leave no audit rows", async () => {
+    const before = (await db.select().from(schema.auditLogs)).length;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await newCaller()("/sign-in/email", {
+        body: { email: `ninguem-${attempt % 2}@exemplo.com`, password: "senha-errada-123" },
+      });
+    }
+    assert.equal((await db.select().from(schema.auditLogs)).length, before);
   });
 
   test("2FA enabled and password reset are recorded", async () => {
@@ -413,5 +495,33 @@ describe("invitation failing midway", () => {
 
     const retry = await acceptAdminInvitation(db, auth, { token, name: "X", password: PASSWORD });
     assert.equal(retry.ok, true);
+  });
+
+  test("an account whose audit row cannot be written is undone too", async () => {
+    const email = "sem-auditoria@exemplo.com";
+    const { token, invitation } = await createAdminInvitation(db, {
+      email,
+      role: "admin",
+      invitedBy: null,
+    });
+    await assert.rejects(
+      acceptAdminInvitation(
+        db,
+        auth,
+        { token, name: "X", password: PASSWORD },
+        { onAccepted: () => Promise.reject(new Error("audit down")) },
+      ),
+      /audit down/,
+    );
+    const users = await db
+      .select()
+      .from(schema.adminUsers)
+      .where(eq(schema.adminUsers.email, email));
+    assert.equal(users.length, 0, "no admin without its audit row");
+    const [row] = await db
+      .select()
+      .from(schema.adminInvitations)
+      .where(eq(schema.adminInvitations.id, invitation.id));
+    assert.equal(row?.status, "pending");
   });
 });

@@ -1,6 +1,6 @@
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { newPasswordError, PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
-import { checkSignUp } from "@/features/auth/domain/sign-up";
+import { checkSignUp, emailProblem } from "@/features/auth/domain/sign-up";
 import { formText } from "@/lib/utils";
 import {
   asksForSecondFactor,
@@ -59,11 +59,14 @@ export async function passwordResetFromForm(
   { redirectTo }: { redirectTo: string },
 ) {
   const form = await readAuthForm(request);
+  const email = formText(form, "email").trim();
+  const problem = emailProblem(email);
+  if (problem) return formFailure(problem);
   const result = await forwardAuthForm(
     request,
     auth.handle,
     `${auth.basePath}/request-password-reset`,
-    { email: formText(form, "email"), redirectTo },
+    { email, redirectTo },
   );
   if (!result.ok) {
     return formFailure(

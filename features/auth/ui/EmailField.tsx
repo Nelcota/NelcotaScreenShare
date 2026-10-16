@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { nodMascot, setMascotDoubt } from "@/features/mascot/client/events";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/Field";
 import { suggestEmail } from "@/features/auth/domain/email-suggest";
 import { EMAIL_PATTERN } from "@/features/auth/domain/sign-up";
 
@@ -76,11 +76,27 @@ export function EmailField({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>E-mail</Label>
+    <Field
+      id={id}
+      label="E-mail"
+      footer={
+        suggestion ? (
+          <p id={hintId} className="text-sm text-ink-muted">
+            Você quis dizer{" "}
+            <button
+              type="button"
+              onClick={accept}
+              className="font-medium text-brand-soft underline-offset-2 hover:underline"
+            >
+              {suggestion}
+            </button>
+            ?
+          </p>
+        ) : null
+      }
+    >
       <Input
         ref={ref}
-        id={id}
         name="email"
         type="email"
         inputMode="email"
@@ -101,19 +117,6 @@ export function EmailField({
         }}
         onBlur={(event) => check(event.target.value.trim())}
       />
-      {suggestion ? (
-        <p id={hintId} className="text-sm text-ink-muted">
-          Você quis dizer{" "}
-          <button
-            type="button"
-            onClick={accept}
-            className="font-medium text-brand-soft underline-offset-2 hover:underline"
-          >
-            {suggestion}
-          </button>
-          ?
-        </p>
-      ) : null}
-    </div>
+    </Field>
   );
 }

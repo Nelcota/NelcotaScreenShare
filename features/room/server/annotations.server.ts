@@ -17,6 +17,8 @@ import { controlGateway } from "./control-gateway.server";
 import { roomService } from "./room-service.server";
 
 const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
+// Reads take the room's lock too: three times what the stage polls (every 1.5 s).
+const readLimiter = createRateLimiter({ limit: 120, windowMs: 60_000 });
 
 export async function annotationRequest(request: Request) {
   if (!getEnv().ROOM_HOST_CONTROLS_ENABLED) return new Response(null, { status: 404 });
@@ -24,7 +26,8 @@ export async function annotationRequest(request: Request) {
   if (clearing && isCrossSiteMutation(request)) return forbiddenCrossSite();
   const caller = await roomCaller(request);
   if (!caller) return new Response(null, { status: 401 });
-  if (clearing && !limiter.hit(caller.identity).ok) return new Response(null, { status: 429 });
+  if (!(clearing ? limiter : readLimiter).hit(caller.identity).ok)
+    return new Response(null, { status: 429 });
   const input = annotationInputSchema.safeParse(
     clearing
       ? await readJsonBody(request, SMALL_JSON_MAX_BYTES)

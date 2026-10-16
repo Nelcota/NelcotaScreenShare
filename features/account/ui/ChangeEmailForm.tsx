@@ -1,15 +1,14 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { EMAIL_PATTERN } from "@/features/auth/domain/sign-up";
 import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
+import { Field } from "@/components/Field";
 
 /** E-mail change: the link goes to the new address; until confirmed, the old one stays valid. */
 export function ChangeEmailForm({ email }: { email: string }) {
@@ -70,10 +69,8 @@ export function ChangeEmailForm({ email }: { email: string }) {
       noValidate
       className="flex max-w-sm flex-col gap-3"
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={emailId}>Novo e-mail</Label>
+      <Field id={emailId} label="Novo e-mail">
         <Input
-          id={emailId}
           name="email"
           type="email"
           autoComplete="email"
@@ -83,11 +80,10 @@ export function ChangeEmailForm({ email }: { email: string }) {
           onChange={() => setError(undefined)}
           className="h-10"
         />
-      </div>
+      </Field>
       <FormError message={error} />
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending}>
           Enviar link de confirmação
         </Button>
         {closeRow ? (

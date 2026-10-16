@@ -78,7 +78,7 @@ async function withNames(
     name:
       inRoom.get(removal.identity) ??
       (removal.userId ? accounts.get(removal.userId) : undefined) ??
-      "Convidado",
+      "Pessoa sem conta",
     removedAt: removal.removedAt,
     removedBy: removedBy(removal, accounts),
   }));

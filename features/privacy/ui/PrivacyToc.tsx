@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { activeSection } from "@/features/privacy/domain/active-section";
 import { cn } from "@/lib/utils";
 
 export interface PrivacyTocItem {
@@ -6,45 +7,67 @@ export interface PrivacyTocItem {
   label: string;
 }
 
+/** A third of the screen down: a section whose title passed it is the one being read. */
+const READING_LINE = 1 / 3;
+
+/** On phones the bar scrolls sideways: keeps the active pill in view. */
+function centerPill(list: HTMLOListElement | null, id: string) {
+  const pill = list?.querySelector<HTMLElement>(`a[href="#${id}"]`);
+  if (!list || !pill) return;
+  const left = pill.offsetLeft - (list.clientWidth - pill.offsetWidth) / 2;
+  list.scrollTo({ left, behavior: "smooth" });
+}
+
+function readSection(items: readonly PrivacyTocItem[]) {
+  const tops = items.flatMap((item) => {
+    const element = document.getElementById(item.id);
+    return element ? [{ id: item.id, top: element.getBoundingClientRect().top }] : [];
+  });
+  const atPageEnd =
+    window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+  return activeSection(tops, window.innerHeight * READING_LINE, atPageEnd);
+}
+
+/** The section on screen, followed while the page scrolls (one reading per frame). */
+function useActiveSection(
+  items: readonly PrivacyTocItem[],
+  list: RefObject<HTMLOListElement | null>,
+) {
+  const [active, setActive] = useState(items[0]?.id ?? "");
+  useEffect(() => {
+    let frame = 0;
+    let shown: string | undefined;
+    const update = () => {
+      frame = 0;
+      const id = readSection(items);
+      if (!id || id === shown) return;
+      shown = id;
+      setActive(id);
+      centerPill(list.current, id);
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, [items, list]);
+  return active;
+}
+
 /**
  * Section bar of the notice, sticky at the top while scrolling: highlights the pill
- * of the section on screen. Without JavaScript, it is still a plain anchor list.
+ * of the section being read. Without JavaScript, it is still a plain anchor list.
  */
 export function PrivacyToc({ items }: { items: PrivacyTocItem[] }) {
-  const [active, setActive] = useState(items[0]?.id ?? "");
   const listRef = useRef<HTMLOListElement>(null);
-
-  useEffect(() => {
-    const sections = items
-      .map((item) => document.getElementById(item.id))
-      .filter((element): element is HTMLElement => element !== null);
-    const visible = new Set<string>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            visible.add(entry.target.id);
-            continue;
-          }
-          visible.delete(entry.target.id);
-        }
-        const first = items.find((item) => visible.has(item.id));
-        if (!first) return;
-        setActive(first.id);
-        // On mobile the bar scrolls sideways: keeps the active pill in view.
-        const list = listRef.current;
-        const pill = list?.querySelector<HTMLElement>(`a[href="#${first.id}"]`);
-        if (list && pill) {
-          const left = pill.offsetLeft - (list.clientWidth - pill.offsetWidth) / 2;
-          list.scrollTo({ left, behavior: "smooth" });
-        }
-      },
-      // The "current" section is the one crossing the strip just below the bar.
-      { rootMargin: "-20% 0px -55% 0px" },
-    );
-    for (const section of sections) observer.observe(section);
-    return () => observer.disconnect();
-  }, [items]);
+  const active = useActiveSection(items, listRef);
 
   return (
     <nav aria-label="Nesta página" className="glass rounded-2xl p-1.5">

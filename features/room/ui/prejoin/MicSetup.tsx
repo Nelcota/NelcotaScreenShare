@@ -64,7 +64,7 @@ export function MicSetup({
   );
 }
 
-function MicStatus({
+export function MicStatus({
   mic,
   meterRef,
 }: {
@@ -103,14 +103,10 @@ function MicStatus({
       <Button
         type="button"
         variant="outline"
-        disabled={mic.requesting}
+        loading={mic.requesting}
         onClick={() => void mic.askPermission()}
       >
-        {mic.requesting ? (
-          <Loader2 className="animate-spin" aria-hidden="true" />
-        ) : (
-          <Mic aria-hidden="true" />
-        )}
+        {mic.requesting ? null : <Mic aria-hidden="true" />}
         {mic.requesting ? "Esperando você permitir…" : "Permitir microfone"}
       </Button>
     </div>

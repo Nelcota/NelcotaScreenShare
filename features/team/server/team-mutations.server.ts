@@ -1,13 +1,14 @@
 import { getEnv } from "@/server/env.server";
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { Database, DbExecutor } from "@/server/db/index.server";
 import { teams, teamMembers, teamInvitations } from "@/server/db/schema/workspaces";
 import type { AuditRecorder } from "@/server/audit.server";
 import { ActionError } from "@/server/operations/action-error";
 import type { TeamCommand } from "@/features/team/domain/commands";
 import { applyRoomCommand } from "@/features/room/server/control-commands.server";
-import { lockProSubject, requireEntitlement } from "@/features/rooms/server/entitlements.server";
+import { requireEntitlement } from "@/features/rooms/server/entitlements.server";
 import { lockTeam, requireMembership, workspaceAccount } from "./access.server";
+import { assertMayOwnAnotherTeam } from "./team-allowance.server";
 import {
   acceptTeamInvitation,
   createTeamInvitation,
@@ -27,16 +28,8 @@ interface Outcome {
 async function createTeam(tx: DbExecutor, actor: string, name: string): Promise<Outcome> {
   if (!getEnv().ROOM_HOST_CONTROLS_ENABLED)
     throw new ActionError("Times estão indisponíveis nesta instância.");
-  await lockProSubject(tx, { userId: actor });
+  await assertMayOwnAnotherTeam(tx, actor, "O piloto permite até 3 times por conta.");
   await requireEntitlement(tx, { userId: actor });
-  const [used] = await tx
-    .select({ total: count() })
-    .from(teamMembers)
-    .innerJoin(teams, eq(teams.id, teamMembers.teamId))
-    .where(
-      and(eq(teamMembers.userId, actor), eq(teamMembers.role, "owner"), isNull(teams.deletedAt)),
-    );
-  if ((used?.total ?? 0) >= 3) throw new ActionError("O piloto permite até 3 times por conta.");
   const [team] = await tx.insert(teams).values({ name }).returning({ id: teams.id });
   if (!team) throw new Error("Team was not saved");
   await tx.insert(teamMembers).values({ teamId: team.id, userId: actor, role: "owner" });
@@ -59,6 +52,8 @@ async function changeTeam(
     input.kind === "remove" && input.userId === actor ? "read" : required,
   );
   if (input.kind === "invite") {
+    // Who manages the team is the owner's call: a manager brings in members only.
+    if (input.role === "manager") await requireMembership(tx, input.teamId, actor, "owner");
     const invitation = await createTeamInvitation(tx, input.teamId, actor, input.email, input.role);
     return {
       teamId: input.teamId,

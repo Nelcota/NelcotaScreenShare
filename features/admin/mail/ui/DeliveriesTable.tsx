@@ -2,6 +2,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { reasonLabel, STATUS_LABELS } from "@/features/admin/mail/domain/labels";
 import type { DeliveryRow } from "@/features/admin/mail/server/queries.server";
 import { formatDateTime } from "@/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function Status({ row }: { row: DeliveryRow }) {
   const status = STATUS_LABELS[row.status];
@@ -31,30 +39,34 @@ function DeliveriesList({ rows }: { rows: DeliveryRow[] }) {
 function DeliveriesGrid({ rows }: { rows: DeliveryRow[] }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full text-left text-sm">
-        <thead className="text-xs text-ink-subtle">
-          <tr>
-            <th className="py-2 pr-4 font-medium">Quando</th>
-            <th className="py-2 pr-4 font-medium">E-mail</th>
-            <th className="py-2 pr-4 font-medium">Para</th>
-            <th className="py-2 pr-4 font-medium">Resultado</th>
-            <th className="py-2 font-medium">Motivo</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Quando</TableHead>
+            <TableHead>E-mail</TableHead>
+            <TableHead>Para</TableHead>
+            <TableHead>Resultado</TableHead>
+            <TableHead>Motivo</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-t border-line">
-              <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(row.createdAt)}</td>
-              <td className="py-2 pr-4">{row.subject}</td>
-              <td className="py-2 pr-4 text-ink-muted">{row.recipientDomain ?? "—"}</td>
-              <td className="py-2 pr-4">
+            <TableRow key={row.id}>
+              <TableCell>{formatDateTime(row.createdAt)}</TableCell>
+              <TableCell className="whitespace-normal">{row.subject}</TableCell>
+              <TableCell className="whitespace-normal text-ink-muted">
+                {row.recipientDomain ?? "—"}
+              </TableCell>
+              <TableCell className="whitespace-normal">
                 <Status row={row} />
-              </td>
-              <td className="py-2 text-ink-muted">{reasonLabel(row.reason)}</td>
-            </tr>
+              </TableCell>
+              <TableCell className="whitespace-normal text-ink-muted">
+                {reasonLabel(row.reason)}
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

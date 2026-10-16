@@ -27,19 +27,23 @@ export const acceptInvitation = definePublicOperation(
     const db = getDb();
     const auth = getAdminAuth();
     if (!auth) throw new ActionError("O painel admin está desligado neste servidor.");
-    const result = await acceptAdminInvitation(db, auth, parsedInput);
+    // The audit runs inside the acceptance: if it fails, the account is undone and the
+    // invitation can be used again, so no admin exists without its record.
+    const result = await acceptAdminInvitation(db, auth, parsedInput, {
+      onAccepted: (accepted) =>
+        ctx.audit.record(
+          db,
+          {
+            action: "admin_invitation.accept",
+            resourceType: "admin_invitation",
+            resourceId: accepted.invitationId,
+            metadata: { papel: accepted.role },
+          },
+          // Actor: the admin just born from this invitation.
+          { adminId: accepted.userId },
+        ),
+    });
     if (!result.ok) throw new ActionError(REASONS[result.reason]);
-    // Actor: the admin just born from this invitation.
-    await ctx.audit.record(
-      db,
-      {
-        action: "admin_invitation.accept",
-        resourceType: "admin_invitation",
-        resourceId: result.invitationId,
-        metadata: { papel: result.role },
-      },
-      { adminId: result.userId },
-    );
     logger.info(
       { event: "admin.invitation_accepted", adminId: result.userId },
       "invitation accepted",

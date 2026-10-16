@@ -19,6 +19,7 @@ export interface ExistingFriendship {
   requestedBy: string;
   /** A pending request the receiver no longer sees (declined, or sent by someone blocked). */
   dismissed?: boolean;
+  privateRequest?: boolean;
 }
 
 /** Who blocked whom between the two people of a request. */

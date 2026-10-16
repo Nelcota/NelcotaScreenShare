@@ -110,7 +110,10 @@ export const cancelFriendRequest = defineUserOperation(
     const requesterId = ctx.current.user.id;
     const result = await getDb().transaction(async (tx) => {
       const existing = await lockFriendship(tx, requesterId, parsedInput.userId);
-      const ownPending = existing?.status === "pending" && existing.requestedBy === requesterId;
+      const ownPending =
+        existing?.status === "pending" &&
+        existing.requestedBy === requesterId &&
+        !existing.privateRequest;
       if (!ownPending) throw new ActionError(UNAVAILABLE);
       await deleteFriendship(tx, requesterId, parsedInput.userId, "pending");
       await ctx.audit.record(tx, {

@@ -1,3 +1,4 @@
+import { visibleFriendshipTo } from "@/features/friends/server/friend-list.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { profileChangesOf } from "@/features/admin/participants/server/moderation-export.server";
 import { and, count, desc, eq, gt, or, sql } from "drizzle-orm";
@@ -110,7 +111,12 @@ export async function personalData(db: DbExecutor, userId: string) {
       users,
       sql`${users.id} = case when ${friendships.userLowId} = ${userId} then ${friendships.userHighId} else ${friendships.userLowId} end`,
     )
-    .where(or(eq(friendships.userLowId, userId), eq(friendships.userHighId, userId)))
+    .where(
+      and(
+        or(eq(friendships.userLowId, userId), eq(friendships.userHighId, userId)),
+        visibleFriendshipTo(userId),
+      ),
+    )
     .orderBy(desc(friendships.createdAt));
   const blocked = await db
     .select({ pessoa: users.name, desde: userBlocks.createdAt })

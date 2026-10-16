@@ -3,6 +3,7 @@ CREATE TABLE "friendships" (
 	"user_low_id" uuid NOT NULL,
 	"user_high_id" uuid NOT NULL,
 	"requested_by" uuid NOT NULL,
+	"private_request" boolean DEFAULT false NOT NULL,
 	"status" "friendship_status" DEFAULT 'pending' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"accepted_at" timestamp with time zone,

@@ -63,12 +63,18 @@ export async function lockFriendship(
       status: friendships.status,
       requestedBy: friendships.requestedBy,
       dismissedAt: friendships.dismissedAt,
+      privateRequest: friendships.privateRequest,
     })
     .from(friendships)
     .where(pairCondition(one, other))
     .for("update");
   if (!row) return null;
-  return { status: row.status, requestedBy: row.requestedBy, dismissed: row.dismissedAt !== null };
+  return {
+    status: row.status,
+    requestedBy: row.requestedBy,
+    dismissed: row.dismissedAt !== null,
+    privateRequest: row.privateRequest,
+  };
 }
 
 /** Whether the requester blocked the target, the target blocked the requester, or neither. */
@@ -109,13 +115,23 @@ export async function friendIdsOf(db: DbExecutor, userId: string): Promise<strin
   return rows.map((row) => (row.low === userId ? row.high : row.low));
 }
 
-export async function countPendingSent(db: DbExecutor, userId: string): Promise<number> {
+/** Separate quotas keep blind email requests from changing observable request limits. */
+export async function countPendingSent(
+  db: DbExecutor,
+  userId: string,
+  privateRequest = false,
+): Promise<number> {
   const [row] = await db
     .select({ total: count() })
     .from(friendships)
     .innerJoin(users, otherAccount(userId))
     .where(
-      and(eq(friendships.requestedBy, userId), eq(friendships.status, "pending"), activeAccount()),
+      and(
+        eq(friendships.requestedBy, userId),
+        eq(friendships.status, "pending"),
+        eq(friendships.privateRequest, privateRequest),
+        activeAccount(),
+      ),
     );
   return row?.total ?? 0;
 }
@@ -125,13 +141,14 @@ export async function createRequest(
   db: DbExecutor,
   requesterId: string,
   targetId: string,
-  { hidden = false }: { hidden?: boolean } = {},
+  { hidden = false, privateRequest = false }: { hidden?: boolean; privateRequest?: boolean } = {},
 ) {
   await db
     .insert(friendships)
     .values({
       ...friendPair(requesterId, targetId),
       requestedBy: requesterId,
+      privateRequest,
       dismissedAt: hidden ? sql`now()` : null,
     })
     .onConflictDoNothing();
@@ -219,4 +236,18 @@ export async function forgetFriendships(db: DbExecutor, userId: string) {
   await db
     .delete(userBlocks)
     .where(or(eq(userBlocks.blockerId, userId), eq(userBlocks.blockedId, userId)));
+}
+
+/** A code or call card identifies the recipient explicitly, so its request may be listed. */
+export async function exposeRequest(db: DbExecutor, requesterId: string, targetId: string) {
+  await db
+    .update(friendships)
+    .set({ privateRequest: false })
+    .where(
+      and(
+        pairCondition(requesterId, targetId),
+        eq(friendships.requestedBy, requesterId),
+        eq(friendships.status, "pending"),
+      ),
+    );
 }

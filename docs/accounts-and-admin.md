@@ -79,3 +79,5 @@ docker exec -it <app-container> node create-owner.mjs owner@example.com
 ```
 
 The command prints a single-use link, valid for 30 minutes. If the only owner loses their 2FA and backup codes, run it again with `--force` to generate another owner invitation.
+
+Friend requests sent by email remain private to their recipient until accepted. They do not expose recipient names in the sender's outgoing list, relation endpoint, photo endpoint, or data export. Email and explicit code/card requests have separate pending quotas, so a blind lookup cannot be detected through a later public request limit.

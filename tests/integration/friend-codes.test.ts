@@ -120,7 +120,17 @@ describe("adding a friend", () => {
     const unknown = await codes.addFriend({ target: "ninguem-aqui@exemplo.com" });
     expect(known.data).toEqual({ status: "sent" });
     expect(unknown.data).toEqual({ status: "sent" });
-    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("sent");
+    expect((await lists.friendLists(db, ana.id)).sent).toEqual([]);
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("none");
+    expect((await lists.friendLists(db, bia.id)).received).toEqual([{ id: ana.id, name: "Ana" }]);
+    const { personalData } = await import("@/features/account/server/personal-data.server");
+    expect((await personalData(db, ana.id)).amizades).toEqual([]);
+    as(bia);
+    expect(
+      (await friends.answerFriendRequest({ userId: ana.id, accept: true })).data,
+    ).toBeDefined();
+    expect((await lists.friendLists(db, ana.id)).friends).toEqual([{ id: bia.id, name: "Bia" }]);
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("friends");
   });
 
   test("accepts at once when the other person had already asked", async () => {
@@ -143,8 +153,8 @@ describe("adding a friend", () => {
     as(ana);
     const result = await codes.addFriend({ target: bia.email });
     expect(result.data?.status).toBe("sent");
-    // To Ana it looks like any request she sent; Bia never sees it.
-    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("sent");
+    // Neither account can observe a private request hidden by a block.
+    expect(await lists.relationTo(db, ana.id, bia.id)).toBe("none");
     expect((await lists.friendLists(db, bia.id)).received).toEqual([]);
   });
 
@@ -169,4 +179,37 @@ describe("adding a friend", () => {
     const blocked = await codes.addFriend({ target: "mais-um@exemplo.com" });
     expect(blocked.serverError).toBe("Muitas tentativas. Espere alguns minutos.");
   });
+});
+
+test("private email quotas do not reveal registered addresses through public requests", async () => {
+  const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+  const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+  const { MAX_PENDING_SENT, friendPair } = await import("@/features/friends/domain/friendship");
+  const { countPendingSent } = await import("@/features/friends/server/friendships.server");
+  const people = await db
+    .insert(schema.users)
+    .values(
+      Array.from({ length: MAX_PENDING_SENT }, () => ({
+        name: "Private recipient",
+        email: `${crypto.randomUUID()}@example.com`,
+      })),
+    )
+    .returning({ id: schema.users.id });
+  await db.insert(schema.friendships).values(
+    people.map((person) => ({
+      ...friendPair(ana.id, person.id),
+      requestedBy: ana.id,
+      privateRequest: true,
+    })),
+  );
+  as(ana);
+  expect((await codes.addFriend({ target: bia.email })).data).toEqual({ status: "sent" });
+  expect((await codes.addFriend({ target: "unknown-private@example.com" })).data).toEqual({
+    status: "sent",
+  });
+  expect(await countPendingSent(db, ana.id)).toBe(0);
+  expect((await lists.friendLists(db, ana.id)).sent).toEqual([]);
+  expect((await friends.cancelFriendRequest({ userId: people[0]!.id })).data).toBeUndefined();
+  expect((await friends.sendFriendRequest({ userId: bia.id })).data?.status).toBe("sent");
+  expect((await lists.friendLists(db, ana.id)).sent).toEqual([{ id: bia.id, name: "Bia" }]);
 });

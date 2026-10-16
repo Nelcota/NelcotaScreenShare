@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -33,6 +34,8 @@ export const friendships = pgTable(
     requestedBy: uuid("requested_by")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // Email lookups reveal the recipient only after acceptance.
+    privateRequest: boolean("private_request").notNull().default(false),
     status: friendshipStatus("status").notNull().default("pending"),
     createdAt: createdAt(),
     acceptedAt: timestamptz("accepted_at"),

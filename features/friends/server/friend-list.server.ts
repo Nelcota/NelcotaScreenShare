@@ -21,6 +21,15 @@ function otherSide(userId: string) {
   return sql`case when ${friendships.userLowId} = ${userId} then ${friendships.userHighId} else ${friendships.userLowId} end`;
 }
 
+/** Unaccepted email lookups are visible to their recipient, never to their sender. */
+export function visibleFriendshipTo(viewerId: string) {
+  return or(
+    eq(friendships.status, "accepted"),
+    ne(friendships.requestedBy, viewerId),
+    eq(friendships.privateRequest, false),
+  );
+}
+
 /** Everyone on the friends page, sorted by name; accounts that left are hidden. */
 export async function friendLists(db: DbExecutor, userId: string): Promise<FriendLists> {
   const rows = await db
@@ -34,7 +43,11 @@ export async function friendLists(db: DbExecutor, userId: string): Promise<Frien
     .from(friendships)
     .innerJoin(users, eq(users.id, otherSide(userId)))
     .where(
-      and(or(eq(friendships.userLowId, userId), eq(friendships.userHighId, userId)), activeUser),
+      and(
+        or(eq(friendships.userLowId, userId), eq(friendships.userHighId, userId)),
+        activeUser,
+        visibleFriendshipTo(userId),
+      ),
     )
     .orderBy(asc(users.name));
   const blocked = await db
@@ -93,9 +106,12 @@ export async function relationTo(
     })
     .from(friendships)
     .where(
-      or(
-        and(eq(friendships.userLowId, viewerId), eq(friendships.userHighId, otherId)),
-        and(eq(friendships.userLowId, otherId), eq(friendships.userHighId, viewerId)),
+      and(
+        or(
+          and(eq(friendships.userLowId, viewerId), eq(friendships.userHighId, otherId)),
+          and(eq(friendships.userLowId, otherId), eq(friendships.userHighId, viewerId)),
+        ),
+        visibleFriendshipTo(viewerId),
       ),
     );
   if (!row) return "none";

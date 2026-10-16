@@ -81,14 +81,21 @@ export const addFriend = defineUserOperation(
     if (target.id === requesterId) throw new ActionError("Esse é você.");
     if (!target.id && target.via === "code") throw new ActionError(UNKNOWN_CODE);
     const result = await db.transaction(async (tx) => {
-      const outcome = target.id ? await requestFriendship(tx, requesterId, target.id) : "ignored";
+      const outcome = target.id
+        ? await requestFriendship(tx, requesterId, target.id, target.via === "email")
+        : "ignored";
       await ctx.audit.record(tx, {
         action: outcome === "accept" ? "friend.accept" : "friend.request",
         resourceType: "user",
         resourceId: target.id,
         metadata: { outcome, via: target.via },
       });
-      return { outcome, status: await statusFor(tx, requesterId, outcome) };
+      const privatePending =
+        target.via === "email" && outcome !== "accept" && outcome !== "already_friends";
+      return {
+        outcome,
+        status: privatePending ? ("sent" as const) : await statusFor(tx, requesterId, outcome),
+      };
     });
     nudgeFriendLists(requestNudgeTargets(requesterId, target.id ?? undefined, result.outcome));
     return { status: result.status };

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:26.9.0-alpine AS base
+FROM node:26.11.1-alpine AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN apk add --no-cache libc6-compat && npm install --global --allow-scripts=pnpm pnpm@12.9.1
 WORKDIR /app
@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build && pnpm build:scripts
 
-FROM node:26.9.0-alpine AS runner
+FROM node:26.11.1-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache curl && \
     addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nelcota

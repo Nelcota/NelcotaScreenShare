@@ -22,7 +22,7 @@ function firstName(name: string) {
   return name.trim().split(" ")[0] ?? name;
 }
 
-/** "…" on a friend: undo the friendship or block (after confirming). */
+/** "…" on a friend: undo the friendship or block, each after confirming. */
 export function FriendMenu({
   person,
   size = "icon-sm",
@@ -35,7 +35,14 @@ export function FriendMenu({
   /** After the friend is gone (e.g. leave their card). */
   onDone?: () => void;
 }) {
-  const remove = useOperation(removeFriend, { onSuccess: () => onDone?.(), onError: showError });
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const remove = useOperation(removeFriend, {
+    onSuccess: () => {
+      setConfirmRemove(false);
+      onDone?.();
+    },
+    onError: showError,
+  });
   const [confirmBlock, setConfirmBlock] = useState(false);
   const block = useOperation(blockUser, {
     onSuccess: () => {
@@ -59,7 +66,7 @@ export function FriendMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
-          <DropdownMenuItem onSelect={() => remove.execute({ userId: person.id })}>
+          <DropdownMenuItem onSelect={() => setConfirmRemove(true)}>
             Desfazer amizade
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onSelect={() => setConfirmBlock(true)}>
@@ -67,6 +74,16 @@ export function FriendMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={`Desfazer amizade com ${name}?`}
+        description="Vocês não podem mais se chamar nem trocar mensagens. Para voltar, alguém manda um novo pedido."
+        confirmLabel="Desfazer amizade"
+        danger
+        pending={remove.isPending}
+        onConfirm={() => remove.execute({ userId: person.id })}
+      />
       <ConfirmDialog
         open={confirmBlock}
         onOpenChange={setConfirmBlock}

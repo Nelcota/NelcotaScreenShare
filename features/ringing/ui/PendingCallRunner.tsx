@@ -1,7 +1,7 @@
 import { PhoneOutgoing } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useRevalidator, useRouteLoaderData } from "react-router";
+import { useFetcher, useLocation, useRouteLoaderData } from "react-router";
 import { toast } from "sonner";
 import type { loader as rootLoader } from "@/app/root";
 import { callGroup } from "@/features/ringing/actions";
@@ -14,11 +14,14 @@ import { useConnectedCallRoom } from "@/features/ringing/client/call-connection"
 import { ringFriend } from "@/features/ringing/client/calling";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
-/** The spot above "Pronto para entrar?" kept free for notices like this one. */
+/** The spot above "Tudo certo para entrar?" kept free for notices like this one. */
 const NOTICE_SLOT_ID = "pre-join-notice";
 
 /** A fallback if the call's signal is missed: the server learns of the join by webhook. */
 const CHECK_MS = 3_000;
+
+/** Only the call room, so the check does not reload every loader on the page. */
+const CALL_ROOM_PATH = "/api/chamadas/sala";
 
 async function ring(call: PendingCall) {
   const result =
@@ -40,8 +43,9 @@ function firstName(name: string) {
 export function PendingCallRunner() {
   const pending = usePendingCall();
   const { pathname } = useLocation();
-  const { revalidate } = useRevalidator();
-  const serverCallRoom = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.callRoom ?? null;
+  const check = useFetcher<{ callRoom: string | null }>();
+  const loadedCallRoom = useRouteLoaderData<typeof rootLoader>("root")?.ringing?.callRoom ?? null;
+  const serverCallRoom = check.data?.callRoom ?? loadedCallRoom;
   // LiveKit tells this tab first; the server only knows once the webhook arrives.
   const callRoom = useConnectedCallRoom() ?? serverCallRoom;
   const onRoom = pending !== null && pathname === `/sala/${pending.room}`;
@@ -56,11 +60,12 @@ export function PendingCallRunner() {
     }
   }, [pending, onRoom]);
 
+  const { load } = check;
   useEffect(() => {
     if (!onRoom) return;
-    const timer = window.setInterval(() => void revalidate(), CHECK_MS);
+    const timer = window.setInterval(() => void load(CALL_ROOM_PATH), CHECK_MS);
     return () => window.clearInterval(timer);
-  }, [onRoom, revalidate]);
+  }, [onRoom, load]);
 
   useEffect(() => {
     if (!pending || callRoom !== pending.room) return;

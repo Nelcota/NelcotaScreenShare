@@ -470,8 +470,8 @@ test.describe("in the room", () => {
       .getByRole("alertdialog")
       .getByRole("button", { name: "Sair", exact: true })
       .click();
-    await expect(caio.page.getByText("Você saiu da sala")).toBeVisible();
-    await caio.page.getByRole("button", { name: "Voltar para a sala" }).click();
+    await expect(caio.page.getByText("Você saiu da chamada")).toBeVisible();
+    await caio.page.getByRole("button", { name: "Voltar à chamada" }).click();
     await expect(caio.page.getByLabel("Senha da sala")).toBeVisible();
     await caio.context.close();
   });
@@ -583,16 +583,18 @@ test.describe("in the room", () => {
     await iris.getByLabel("Seu nome na sala").fill("Iris Convidada");
     await iris.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await join.click();
-    await expect(iris.getByText(/A sala ainda não começou/)).toBeVisible();
+    await expect(
+      iris.getByText("Quando quem te convidou entrar, toque em Entrar na sala."),
+    ).toBeVisible();
 
     await joinRoom(gil.page, code);
     await join.click();
     await expect(iris.getByRole("button", { name: /Sair/ })).toBeVisible();
-    await expect(gil.page.getByText("Iris Convidada (convidado) entrou na sala")).toBeVisible();
+    await expect(gil.page.getByText("Iris Convidada (sem conta) entrou na sala")).toBeVisible();
 
     // The guest's hand goes through the server too (signed guest cookie).
     await iris.keyboard.press("h");
-    await expect(gil.page.getByText("✋ Iris Convidada (convidado) levantou a mão")).toBeVisible();
+    await expect(gil.page.getByText("✋ Iris Convidada (sem conta) levantou a mão")).toBeVisible();
 
     await iris.getByRole("button", { name: "Sair da sala" }).click();
     await iris.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();

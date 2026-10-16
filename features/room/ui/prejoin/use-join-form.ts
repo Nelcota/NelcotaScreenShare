@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type RefObject } from "react";
-import { useRevalidator } from "react-router";
+import { useNavigate, useRevalidator } from "react-router";
 import { upsetMascot } from "@/features/mascot/client/events";
 import { requestToken } from "@/features/room/client/api";
 import { joinFailure, type JoinChoices } from "@/features/room/domain/join";
@@ -56,10 +56,16 @@ interface PendingJoin {
 export function useJoinForm(options: JoinFormOptions) {
   const { code, invite, passwordRequired, guest, guestName, scope, passwordRef, guestNameRef } =
     options;
-  const [formError, setFormError] = useState<{ message: string; field?: FormField }>();
+  const [formError, setFormError] = useState<{
+    message: string;
+    field?: FormField;
+    /** A wait to show in a neutral tone, not an error. */
+    waiting?: boolean;
+  }>();
   const [submitting, setSubmitting] = useState(false);
   const [pendingJoin, setPendingJoin] = useState<PendingJoin>();
   const revalidator = useRevalidator();
+  const navigate = useNavigate();
   const approval = useJoinApproval();
 
   /**
@@ -124,11 +130,19 @@ export function useJoinForm(options: JoinFormOptions) {
     const failure = joinFailure(error);
     if (failure.redirect) {
       const page = failure.redirect === "login" ? "/entrar" : "/verificar-email";
-      window.location.assign(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
+      // Still before the call: a client navigation, without reloading the whole app.
+      void navigate(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
       return;
     }
     if (failure.reloadRoom) {
       setSubmitting(false);
+      void revalidator.revalidate();
+      return;
+    }
+    if (failure.waiting) {
+      // No shake and no upset mascot: waiting for whoever invited them is expected.
+      setSubmitting(false);
+      setFormError({ message, waiting: true });
       void revalidator.revalidate();
       return;
     }

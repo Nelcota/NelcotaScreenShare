@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { HostBadge } from "./HostBadge";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
+import { TileNamePill } from "./TileNamePill";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -30,6 +31,9 @@ interface ParticipantTileProps {
   onEnlarge?: () => void;
   /** Their screen, shared and not watched here yet: the tile becomes its "Assistir" card. */
   screenInvite?: string;
+  /** Your own tile while someone else presents: on a phone it is small, so "Você" and a
+   * smaller face. */
+  shrunkOnPhone?: boolean;
 }
 
 /** Soft pulse on the border of whoever is speaking. */
@@ -141,6 +145,7 @@ function PersonFace({
   camera,
   variant,
   onEnlarge,
+  avatarClassName,
 }: {
   participant: Participant;
   name: string;
@@ -148,6 +153,7 @@ function PersonFace({
   camera: TrackReference | undefined;
   variant: keyof typeof FACE_STYLES;
   onEnlarge: (() => void) | undefined;
+  avatarClassName?: string;
 }) {
   const styles = FACE_STYLES[variant];
   if (!camera) {
@@ -156,7 +162,7 @@ function PersonFace({
         <ParticipantAvatar
           participant={participant}
           roomCode={roomCode}
-          className={styles.avatar}
+          className={cn(styles.avatar, avatarClassName)}
         />
       </ParticipantCard>
     );
@@ -178,6 +184,7 @@ export function ParticipantTile({
   compact,
   onEnlarge,
   screenInvite,
+  shrunkOnPhone = false,
 }: ParticipantTileProps) {
   const scope = useRef<HTMLDivElement>(null);
   const isSpeaking = useIsSpeaking(participant);
@@ -281,28 +288,17 @@ export function ParticipantTile({
           camera={camera}
           variant="large"
           onEnlarge={onEnlarge}
+          avatarClassName={shrunkOnPhone ? "max-sm:size-12 max-sm:text-base" : undefined}
         />
         {camera && participant.isLocal ? <SwitchCameraButton /> : null}
 
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-          <span className="glass relative z-30 inline-flex min-w-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium">
-            {camera ? (
-              <ParticipantCard participant={participant} roomCode={roomCode}>
-                <ParticipantAvatar
-                  participant={participant}
-                  roomCode={roomCode}
-                  className="-ml-1.5 size-6 text-[0.625rem]"
-                />
-              </ParticipantCard>
-            ) : null}
-            <HostBadge identity={participant.identity} />
-            <span className="truncate">
-              {name}
-              {participant.isLocal ? (
-                <span className="font-normal text-ink-muted"> (você)</span>
-              ) : null}
-            </span>
-          </span>
+          <TileNamePill
+            participant={participant}
+            roomCode={roomCode}
+            withPhoto={camera !== undefined}
+            shrunkOnPhone={shrunkOnPhone}
+          />
           <span className="flex shrink-0 items-center gap-1.5">
             {isSharing ? (
               <span className="grid size-8 place-items-center rounded-full bg-brand text-brand-ink">

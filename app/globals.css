@@ -244,6 +244,8 @@
 
   body {
     @apply min-h-dvh bg-canvas;
+    /* viewport-fit=cover draws under the notch in landscape: keep content out of it. */
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   }
 
   h1,

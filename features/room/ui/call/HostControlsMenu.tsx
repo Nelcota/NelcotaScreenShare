@@ -31,8 +31,8 @@ function CloseCallDialog({
       title={endsRoom ? "Encerrar sala para todos?" : "Encerrar chamada para todos?"}
       description={
         endsRoom
-          ? "Todos serão desconectados e este código ficará encerrado. Crie outra sala para uma nova chamada."
-          : "Todos serão desconectados. O link continuará disponível para uma nova chamada."
+          ? "A chamada termina para todas as pessoas e este código deixa de funcionar. Para outra chamada, crie uma sala nova."
+          : "A chamada termina para todas as pessoas. O link continua valendo para a próxima."
       }
       confirmLabel={endsRoom ? "Encerrar sala" : "Encerrar chamada"}
       danger
@@ -42,7 +42,7 @@ function CloseCallDialog({
 
 const POLICY_OPTIONS = [
   { value: "everyone", label: "Todas as pessoas" },
-  { value: "host", label: "Só o anfitrião" },
+  { value: "host", label: "Só quem controla a chamada" },
   { value: "selected", label: "Pessoas escolhidas" },
 ] as const;
 
@@ -88,7 +88,7 @@ function SharingRules({
       {state.policy === "selected" ? (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-xs text-ink-muted">
-            O anfitrião sempre pode compartilhar.
+            Quem controla a chamada sempre pode compartilhar.
           </legend>
           {participants
             .filter((person) => !person.isLocal)
@@ -139,7 +139,7 @@ export function HostControlsMenu({ participants }: { participants: Participant[]
       >
         <div className="flex max-h-[min(32rem,calc(100dvh-8rem))] flex-col gap-4 overflow-y-auto overscroll-contain">
           <p className="text-base font-medium">
-            {state.isHost ? "Você é o anfitrião" : "Você modera a sala"}
+            {state.isHost ? "Você controla a chamada" : "Você modera a sala"}
           </p>
           <div>
             <label htmlFor={lockId} className="flex items-center justify-between gap-3">

@@ -27,6 +27,7 @@ import { INVITE_TOKEN_PATTERN } from "@/features/room/domain/invite-token";
 import type { RoomEntry } from "@/features/room/ui/ActiveRoom";
 import { friendsSidebarData } from "@/features/friends/server/friends-sidebar.server";
 import { unreadSummary } from "@/features/messages/server/conversation-list.server";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 
 export const meta = () => [{ title: "Sala · Nelcota" }];
 
@@ -40,6 +41,9 @@ function canonicalRoomCode(codigo: string, invite: string | undefined): string {
   if (parsed.data !== raw) redirect(roomLink(parsed.data, invite));
   return parsed.data;
 }
+
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
 
 export const loader = routeLoader(async ({ params, searchParams, request }) => {
   const codigo = params.codigo ?? "";

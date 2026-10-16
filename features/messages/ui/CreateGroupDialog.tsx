@@ -1,18 +1,11 @@
-import { Check, Plus, UsersRound } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { Hint } from "@/components/Hint";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { PresenceDot, type Presence } from "@/components/PresenceDot";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { friendPhotoPath } from "@/features/friends/domain/friend-lists";
 import { createGroupConversation } from "@/features/messages/actions";
 import { MAX_GROUP_MEMBERS } from "@/features/messages/domain/conversation";
@@ -134,25 +127,24 @@ function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: 
   );
 }
 
-/** "Criar grupo" in the column's header, next to "Adicionar amigo". */
-export function CreateGroupDialog({ friends }: { friends: PickableFriend[] }) {
-  const [open, setOpen] = useState(false);
+/** "Criar grupo" in a window, opened from the column's "+" menu. */
+export function CreateGroupWindow({
+  friends,
+  open,
+  onOpenChange,
+  onCloseAutoFocus,
+}: {
+  friends: PickableFriend[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
+}) {
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Hint text="Criar grupo">
-        <DialogTrigger asChild>
-          <Button variant="brand-outline" size="icon-lg" aria-label="Criar grupo">
-            <span aria-hidden="true" className="relative">
-              <UsersRound className="size-4" />
-              <Plus className="absolute -top-1 -right-1.5 size-2.5" strokeWidth={3.5} />
-            </span>
-          </Button>
-        </DialogTrigger>
-      </Hint>
-      <DialogContent className="max-w-md" showCloseButton>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md" showCloseButton onCloseAutoFocus={onCloseAutoFocus}>
         <DialogTitle>Criar grupo</DialogTitle>
         <DialogDescription className="sr-only">Escolha dois ou mais amigos.</DialogDescription>
-        {open ? <NewGroupForm friends={friends} onDone={() => setOpen(false)} /> : null}
+        {open ? <NewGroupForm friends={friends} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
   );

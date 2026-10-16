@@ -1,3 +1,4 @@
+import { pageSlotRef } from "@/lib/page-slot";
 import type { ReactNode } from "react";
 import { InviteCard } from "./InviteCard";
 
@@ -35,7 +36,7 @@ export function AloneWelcome({
           {aloneTitle(everyoneLeft)}
         </h1>
         {/* Other features add a line here, e.g. who is being called. */}
-        <div id="room-call-status" className="empty:hidden" />
+        <div id="room-call-status" ref={pageSlotRef("room-call-status")} className="empty:hidden" />
       </div>
       <InviteCard code={code} />
     </section>

@@ -11,7 +11,7 @@ export function useParticipantName(participant: Participant) {
   const { name } = useParticipantInfo({ participant });
   const current = { identity: participant.identity, name, isLocal: participant.isLocal };
   return {
-    /** The name with the guest mark: "Ana (convidado)". */
+    /** The name with the guest mark: "Ana (sem conta)". */
     name: participantName(current),
     /** "Você" for yourself, the name for the others. */
     label: participantLabel(current),

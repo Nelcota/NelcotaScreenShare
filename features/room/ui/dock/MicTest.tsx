@@ -1,4 +1,3 @@
-import { useLocalParticipant } from "@livekit/components-react";
 import { Headphones, Square } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
@@ -84,7 +83,6 @@ function useLoopback(context: AudioContext | null, meterRef: RefObject<HTMLDivEl
  */
 export function MicTestProvider({ children }: { children: ReactNode }) {
   const deafen = useDeafen();
-  const { isMicrophoneEnabled } = useLocalParticipant();
   const [testing, setTesting] = useState(false);
   const [busy, setBusy] = useState(false);
   const wasDeafened = useRef(false);
@@ -116,13 +114,13 @@ export function MicTestProvider({ children }: { children: ReactNode }) {
     setBusy(false);
   }
 
-  // The microphone turned on during the test (the M key): the test gives way to the call.
-  const micWasOn = useRef(isMicrophoneEnabled);
-  useEffect(() => {
-    const turnedOn = !micWasOn.current && isMicrophoneEnabled;
-    micWasOn.current = isMicrophoneEnabled;
-    if (testing && turnedOn) setTesting(false);
-  }, [testing, isMicrophoneEnabled]);
+  // Turning the microphone on already brings the sound back (hearAgain): only the test ends.
+  function endForCall() {
+    if (!testing) return;
+    setTesting(false);
+    void output?.close();
+    setOutput(null);
+  }
 
   return (
     <MicTestContext
@@ -131,6 +129,7 @@ export function MicTestProvider({ children }: { children: ReactNode }) {
         busy,
         start,
         stop,
+        endForCall,
         attachMeter: (meter) => {
           meterRef.current = meter;
         },

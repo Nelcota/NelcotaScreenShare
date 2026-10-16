@@ -11,5 +11,5 @@ export const loader = routeLoader(({ searchParams }) => ({
 /** The app's start: nothing picked in the column yet. */
 export default function StartPage() {
   const { invalidCode } = useLoaderData<typeof loader>();
-  return <AppEmptyState invalidCode={invalidCode} />;
+  return <AppEmptyState title="Início" invalidCode={invalidCode} />;
 }

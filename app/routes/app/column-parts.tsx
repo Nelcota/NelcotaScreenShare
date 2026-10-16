@@ -3,10 +3,11 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 import { UnreadCount } from "@/components/UnreadCount";
 import { WorkspaceColumnList } from "@/components/workspace/WorkspaceColumnList";
+import type { AddMenuItem } from "@/features/friends/ui/AddMenu";
 import type { ColumnTab } from "@/features/friends/ui/FriendsColumn";
 import type { ColumnGroup } from "@/features/messages/server/conversation-list.server";
 import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
-import { CreateGroupDialog, type PickableFriend } from "@/features/messages/ui/CreateGroupDialog";
+import { CreateGroupWindow, type PickableFriend } from "@/features/messages/ui/CreateGroupDialog";
 import type { WorkspaceColumn } from "./workspace-column.server";
 
 /**
@@ -18,22 +19,35 @@ import type { WorkspaceColumn } from "./workspace-column.server";
 export function columnTabs(counts: { requests: number; unread: number }): ColumnTab[] {
   const badge = counts.requests + counts.unread;
   return [
-    { id: "amigos", label: "Amigos", href: "/amigos", icon: Users, badge },
-    { id: "salas", label: "Salas", href: "/salas", icon: Video },
-    { id: "times", label: "Times", href: "/times", icon: UsersRound },
+    { id: "amigos", label: "Amigos", href: "/amigos", badge },
+    { id: "salas", label: "Salas", href: "/salas" },
+    { id: "times", label: "Times", href: "/times" },
   ];
+}
+
+/** "Criar grupo" in the column's "+" menu, opening the messages' window. */
+export function createGroupItem(friends: PickableFriend[]): AddMenuItem {
+  return {
+    id: "grupo",
+    label: "Criar grupo",
+    icon: UsersRound,
+    window: (state) => <CreateGroupWindow friends={friends} {...state} />,
+  };
 }
 
 /** What the messages add to the friends column: "Criar grupo" and the "Grupos" section. */
 export function columnExtras(data: { friends: PickableFriend[]; groups: ColumnGroup[] }) {
   return {
-    actions: <CreateGroupDialog friends={data.friends} />,
+    addItems: [createGroupItem(data.friends)],
     groups: <ColumnGroups groups={data.groups} />,
   };
 }
 
 const TAB =
   "relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-xs font-semibold text-ink-muted aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink";
+
+/** A tapped tab lights up while its page loads, instead of waiting for it. */
+const TAB_OPENING = "bg-surface-3/60 text-ink";
 
 function PhoneTab({
   to,
@@ -47,7 +61,11 @@ function PhoneTab({
   count?: number;
 }) {
   return (
-    <NavLink viewTransition to={to} className={TAB}>
+    <NavLink
+      viewTransition
+      to={to}
+      className={({ isPending }) => (isPending ? `${TAB} ${TAB_OPENING}` : TAB)}
+    >
       {icon}
       {label}
       <UnreadCount count={count} className="top-1 right-auto left-[calc(50%+0.25rem)]" />
@@ -61,7 +79,7 @@ export function PhoneTabs({ requests, unread }: { requests: number; unread: numb
   return (
     <nav
       aria-label="App"
-      className="glass sticky bottom-3 z-20 mx-3 mb-3 flex gap-1 rounded-2xl p-1.5 sm:hidden"
+      className="glass sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] flex gap-1 rounded-2xl p-1.5 sm:hidden"
     >
       <PhoneTab to="/inicio" icon={<House className={icon} aria-hidden="true" />} label="Início" />
       <PhoneTab

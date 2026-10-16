@@ -13,14 +13,14 @@ import { gsap, MOTION_DURATION, MOTION_QUERIES, useGSAP } from "@/lib/animation/
 const COPY: Record<LeaveReason, { title: string; expression: Expression; rejoin: string | null }> =
   {
     self: {
-      title: "Você saiu da sala",
+      title: "Você saiu da chamada",
       expression: "happy",
-      rejoin: "Voltar para a sala",
+      rejoin: "Voltar à chamada",
     },
     dropped: {
       title: "A conexão caiu",
       expression: "worried",
-      rejoin: "Voltar para a sala",
+      rejoin: "Voltar à chamada",
     },
     failed: {
       title: "Não foi possível entrar",
@@ -29,13 +29,13 @@ const COPY: Record<LeaveReason, { title: string; expression: Expression; rejoin:
     },
     // Rejoining here drops the other tab: it stays an option, not the main action.
     elsewhere: {
-      title: "Você está na sala em outro lugar",
+      title: "Você está nesta chamada em outra aba",
       expression: "surprised",
       rejoin: "Usar esta aba",
     },
     ended: { title: "A sala foi encerrada", expression: "neutral", rejoin: null },
     removed: {
-      title: "Tiraram você da sala",
+      title: "Você não está mais na chamada",
       expression: "neutral",
       rejoin: null,
     },

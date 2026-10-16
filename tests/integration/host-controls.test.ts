@@ -18,7 +18,10 @@ import {
   openSignal,
   validateSignal,
 } from "@/features/room/server/signal-admission.server";
-import { applyRoomCommand } from "@/features/room/server/control-commands.server";
+import {
+  applyRoomCommand,
+  retryRoomCommands,
+} from "@/features/room/server/control-commands.server";
 import { reconcileSessionPresence } from "@/features/room/server/session-presence.server";
 import { readControlState } from "@/features/room/server/control-state.server";
 import { maintainRoomControls } from "@/features/room/server/control-maintenance.server";
@@ -116,6 +119,26 @@ test("original and server-refreshed credentials cannot bypass exclusion or closu
   await expect(reserveAdmission(getDb(), grant(room.code, room.host), 6)).rejects.toMatchObject({
     code: "room_closed",
   });
+});
+
+test("a retry that throws does not hold up the other rooms' commands", async () => {
+  const first = await controlledRoom();
+  const second = await controlledRoom();
+  vi.spyOn(controlGateway, "sync")
+    .mockRejectedValueOnce(new Error("unavailable"))
+    .mockRejectedValueOnce(new Error("unavailable"));
+  const stuck = await first.command({ kind: "sharing", policy: "host", allowed: [] });
+  const waiting = await second.command({ kind: "sharing", policy: "host", allowed: [] });
+  expect([stuck.status, waiting.status]).toEqual(["failed", "failed"]);
+  const db = getDb();
+  // The first command in line breaks before its own transport step (a lock timeout, say).
+  vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("lock timeout"));
+  await retryRoomCommands(db, new Date(Date.now() + 120_000));
+  const [stored] = await db
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, waiting.commandId));
+  expect(stored?.status).toBe("applied");
 });
 
 test("old broad grants are rewritten to the current sharing policy on reconnect", async () => {

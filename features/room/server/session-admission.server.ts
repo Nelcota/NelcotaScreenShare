@@ -9,6 +9,7 @@ import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/s
 import type { TokenGrant } from "@/features/room/domain/issue-token";
 import { ADMISSION_LEASE_MS, mayShareScreen } from "@/features/room/domain/host-controls";
 import { isGuestIdentity } from "@/features/room/domain/participant-label";
+import { GUEST_WAIT_TEXT } from "@/features/room/domain/join";
 import {
   AdmissionError,
   activeAccount,
@@ -63,11 +64,7 @@ export async function reserveAdmission(
       !session || session.status === "closed",
     );
     if (!session || session.status === "closed") {
-      if (guest)
-        throw new AdmissionError(
-          "host_absent",
-          "A sala ainda não começou. Espere quem te convidou entrar.",
-        );
+      if (guest) throw new AdmissionError("host_absent", GUEST_WAIT_TEXT);
       const sessionId = crypto.randomUUID();
       const [created] = await tx
         .insert(roomSessions)

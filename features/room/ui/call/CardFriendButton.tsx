@@ -1,7 +1,12 @@
 import { UserCheck, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
-import { answerFriendRequest, friendRelation, sendFriendRequest } from "@/features/friends/actions";
+import { answerFriendRequest, sendFriendRequest } from "@/features/friends/actions";
+import {
+  knownFriendRelation,
+  loadFriendRelation,
+  rememberFriendRelation,
+} from "@/features/friends/client/friend-relation-cache";
 import type { FriendRelation } from "@/features/friends/domain/friend-lists";
 import { useOperation } from "@/lib/operations/use-operation";
 import { CardMenuItem } from "./CardMenuItem";
@@ -10,15 +15,20 @@ function showError(result: { error: { serverError?: string } }) {
   toast.error(result.error.serverError ?? "Não foi possível agora. Tente de novo.");
 }
 
-/** Friendship with someone in the call; `null` while loading, and for guests (no account). */
+/**
+ * Friendship with someone in the call; `null` while loading, and for guests (no account).
+ * The card opens with what this tab already knows (or what the hover fetched) and checks again.
+ */
 export function useFriendRelation(userId: string | null) {
-  const [relation, setRelation] = useState<FriendRelation | null>(null);
+  const [relation, setRelation] = useState<FriendRelation | null>(() =>
+    userId === null ? null : knownFriendRelation(userId),
+  );
   useEffect(() => {
     if (userId === null) return;
     let active = true;
     async function load(id: string) {
-      const result = await friendRelation({ userId: id });
-      if (active && result.data) setRelation(result.data.relation);
+      const found = await loadFriendRelation(id);
+      if (active && found) setRelation(found);
     }
     void load(userId);
     return () => {
@@ -26,12 +36,16 @@ export function useFriendRelation(userId: string | null) {
     };
   }, [userId]);
 
+  const change = (next: FriendRelation) => {
+    if (userId !== null) rememberFriendRelation(userId, next);
+    setRelation(next);
+  };
   const send = useOperation(sendFriendRequest, {
-    onSuccess: ({ data }) => setRelation(data.status === "friends" ? "friends" : "sent"),
+    onSuccess: ({ data }) => change(data.status === "friends" ? "friends" : "sent"),
     onError: showError,
   });
   const answer = useOperation(answerFriendRequest, {
-    onSuccess: () => setRelation("friends"),
+    onSuccess: () => change("friends"),
     onError: showError,
   });
   return { relation, send, answer };

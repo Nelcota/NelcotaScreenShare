@@ -1,7 +1,14 @@
 import { Star, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { toast } from "sonner";
 import { favoriteGif, unfavoriteGif } from "@/features/messages/actions";
+import {
+  gifListKey,
+  gifListView,
+  type GifListView,
+  type GifResult,
+  type GifTab,
+} from "@/features/messages/domain/gif-list";
 import type { Gif } from "@/features/messages/domain/klipy";
 import { useKlipy } from "@/features/messages/hooks/use-gif";
 import { useOperation } from "@/lib/operations/use-operation";
@@ -10,45 +17,47 @@ import { cn } from "@/lib/utils";
 import { SearchField } from "@/components/SearchField";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-type GifTab = "trending" | "favorites";
-
 const SEARCH_DELAY_MS = 350;
 
 /** In English on purpose: KLIPY's attribution guidelines require this exact placeholder. */
 const KLIPY_PLACEHOLDER = "Search KLIPY";
 
-/** Trending, a search or the favourites; empty while loading, null on failure. */
-function useGifList(tab: GifTab, query: string, favorites: readonly string[]) {
+/** Trending, a search or the favourites, keyed so an old list never stands in for a new one. */
+function useGifList(tab: GifTab, query: string, favorites: readonly string[]): GifListView {
   const klipy = useKlipy();
-  const [gifs, setGifs] = useState<Gif[] | null>([]);
+  const [result, setResult] = useState<GifResult>();
+  const key = gifListKey(tab, query, favorites);
+  const load = useEffectEvent(async () => {
+    if (!klipy) return [];
+    if (query) return (await klipy.search(query, 1)).gifs;
+    if (tab === "favorites") {
+      const found = await klipy.bySlugs(favorites);
+      return favorites.flatMap((slug) => found.get(slug) ?? []);
+    }
+    return (await klipy.trending(1)).gifs;
+  });
   useEffect(() => {
     if (!klipy) return;
     let current = true;
-    const load = async () => {
-      if (query) return (await klipy.search(query, 1)).gifs;
-      if (tab === "favorites") {
-        const found = await klipy.bySlugs(favorites);
-        return favorites.flatMap((slug) => found.get(slug) ?? []);
+    const fetchList = async () => {
+      try {
+        const gifs = await load();
+        if (current) setResult({ key, gifs });
+      } catch (error) {
+        logBrowserWarning("KLIPY request failed", error);
+        if (current) setResult({ key, gifs: null });
       }
-      return (await klipy.trending(1)).gifs;
     };
     const timer = setTimeout(
-      () => {
-        load()
-          .then((list) => current && setGifs(list))
-          .catch((error: unknown) => {
-            logBrowserWarning("KLIPY request failed", error);
-            if (current) setGifs(null);
-          });
-      },
-      query ? SEARCH_DELAY_MS : 0,
+      () => void fetchList(),
+      key.startsWith("search:") ? SEARCH_DELAY_MS : 0,
     );
     return () => {
       current = false;
       clearTimeout(timer);
     };
-  }, [klipy, tab, query, favorites]);
-  return gifs;
+  }, [klipy, key]);
+  return gifListView(result, key);
 }
 
 function onError({ error }: { error: { serverError?: string } }) {
@@ -101,25 +110,25 @@ function GifTabs({ tab, onChange }: { tab: GifTab; onChange: (next: GifTab) => v
   );
 }
 
+function GridNote({ text }: { text: string }) {
+  return <output className="block px-3 py-6 text-center text-sm text-ink-muted">{text}</output>;
+}
+
 function GifGrid({
-  gifs,
+  view,
   favorites,
   onPick,
   empty,
 }: {
-  gifs: Gif[] | null;
+  view: GifListView;
   favorites: readonly string[];
   onPick: (gif: Gif) => void;
   empty: string;
 }) {
-  if (gifs === null)
-    return (
-      <p className="px-3 py-6 text-center text-sm text-ink-muted">
-        KLIPY fora do ar. Tente de novo.
-      </p>
-    );
-  if (gifs.length === 0)
-    return <p className="px-3 py-6 text-center text-sm text-ink-muted">{empty}</p>;
+  if (view.state === "loading") return <GridNote text="Carregando GIFs…" />;
+  if (view.state === "failed") return <GridNote text="KLIPY fora do ar. Tente de novo." />;
+  const { gifs } = view;
+  if (gifs.length === 0) return <GridNote text={empty} />;
   return (
     <ul className="min-h-0 flex-1 columns-2 gap-2 overflow-y-auto px-3">
       {gifs.map((gif) => (
@@ -157,7 +166,7 @@ export function GifPicker({
   const [tab, setTab] = useState<GifTab>("trending");
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
-  const gifs = useGifList(tab, trimmed, favorites);
+  const view = useGifList(tab, trimmed, favorites);
   const empty =
     tab === "favorites" && !trimmed ? "Nenhum favorito ainda." : "Nenhum GIF encontrado.";
   return (
@@ -175,7 +184,7 @@ export function GifPicker({
         />
         {trimmed ? null : <GifTabs tab={tab} onChange={setTab} />}
       </div>
-      <GifGrid gifs={gifs} favorites={favorites} onPick={onPick} empty={empty} />
+      <GifGrid view={view} favorites={favorites} onPick={onPick} empty={empty} />
       <p className="border-t border-line px-3 py-2 text-right text-[0.6875rem] font-semibold tracking-wide text-ink-subtle">
         Powered by KLIPY
       </p>

@@ -39,7 +39,7 @@ export function disconnectMessage(reason: DisconnectReason | undefined): string 
     case DisconnectReason.JOIN_FAILURE:
     case DisconnectReason.SIGNAL_CLOSE:
     case DisconnectReason.CONNECTION_TIMEOUT:
-      return "A conexão caiu. Verifique sua internet e toque em Voltar para a sala.";
+      return "A conexão caiu. Verifique sua internet e toque em Voltar à chamada.";
     default:
       return undefined;
   }

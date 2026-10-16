@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { NavLink } from "react-router";
 import { UnreadCount } from "@/components/UnreadCount";
 import { conversationTitle } from "@/features/messages/domain/conversation-display";
@@ -34,17 +35,22 @@ function GroupLine({ group }: { group: ColumnGroup }) {
 
 /** "Grupos" above the friends, only for whoever is in one. */
 export function ColumnGroups({ groups }: { groups: readonly ColumnGroup[] }) {
+  const titleId = useId();
   if (groups.length === 0) return null;
   return (
-    <section aria-label="Grupos" className="pb-1">
-      <h2 className="px-2 pt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
+    <div className="pb-1">
+      {/* A label, not a heading: the column comes before the page's h1. */}
+      <p
+        id={titleId}
+        className="px-2 pt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase"
+      >
         Grupos
-      </h2>
-      <ul className="mt-1 flex flex-col gap-0.5">
+      </p>
+      <ul aria-labelledby={titleId} className="mt-1 flex flex-col gap-0.5">
         {groups.map((group) => (
           <GroupLine key={group.id} group={group} />
         ))}
       </ul>
-    </section>
+    </div>
   );
 }

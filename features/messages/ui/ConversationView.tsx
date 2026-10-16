@@ -109,16 +109,18 @@ function Header({
 }) {
   const [other] = conversation.others;
   const direct = conversation.kind === "direct";
+  // The open profile already shows the photo and the status: the header keeps only the name.
+  const brief = direct && profileOpen;
   const detail = direct
     ? STATUS_LABEL[conversation.status ?? "offline"]
     : `${conversation.others.length + 1} pessoas`;
   return (
     <header className="flex items-center gap-3 border-b border-line px-4 py-3">
       {leading}
-      <ConversationAvatar conversation={conversation} />
+      {brief ? null : <ConversationAvatar conversation={conversation} />}
       <span className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold">{conversationTitle(conversation)}</h1>
-        <span className="block text-xs text-ink-muted">{detail}</span>
+        {brief ? null : <span className="block text-xs text-ink-muted">{detail}</span>}
       </span>
       {direct && other ? (
         <IconCallButton

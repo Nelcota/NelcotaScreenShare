@@ -1,5 +1,6 @@
 import { GUEST_IDENTITY_PREFIX } from "./participant-label";
 import { checkApproval, type ApprovalRequest, type ApprovalResult } from "./join-approval";
+import { GUEST_WAIT_TEXT } from "./join";
 import type { RoomAccess } from "./room-access";
 import type { RoomRole } from "./room-role";
 import { tokenRequestSchema, type TokenErrorCode } from "./token-contract";
@@ -242,7 +243,7 @@ async function checkBan(room: string, identity: string, deps: TokenDeps) {
   return refuse(
     "banned",
     "banned",
-    "Você foi removido desta chamada e não pode voltar até ela terminar.",
+    "Você não está mais nesta chamada. Você pode voltar quando ela terminar.",
   );
 }
 
@@ -288,11 +289,7 @@ async function decideGuest(
   const full = await checkCapacity(room, identity, policy, deps);
   if (full) return full;
   if (!(await deps.hostPresent(room))) {
-    return refuse(
-      "host_absent",
-      "host_absent",
-      "A sala ainda não começou. Espere quem te convidou entrar e tente de novo.",
-    );
+    return refuse("host_absent", "host_absent", GUEST_WAIT_TEXT);
   }
   const waiting = await checkApproval(
     { room, requester: { guestId: guest.guestId }, name: guestName, requestId },

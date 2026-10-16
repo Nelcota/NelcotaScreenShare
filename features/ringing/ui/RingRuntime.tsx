@@ -12,7 +12,6 @@ import {
   playCallEndSound,
   type NotifyHandle,
 } from "@/features/notifications/client/notify";
-import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { acceptCall, declineCall } from "@/features/ringing/actions";
 import { useConnectedCallRoom } from "@/features/ringing/client/call-connection";
 import { usePushedRing } from "@/features/ringing/client/pushed-ring";
@@ -132,19 +131,10 @@ function useEndNotices(outgoing: readonly OutgoingRing[]) {
   }, [outgoing, inCall]);
 }
 
-/** Your first Chamar is a good moment to offer notifications, with the tab in front. */
-function useOfferAfterFirstCall(outgoing: readonly OutgoingRing[]) {
-  const calling = outgoing.some((ring) => ring.state === "ringing");
-  useEffect(() => {
-    if (calling) offerNotifications();
-  }, [calling]);
-}
-
 /** Calls for the signed-in person, on every page: the incoming ring and the missed notice. */
 export function RingRuntime() {
   const ringing = useRouteLoaderData<typeof rootLoader>("root")?.ringing ?? null;
   useEndNotices(ringing?.outgoing ?? []);
-  useOfferAfterFirstCall(ringing?.outgoing ?? []);
   const pushed = usePushedRing();
   // The loaders decide; the ring that came with the nudge only fills the gap until they reload.
   const incoming = ringing?.incoming[0] ?? pushed;

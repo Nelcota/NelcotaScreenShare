@@ -53,7 +53,7 @@ test("going to another room during a call asks first: Ficar keeps the call, conf
     await dialog.getByRole("button", { name: "Trocar de sala", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/sala/${next}$`));
     await expect(
-      page.getByRole("heading", { name: "Pronto para entrar?", exact: true }),
+      page.getByRole("heading", { name: "Tudo certo para entrar?", exact: true }),
     ).toBeVisible();
     await expect(minimized).toHaveCount(0);
     await expect(page.getByRole("dialog", { name: "Trocar de sala?" })).toHaveCount(0);
@@ -62,7 +62,7 @@ test("going to another room during a call asks first: Ficar keeps the call, conf
     await page.goto("/");
     await openRoomFromHome(page, await newRoomCode());
     await expect(
-      page.getByRole("heading", { name: "Pronto para entrar?", exact: true }),
+      page.getByRole("heading", { name: "Tudo certo para entrar?", exact: true }),
     ).toBeVisible();
     await expect(page.getByRole("dialog", { name: "Trocar de sala?" })).toHaveCount(0);
   } finally {
@@ -103,7 +103,10 @@ test("joining in a second tab asks first and confirming ends the call in the fir
     await dialog.getByRole("button", { name: "Entrar aqui", exact: true }).click();
     await expect(second.getByRole("button", { name: "Sair da sala", exact: true })).toBeVisible();
     await expect(
-      first.page.getByRole("heading", { name: "Você está na sala em outro lugar", exact: true }),
+      first.page.getByRole("heading", {
+        name: "Você está nesta chamada em outra aba",
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(first.page.getByText("Você entrou numa sala em outra aba.")).toBeVisible();
   } finally {

@@ -27,7 +27,7 @@ export class AdmissionError extends ActionError {
 
 const REFUSAL_MESSAGES = {
   room_closed: "Esta sala foi encerrada pelo anfitrião. Crie uma nova sala para continuar.",
-  room_removed: "O anfitrião removeu você desta chamada.",
+  room_removed: "Você não está mais nesta chamada. Você pode voltar quando ela terminar.",
   room_locked: "O anfitrião bloqueou novas entradas nesta sala.",
 } as const;
 

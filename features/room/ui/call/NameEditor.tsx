@@ -1,4 +1,4 @@
-import { useLocalParticipant } from "@livekit/components-react";
+import { useLocalParticipant, useParticipantInfo } from "@livekit/components-react";
 import { Settings } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useId, useState, type FormEvent } from "react";
@@ -25,8 +25,10 @@ export function NameEditor({ code }: { code: string }) {
   const { localParticipant } = useLocalParticipant();
   const revalidator = useRevalidator();
   const nameId = useId();
-  const guest = isGuestIdentity(localParticipant.identity);
-  const current = localParticipant.name ?? "";
+  // From the info hook: identity and name change on the same object (connecting, renaming).
+  const info = useParticipantInfo({ participant: localParticipant });
+  const guest = isGuestIdentity(info.identity ?? localParticipant.identity);
+  const current = info.name ?? "";
   const [draft, setDraft] = useState<string>();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -49,7 +51,7 @@ export function NameEditor({ code }: { code: string }) {
     }
     showOwnName(localParticipant, result.name);
     setDraft(undefined);
-    toast.success("Nome atualizado para todos na sala.");
+    toast.success("Nome atualizado na sala.");
     if (guest) return rememberName(result.name);
     // The header and other pages read the account's name from the loaders.
     void revalidator.revalidate();

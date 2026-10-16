@@ -69,7 +69,7 @@ export function useRoomConnection(
     let cancelled = false;
     // Until connect() finishes, the catch below handles failure: the SDK
     // also emits Disconnected when the connection never opens, and that
-    // would lead to the "Você saiu da sala" screen instead of "Tentar de novo".
+    // would lead to the "Você saiu da chamada" screen instead of "Tentar de novo".
     let connected = false;
 
     const handleDisconnected = (reason?: DisconnectReason) => {

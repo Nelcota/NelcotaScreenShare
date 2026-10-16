@@ -98,9 +98,19 @@ export function RoomCard({
             <Button variant="ghost" disabled={pending} onClick={() => setEditing(true)}>
               Editar
             </Button>
-            <Button variant="ghost" disabled={pending} onClick={() => setArchiving(true)}>
-              {room.archivedAt ? "Restaurar" : "Arquivar"}
-            </Button>
+            {room.archivedAt ? (
+              <Button
+                variant="ghost"
+                disabled={pending}
+                onClick={() => onCommand({ kind: "archive", roomId: room.id, archived: false })}
+              >
+                Restaurar
+              </Button>
+            ) : (
+              <Button variant="ghost" disabled={pending} onClick={() => setArchiving(true)}>
+                Arquivar
+              </Button>
+            )}
           </>
         ) : null}
       </div>
@@ -129,16 +139,12 @@ export function RoomCard({
       <ConfirmDialog
         open={archiving}
         onOpenChange={setArchiving}
-        title={room.archivedAt ? "Restaurar sala?" : "Arquivar sala?"}
-        description={
-          room.archivedAt
-            ? "A sala voltará a usar uma vaga do Pro beta."
-            : "Encerre a chamada ativa primeiro. O histórico continuará disponível e o link recusará novas entradas."
-        }
-        confirmLabel={room.archivedAt ? "Restaurar sala" : "Arquivar sala"}
+        title="Arquivar sala?"
+        description="Encerre a chamada ativa primeiro. O histórico continuará disponível e o link recusará novas entradas."
+        confirmLabel="Arquivar sala"
         pending={pending}
         onConfirm={() => {
-          onCommand({ kind: "archive", roomId: room.id, archived: !room.archivedAt });
+          onCommand({ kind: "archive", roomId: room.id, archived: true });
           setArchiving(false);
         }}
       />

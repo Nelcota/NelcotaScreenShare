@@ -17,7 +17,7 @@ export function MyRoomsPage() {
     <WorkspaceShell
       account={data.account}
       title="Minhas salas"
-      description="Links permanentes para seus encontros. Favoritos facilitam encontrar salas às quais você já tem acesso."
+      description="Salas com o mesmo link sempre."
     >
       <RoomCollection
         rooms={data.rooms}

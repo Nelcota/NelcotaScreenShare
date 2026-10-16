@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Operation, OperationResult } from "./operation";
 import { runAndReport } from "@/lib/telemetry.client";
@@ -13,23 +13,23 @@ interface Callbacks<O> {
 export function useOperation<I, O>(command: Operation<I, O>, callbacks: Callbacks<O> = {}) {
   const fetcher = useFetcher<OperationResult<O>>();
   const { submit } = fetcher;
-  const callbacksRef = useRef(callbacks);
   const previous = useRef(fetcher.data);
   const [input, setInput] = useState<I>();
   const [gate] = useState(createSubmitGate);
-  useEffect(() => {
-    callbacksRef.current = callbacks;
+  // Always the latest callbacks, without making them a reason to run the effect.
+  const report = useEffectEvent((result: OperationResult<O>) => {
+    if (result.data !== undefined) {
+      callbacks.onSuccess?.({ data: result.data });
+      return;
+    }
+    callbacks.onError?.({ error: result });
   });
   useEffect(() => {
     if (fetcher.state === "submitting" || !fetcher.data || fetcher.data === previous.current) {
       return;
     }
     previous.current = fetcher.data;
-    if (fetcher.data.data !== undefined) {
-      callbacksRef.current.onSuccess?.({ data: fetcher.data.data });
-      return;
-    }
-    callbacksRef.current.onError?.({ error: fetcher.data });
+    report(fetcher.data);
   }, [fetcher.state, fetcher.data]);
   const execute = useCallback(
     (...args: undefined extends I ? [input?: I] : [input: I]) => {

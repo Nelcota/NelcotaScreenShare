@@ -1,18 +1,17 @@
 import type { RoomTitle } from "@/features/room/domain/room-title";
-import { useLocalParticipant } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 import { Check, Copy, Ellipsis, LayoutDashboard } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useRouteLoaderData } from "react-router";
+import type { loader as rootLoader } from "@/app/root";
 import { Hint } from "@/components/Hint";
 import { NavBar, NavBrand, NavDivider, NavPopover } from "@/components/shell/NavBar";
 import { navItemClass } from "@/components/shell/nav-item-class";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
-import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { useRoomName } from "@/features/room/hooks/use-room-roles";
 import { cn } from "@/lib/utils";
 import { NameEditor } from "./NameEditor";
@@ -37,7 +36,7 @@ const CONNECTION_LABELS: Record<Connection, string> = {
 function PersonName({ participant }: { participant: Participant }) {
   const { name } = useParticipantName(participant);
   return (
-    <span className="truncate">
+    <span className="block truncate">
       {name}
       {participant.isLocal ? <span className="text-ink-muted"> (você)</span> : null}
     </span>
@@ -154,9 +153,14 @@ function PeopleButton({
               roomCode={roomCode}
               className="size-9 shrink-0 bg-brand/20 text-sm font-medium text-brand-soft"
             />
-            <PersonName participant={participant} />
-            <RoleBadge participant={participant} />
-            <HostBadge identity={participant.identity} />
+            {/* The roles go under the name: beside it, they cut a long name short. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <PersonName participant={participant} />
+              <div className="flex flex-wrap gap-1 empty:hidden">
+                <RoleBadge participant={participant} />
+                <HostBadge identity={participant.identity} />
+              </div>
+            </div>
             <ParticipantAudioMenu participant={participant} />
             <HostParticipantMenu participant={participant} />
           </li>
@@ -190,9 +194,10 @@ export function RoomTopBar({
   const streamer = useStreamerMode();
   const streamerId = useId();
   const name = useRoomName(participants, roomName);
-  const { localParticipant } = useLocalParticipant();
-  // The way back to the start, like everywhere else; the call goes on minimized.
-  const startHref = startPath(!isGuestIdentity(localParticipant.identity));
+  // The way back to the start, like everywhere else; the call goes on minimized. From the
+  // page's account, not the call's identity: that one is empty until the call connects.
+  const signedIn = useRouteLoaderData<typeof rootLoader>("root")?.account != null;
+  const startHref = startPath(signedIn);
   return (
     <NavBar aria-label="Sala" className="mx-auto max-w-5xl">
       <NavBrand href={startHref} showName={false} className="max-sm:hidden" />

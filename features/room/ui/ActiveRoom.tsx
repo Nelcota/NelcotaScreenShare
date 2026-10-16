@@ -46,6 +46,9 @@ export function ActiveRoom({
 }) {
   const [call, setCall] = useState<RoomEntry>();
   const pendingSwitch = useRoomSwitchGuard(call?.code, () => setCall(undefined));
+  // The room page's latest data (a new owner's name, who is inside) replaces the one saved at
+  // joining, so the minimized call does not show it stale.
+  if (room && call && room !== call && room.code === call.code) setCall(room);
   const entry = room ?? call;
   if (entry === undefined) return null;
 

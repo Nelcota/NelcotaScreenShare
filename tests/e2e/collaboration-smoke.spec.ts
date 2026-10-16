@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { newParticipant, joinRoom, newRoomCode } from "./support/session";
+import { newParticipant, joinRoom, newRoomCode, setJoinMicrophone } from "./support/session";
+import { E2E_ACCESS_PASSWORD } from "./support/env";
 import { fakeScreenCapture } from "./support/screen-capture";
 import { keyboardMark } from "./support/annotations";
 
@@ -40,10 +41,17 @@ test("five participants, two screens, three annotators and an empty newcomer sta
     for (const person of [firstWriter, secondWriter]) await watchScreen(person.page, host.name);
     for (const person of [host, firstWriter, secondWriter])
       await expect(person.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
+    // The newcomer waits on the pre-join: only the click and the connection fit in the marks'
+    // 10 s life, so the mark is still there to not be shown to them (under load, a whole
+    // join did not fit, and the mark expired before the count).
+    await newcomer.page.goto(`/sala/${code}`);
+    await setJoinMicrophone(newcomer.page, true);
+    await newcomer.page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await keyboardMark(firstWriter.page, "Seta");
     await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
     const before = Date.now();
-    await joinRoom(newcomer.page, code);
+    await newcomer.page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
+    await expect(newcomer.page.getByRole("button", { name: /Sair/ })).toBeVisible();
     joinsMs.push(Date.now() - before);
     await watchScreen(newcomer.page, host.name);
     await expect(newcomer.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();

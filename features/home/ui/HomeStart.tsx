@@ -28,6 +28,8 @@ export function HomeStart({
 
   return (
     <SmartBar
+      // A new ?erro=codigo starts the bar over, so its message shows again.
+      key={invalidCode ? "codigo-invalido" : "barra"}
       invalidCode={invalidCode}
       pending={pending}
       onNavigate={openRoom}

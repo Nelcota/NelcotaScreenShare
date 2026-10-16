@@ -1,5 +1,5 @@
 import { CircleCheck, Info, TriangleAlert } from "lucide-react";
-import { canShare, SHARE_SUPPORT_TEXT } from "@/features/room/domain/share-support";
+import { SHARE_SUPPORT_TEXT } from "@/features/room/domain/share-support";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,10 @@ export function ShareSupportNote({
   variant = "line",
 }: {
   className?: string;
-  /** "line": access screens and the home page. "prejoin": guidance for the next step. */
+  /**
+   * "line": access screens and the home page. "prejoin": only what this browser changes (the
+   * phone, the sound); with everything working, nothing, so the pre-join stays short.
+   */
   variant?: "line" | "prejoin";
 }) {
   const support = useShareSupport();
@@ -24,20 +27,9 @@ export function ShareSupportNote({
   const { tone, title, detail } = SHARE_SUPPORT_TEXT[support];
   const Icon = ICONS[tone];
   if (variant === "prejoin") {
+    if (!detail) return null;
     return (
-      <div
-        className={cn(
-          "flex max-w-full flex-col gap-1 text-center text-sm text-ink-muted",
-          className,
-        )}
-      >
-        <p>
-          {canShare(support)
-            ? "Você poderá compartilhar sua tela depois de entrar."
-            : "Depois de entrar, você poderá conversar e assistir."}
-        </p>
-        {detail ? <p className="text-xs text-ink-subtle">{detail}</p> : null}
-      </div>
+      <p className={cn("max-w-full text-center text-sm text-ink-muted", className)}>{detail}</p>
     );
   }
   return (

@@ -6,7 +6,11 @@ import { ActionError } from "@/server/operations/action-error";
 import { workspaceUser, workspaceId } from "@/features/rooms/server/workspace-loader.server";
 import { teamWorkspace } from "@/features/team/server/queries.server";
 import { TeamPage } from "@/features/team/ui/TeamPage";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 export const meta = () => [{ title: "Time · Nelcota" }, { name: "robots", content: "noindex" }];
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
+
 export const loader = routeLoader(async ({ params }) => {
   const teamId = workspaceId(params.id);
   const current = await workspaceUser(`/times/${teamId}`);

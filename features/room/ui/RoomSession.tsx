@@ -3,7 +3,7 @@ import { Archive } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "./StatusScreen";
-import { lazy, Suspense, useEffect, useEffectEvent, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { CallShell, ScreenShell } from "./RoomShell";
 import { requestToken } from "@/features/room/client/api";
@@ -29,6 +29,22 @@ async function prefetchRoomView() {
   } catch (error) {
     logBrowserWarning("Could not prefetch the room view", error);
   }
+}
+
+/**
+ * On the pre-join, fetch the call code once the page is idle: phones have no hover, so
+ * waiting for the "Entrar" tap meant downloading it only after the person asked to join.
+ */
+function usePrefetchRoomViewWhenIdle(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    if (typeof window.requestIdleCallback !== "function") {
+      const timer = window.setTimeout(prepareRoomView, 2000);
+      return () => window.clearTimeout(timer);
+    }
+    const handle = window.requestIdleCallback(prepareRoomView, { timeout: 4000 });
+    return () => window.cancelIdleCallback(handle);
+  }, [active]);
 }
 
 interface RoomSessionProps {
@@ -84,15 +100,16 @@ export function RoomSession({
   renderColumn,
 }: RoomSessionProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "prejoin" });
+  usePrefetchRoomViewWhenIdle(phase.kind === "prejoin");
+
+  // The parent hears about the call where the phase changes, not from an effect after it.
+  function changePhase(next: Phase) {
+    setPhase(next);
+    onCallChange(next.kind === "room");
+  }
   // Only the first pre-join after accepting a ring joins on its own.
   const answered = useAnsweredCall();
   const [autoJoin, setAutoJoin] = useState(answered);
-  const inCall = phase.kind === "room";
-  const reportCall = useEffectEvent(onCallChange);
-
-  useEffect(() => {
-    reportCall(inCall);
-  }, [inCall]);
 
   // New attempt with a new token: the previous one may have expired (10 min TTL).
   async function retry(choices: JoinChoices, attempt: number, startedAt: number) {
@@ -103,10 +120,10 @@ export function RoomSession({
       guestName: choices.guestName,
     });
     if (!result.ok) {
-      setPhase({ kind: "left", reason: "failed", message: result.message });
+      changePhase({ kind: "left", reason: "failed", message: result.message });
       return;
     }
-    setPhase({
+    changePhase({
       kind: "room",
       choices: {
         ...choices,
@@ -121,8 +138,8 @@ export function RoomSession({
 
   function leave(notice: LeaveNotice | undefined, startedAt: number | undefined) {
     // The leave screen is not on display: the notice goes to a toast instead.
-    if (minimized) toast.info(notice?.message ?? "Você saiu da sala.");
-    setPhase({
+    if (minimized) toast.info(notice?.message ?? "Você saiu da chamada.");
+    changePhase({
       kind: "left",
       reason: notice?.reason ?? "self",
       message: notice?.message,
@@ -191,7 +208,7 @@ export function RoomSession({
           autoJoin={autoJoin}
           onJoin={(choices) => {
             setAutoJoin(false);
-            setPhase({
+            changePhase({
               kind: "room",
               choices,
               attempt: 0,
@@ -208,7 +225,7 @@ export function RoomSession({
           message={phase.message}
           durationMs={phase.durationMs}
           guest={userName === null}
-          onRejoin={() => setPhase({ kind: "prejoin" })}
+          onRejoin={() => changePhase({ kind: "prejoin" })}
         />
       )}
     </ScreenShell>

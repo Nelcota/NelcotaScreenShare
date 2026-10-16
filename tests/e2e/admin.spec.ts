@@ -195,6 +195,8 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await page.getByLabel("Motivo da alteração").fill("Selected participant pilot");
   await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
   await expect(page.getByText("Ativação salva e registrada na auditoria.")).toBeVisible();
+  // The save revalidates the page; the form keeps what was typed (it is not remounted).
+  await expect(page.getByLabel("Motivo da alteração")).toHaveValue("Selected participant pilot");
   const provisioning = await sql(
     "select p.active, p.room_limit from pro_entitlements p join users u on u.id = p.user_id where u.email = $1",
     [participantEmail],

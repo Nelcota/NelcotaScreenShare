@@ -1,5 +1,5 @@
 /** Inside the app the column's room filter lives in the address, so the middle follows it. */
-const ROOM_FILTER_PARAM = "filtro";
+export const ROOM_FILTER_PARAM = "filtro";
 
 export type RoomFilter = "active" | "favorites" | "archived";
 

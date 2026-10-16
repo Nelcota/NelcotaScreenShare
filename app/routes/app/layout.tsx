@@ -11,12 +11,16 @@ import { pageUrl } from "@/server/page-url.server";
 import { routeLoader } from "@/server/route-loader.server";
 import { columnExtras, columnTabs, PhoneTabs, TabContent } from "./column-parts";
 import { columnTabOf, workspaceColumn } from "./workspace-column.server";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 
 /** Open before the e-mail is confirmed: /conta to fix the address, and main's workspace. */
 function allowsUnverified(pathname: string): boolean {
   const tab = columnTabOf(pathname);
   return pathname === "/conta" || tab === "salas" || tab === "times";
 }
+
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
 
 export const loader = routeLoader(async ({ request }) => {
   const url = pageUrl(request);

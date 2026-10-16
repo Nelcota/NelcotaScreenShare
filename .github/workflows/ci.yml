@@ -88,6 +88,8 @@ jobs:
           tags: nelcota-ci
           cache-from: type=gha,scope=nelcota-image
           cache-to: type=gha,scope=nelcota-image,mode=max
+      - name: Backup and migration gate with isolated PostgreSQL
+        run: sudo python3 deploy/coolify/test_docker.py nelcota-ci
       - name: Existing password hashes verify in the production image
         run: |
           docker run --rm -i --entrypoint node nelcota-ci --input-type=module -e '

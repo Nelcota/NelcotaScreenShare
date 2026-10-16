@@ -1,0 +1,19 @@
+[Unit]
+Description=Nelcota backup and migration deployment gate
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/nelcota-deploy-gate/gate.py /etc/nelcota-deploy-gate.json
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/nelcota-deploy-gate/socket /root/nelcota-backups
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

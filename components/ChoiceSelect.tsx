@@ -45,7 +45,9 @@ export function ChoiceSelect({
         }}
       >
         <SelectTrigger id={id} className={className}>
-          <SelectValue placeholder="Selecione" />
+          {/* The label is given here, not left to Radix: it only knows it after hydration,
+              so the server rendered an empty trigger that widened afterwards. */}
+          <SelectValue placeholder="Selecione">{options[index]?.label}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>

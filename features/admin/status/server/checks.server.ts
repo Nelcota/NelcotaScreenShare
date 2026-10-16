@@ -1,10 +1,12 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
 import { isValidSender } from "@/lib/mail-sender";
 import { roomService } from "@/features/room/server/room-service.server";
 import type { HealthCheck } from "@/features/admin/status/domain/health";
+import type { LastDelivery } from "@/features/admin/status/domain/mail-health";
+import { mailDeliveries } from "@/server/db/schema";
 
 const CHECK_TIMEOUT_MS = 3_000;
 const SLOW_DATABASE_MS = 500;
@@ -104,4 +106,14 @@ export function deployInfo(
   if (!version) return { version: null, commitUrl: null, startedAt };
   const commitUrl = COMMIT_SHA.test(version) ? `${REPOSITORY_URL}/commit/${version}` : null;
   return { version, commitUrl, startedAt };
+}
+
+/** The most recent e-mail send, or `null` when none was recorded yet. */
+export async function lastMailDelivery(db: DbExecutor): Promise<LastDelivery | null> {
+  const [last] = await db
+    .select({ status: mailDeliveries.status, createdAt: mailDeliveries.createdAt })
+    .from(mailDeliveries)
+    .orderBy(desc(mailDeliveries.createdAt), desc(mailDeliveries.id))
+    .limit(1);
+  return last ?? null;
 }

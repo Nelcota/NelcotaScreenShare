@@ -9,10 +9,10 @@ import { RoomEvent, type Participant } from "livekit-client";
 import { Hand } from "lucide-react";
 import { Popover } from "radix-ui";
 import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useShortcut } from "@/lib/hooks/use-shortcut";
+import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { useTimeouts } from "@/lib/hooks/use-timeouts";
 import { setHandRaised } from "@/features/room/client/api";
 import { gsap, MOTION_QUERIES, useGSAP } from "@/lib/animation/gsap";
@@ -28,7 +28,7 @@ import {
   type Reaction,
 } from "@/features/room/domain/data-channel";
 import { DockButton } from "./DockButton";
-import { DockPopoverContent } from "./DockPopover";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 interface FloatingReaction {
@@ -160,6 +160,7 @@ function ReactionBubble({ item }: { item: FloatingReaction }) {
 /** Dock: quick reactions and "raise hand" (shortcut H). */
 export function ReactionsMenu() {
   const react = useReact();
+  const handKey = useShortcutLabel("hand");
   const [open, setOpen] = useState(false);
   const handId = useId();
   const { roomCode } = useRoomHost();
@@ -178,7 +179,7 @@ export function ReactionsMenu() {
     toast.error(`Não foi possível ${next ? "levantar" : "baixar"} a mão. Tente de novo.`);
   }
 
-  useShortcut("h", () => void toggleHand());
+  useRoomShortcut("hand", () => void toggleHand());
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -193,7 +194,7 @@ export function ReactionsMenu() {
           <Hand className={handRaised ? "icon-wave size-5" : "size-5"} aria-hidden="true" />
         </DockButton>
       </Popover.Trigger>
-      <DockPopoverContent aria-label="Reações">
+      <GlassPopoverContent aria-label="Reações">
         <div className="flex gap-1">
           {REACTIONS.map((emoji, index) => (
             <button
@@ -212,11 +213,13 @@ export function ReactionsMenu() {
           <Label htmlFor={handId} className="gap-2.5 text-sm font-medium">
             <Hand className="size-4 text-ink-subtle" aria-hidden="true" />
             Levantar a mão
-            <kbd className="rounded-md border border-line px-1.5 text-xs text-ink-subtle">H</kbd>
+            <kbd className="rounded-md border border-line px-1.5 text-xs text-ink-subtle">
+              {handKey}
+            </kbd>
           </Label>
           <Switch id={handId} checked={handRaised} onCheckedChange={() => void toggleHand()} />
         </div>
-      </DockPopoverContent>
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

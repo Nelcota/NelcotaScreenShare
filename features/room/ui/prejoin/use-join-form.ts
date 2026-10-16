@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type RefObject } from "react";
-import { useRevalidator } from "react-router";
+import { useNavigate, useRevalidator } from "react-router";
 import { upsetMascot } from "@/features/mascot/client/events";
 import { requestToken } from "@/features/room/client/api";
 import { joinFailure, type JoinChoices } from "@/features/room/domain/join";
@@ -24,6 +24,10 @@ interface JoinFormOptions {
   guestNameRef: RefObject<HTMLInputElement | null>;
   onJoin: (choices: JoinChoices) => void;
   onPrepareJoin?: () => void;
+  /** Room code of a call in another tab of this browser: joining asks first. */
+  otherTabCall?: string;
+  /** Confirmed and about to enter: the other tab leaves its call. */
+  onLeaveOtherTab?: () => void;
 }
 
 const APPROVAL_ENDINGS: Record<Exclude<ApprovalAnswer, "accepted" | "cancelled">, string> = {
@@ -34,13 +38,34 @@ const APPROVAL_ENDINGS: Record<Exclude<ApprovalAnswer, "accepted" | "cancelled">
 /** The microphone choices the room starts with. */
 type MicrophoneChoices = Pick<JoinChoices, "micEnabled" | "audioDeviceId">;
 
+/** What the form adds to the token request. */
+interface JoinFields {
+  password?: string;
+  guestName?: string;
+}
+
+/** A valid join waiting for the person to confirm leaving the call in another tab. */
+interface PendingJoin {
+  fields: JoinFields;
+  microphone: MicrophoneChoices;
+  /** Room of the call in the other tab when the person clicked to join. */
+  otherTabCall: string;
+}
+
 /** Pre-join form: validates the fields, requests the token and reports what needs fixing. */
 export function useJoinForm(options: JoinFormOptions) {
   const { code, invite, passwordRequired, guest, guestName, scope, passwordRef, guestNameRef } =
     options;
-  const [formError, setFormError] = useState<{ message: string; field?: FormField }>();
+  const [formError, setFormError] = useState<{
+    message: string;
+    field?: FormField;
+    /** A wait to show in a neutral tone, not an error. */
+    waiting?: boolean;
+  }>();
   const [submitting, setSubmitting] = useState(false);
+  const [pendingJoin, setPendingJoin] = useState<PendingJoin>();
   const revalidator = useRevalidator();
+  const navigate = useNavigate();
   const approval = useJoinApproval();
 
   /**
@@ -86,9 +111,7 @@ export function useJoinForm(options: JoinFormOptions) {
   }
 
   /** What the form adds to the token request, or undefined when a field needs fixing. */
-  function readFields(
-    form: HTMLFormElement,
-  ): { password?: string; guestName?: string } | undefined {
+  function readFields(form: HTMLFormElement): JoinFields | undefined {
     const parsedName = guest ? displayNameSchema.safeParse(guestName.name) : undefined;
     if (parsedName && !parsedName.success) {
       rejectField("name", parsedName.error.issues[0]?.message ?? "Digite seu nome.");
@@ -107,11 +130,19 @@ export function useJoinForm(options: JoinFormOptions) {
     const failure = joinFailure(error);
     if (failure.redirect) {
       const page = failure.redirect === "login" ? "/entrar" : "/verificar-email";
-      window.location.assign(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
+      // Still before the call: a client navigation, without reloading the whole app.
+      void navigate(`${page}?voltar=${encodeURIComponent(roomLink(code, invite))}`);
       return;
     }
     if (failure.reloadRoom) {
       setSubmitting(false);
+      void revalidator.revalidate();
+      return;
+    }
+    if (failure.waiting) {
+      // No shake and no upset mascot: waiting for whoever invited them is expected.
+      setSubmitting(false);
+      setFormError({ message, waiting: true });
       void revalidator.revalidate();
       return;
     }
@@ -124,7 +155,15 @@ export function useJoinForm(options: JoinFormOptions) {
     if (submitting) return;
     const fields = readFields(event.currentTarget);
     if (!fields) return;
+    if (options.otherTabCall !== undefined) {
+      setPendingJoin({ fields, microphone, otherTabCall: options.otherTabCall });
+      return;
+    }
+    await join(fields, microphone);
+  }
 
+  /** Requests the token and enters; `beforeEnter` runs only once the token is granted. */
+  async function join(fields: JoinFields, microphone: MicrophoneChoices, beforeEnter?: () => void) {
     setFormError(undefined);
     setSubmitting(true);
     options.onPrepareJoin?.();
@@ -139,6 +178,7 @@ export function useJoinForm(options: JoinFormOptions) {
     }
 
     if (fields.guestName) guestName.remember(fields.guestName);
+    beforeEnter?.();
     options.onJoin({
       ...fields,
       token: result.data.token,
@@ -148,7 +188,18 @@ export function useJoinForm(options: JoinFormOptions) {
     });
   }
 
+  /** The person confirmed: join here and make the other tab leave. */
+  function confirmPendingJoin() {
+    if (pendingJoin === undefined) return;
+    setPendingJoin(undefined);
+    void join(pendingJoin.fields, pendingJoin.microphone, options.onLeaveOtherTab);
+  }
+
   return {
+    /** Room of the call in another tab the person must confirm leaving, while asking. */
+    pendingOtherTabCall: pendingJoin?.otherTabCall,
+    confirmPendingJoin,
+    cancelPendingJoin: () => setPendingJoin(undefined),
     formError,
     submitting,
     waitingApproval: approval.waiting,

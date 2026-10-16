@@ -15,6 +15,7 @@ test.each([
   { stored: "light", systemLight: false, expected: "light" },
   { stored: null, systemLight: true, expected: "light" },
   { stored: "invalid", systemLight: false, expected: "dark" },
+  { stored: '</script><script>alert("theme")</script>', systemLight: true, expected: "light" },
 ])(
   "initial theme honors saved choices and otherwise uses the system before paint",
   ({ stored, systemLight, expected }) => {

@@ -1,10 +1,10 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { proInterestResultSchema, proInterestSchema } from "@/features/home/domain/pro-interest";
 import { readJson } from "@/lib/read-json";
 import { logBrowserWarning } from "@/lib/telemetry.client";
+import { Notice } from "@/components/Notice";
 
 type State =
   | { kind: "idle" }
@@ -52,9 +52,9 @@ export function ProWaitlistForm() {
 
   if (state.kind === "done") {
     return (
-      <output className="block rounded-2xl bg-brand/12 px-4 py-3 text-sm font-medium">
+      <Notice as="output" tone="brand" className="font-medium">
         {state.message}
-      </output>
+      </Notice>
     );
   }
 
@@ -74,10 +74,7 @@ export function ProWaitlistForm() {
           aria-invalid={state.kind === "error" || undefined}
           aria-describedby={statusId}
         />
-        <Button type="submit" variant="secondary" disabled={state.kind === "sending"}>
-          {state.kind === "sending" ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : null}
+        <Button type="submit" variant="secondary" loading={state.kind === "sending"}>
           Quero ser avisado
         </Button>
       </div>

@@ -29,7 +29,7 @@ export function TwoFactorHeader({
         )}
       </span>
       <div>
-        <h2 id={titleId} className="text-lg font-semibold tracking-[-0.025em]">
+        <h2 id={titleId} className="text-lg font-semibold tracking-tight">
           Verificação em duas etapas
         </h2>
         <p className="text-sm text-ink-muted">{headerHint(enabled, required)}</p>

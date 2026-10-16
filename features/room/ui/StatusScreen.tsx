@@ -59,7 +59,7 @@ export function StatusScreen({
           aria-hidden="true"
         />
       </div>
-      <h1 className="text-2xl font-semibold tracking-[-0.025em]">{title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
       {message ? <p className="mt-2 font-light text-ink-muted">{message}</p> : null}
       <div className="mt-8 flex flex-col gap-3 sm:flex-row [&>*]:flex-1">{children}</div>
     </div>

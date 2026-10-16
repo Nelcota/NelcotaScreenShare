@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { users } from "@/server/db/schema";
@@ -31,4 +32,34 @@ export async function profilePhotoOf(
     .limit(1);
   if (!row) return null;
   return photoBytesFromDataUrl(row.image);
+}
+
+/** Long enough to avoid refetching while the layout reflows, short enough to see a new photo. */
+const PHOTO_CACHE = "private, max-age=300";
+/** "This person has no photo" is cached briefly too, so lists do not ask again on every render. */
+const NO_PHOTO_CACHE = "private, max-age=60";
+
+/**
+ * No photo: 204, an empty answer that is no error, so the call's initials stay without a 404
+ * in every client's console for each person without a photo (the friends route does the same).
+ */
+export function noPhotoResponse(cache: "short" | "none" = "none"): Response {
+  const cacheControl = cache === "short" ? NO_PHOTO_CACHE : "no-store";
+  return new Response(null, { status: 204, headers: { "Cache-Control": cacheControl } });
+}
+
+/** The photo as a WebP response with a validator, or 304 when the browser already has it. */
+export function photoResponse(request: Request, photo: Uint8Array<ArrayBuffer> | null): Response {
+  if (!photo) return noPhotoResponse("short");
+  const etag = `"${createHash("sha256").update(photo).digest("base64url").slice(0, 22)}"`;
+  const headers = {
+    "Cache-Control": PHOTO_CACHE,
+    ETag: etag,
+    "Content-Type": "image/webp",
+    "X-Content-Type-Options": "nosniff",
+  };
+  if (request.headers.get("If-None-Match") === etag) {
+    return new Response(null, { status: 304, headers });
+  }
+  return new Response(photo, { status: 200, headers });
 }

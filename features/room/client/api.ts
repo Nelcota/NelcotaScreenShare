@@ -78,6 +78,22 @@ export async function setHandRaised(room: string, raised: boolean): Promise<bool
   }
 }
 
+/** Tells the room you stopped hearing it, or hear it again (the server writes it; see /api/sala/som). */
+export async function setDeafenedInRoom(room: string, deafened: boolean): Promise<boolean> {
+  try {
+    const response = await fetch("/api/sala/som", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ room, deafened }),
+      cache: "no-store",
+    });
+    return response.ok;
+  } catch (error) {
+    logBrowserWarning("Deafen request failed", error);
+    return false;
+  }
+}
+
 const renameReplySchema = z.object({
   name: displayNameSchema.optional(),
   message: z.string().optional(),

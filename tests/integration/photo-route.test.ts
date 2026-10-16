@@ -91,12 +91,12 @@ describe("photo of someone in the call", () => {
     const bia = await withPhoto("Bia");
     rooms.set("sala-alheia", [bia.id]);
     const outside = await photo("sala-alheia", bia.id, ana.jar.header());
-    expect(outside.status).toBe(404);
+    expect(outside.status).toBe(204);
     expect(outside.headers.get("cache-control")).toBe("no-store");
 
     rooms.set("sala-sem-bia", [ana.id]);
-    expect((await photo("sala-sem-bia", bia.id, ana.jar.header())).status).toBe(404);
-    expect((await photo("sala-inexistente", bia.id, ana.jar.header())).status).toBe(404);
+    expect((await photo("sala-sem-bia", bia.id, ana.jar.header())).status).toBe(204);
+    expect((await photo("sala-inexistente", bia.id, ana.jar.header())).status).toBe(204);
   });
 
   it("someone without a photo, or blocked, shows none", async () => {
@@ -107,9 +107,9 @@ describe("photo of someone in the call", () => {
     rooms.set("sala-sem-foto", [ana.id, caio.id, dani.id]);
 
     const noPhoto = await photo("sala-sem-foto", caio.id, ana.jar.header());
-    expect(noPhoto.status).toBe(404);
+    expect(noPhoto.status).toBe(204);
     expect(noPhoto.headers.get("cache-control")).toBe("private, max-age=60");
-    expect((await photo("sala-sem-foto", dani.id, ana.jar.header())).status).toBe(404);
+    expect((await photo("sala-sem-foto", dani.id, ana.jar.header())).status).toBe(204);
   });
 
   it("one's own photo does not need the room list", async () => {

@@ -7,16 +7,19 @@
 #   30000-30100/udp   -> TURN relay ports (turn.relay_range_* in livekit.yaml)
 #   5349/tcp          -> TURN/TLS (only if enabled in livekit.yaml)
 #
-# Port 7880 (HTTP/WebSocket signaling) must NOT be opened in the firewall:
-# it goes through Coolify's HTTPS proxy at https://lk.yourdomain.com
-# (the app connects to wss://lk.yourdomain.com). See docs/deployment.md.
+# Port 7880 (HTTP/WebSocket signaling) must NOT be opened in the firewall.
+# Legacy signaling (ROOM_HOST_CONTROLS_ENABLED=false): it goes through Coolify's HTTPS proxy
+# at https://lk.yourdomain.com (browsers connect to wss://lk.yourdomain.com); see
+# docs/deployment.md. With host controls it must not be public at all: only the app's relay
+# talks to it, the lk.* proxy routes go away and LiveKit listens on the Docker bridge
+# gateway only (bind_addresses in deploy/livekit/livekit.yaml; docs/host-controls.md).
 #
 # network_mode: host is required for WebRTC: it avoids Docker NAT on the UDP range
 # and lets LiveKit advertise the correct public IP in the ICE candidates.
 
 services:
   livekit:
-    image: livekit/livekit-server:v1.13.7
+    image: livekit/livekit-server:v1.13.9
     restart: unless-stopped
     network_mode: host
     command: --config /etc/livekit/livekit.yaml

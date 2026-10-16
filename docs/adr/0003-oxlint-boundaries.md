@@ -41,3 +41,7 @@ Two gaps found while reorganizing the folders:
 - oxlint merges a rule's pattern groups, so the exception "a feature imports its own UI" (`!@/features/<name>/**`) also allowed the feature's server. The exception now covers only `ui/`.
 
 Both were confirmed by planting the forbidden imports before and after the fix.
+
+## Revision (2026-10-14)
+
+`components/ui` is **vendored and adapted**: the files come from shadcn and are edited in place when the app needs it (the `Button`'s `loading`, `quiet` and `brand-outline`, the dialog's radius and title, the "Fechar" labels). A wrapper over them (`AppButton` and the like) would add a layer with no contract of its own. The `no-else` exemption stays, and a future `shadcn add` over an adapted file has to keep those edits.

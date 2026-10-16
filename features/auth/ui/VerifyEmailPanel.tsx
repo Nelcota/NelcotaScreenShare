@@ -1,4 +1,4 @@
-import { Loader2, MailCheck } from "lucide-react";
+import { MailCheck } from "lucide-react";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { AuthCard } from "./AuthCard";
@@ -106,10 +106,10 @@ export function VerifyEmailPanel({
           <Button
             variant="outline"
             size="lg"
-            disabled={status === "sending" || cooldown > 0}
+            loading={status === "sending"}
+            disabled={cooldown > 0}
             onClick={() => void resend()}
           >
-            {status === "sending" ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
             {cooldown > 0 ? `Reenviar em ${cooldown} s` : "Reenviar link"}
           </Button>
         ) : null}

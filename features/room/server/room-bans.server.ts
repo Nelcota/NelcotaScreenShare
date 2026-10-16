@@ -1,6 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, like } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomBans } from "@/server/db/schema";
+import { roomSessionMembers } from "@/server/db/schema/room-control";
 import { GUEST_IDENTITY_PREFIX } from "@/features/room/domain/participant-label";
 import { readGuestId } from "./guest-session.server";
 import { mediaRoomIn, memberInSession, openControlSession } from "./session-store.server";
@@ -88,6 +89,41 @@ async function guestIdentity(request: Request): Promise<string | undefined> {
   const guestId = await readGuestId(request);
   if (guestId === undefined) return undefined;
   return `${GUEST_IDENTITY_PREFIX}${guestId}`;
+}
+
+/**
+ * Was any guest banned from the call happening now? A banned guest without the cookie
+ * would come back as a new one: new guests then ask the host first.
+ */
+export async function guestBannedFromCall(
+  db: DbExecutor,
+  gateway: Pick<LiveKitGateway, "roomSid">,
+  roomCode: string,
+): Promise<boolean> {
+  const guests = like(roomBans.identity, `${GUEST_IDENTITY_PREFIX}%`);
+  if (getEnv().ROOM_HOST_CONTROLS_ENABLED) {
+    const session = await openControlSession(db, roomCode);
+    if (!session) return false;
+    const [excluded] = await db
+      .select({ identity: roomSessionMembers.identity })
+      .from(roomSessionMembers)
+      .where(
+        and(
+          eq(roomSessionMembers.sessionId, session.id),
+          isNotNull(roomSessionMembers.excludedAt),
+          like(roomSessionMembers.identity, `${GUEST_IDENTITY_PREFIX}%`),
+        ),
+      )
+      .limit(1);
+    return excluded !== undefined;
+  }
+  const bans = await db
+    .select({ sid: roomBans.livekitRoomSid })
+    .from(roomBans)
+    .where(and(eq(roomBans.roomCode, roomCode), guests));
+  if (bans.length === 0) return false;
+  const currentSid = await gateway.roomSid(await mediaRoomIn(db, roomCode));
+  return currentSid !== undefined && bans.some((ban) => ban.sid === currentSid);
 }
 
 /** With host controls, a ban is the exclusion from the call open now (ADR 0007). */

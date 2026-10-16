@@ -8,36 +8,15 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "react-day-picker/locale";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/Field";
 import { ChoiceSelect } from "@/components/ChoiceSelect";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateInput, parseDateInput } from "@/lib/date-input";
 import { cn } from "@/lib/utils";
-
-function Field({
-  label,
-  htmlFor,
-  className,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <Label htmlFor={htmlFor} className="text-xs text-ink-subtle">
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-}
 
 export function FilterSelect<T extends string>({
   label,
@@ -55,17 +34,19 @@ export function FilterSelect<T extends string>({
 }) {
   const id = useId();
   return (
-    <Field label={label} htmlFor={id}>
-      <ChoiceSelect
-        id={id}
-        className="h-9 w-full bg-surface-2"
-        value={value ?? ""}
-        options={allLabel ? [{ value: "", label: allLabel }, ...options] : options}
-        onValueChange={(nextValue) => {
-          const next = options.find((option) => option.value === nextValue);
-          onChange(next ? next.value : null);
-        }}
-      />
+    <Field size="compact" label={label} id={id}>
+      {() => (
+        <ChoiceSelect
+          id={id}
+          className="h-9 w-full bg-surface-2"
+          value={value ?? ""}
+          options={allLabel ? [{ value: "", label: allLabel }, ...options] : options}
+          onValueChange={(nextValue) => {
+            const next = options.find((option) => option.value === nextValue);
+            onChange(next ? next.value : null);
+          }}
+        />
+      )}
     </Field>
   );
 }
@@ -74,61 +55,69 @@ export function FilterDate({
   label,
   value,
   onChange,
+  form = false,
 }: {
   label: string;
   value: string | null;
   onChange: (value: string | null) => void;
+  /** Inside a form (not a filter bar): full-height field and the form's label style. */
+  form?: boolean;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const selected = parseDateInput(value);
   return (
-    <Field label={label} htmlFor={id}>
-      <div className="flex gap-1">
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
+    <Field size={form ? "default" : "compact"} label={label} id={id}>
+      {() => (
+        <div className="flex gap-1">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                id={id}
+                ref={triggerRef}
+                type="button"
+                variant="outline"
+                className={cn(
+                  "justify-start bg-surface-2 font-normal",
+                  form ? "h-11 flex-1 rounded-xl" : "h-9",
+                )}
+                aria-label={`${label}: ${selected ? format(selected, "dd/MM/yyyy") : "selecionar data"}`}
+              >
+                <CalendarDays aria-hidden="true" />
+                {selected ? format(selected, "dd/MM/yyyy") : "Selecionar data"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-0" aria-label={label}>
+              <Calendar
+                mode="single"
+                locale={ptBR}
+                selected={selected}
+                defaultMonth={selected}
+                onSelect={(date) => {
+                  onChange(date ? formatDateInput(date) : null);
+                  setOpen(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          {value ? (
             <Button
-              id={id}
-              ref={triggerRef}
               type="button"
-              variant="outline"
-              className="h-9 justify-start bg-surface-2 font-normal"
-              aria-label={`${label}: ${selected ? format(selected, "dd/MM/yyyy") : "selecionar data"}`}
-            >
-              <CalendarDays aria-hidden="true" />
-              {selected ? format(selected, "dd/MM/yyyy") : "Selecionar data"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto p-0" aria-label={label}>
-            <Calendar
-              mode="single"
-              locale={ptBR}
-              selected={selected}
-              defaultMonth={selected}
-              onSelect={(date) => {
-                onChange(date ? formatDateInput(date) : null);
-                setOpen(false);
+              variant="ghost"
+              size="icon"
+              className={form ? "size-11" : "size-9"}
+              aria-label={`Limpar ${label}`}
+              onClick={() => {
+                onChange(null);
+                triggerRef.current?.focus();
               }}
-            />
-          </PopoverContent>
-        </Popover>
-        {value ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-9"
-            aria-label={`Limpar ${label}`}
-            onClick={() => {
-              onChange(null);
-              triggerRef.current?.focus();
-            }}
-          >
-            <X aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
+            >
+              <X aria-hidden="true" />
+            </Button>
+          ) : null}
+        </div>
+      )}
     </Field>
   );
 }
@@ -151,42 +140,49 @@ export function FilterSearch({
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <Field label={label} htmlFor={id} className={type === "number" ? "w-32" : "min-w-48 flex-1"}>
-      <div className="relative">
-        {type === "search" ? (
-          <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-ink-subtle"
-            aria-hidden="true"
-          />
-        ) : null}
-        <Input
-          ref={inputRef}
-          id={id}
-          type={type}
-          min={type === "number" ? 0 : undefined}
-          value={value}
-          placeholder={placeholder}
-          className={cn("h-9", type === "search" && "pr-9 pl-8")}
-          onChange={(event) => {
-            onChange(event.target.value);
-          }}
-        />
-        {type === "search" && value ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute top-1/2 right-1 size-7 -translate-y-1/2"
-            aria-label={`Limpar ${label}`}
-            onClick={() => {
-              onChange("");
-              inputRef.current?.focus();
+    <Field
+      size="compact"
+      label={label}
+      id={id}
+      className={type === "number" ? "w-32" : "min-w-48 flex-1"}
+    >
+      {() => (
+        <div className="relative">
+          {type === "search" ? (
+            <Search
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-ink-subtle"
+              aria-hidden="true"
+            />
+          ) : null}
+          <Input
+            ref={inputRef}
+            id={id}
+            type={type}
+            min={type === "number" ? 0 : undefined}
+            value={value}
+            placeholder={placeholder}
+            className={cn("h-9", type === "search" && "pr-9 pl-8")}
+            onChange={(event) => {
+              onChange(event.target.value);
             }}
-          >
-            <X aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
+          />
+          {type === "search" && value ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute top-1/2 right-1 size-7 -translate-y-1/2"
+              aria-label={`Limpar ${label}`}
+              onClick={() => {
+                onChange("");
+                inputRef.current?.focus();
+              }}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          ) : null}
+        </div>
+      )}
     </Field>
   );
 }

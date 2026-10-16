@@ -20,13 +20,18 @@ Saved room roles ([ADR 0007](adr/0007-room-ownership-and-host.md)) extend this a
 The room owner may give every host command without holding the host role, and becomes host
 once connected and admitted. A moderator is a co-host: lock, sharing policy and removal of
 participants, but not transfer, closing, or removing the host, the owner or another
-moderator. The control state lists the commands each person may give; menus show only those.
+moderator. A host who is not the owner removes anyone but the owner, who may only be away for
+a reconnect. The control state lists the commands each person may give; menus show only those.
 A transfer given by the owner also hands over the room: the target becomes owner and the
 former owner a moderator. The owner does this from the person's card ("Transferir a sala").
+A permanent room is never handed over: there the owner's transfer passes only the host, and
+`host_given_at` keeps the owner from taking it back until they join again.
 Sync commands also publish each person's saved room role, so badges follow the change.
 
 The person's card keeps two actions for the owner and moderators. "Expulsar" disconnects
-without excluding: the person may rejoin. "Banir desta chamada" is the session exclusion,
+without excluding: the person may rejoin. Both go through `/api/sala/moderar`, which with the
+flag on follows the same rule as the host's `remove`: a moderator never kicks or bans the
+session's host; only the owner does. "Banir desta chamada" is the session exclusion,
 recorded with who did it (`excluded_by_user_id` or, from the admin panel,
 `excluded_by_admin_id`), followed by a durable `remove` command. With the flag off there is
 no session; bans stay in `room_bans` for the LiveKit call. The admin panel reads both through
@@ -39,7 +44,10 @@ LiveKit removes already published tracks of revoked sources. See its
 Locks allow identities already admitted through the signaling gate to reconnect, unless
 excluded. A prefetched token alone does not confer this exception. Removal excludes an
 identity from this session. A guest who clears their signed cookie can obtain another
-identity; locking new entrants supplies the room-level control. Closing from the host menu
+identity, so once a guest is excluded from (or, with the flag off, banned from) the call,
+new guests of that call ask for approval even in an open room (`guestBannedFromCall`);
+accounts still go straight in. Only the owner and moderators answer requests, so with
+neither in the call new guests wait. Locking new entrants remains the room-level control. Closing from the host menu
 makes the public code terminal only for an ad hoc room without an owner. A room with an
 owner, a permanent room or a team room keeps its code for a new call. A naturally empty
 call expires after 60 seconds, keeping the definition available for a new call with a new
@@ -49,7 +57,10 @@ The host retains authority for 60 seconds after disappearing. After that, the co
 admitted, nonexcluded active accounts are ranked: the owner, then moderators, then everyone
 else, each group by join time. The first becomes host. Guests alone cannot claim
 authority and new admission stays locked. Presence checks use the LiveKit service API;
-webhooks project history and never grant roles. Calls persist when navigating within the app.
+webhooks project history and never grant roles. They do take people out: a `participant_joined`
+into a closed session, by someone excluded from it, or by someone never admitted while it is
+locked is removed again (`removeBannedJoin`), in case a kept token reaches LiveKit around the
+relay. Calls persist when navigating within the app.
 
 Host policy, a durable transport command and audit commit atomically. Transport effects
 follow the commit. Failures stay visible and retry every five seconds with bounded
@@ -72,6 +83,14 @@ with current source permissions. The room lock is held through upstream establis
 admission. Cached and LiveKit-refreshed tokens cannot bypass this gate **only if direct
 signaling is inaccessible to clients**. Media continues directly over RTC/TURN ports.
 
+The relay keeps the browser's protocol only when it is 16 or 17 and passes the v1
+`join_request` as the SDK built it. That request may carry `metadata` and
+`participant_attributes`; LiveKit 1.13.7 refuses the whole join (401, "no permissions to
+access the room") unless the token grants `canUpdateOwnMetadata`, which ours never do
+(`token-route.test.ts` checks it). Checked against the development LiveKit on 2026-10-14:
+a clean v1 join entered, the same join with forged `role=owner` attributes got 401, and only
+a token with that grant got the attributes applied. So the relay does not decode it.
+
 Before enabling in Coolify:
 
 1. Drain legacy calls. Apply migrations with the migrator role and deploy this application.
@@ -83,6 +102,9 @@ Before enabling in Coolify:
    both host and provider firewalls. A private hostname in configuration alone proves
    nothing about reachability. Keep RTC 7881/TCP, configured RTP UDP and TURN ports available.
    The TURN DNS name may remain; it must not proxy public HTTP signaling to 7880.
+   Also make LiveKit listen only where the app reaches it: `bind_addresses: ["172.17.0.1"]`
+   (the Docker bridge gateway, see the comment in `deploy/livekit/livekit.yaml`), so a
+   forgotten route or port mapping has nothing to reach.
 4. Ensure the app's HTTPS proxy supports WebSocket upgrades at the new path. Disable
    query-string logging on that path at every proxy: signaling queries contain JWTs.
 5. Set `ROOM_HOST_CONTROLS_ENABLED=true` and restart the app. The environment validator
@@ -91,6 +113,23 @@ Before enabling in Coolify:
 6. From an external client, verify all direct signaling URLs/ports are unreachable.
    Verify app admission and attempt reentry with original and server-refreshed credentials
    after removal, locking and closure. Repeat on the actual VPS before rollout.
+
+### Proposal: a deploy smoke check for step 6
+
+Step 6 is manual today. A proposal for the deploy pipeline (not in `.github/workflows` yet),
+run after the app deploy whenever `ROOM_HOST_CONTROLS_ENABLED=true`, from the runner (an
+external network to the VPS):
+
+1. `curl -sS -o /dev/null -w '%{http_code}' --max-time 5 https://lk.<domain>/rtc` must not
+   answer LiveKit (no `200`/`401`/`400` from LiveKit; a proxy `404` or a refused connection
+   pass), and the same for `/rtc/v1` and every alternate `lk.*` domain.
+2. A raw TCP connect to `<VPS IP>:7880` (`nc -z -w 5`) must fail.
+3. A WebSocket upgrade to `https://lk.<domain>/rtc?access_token=x` must not reach `101`.
+4. `https://<app domain>/api/sala/conexao/rtc/validate` must answer the app (`401`/`403`
+   without a token), proving the relay path is up.
+
+Any LiveKit answer fails the job before the deploy is marked healthy. The check holds no
+secret: it never needs a valid token, since any LiveKit response at all means exposure.
 
 The repository's legacy Compose/proxy examples stay usable with the flag off. They do not
 establish the required private boundary. Do not activate host controls by merely changing

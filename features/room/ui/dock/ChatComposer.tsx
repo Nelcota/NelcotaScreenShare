@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Loader2, Pencil, X } from "lucide-react";
+import { Check, Pencil, SendHorizontal, X } from "lucide-react";
 import { useId, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
@@ -47,14 +47,16 @@ export function ChatComposer({
           <Pencil className="size-3.5 shrink-0 text-brand-soft" aria-hidden="true" />
           <span className="font-medium text-brand-soft">Editando mensagem</span>
           <span className="text-ink-subtle max-sm:hidden">· Esc cancela</span>
-          <button
+          <Button
             type="button"
+            variant="quiet"
+            size="icon-sm"
             onClick={onCancelEdit}
             aria-label="Cancelar edição"
-            className="ml-auto grid size-7 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+            className="ml-auto rounded-lg"
           >
-            <X className="size-4" aria-hidden="true" />
-          </button>
+            <X aria-hidden="true" />
+          </Button>
         </div>
       ) : null}
       <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface-2 p-1.5 pl-4 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
@@ -93,16 +95,15 @@ export function ChatComposer({
         <Button
           type="submit"
           size="icon"
+          loading={busy}
           disabled={!canSend}
           aria-label={editing ? "Salvar edição" : "Enviar mensagem"}
           className="size-9 shrink-0 rounded-full transition-transform active:scale-90"
         >
-          {busy ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : editing ? (
+          {busy ? null : editing ? (
             <Check className="size-5" aria-hidden="true" />
           ) : (
-            <ArrowUp className="size-5" aria-hidden="true" />
+            <SendHorizontal className="size-5" aria-hidden="true" />
           )}
         </Button>
       </div>

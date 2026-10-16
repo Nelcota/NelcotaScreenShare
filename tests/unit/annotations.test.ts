@@ -80,3 +80,38 @@ test("resending a completed mark never extends its life and each author is cappe
     );
   expect(list).toHaveLength(8);
 });
+
+test("a late preview cannot replace or shorten a completed annotation", () => {
+  const committed = acceptAnnotation([], mark, "ana", "Ana", context, mark.createdAt);
+  const received = acceptAnnotation(
+    committed,
+    {
+      ...mark,
+      preview: true,
+      points: [
+        { x: 0.1, y: 0.2 },
+        { x: 0.2, y: 0.3 },
+      ],
+    },
+    "ana",
+    "Ana",
+    context,
+    mark.createdAt + 200,
+  );
+  expect(received).toEqual(committed);
+});
+
+test("a completed annotation replaces its preview with the full lifetime", () => {
+  const preview = acceptAnnotation(
+    [],
+    { ...mark, preview: true },
+    "ana",
+    "Ana",
+    context,
+    mark.createdAt,
+  );
+  const committed = acceptAnnotation(preview, mark, "ana", "Ana", context, mark.createdAt + 200);
+  expect(committed).toHaveLength(1);
+  expect(committed[0]?.preview).toBe(false);
+  expect(committed[0]?.expiresAt).toBe(mark.createdAt + ANNOTATION_TTL);
+});

@@ -1,15 +1,17 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { Archive } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "./StatusScreen";
-import { lazy, Suspense, useEffect, useEffectEvent, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { AppHeader } from "@/components/shell/AppHeader";
+import { CallShell, ScreenShell } from "./RoomShell";
 import { requestToken } from "@/features/room/client/api";
 import type { JoinChoices } from "@/features/room/domain/join";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { callDuration, type LeaveNotice, type LeaveReason } from "@/features/room/domain/leave";
 import { roomLink } from "@/features/room/domain/room-code";
+import { useAnsweredCall } from "@/features/room/hooks/use-answered-call";
 import { PreJoin } from "@/features/room/ui/prejoin/PreJoin";
 import { LeftScreen } from "./LeftScreen";
 import { logBrowserWarning } from "@/lib/telemetry.client";
@@ -29,6 +31,22 @@ async function prefetchRoomView() {
   }
 }
 
+/**
+ * On the pre-join, fetch the call code once the page is idle: phones have no hover, so
+ * waiting for the "Entrar" tap meant downloading it only after the person asked to join.
+ */
+function usePrefetchRoomViewWhenIdle(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    if (typeof window.requestIdleCallback !== "function") {
+      const timer = window.setTimeout(prepareRoomView, 2000);
+      return () => window.clearTimeout(timer);
+    }
+    const handle = window.requestIdleCallback(prepareRoomView, { timeout: 4000 });
+    return () => window.cancelIdleCallback(handle);
+  }, [active]);
+}
+
 interface RoomSessionProps {
   code: string;
   unavailable?: string;
@@ -39,7 +57,7 @@ interface RoomSessionProps {
   passwordRequired: boolean;
   invite?: string;
   maxParticipants: number;
-  roomName: string | null;
+  roomName: RoomTitle | null;
   /** People in the room now (null: unknown). */
   presence: RoomPresence | null;
   /** Shows the link to the admin panel inside the call. */
@@ -48,12 +66,21 @@ interface RoomSessionProps {
   minimized: boolean;
   /** Whether there is a call to keep while the person visits other pages. */
   onCallChange: (inCall: boolean) => void;
+  /** The app's friends column, signed in; `inCall` starts it as the rail. */
+  renderColumn?: (inCall: boolean) => ReactNode;
 }
 
 type Phase =
   | { kind: "prejoin" }
   /** `startedAt`: when they joined, for the leave summary (kept across attempts). */
-  | { kind: "room"; choices: JoinChoices; attempt: number; startedAt: number }
+  | {
+      kind: "room";
+      choices: JoinChoices;
+      attempt: number;
+      startedAt: number;
+      /** Joined without the pre-join (from "Chamar" or a ring). */
+      direct?: boolean;
+    }
   | { kind: "left"; reason: LeaveReason; message?: string; durationMs?: number };
 
 export function RoomSession({
@@ -70,14 +97,19 @@ export function RoomSession({
   isAdmin,
   minimized,
   onCallChange,
+  renderColumn,
 }: RoomSessionProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "prejoin" });
-  const inCall = phase.kind === "room";
-  const reportCall = useEffectEvent(onCallChange);
+  usePrefetchRoomViewWhenIdle(phase.kind === "prejoin");
 
-  useEffect(() => {
-    reportCall(inCall);
-  }, [inCall]);
+  // The parent hears about the call where the phase changes, not from an effect after it.
+  function changePhase(next: Phase) {
+    setPhase(next);
+    onCallChange(next.kind === "room");
+  }
+  // Only the first pre-join after accepting a ring joins on its own.
+  const answered = useAnsweredCall();
+  const [autoJoin, setAutoJoin] = useState(answered);
 
   // New attempt with a new token: the previous one may have expired (10 min TTL).
   async function retry(choices: JoinChoices, attempt: number, startedAt: number) {
@@ -88,10 +120,10 @@ export function RoomSession({
       guestName: choices.guestName,
     });
     if (!result.ok) {
-      setPhase({ kind: "left", reason: "failed", message: result.message });
+      changePhase({ kind: "left", reason: "failed", message: result.message });
       return;
     }
-    setPhase({
+    changePhase({
       kind: "room",
       choices: {
         ...choices,
@@ -106,8 +138,8 @@ export function RoomSession({
 
   function leave(notice: LeaveNotice | undefined, startedAt: number | undefined) {
     // The leave screen is not on display: the notice goes to a toast instead.
-    if (minimized) toast.info(notice?.message ?? "Você saiu da sala.");
-    setPhase({
+    if (minimized) toast.info(notice?.message ?? "Você saiu da chamada.");
+    changePhase({
       kind: "left",
       reason: notice?.reason ?? "self",
       message: notice?.message,
@@ -117,76 +149,85 @@ export function RoomSession({
 
   if (phase.kind === "room") {
     return (
-      <Suspense
-        fallback={
-          <output hidden={minimized} className="grid min-h-dvh place-items-center text-ink-muted">
-            Preparando a sala…
-          </output>
-        }
-      >
-        <RoomView
-          key={phase.attempt}
-          code={code}
-          choices={phase.choices}
-          maxParticipants={maxParticipants}
-          roomName={roomName}
-          isAdmin={isAdmin}
-          minimized={minimized}
-          onLeave={(notice) => leave(notice, phase.startedAt)}
-          onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
-        />
-      </Suspense>
+      <CallShell column={renderColumn?.(true)} minimized={minimized}>
+        <Suspense
+          fallback={
+            <output hidden={minimized} className="grid min-h-dvh place-items-center text-ink-muted">
+              Preparando a sala…
+            </output>
+          }
+        >
+          <RoomView
+            key={phase.attempt}
+            code={code}
+            choices={phase.choices}
+            maxParticipants={maxParticipants}
+            roomName={roomName}
+            isAdmin={isAdmin}
+            minimized={minimized}
+            onLeave={(notice) => leave(notice, phase.startedAt)}
+            onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
+            directEntry={phase.direct === true && phase.attempt === 0}
+          />
+        </Suspense>
+      </CallShell>
     );
   }
 
   if (minimized) return null;
+  const account = userName === null ? null : { name: userName, image: userImage };
 
   if (unavailable)
     return (
-      <div className="flex min-h-dvh flex-col">
-        <AppHeader account={userName === null ? null : { name: userName, image: userImage }} />
-        <main className="flex flex-1 items-center justify-center px-4">
-          <StatusScreen icon={Archive} title="Sala indisponível" message={unavailable}>
-            <Button asChild>
-              <Link to={userName ? "/salas" : "/"}>Voltar</Link>
-            </Button>
-          </StatusScreen>
-        </main>
-      </div>
+      <ScreenShell column={renderColumn?.(false)} account={account}>
+        <StatusScreen icon={Archive} title="Sala indisponível" message={unavailable}>
+          <Button asChild>
+            <Link to={userName ? "/salas" : "/"}>Voltar</Link>
+          </Button>
+        </StatusScreen>
+      </ScreenShell>
     );
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <AppHeader
-        account={userName === null ? null : { name: userName, image: userImage }}
-        accountHref={`/conta?voltar=${encodeURIComponent(roomLink(code, invite))}`}
-      />
-      <main className="flex flex-1 items-center justify-center px-4 py-6 sm:px-8 sm:py-10">
-        {phase.kind === "prejoin" ? (
-          <PreJoin
-            onPrepareJoin={prepareRoomView}
-            code={code}
-            userName={userName}
-            passwordRequired={passwordRequired && !invite}
-            invite={invite}
-            presence={presence}
-            maxParticipants={maxParticipants}
-            onJoin={(choices) =>
-              setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() })
-            }
-          />
-        ) : (
-          <LeftScreen
-            code={code}
-            reason={phase.reason}
-            permanent={permanent}
-            message={phase.message}
-            durationMs={phase.durationMs}
-            guest={userName === null}
-            onRejoin={() => setPhase({ kind: "prejoin" })}
-          />
-        )}
-      </main>
-    </div>
+    <ScreenShell
+      column={renderColumn?.(false)}
+      account={account}
+      accountHref={`/conta?voltar=${encodeURIComponent(roomLink(code, invite))}`}
+    >
+      {phase.kind === "prejoin" ? (
+        <PreJoin
+          onPrepareJoin={prepareRoomView}
+          code={code}
+          roomName={roomName?.followsOwner === false ? roomName.text : null}
+          userName={userName}
+          userImage={userImage}
+          passwordRequired={passwordRequired && !invite}
+          invite={invite}
+          presence={presence}
+          maxParticipants={maxParticipants}
+          autoJoin={autoJoin}
+          onJoin={(choices) => {
+            setAutoJoin(false);
+            changePhase({
+              kind: "room",
+              choices,
+              attempt: 0,
+              startedAt: Date.now(),
+              direct: autoJoin,
+            });
+          }}
+        />
+      ) : (
+        <LeftScreen
+          code={code}
+          reason={phase.reason}
+          permanent={permanent}
+          message={phase.message}
+          durationMs={phase.durationMs}
+          guest={userName === null}
+          onRejoin={() => changePhase({ kind: "prejoin" })}
+        />
+      )}
+    </ScreenShell>
   );
 }

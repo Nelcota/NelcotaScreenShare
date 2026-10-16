@@ -6,8 +6,9 @@ import {
   type RemoteParticipant,
   type RemoteTrackPublication,
 } from "livekit-client";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { useEffect, useEffectEvent } from "react";
+import { playPeerSound } from "@/features/room/audio/call-sounds";
+import { useDeafen } from "@/features/room/ui/dock/Deafen";
 import {
   addToNoticeGroup,
   noticeGroupMessage,
@@ -15,19 +16,15 @@ import {
   type NoticeGroup,
 } from "@/features/room/domain/notice-grouping";
 import { participantName } from "@/features/room/domain/participant-label";
-
-const NOTICE_DURATION_MS = 3000;
-
-// Bottom right keeps room notices away from the top bar; the Toaster offset lifts them above the dock.
-const NOTICE_OPTIONS = { duration: NOTICE_DURATION_MS, position: "bottom-right" } as const;
+import { showCallNotice } from "@/features/room/client/call-notices";
 
 function showRoomNotice(message: string) {
-  toast(message, NOTICE_OPTIONS);
+  showCallNotice(message);
 }
 
 /** One toast per kind: a newer group replaces the visible one instead of stacking another. */
 function showGroupedNotice(group: NoticeGroup) {
-  toast(noticeGroupMessage(group), { ...NOTICE_OPTIONS, id: `room-notice-${group.kind}` });
+  showCallNotice(noticeGroupMessage(group), { id: `room-notice-${group.kind}` });
 }
 
 /**
@@ -36,6 +33,11 @@ function showGroupedNotice(group: NoticeGroup) {
  */
 export function useRoomNotices() {
   const room = useRoomContext();
+  const { deafened } = useDeafen();
+  // Not hearing the room: nobody's coming and going makes a sound either.
+  const playPeer = useEffectEvent((sound: "peer-joined" | "peer-left") => {
+    if (!deafened) void playPeerSound(sound);
+  });
 
   useEffect(() => {
     const participants = new Map<string, Set<string>>();
@@ -65,11 +67,13 @@ export function useRoomNotices() {
       if (participants.has(participant.identity)) return;
       participants.set(participant.identity, new Set());
       announce("joined", participant);
+      playPeer("peer-joined");
     };
     const left = (participant: RemoteParticipant) => {
       if (room.state !== ConnectionState.Connected) return;
       if (!participants.delete(participant.identity)) return;
       announce("left", participant);
+      playPeer("peer-left");
     };
     const published = (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (room.state !== ConnectionState.Connected) return;

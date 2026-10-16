@@ -7,6 +7,7 @@ import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { listActiveSessions } from "@/features/auth/server/sessions.server";
 import { getDb } from "@/server/db/index.server";
 import { adminSessions } from "@/server/db/schema";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Sessões ativas · Nelcota" }];
 
@@ -21,12 +22,10 @@ export default function AccountSessionsPage() {
   const { currentId, rows } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Sessões ativas</h1>
-        <p className="mt-1 text-ink-muted">
-          Onde sua conta está conectada. Encerre o que você não reconhecer e troque a senha.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Sessões ativas"
+        description="Onde sua conta está conectada. Encerre o que você não reconhecer e troque a senha."
+      />
       <SessionList
         currentId={currentId}
         revokeSession={revokeOwnSession}

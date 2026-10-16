@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, sql } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
-import { adminInvitations, adminUsers } from "@/server/db/schema";
+import { adminAccounts, adminInvitations, adminUsers } from "@/server/db/schema";
+import { OWNER_RECOVERY_REASON } from "@/features/auth/domain/owner-recovery";
 import { appUrl } from "@/server/env.server";
 import type { AdminAuth } from "./admin-auth.server";
 import { PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
@@ -75,9 +76,85 @@ export async function findPendingInvitation(db: Database, token: string) {
   return row;
 }
 
+export interface AcceptedInvitation {
+  userId: string;
+  email: string;
+  invitationId: string;
+  role: string;
+}
+
 export type AcceptResult =
-  | { ok: true; userId: string; email: string; invitationId: string; role: string }
+  | ({ ok: true } & AcceptedInvitation)
   | { ok: false; reason: "invalid" | "already_admin" | "weak_password" };
+
+type ClaimedInvitation = typeof adminInvitations.$inferSelect;
+
+/**
+ * Owner recovery (`create-owner --force`): the same account comes back, with a new password
+ * and without 2FA, so the panel asks to set it up again. If anything fails, the account is
+ * locked again and the invitation released.
+ */
+async function reactivateRecoveredOwner(
+  db: Database,
+  auth: AdminAuth,
+  {
+    accountId,
+    claimed,
+    name,
+    password,
+    onAccepted,
+    release,
+  }: {
+    accountId: string;
+    claimed: ClaimedInvitation;
+    name: string;
+    password: string;
+    onAccepted?: (accepted: AcceptedInvitation) => Promise<void>;
+    release: () => Promise<unknown>;
+  },
+): Promise<AcceptResult> {
+  const hash = await (await auth.$context).password.hash(password);
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(adminAccounts)
+        .set({ password: hash })
+        .where(
+          and(eq(adminAccounts.userId, accountId), eq(adminAccounts.providerId, "credential")),
+        );
+      await tx
+        .update(adminUsers)
+        .set({
+          banned: false,
+          banReason: null,
+          banExpires: null,
+          name: name.trim(),
+          role: claimed.role,
+          twoFactorEnabled: false,
+        })
+        .where(eq(adminUsers.id, accountId));
+      await tx
+        .update(adminInvitations)
+        .set({ acceptedUserId: accountId })
+        .where(eq(adminInvitations.id, claimed.id));
+    });
+    const accepted: AcceptedInvitation = {
+      userId: accountId,
+      email: claimed.email,
+      invitationId: claimed.id,
+      role: claimed.role,
+    };
+    await onAccepted?.(accepted);
+    return { ok: true, ...accepted };
+  } catch (error) {
+    await release();
+    await db
+      .update(adminUsers)
+      .set({ banned: true, banReason: OWNER_RECOVERY_REASON })
+      .where(eq(adminUsers.id, accountId));
+    throw error;
+  }
+}
 
 /**
  * Accepts the invitation: creates the admin account with an already verified e-mail
@@ -89,6 +166,12 @@ export async function acceptAdminInvitation(
   db: Database,
   auth: AdminAuth,
   { token, name, password }: { token: string; name: string; password: string },
+  {
+    onAccepted,
+  }: {
+    /** Runs before the acceptance counts (the audit): if it fails, everything is undone. */
+    onAccepted?: (accepted: AcceptedInvitation) => Promise<void>;
+  } = {},
 ): Promise<AcceptResult> {
   if (password.length < PASSWORD_LIMITS.admin.min || password.length > PASSWORD_LIMITS.admin.max) {
     return { ok: false, reason: "weak_password" };
@@ -110,13 +193,23 @@ export async function acceptAdminInvitation(
   const release = () =>
     db
       .update(adminInvitations)
-      .set({ status: "pending", acceptedAt: null })
+      .set({ status: "pending", acceptedAt: null, acceptedUserId: null })
       .where(eq(adminInvitations.id, claimed.id));
 
   const [existing] = await db
-    .select({ id: adminUsers.id })
+    .select({ id: adminUsers.id, banReason: adminUsers.banReason })
     .from(adminUsers)
     .where(sql`lower(${adminUsers.email}) = ${claimed.email.toLowerCase()}`);
+  if (existing?.banReason === OWNER_RECOVERY_REASON) {
+    return reactivateRecoveredOwner(db, auth, {
+      accountId: existing.id,
+      claimed,
+      name,
+      password,
+      onAccepted,
+      release,
+    });
+  }
   if (existing) {
     await db
       .update(adminInvitations)
@@ -152,16 +245,18 @@ export async function acceptAdminInvitation(
       .update(adminInvitations)
       .set({ acceptedUserId: user.id })
       .where(eq(adminInvitations.id, claimed.id));
-    return {
-      ok: true,
+    const accepted: AcceptedInvitation = {
       userId: user.id,
       email: claimed.email,
       invitationId: claimed.id,
       role: claimed.role,
     };
+    await onAccepted?.(accepted);
+    return { ok: true, ...accepted };
   } catch (error) {
-    if (createdUserId) await db.delete(adminUsers).where(eq(adminUsers.id, createdUserId));
+    // The invitation first: it points at the account and would block deleting it.
     await release();
+    if (createdUserId) await db.delete(adminUsers).where(eq(adminUsers.id, createdUserId));
     throw error;
   }
 }

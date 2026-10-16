@@ -36,6 +36,11 @@ test("permanent rooms: favorite, rename, two calls, history and archive reuse on
     );
     await person.page.goto("/salas");
     await person.page.getByRole("button", { name: "Nova sala", exact: true }).click();
+    // Only spaces: the message shows under the field and the dialog stays open.
+    await person.page.getByLabel("Nome da sala", { exact: true }).fill("   ");
+    await person.page.getByRole("button", { name: "Criar sala", exact: true }).click();
+    await expect(person.page.getByText("Use pelo menos 2 caracteres.")).toBeVisible();
+    await expect(person.page.getByRole("dialog", { name: "Nova sala permanente" })).toBeVisible();
     await person.page.getByLabel("Nome da sala", { exact: true }).fill("Encontro semanal");
     await person.page.getByRole("button", { name: "Criar sala", exact: true }).click();
     const card = person.page.getByRole("article").filter({ hasText: "Encontro semanal" });
@@ -87,7 +92,7 @@ test("permanent rooms: favorite, rename, two calls, history and archive reuse on
     await archived;
     await expect(person.page.getByRole("button", { name: "Nova sala", exact: true })).toBeEnabled();
     await expect(renamed).toHaveCount(0);
-    await person.page.getByRole("button", { name: "Arquivadas", exact: true }).click();
+    await person.page.getByRole("radio", { name: "Arquivadas", exact: true }).click();
     await renamed.getByRole("button", { name: "Desfavoritar Ritual do time" }).click();
     await expect(renamed.getByRole("button", { name: "Favoritar Ritual do time" })).toBeDisabled();
     await person.page.goto(href);
@@ -114,6 +119,9 @@ test("team invitations, tenant isolation, removal and stale Pro pages enforce cu
     await expect(otherOwner.page).toHaveURL(/\/times\/[\w-]{36}$/);
     const otherTeamUrl = otherOwner.page.url();
     await owner.page.goto("/times");
+    await owner.page.getByLabel("Nome do time").fill("   ");
+    await owner.page.getByRole("button", { name: "Criar time", exact: true }).click();
+    await expect(owner.page.getByText("Use pelo menos 2 caracteres.")).toBeVisible();
     await owner.page.getByLabel("Nome do time").fill("Time de produto");
     await owner.page.getByRole("button", { name: "Criar time", exact: true }).click();
     await expect(owner.page).toHaveURL(/\/times\/[\w-]{36}$/);

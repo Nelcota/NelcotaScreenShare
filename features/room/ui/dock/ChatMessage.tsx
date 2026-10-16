@@ -1,4 +1,4 @@
-import { Ban, Copy, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
+import { Copy, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { Fragment } from "react";
 import {
   DropdownMenu,
@@ -10,8 +10,9 @@ import {
 import { chatParts } from "@/features/room/domain/chat-format";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
-import { initials } from "@/lib/initials";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
 
 const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -43,15 +44,14 @@ export function ChatMessage({
       )}
     >
       {mine ? null : (
-        <span
-          aria-hidden="true"
+        <InitialsAvatar
+          name={name}
+          source={null}
           className={cn(
-            "grid size-7 shrink-0 place-items-center self-end rounded-full bg-brand/20 text-xs font-medium text-brand-soft",
+            "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
             !groupStart && "invisible",
           )}
-        >
-          {initials(name)}
-        </span>
+        />
       )}
       <div className={cn("flex max-w-[80%] min-w-0 flex-col gap-1", mine && "items-end")}>
         {groupStart ? (
@@ -67,7 +67,6 @@ export function ChatMessage({
         <div className={cn("flex max-w-full items-center gap-1", mine && "flex-row-reverse")}>
           {message.deleted ? (
             <p className="flex items-center gap-1.5 rounded-2xl border border-dashed border-line-strong px-3.5 py-2 text-sm text-ink-subtle italic">
-              <Ban className="size-3.5 shrink-0" aria-hidden="true" />
               {mine ? "Você apagou esta mensagem" : "Mensagem apagada"}
             </p>
           ) : (
@@ -124,13 +123,15 @@ function MessageMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="quiet"
+          size="icon-sm"
           aria-label="Ações da mensagem"
-          className="grid size-7 shrink-0 place-items-center rounded-full text-ink-subtle opacity-0 transition-[opacity,background-color] group-hover/message:opacity-100 hover:bg-surface-3 hover:text-ink focus-visible:opacity-100 focus-visible:outline-none data-[state=open]:bg-surface-3 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
+          className="text-ink-subtle opacity-0 group-hover/message:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
         >
-          <EllipsisVertical className="size-4" aria-hidden="true" />
-        </button>
+          <Ellipsis aria-hidden="true" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align={mine ? "end" : "start"}

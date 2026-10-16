@@ -66,6 +66,8 @@ export function acceptAnnotation(
   const previous = live.find(
     (mark) => mark.author === author && mark.id === message.id && !mark.preview,
   );
+  // Preview packets are unreliable and can arrive after the reliable completed mark.
+  if (previous && message.preview) return live;
   const lifetime = message.preview ? 750 : ANNOTATION_TTL;
   const expiresAt = Math.min(
     previous?.expiresAt ?? Infinity,

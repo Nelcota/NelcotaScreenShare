@@ -10,6 +10,7 @@ import { PAGE_SIZE } from "@/lib/table-params";
 import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { can } from "@/features/auth/server/permissions.server";
 import { getDb } from "@/server/db/index.server";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Compartilhamentos · Nelcota" }];
 
@@ -29,10 +30,10 @@ export default function SharesPage() {
   const { params, page, canExport } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Compartilhamentos</h1>
-        <p className="mt-1 text-ink-muted">Cada vez que alguém compartilhou a tela numa sala.</p>
-      </div>
+      <AdminPageHeader
+        title="Compartilhamentos"
+        description="Cada vez que alguém compartilhou a tela numa sala."
+      />
       <SharesTable
         rows={page.items}
         page={pageInfo(page)}

@@ -8,18 +8,22 @@ import type { AdminRole } from "@/features/auth/domain/roles";
 export type NavIcon =
   | "home"
   | "live"
+  | "usage"
   | "rooms"
   | "users"
   | "shares"
   | "entries"
   | "waitlist"
+  | "reports"
   | "audit"
   | "status"
   | "mail"
   | "errors"
+  | "pro"
   | "settings"
   | "security"
-  | "sessions";
+  | "sessions"
+  | "team";
 
 interface NavItemDefinition {
   href: string;
@@ -33,7 +37,16 @@ interface NavItemDefinition {
 const NAV: { label: string; items: NavItemDefinition[] }[] = [
   {
     label: "Visão geral",
-    items: [{ href: "/admin", label: "Início", icon: "home", permission: { dashboard: ["read"] } }],
+    items: [
+      { href: "/admin", label: "Início", icon: "home", permission: { dashboard: ["read"] } },
+      {
+        href: "/admin/uso",
+        label: "Uso diário",
+        icon: "usage",
+        permission: { dashboard: ["read"] },
+        keywords: ["uso", "minutos", "navegador", "dia", "estatística"],
+      },
+    ],
   },
   {
     label: "Uso",
@@ -86,6 +99,13 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
     label: "Governança",
     items: [
       {
+        href: "/admin/denuncias",
+        label: "Denúncias",
+        icon: "reports",
+        permission: { report: ["read"] },
+        keywords: ["denúncia", "moderação", "mensagem", "abuso"],
+      },
+      {
         href: "/admin/auditoria",
         label: "Auditoria",
         icon: "audit",
@@ -121,9 +141,16 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
       {
         href: "/admin/pro",
         label: "Pro beta",
-        icon: "settings",
+        icon: "pro",
         permission: { beta: ["read"] },
         keywords: ["piloto", "ativação", "time"],
+      },
+      {
+        href: "/admin/equipe",
+        label: "Equipe",
+        icon: "team",
+        permission: { user: ["ban"], adminInvitation: ["create"] },
+        keywords: ["admin", "convite", "acesso", "desativar", "leitor"],
       },
       {
         href: "/admin/configuracoes",

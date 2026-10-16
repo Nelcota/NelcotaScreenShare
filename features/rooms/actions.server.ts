@@ -6,7 +6,7 @@ import { roomWorkspaceSchema } from "./domain/commands";
 import { mutateWorkspaceRoom } from "./server/room-mutations.server";
 const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
 export const roomWorkspaceAction = defineUserOperation(
-  { name: "permanentRoom.change", audit: "required" },
+  { name: "permanentRoom.change", audit: "required", allowUnverified: true },
   roomWorkspaceSchema,
   async ({ parsedInput, ctx }) => {
     if (!limiter.hit(ctx.current.user.id).ok)

@@ -6,6 +6,8 @@ import {
   Loader2,
   Plus,
   Ticket,
+  UserPlus,
+  UserRound,
   Video,
 } from "lucide-react";
 import {
@@ -24,7 +26,7 @@ import {
   upsetMascot,
 } from "@/features/mascot/client/events";
 import { roomLink } from "@/features/room/domain/room-code";
-import { parseRoomInput, type RoomInput } from "@/features/room/domain/room-input";
+import { parseBarInput, type BarInput } from "@/features/home/domain/bar-input";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,10 @@ interface SmartBarProps {
   mascot: ReactNode;
   /** Whether "/" focuses this bar; only one bar on the page should answer it. */
   focusShortcut?: boolean;
+  /** Shorter bar and button, for the start of the app. */
+  compact?: boolean;
+  /** Signed in: a friend code (NELC-…) in the bar adds that person instead of opening a room. */
+  onAddFriend?: (code: string) => void;
 }
 
 /** Key drawn like a real key (thicker bottom border). */
@@ -80,10 +86,21 @@ const EMPTY_HINT = (
 );
 
 /** Hint below the bar: shortcuts when the bar is empty; recognized room; or the error. */
-function hintFor(input: RoomInput): { text: ReactNode; tone: "muted" | "ok" | "error" } {
+function hintFor(input: BarInput): { text: ReactNode; tone: "muted" | "ok" | "error" } {
   switch (input.kind) {
     case "empty":
       return { text: EMPTY_HINT, tone: "muted" };
+    case "friend":
+      return {
+        text: (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 py-0.5 pr-2.5 pl-2">
+            <span className="sr-only">Código de amigo:</span>
+            <UserRound className="size-3.5 text-brand-soft" aria-hidden="true" />
+            <span className="font-sans font-medium text-ink tabular-nums">{input.code}</span>
+          </span>
+        ),
+        tone: "ok",
+      };
     case "room":
       return {
         text: (
@@ -121,7 +138,7 @@ function hintFor(input: RoomInput): { text: ReactNode; tone: "muted" | "ok" | "e
   }
 }
 
-function SubmitLabel({ pending, creating }: { pending: boolean; creating: boolean }) {
+function SubmitLabel({ pending, input }: { pending: boolean; input: BarInput }) {
   if (pending) {
     return (
       <>
@@ -130,11 +147,19 @@ function SubmitLabel({ pending, creating }: { pending: boolean; creating: boolea
       </>
     );
   }
-  if (creating) {
+  if (input.kind === "empty") {
     return (
       <>
         <Plus className="icon-turn size-4" aria-hidden="true" />
         Criar sala
+      </>
+    );
+  }
+  if (input.kind === "friend") {
+    return (
+      <>
+        <UserPlus className="size-4" aria-hidden="true" />
+        Adicionar
       </>
     );
   }
@@ -157,6 +182,8 @@ export function SmartBar({
   onCreateRoom,
   mascot,
   focusShortcut = true,
+  compact = false,
+  onAddFriend,
 }: SmartBarProps) {
   const hydrated = useSyncExternalStore(
     subscribeNothing,
@@ -168,15 +195,14 @@ export function SmartBar({
   const hintId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
-  const [linkError, setLinkError] = useState(invalidCode);
-  const input = parseRoomInput(text);
+  // Typing dismisses the error that came in the address; a new error remounts the bar (key).
+  const [errorDismissed, setErrorDismissed] = useState(false);
+  const linkError = invalidCode && !errorDismissed;
+  const readInput = (value: string) => parseBarInput(value, { friends: onAddFriend !== undefined });
+  const input = readInput(text);
   const hint = linkError
     ? {
-        text: (
-          <ErrorHint>
-            Esse convite não é válido. Confira o código ou peça um novo link a quem enviou.
-          </ErrorHint>
-        ),
+        text: <ErrorHint>Esse código de sala não existe. Confira o link.</ErrorHint>,
         tone: "error" as const,
       }
     : hintFor(input);
@@ -197,10 +223,11 @@ export function SmartBar({
 
   function handleChange(value: string) {
     setText(value);
-    setLinkError(false);
-    const next = parseRoomInput(value);
+    setErrorDismissed(true);
+    const next = readInput(value);
     setMascotDoubt(next.kind === "invalid" && value.trim().length > 3);
-    if (next.kind === "room" && input.kind !== "room") nodMascot();
+    const recognized = next.kind === "room" || next.kind === "friend";
+    if (recognized && next.kind !== input.kind) nodMascot();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -212,6 +239,11 @@ export function SmartBar({
       return;
     }
     celebrateMascot();
+    if (input.kind === "friend") {
+      onAddFriend?.(input.code);
+      setText("");
+      return;
+    }
     if (input.kind !== "room") {
       onCreateRoom();
       return;
@@ -219,8 +251,6 @@ export function SmartBar({
     onNavigate(roomLink(input.code, input.invite));
   }
 
-  // "Criar sala" only with an empty bar; with text, the person is trying to join.
-  const creating = input.kind === "empty";
   return (
     <form onSubmit={handleSubmit} noValidate className="flex w-full flex-col items-center gap-3">
       <div className="relative w-full">
@@ -228,7 +258,8 @@ export function SmartBar({
         <div className="relative z-20 flex justify-center">{mascot}</div>
         <div
           className={cn(
-            "relative z-10 flex h-16 items-center gap-2 rounded-full border border-line bg-surface pr-2 pl-5 shadow-[0_12px_32px_-20px_rgb(0_0_0/0.45)] transition-colors focus-within:border-brand/60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+            "relative z-10 flex items-center gap-2 rounded-full border border-line bg-surface pr-2 pl-5 shadow-[0_12px_32px_-20px_rgb(0_0_0/0.45)] transition-colors focus-within:border-brand/60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+            compact ? "h-13" : "h-16",
             hint.tone === "error" && "border-danger/60 focus-within:border-danger/70",
           )}
         >
@@ -249,14 +280,20 @@ export function SmartBar({
             enterKeyHint="go"
             aria-describedby={hintId}
             aria-invalid={hint.tone === "error" || undefined}
-            className="h-full min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-subtle sm:text-lg"
+            className={cn(
+              "h-full min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-subtle",
+              !compact && "sm:text-lg",
+            )}
           />
           <button
             type="submit"
             disabled={disabled}
-            className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-brand px-5 text-base font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] disabled:opacity-60 motion-reduce:active:scale-100"
+            className={cn(
+              "inline-flex shrink-0 items-center gap-2 rounded-full bg-brand font-medium text-brand-ink transition-[transform,background-color] duration-200 hover:bg-brand-hover active:scale-[0.97] disabled:bg-disabled disabled:text-disabled-ink motion-reduce:active:scale-100",
+              compact ? "h-10 px-4 text-sm" : "h-12 px-5 text-base",
+            )}
           >
-            <SubmitLabel pending={pending} creating={creating} />
+            <SubmitLabel pending={pending} input={input} />
           </button>
         </div>
       </div>

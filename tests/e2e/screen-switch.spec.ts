@@ -21,14 +21,16 @@ test("switches shared screens, clears pointing and recovers when the selected sh
   await joinRoom(second.page, code);
   await joinRoom(viewer.page, code);
   await shareScreen(first.page);
+  await viewer.page.getByRole("button", { name: "Assistir à tela de Primeira Tela" }).click();
   await expect(
     viewer.page.getByRole("region", { name: "Tela compartilhada por Primeira Tela" }),
   ).toBeVisible();
   await shareScreen(second.page);
+  const picker = viewer.page.getByRole("group", { name: "Escolher a tela compartilhada" });
+  await picker.getByRole("button", { name: "Assistir à tela de Segunda Tela" }).click();
   await expect(
     viewer.page.getByRole("region", { name: "Tela compartilhada por Segunda Tela" }),
   ).toBeVisible();
-  const picker = viewer.page.getByRole("group", { name: "Escolher a tela compartilhada" });
   await picker.getByRole("button", { name: "Primeira Tela", exact: true }).click();
   await expect(picker.getByRole("button", { name: "Primeira Tela", exact: true })).toHaveAttribute(
     "aria-pressed",

@@ -12,6 +12,7 @@ vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof React>()),
   useState: () => [false, dependencies.setDeafened],
   useRef: (initial: unknown) => ({ current: initial }),
+  useEffect: () => undefined,
 }));
 vi.mock("@livekit/components-react", () => ({
   useLocalParticipant: () => ({
@@ -19,7 +20,12 @@ vi.mock("@livekit/components-react", () => ({
     isMicrophoneEnabled: dependencies.microphoneEnabled,
   }),
   RoomAudioRenderer: () => null,
+  useRoomContext: () => ({ name: "sala-teste" }),
 }));
+vi.mock("@/features/room/ui/call/RoomHostProvider", () => ({
+  useRoomHost: () => ({ roomCode: "sala-teste" }),
+}));
+vi.mock("@/features/room/client/api", () => ({ setDeafenedInRoom: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: dependencies.toastError } }));
 vi.mock("@/features/room/ui/dock/DockButton", () => ({ DockButton: () => null }));
 const { DeafenProvider } = await import("@/features/room/ui/dock/Deafen");

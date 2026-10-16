@@ -3,6 +3,7 @@ import { WebhookReceiver } from "livekit-server-sdk";
 import { z } from "zod";
 import { getDb, type Database } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
+import { endRingsOnLeave } from "@/features/ringing/server/ring-on-leave.server";
 import { liveKitGateway, type LiveKitGateway } from "@/features/room/server/livekit-gateway.server";
 import { removeBannedJoin } from "@/features/room/server/webhook/ban-enforcement.server";
 import { webhookPayloadSchema } from "@/features/room/server/webhook/payload";
@@ -92,6 +93,18 @@ async function enforceBans(db: Database, gateway: BanGateway, event: Record<stri
   }
 }
 
+/**
+ * A caller who left stops their rings. A failure is only logged, like the bans: the event
+ * is already stored, and the ring still ends on its own.
+ */
+async function endRings(db: Database, event: Record<string, unknown>) {
+  try {
+    await endRingsOnLeave(db, event);
+  } catch (error) {
+    logger.error({ err: error, source: "livekit-webhook" }, "failed to end the rings of who left");
+  }
+}
+
 export async function receiveLivekitWebhook(
   request: Request,
   gateway: BanGateway = liveKitGateway,
@@ -133,5 +146,6 @@ export async function receiveLivekitWebhook(
     return Response.json({ error: "unavailable" }, { status: 503 });
   }
   await enforceBans(db, gateway, stored);
+  await endRings(db, stored);
   return new Response(null, { status: 204 });
 }

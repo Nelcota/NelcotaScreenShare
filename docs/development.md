@@ -10,7 +10,7 @@ Prerequisites: Node 26.9+, pnpm 12.9.1 (`npm install -g pnpm@12.9.1`) and Docker
 # 1. LiveKit in dev mode (the key must be 32+ characters; the app validates this)
 docker run -d --name lk-dev \
   -p 7880:7880 -p 7881:7881 -p 7882:7882/udp \
-  livekit/livekit-server:v1.13.7 \
+  livekit/livekit-server:v1.13.9 \
   --dev --bind 0.0.0.0 --node-ip 127.0.0.1 \
   --keys "devkey: devsecret-0123456789abcdef0123456789abcdef"
 
@@ -82,6 +82,7 @@ Open two tabs (or a private window), join the same room and share your screen.
 | `SENTRY_DSN`                 | no         | Enables Sentry on the server (no personal data)                                                                                                                   |
 | `PUBLIC_SENTRY_DSN`          | no         | Enables browser error capture; loaded at runtime, no rebuild needed                                                                                               |
 | `SENTRY_ISSUES_URL`          | no         | Sentry issues page (e.g. `https://org.sentry.io/issues/?project=123`); the panel links each recent error there by its request id                                  |
+| `KLIPY_API_KEY`              | no         | Enables GIFs in messages. Public by design: the browser calls KLIPY directly. Without it, the GIF button is hidden                                                |
 | `LOG_LEVEL`                  | no         | Log level (default `info` in production, `debug` in dev)                                                                                                          |
 | `APP_VERSION`                | no         | Set by the image (commit SHA); shown in `/api/ready` and in Sentry                                                                                                |
 | `TEST_DATABASE_URL`          | tests      | **Disposable** database for integration tests; Vitest recreates databases from it. Not read by the app                                                            |
@@ -89,6 +90,14 @@ Open two tabs (or a private window), join the same room and share your screen.
 The app's variables are validated with Zod in `server/env.server.ts`. If something is missing, the container exits with code 1 at boot and lists the problem in the logs.
 
 `LIVEKIT_URL` is read at runtime by the server and returned to the browser along with the token. So changing the URL doesn't require a rebuild, and no variable needs to exist at build time.
+
+## In-memory state (single instance)
+
+Some state lives in the Node process, not in Postgres. It holds for a single replica (the Coolify default); running more than one needs a shared store such as Redis first.
+
+- **Rate limits** (`server/rate-limit.server.ts`).
+- **Presence** (`features/friends/server/online-presence.server.ts`): who sent a beat in the last 2 minutes.
+- **Live updates** (`features/live/server/live-bus.server.ts`): the open `GET /api/eventos` streams (SSE), by account. Actions nudge only the accounts involved after the commit, and the browser reloads its loaders. The stream skips compression (`text/event-stream`, `no-transform`) and asks proxies not to buffer it (`X-Accel-Buffering: no`).
 
 ## Tests
 

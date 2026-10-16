@@ -1,0 +1,2 @@
+ALTER TABLE "friendships" ADD COLUMN "dismissed_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "friendships" ADD CONSTRAINT "friendships_dismissed_check" CHECK ("friendships"."dismissed_at" is null or "friendships"."status" = 'pending');

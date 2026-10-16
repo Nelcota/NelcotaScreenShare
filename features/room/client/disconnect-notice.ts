@@ -17,7 +17,7 @@ export async function controlledDisconnectNotice(
     const parsed = roomControlStateSchema.safeParse(await response.json());
     if (!parsed.success) return fallback;
     if (parsed.data.removed)
-      return { reason: "removed", message: "Você foi removido desta chamada." };
+      return { reason: "removed", message: "Você pode voltar quando ela terminar." };
     if (parsed.data.closed)
       return {
         reason: "ended",

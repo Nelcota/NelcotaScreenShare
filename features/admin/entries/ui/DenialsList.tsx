@@ -2,6 +2,14 @@ import { Link } from "react-router";
 import { REASON_LABELS } from "@/features/admin/entries/domain/reasons";
 import type { DenialRow } from "@/features/admin/entries/server/queries.server";
 import { formatDateTime } from "@/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function Person({ row }: { row: DenialRow }) {
   if (!row.userId) return <>Sem conta</>;
@@ -46,30 +54,30 @@ function StackedDenials({ rows }: { rows: DenialRow[] }) {
 function DenialsTable({ rows }: { rows: DenialRow[] }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full text-left text-sm">
-        <thead className="text-xs text-ink-subtle">
-          <tr>
-            <th className="py-2 pr-4 font-medium">Quando</th>
-            <th className="py-2 pr-4 font-medium">Motivo</th>
-            <th className="py-2 pr-4 font-medium">Sala</th>
-            <th className="py-2 font-medium">Pessoa</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Quando</TableHead>
+            <TableHead>Motivo</TableHead>
+            <TableHead>Sala</TableHead>
+            <TableHead>Pessoa</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-t border-line">
-              <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(row.createdAt)}</td>
-              <td className="py-2 pr-4">{REASON_LABELS[row.reason]}</td>
-              <td className="py-2 pr-4">
+            <TableRow key={row.id}>
+              <TableCell>{formatDateTime(row.createdAt)}</TableCell>
+              <TableCell className="whitespace-normal">{REASON_LABELS[row.reason]}</TableCell>
+              <TableCell className="whitespace-normal">
                 <Room code={row.roomCode} />
-              </td>
-              <td className="py-2 text-ink-muted">
+              </TableCell>
+              <TableCell className="whitespace-normal text-ink-muted">
                 <Person row={row} />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

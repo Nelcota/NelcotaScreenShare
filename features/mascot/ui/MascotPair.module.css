@@ -142,6 +142,10 @@
   }
 }
 
+.scene[data-compact="true"] {
+  --mascot-size: 80px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scene[data-phase="hit"] .actor,
   .scene[data-phase="cheer"] .actor,

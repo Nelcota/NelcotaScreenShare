@@ -1,4 +1,4 @@
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCreateRoom } from "@/features/home/hooks/use-create-room";
 
@@ -18,15 +18,11 @@ export function CreateRoomButton({
     <Button
       size="lg"
       variant={variant}
-      disabled={pending}
+      loading={pending}
       className={className}
       onClick={createRoom}
     >
-      {pending ? (
-        <Loader2 className="animate-spin" aria-hidden="true" />
-      ) : (
-        <Plus className="icon-turn" aria-hidden="true" />
-      )}
+      {pending ? null : <Plus className="icon-turn" aria-hidden="true" />}
       {pending ? "Abrindo…" : "Criar sala grátis"}
     </Button>
   );

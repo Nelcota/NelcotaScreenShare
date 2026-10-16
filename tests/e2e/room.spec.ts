@@ -1,6 +1,13 @@
 import { fakeScreenCapture } from "./support/screen-capture";
 import { expect, test } from "@playwright/test";
-import { joinRoom, newParticipant, newRoomCode, newVisitor, PASSWORD } from "./support/session";
+import {
+  joinRoom,
+  newParticipant,
+  newRoomCode,
+  newVisitor,
+  PASSWORD,
+  setJoinMicrophone,
+} from "./support/session";
 import { createdRoom } from "./support/database";
 import { E2E_ACCESS_PASSWORD, E2E_URL } from "./support/env";
 
@@ -72,8 +79,8 @@ test.describe("room access", () => {
     await page.getByLabel("E-mail").fill(`rafa.${Date.now()}@exemplo.dev`);
     await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Senha", { exact: true }).press("Enter");
-    await expect(page).toHaveURL(`${E2E_URL}/`);
-    await expect(page.getByRole("link", { name: "Minha conta" })).toContainText("Rafa Nova");
+    await expect(page).toHaveURL(`${E2E_URL}/inicio`);
+    await expect(page.getByRole("button", { name: "Rafa Nova" }).first()).toBeVisible();
 
     const creating = page.waitForRequest(/\/api\/operations\/room-createRoomAction/);
     await page.getByRole("button", { name: "Criar sala", exact: true }).first().click();
@@ -131,7 +138,7 @@ test.describe("pre-join", () => {
   test("with the microphone off, joins listen-only", async ({ browser }) => {
     const bia = await newParticipant(browser, "Bia Teste");
     await bia.page.goto(`/sala/${await newRoomCode()}`);
-    await bia.page.getByRole("switch").first().click();
+    await setJoinMicrophone(bia.page, false);
     await expect(bia.page.getByRole("button", { name: /Entrar só ouvindo/ })).toBeVisible();
     await bia.context.close();
   });
@@ -147,12 +154,13 @@ test.describe("in the room", () => {
       const code = await newRoomCode();
       await fakeScreenCapture(sender.page);
       await joinRoom(sender.page, code, { micOn: false });
-      await sender.page
-        .getByRole("button", { name: "Compartilhar minha tela", exact: true })
-        .click();
+      await sender.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
       await sender.page.getByRole("button", { name: /^Tela inteira/ }).click();
       await expect(sender.page.getByLabel("Prévia da sua tela")).toBeVisible();
       await joinRoom(reader.page, code, { micOn: false });
+      await reader.page
+        .getByRole("button", { name: "Assistir à tela de Avisos Remetente" })
+        .click();
       await expect(
         reader.page.getByRole("region", { name: "Tela compartilhada por Avisos Remetente" }),
       ).toBeVisible();
@@ -193,6 +201,28 @@ test.describe("in the room", () => {
     }
   });
 
+  test("deafening shows sem som on your tile and to the others", async ({ browser }) => {
+    const deaf = await newParticipant(browser, "Som Fora");
+    const other = await newParticipant(browser, "Som Outro");
+    try {
+      const code = await newRoomCode();
+      await joinRoom(deaf.page, code, { micOn: false });
+      await joinRoom(other.page, code, { micOn: false });
+      await deaf.page.getByRole("button", { name: "Parar de ouvir a sala", exact: true }).click();
+      await expect(
+        deaf.page.getByRole("button", { name: "Voltar a ouvir a sala", exact: true }),
+      ).toContainText("Sem som");
+      await expect(deaf.page.getByText("sem som", { exact: true })).toHaveCount(1);
+      await expect(other.page.getByText("sem som", { exact: true })).toHaveCount(1);
+      await deaf.page.getByRole("button", { name: "Voltar a ouvir a sala", exact: true }).click();
+      await expect(other.page.getByText("sem som", { exact: true })).toHaveCount(0);
+      await expect(deaf.page.getByText("sem som", { exact: true })).toHaveCount(0);
+    } finally {
+      await deaf.context.close();
+      await other.context.close();
+    }
+  });
+
   test("deafen silences existing and new audio and restores the microphone", async ({
     browser,
   }) => {
@@ -219,6 +249,10 @@ test.describe("in the room", () => {
     await joinRoom(newcomer.page, code);
     await speaker.page.getByRole("button", { name: /Compartilhar tela/ }).click();
     await speaker.page.getByRole("button", { name: /^Tela inteira/ }).click();
+    // Nobody receives a screen, or its sound, before choosing to watch it.
+    await expect(listener.page.getByText("Audio Falante está compartilhando a tela")).toBeVisible();
+    await expect.poll(async () => (await audioVolumes()).length).toBe(2);
+    await listener.page.getByRole("button", { name: "Assistir à tela de Audio Falante" }).click();
     await expect.poll(async () => (await audioVolumes()).length).toBe(3);
     await expect.poll(audioVolumes).toEqual([0, 0, 0]);
     await listener.page.getByRole("button", { name: "Voltar a ouvir a sala" }).click();
@@ -304,13 +338,13 @@ test.describe("in the room", () => {
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
       await expect(
-        dock.getByRole("button", { name: "Escolher microfone", exact: true }),
+        dock.getByRole("button", { name: "Opções do microfone", exact: true }),
       ).toBeVisible();
     }
-    await dock.getByRole("button", { name: "Escolher microfone", exact: true }).click();
-    const microphones = page.getByRole("dialog", { name: "Microfones", exact: true });
+    await dock.getByRole("button", { name: "Opções do microfone", exact: true }).click();
+    const microphones = page.getByRole("dialog", { name: "Microfone", exact: true });
     await expect(microphones).toBeVisible();
-    await microphones.getByRole("button").last().click();
+    await microphones.getByRole("list").getByRole("button").last().click();
     await expect(microphones).toBeHidden();
     await dock.getByRole("button", { name: "Desligar microfone", exact: true }).click();
     await expect(dock.getByRole("button", { name: "Ligar microfone", exact: true })).toBeEnabled();
@@ -348,12 +382,81 @@ test.describe("in the room", () => {
     await fakeScreenCapture(participant.page, { withSound: true });
     await joinRoom(participant.page, await newRoomCode(), { micOn: false });
 
-    await participant.page.getByRole("button", { name: "Compartilhar minha tela" }).click();
+    await participant.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     await participant.page.getByRole("button", { name: /^Tela inteira/ }).click();
     await expect(participant.page.getByLabel("Prévia da sua tela")).toBeVisible();
     await expect(participant.page.getByText(/O som do computador ficou de fora/)).toBeVisible();
 
     await participant.context.close();
+  });
+
+  test("a tab in a Nelcota call never shares its sound", async ({ browser }) => {
+    const sharer = await newParticipant(browser, "Tab Chamada");
+    await fakeScreenCapture(sharer.page, { withSound: true, safeAudio: true, callTab: "start" });
+    await joinRoom(sharer.page, await newRoomCode(), { micOn: false });
+
+    await sharer.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
+    await sharer.page.getByRole("button", { name: /^Aba do navegador/ }).click();
+    await expect(sharer.page.getByLabel("Prévia da sua tela")).toBeVisible();
+    await expect(sharer.page.getByText(/O som da aba ficou de fora/)).toBeVisible();
+
+    await sharer.context.close();
+  });
+
+  test("a shared tab that joins a call stops sending its sound", async ({ browser }) => {
+    const listener = await newParticipant(browser, "Tab Ouvinte");
+    const sharer = await newParticipant(browser, "Tab Troca");
+    await fakeScreenCapture(sharer.page, { withSound: true, safeAudio: true, callTab: "later" });
+    const code = await newRoomCode();
+    await joinRoom(listener.page, code, { micOn: false });
+    await joinRoom(sharer.page, code, { micOn: false });
+    const heardTracks = () => listener.page.locator("audio").count();
+
+    await sharer.page.getByRole("button", { name: "Compartilhar tela" }).click();
+    await sharer.page.getByRole("button", { name: /^Aba do navegador/ }).click();
+    await listener.page.getByRole("button", { name: "Assistir à tela de Tab Troca" }).click();
+    await expect.poll(heardTracks).toBe(1);
+    await sharer.page.evaluate(() =>
+      (window as unknown as { joinCapturedTabToCall: () => void }).joinCapturedTabToCall(),
+    );
+    await expect(sharer.page.getByText(/O som da aba ficou de fora/)).toBeVisible();
+    await expect.poll(heardTracks).toBe(0);
+    await expect(sharer.page.getByLabel("Prévia da sua tela")).toBeVisible();
+
+    await listener.context.close();
+    await sharer.context.close();
+  });
+
+  test("a viewer turns down only the shared screen's sound", async ({ browser }) => {
+    const viewer = await newParticipant(browser, "Volume Ouvinte");
+    const presenter = await newParticipant(browser, "Volume Tela");
+    await fakeScreenCapture(presenter.page, { withSound: true, safeAudio: true });
+    const code = await newRoomCode();
+    await joinRoom(viewer.page, code, { micOn: false });
+    await joinRoom(presenter.page, code);
+    const volumes = () =>
+      viewer.page
+        .locator("audio")
+        .evaluateAll((elements) =>
+          elements.map((element) => (element as HTMLAudioElement).volume).toSorted((a, b) => a - b),
+        );
+
+    await presenter.page.getByRole("button", { name: "Compartilhar tela" }).click();
+    await presenter.page.getByRole("button", { name: /^Tela inteira/ }).click();
+    await viewer.page.getByRole("button", { name: "Assistir à tela de Volume Tela" }).click();
+    await expect.poll(async () => (await volumes()).length).toBe(2);
+    await expect(viewer.page.getByText("Tela sem som")).toHaveCount(0);
+    await viewer.page.getByRole("button", { name: "Volume da tela: 100%" }).click();
+    await viewer.page.getByRole("slider", { name: "Volume da tela de Volume Tela" }).focus();
+    for (let step = 0; step < 10; step += 1) await viewer.page.keyboard.press("ArrowLeft");
+    await expect.poll(volumes).toEqual([0.5, 1]);
+    await viewer.page.getByRole("button", { name: "Silenciar a tela" }).click();
+    await expect.poll(volumes).toEqual([0, 1]);
+    await viewer.page.getByRole("button", { name: "Voltar o som da tela" }).click();
+    await expect.poll(volumes).toEqual([0.5, 1]);
+
+    await viewer.context.close();
+    await presenter.context.close();
   });
 
   test("alone: welcome; leave and join again", async ({ browser }) => {
@@ -367,8 +470,8 @@ test.describe("in the room", () => {
       .getByRole("alertdialog")
       .getByRole("button", { name: "Sair", exact: true })
       .click();
-    await expect(caio.page.getByText("Você saiu da sala")).toBeVisible();
-    await caio.page.getByRole("button", { name: "Voltar para a sala" }).click();
+    await expect(caio.page.getByText("Você saiu da chamada")).toBeVisible();
+    await caio.page.getByRole("button", { name: "Voltar à chamada" }).click();
     await expect(caio.page.getByLabel("Senha da sala")).toBeVisible();
     await caio.context.close();
   });
@@ -380,12 +483,17 @@ test.describe("in the room", () => {
     await fakeScreenCapture(dani.page);
 
     await joinRoom(dani.page, code);
-    await dani.page.getByRole("button", { name: "Compartilhar minha tela" }).click();
+    await dani.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     await dani.page.getByRole("button", { name: /^Tela inteira/ }).click();
     await expect(dani.page.getByLabel("Prévia da sua tela")).toBeVisible();
 
     await joinRoom(edu.page, code);
     await expect(dani.page.getByText("Edu Lima entrou na sala")).toBeVisible();
+    await expect(
+      edu.page.getByRole("region", { name: "Tela compartilhada por Dani Souza" }),
+    ).toHaveCount(0);
+    await expect(edu.page.getByRole("button", { name: "Mostrar FPS e ping" })).toHaveCount(0);
+    await edu.page.getByRole("button", { name: "Assistir à tela de Dani Souza" }).click();
     await expect(
       edu.page.getByRole("region", { name: "Tela compartilhada por Dani Souza" }),
     ).toBeVisible();
@@ -396,6 +504,7 @@ test.describe("in the room", () => {
         edu.page.getByLabel("Tela de Dani Souza").evaluate((v: HTMLVideoElement) => v.readyState),
       )
       .toBeGreaterThan(0);
+    await expect(edu.page.getByText("Tela sem som")).toBeAttached();
     await expect(edu.page.getByLabel("Estatísticas da tela")).toHaveCount(0);
     await edu.page.getByRole("button", { name: "Mostrar FPS e ping" }).click();
     const metrics = edu.page.getByLabel("Estatísticas da tela");
@@ -409,6 +518,17 @@ test.describe("in the room", () => {
     await expect(edu.page.getByRole("button", { name: "Fechar a janela" })).toBeVisible();
     await edu.page.keyboard.press("j");
     await expect(edu.page.getByRole("button", { name: "Abrir em janela" })).toBeVisible();
+
+    // Stop watching: back to the call only, until "Assistir" again.
+    await edu.page.getByRole("button", { name: "Parar de assistir" }).click();
+    await expect(
+      edu.page.getByRole("region", { name: "Tela compartilhada por Dani Souza" }),
+    ).toHaveCount(0);
+    await expect(edu.page.getByRole("button", { name: "Mostrar FPS e ping" })).toHaveCount(0);
+    await edu.page.getByRole("button", { name: "Assistir à tela de Dani Souza" }).click();
+    await expect(
+      edu.page.getByRole("region", { name: "Tela compartilhada por Dani Souza" }),
+    ).toBeVisible();
 
     // Chat with the panel closed: notice and unread counter.
     await edu.page.getByRole("button", { name: /^Chat/ }).click();
@@ -463,16 +583,18 @@ test.describe("in the room", () => {
     await iris.getByLabel("Seu nome na sala").fill("Iris Convidada");
     await iris.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
     await join.click();
-    await expect(iris.getByText(/A sala ainda não começou/)).toBeVisible();
+    await expect(
+      iris.getByText("Quando quem te convidou entrar, toque em Entrar na sala."),
+    ).toBeVisible();
 
     await joinRoom(gil.page, code);
     await join.click();
     await expect(iris.getByRole("button", { name: /Sair/ })).toBeVisible();
-    await expect(gil.page.getByText("Iris Convidada (convidado) entrou na sala")).toBeVisible();
+    await expect(gil.page.getByText("Iris Convidada (sem conta) entrou na sala")).toBeVisible();
 
     // The guest's hand goes through the server too (signed guest cookie).
     await iris.keyboard.press("h");
-    await expect(gil.page.getByText("✋ Iris Convidada (convidado) levantou a mão")).toBeVisible();
+    await expect(gil.page.getByText("✋ Iris Convidada (sem conta) levantou a mão")).toBeVisible();
 
     await iris.getByRole("button", { name: "Sair da sala" }).click();
     await iris.getByRole("alertdialog").getByRole("button", { name: "Sair", exact: true }).click();

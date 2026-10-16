@@ -69,7 +69,7 @@ function Filters({ exportHref }: { exportHref: string | null }) {
         label="Status"
         value={params.status}
         options={STATUS_OPTIONS}
-        allLabel="Todos (menos excluídos)"
+        allLabel="Todas (menos excluídas)"
         onChange={(status) => void setParams({ status, ...resetPage })}
       />
       <FilterDate
@@ -262,7 +262,7 @@ function BulkActions({
         open={dialog === "delete"}
         onOpenChange={(open) => setDialog(open ? "delete" : null)}
         title={`Excluir ${target}?`}
-        description="As contas somem das listas e não entram mais. Dá para desfazer logo depois ou restaurar pelo filtro “Excluído”."
+        description="As contas somem das listas e não entram mais. Dá para desfazer logo depois ou restaurar pelo filtro “Excluída”."
         confirmLabel="Excluir"
         danger
         pending={remove.isPending}

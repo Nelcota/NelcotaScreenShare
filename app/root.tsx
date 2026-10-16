@@ -22,8 +22,12 @@ import { getSetting, mascotSettings } from "@/features/admin/settings/server/set
 import { withRequest } from "@/server/request-context.server";
 import { THEME_COLOR, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { useNavigationRecovery } from "@/lib/navigation-recovery";
+import { useOfflineNotice } from "@/lib/hooks/use-offline-notice";
 import { requestMiddleware } from "@/server/middleware.server";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
+import { pendingReceivedCount } from "@/features/friends/server/friend-list.server";
+import { ringingState } from "@/features/ringing/server/ringing-state.server";
+import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { publicOrigin } from "@/server/seo.server";
 import { isIndexable } from "@/lib/seo";
@@ -31,11 +35,17 @@ import { configureBrowserTelemetry } from "@/lib/telemetry.client";
 import { ErrorScreen } from "@/components/shell/ErrorScreen";
 import { Mascot } from "@/features/mascot/ui/Mascot";
 import { NavigationProgress } from "@/components/shell/NavigationProgress";
+import { usePresenceBeat } from "@/features/friends/client/use-presence-beat";
+import { useLiveUpdates } from "@/features/live/client/use-live-updates";
 import { ActiveRoom } from "@/features/room/ui/ActiveRoom";
+import { RoomColumn } from "./routes/app/room-column";
 import type { loader as roomLoader } from "./routes/room";
 import "./fonts.css";
 import manrope from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
 import "./globals.css";
+import { NotificationsRuntime } from "@/features/notifications/ui/NotificationsRuntime";
+import { RingRuntime } from "@/features/ringing/ui/RingRuntime";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 
 export const middleware = [requestMiddleware];
 export const links: LinksFunction = () => [
@@ -49,15 +59,23 @@ export const meta = () => [
   },
 ];
 
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
+
 export const loader = ({ request, context }: LoaderFunctionArgs) =>
   withRequest(request, context, async () => {
     const [mascot, current] = await Promise.all([getSetting(mascotSettings), getUserSession()]);
+    const friendRequests = current ? await pendingReceivedCount(getDb(), current.user.id) : 0;
+    const ringing = current ? await ringingState(getDb(), current.user.id) : null;
     return {
       nonce: request.headers.get("x-nonce") ?? undefined,
       origin: publicOrigin(request),
       mascot,
-      account: current ? { name: current.user.name, image: current.user.image } : null,
+      account: current
+        ? { name: current.user.name, image: current.user.image, friendRequests }
+        : null,
       telemetry: { dsn: getEnv().PUBLIC_SENTRY_DSN, release: getEnv().APP_VERSION },
+      ringing,
     };
   });
 
@@ -78,7 +96,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <html lang="pt-BR" style={style} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {indexable ? null : <meta name="robots" content="noindex, nofollow" />}
         <meta name="theme-color" content={THEME_COLOR.dark} />
         <meta name="color-scheme" content="dark light" />
@@ -95,14 +113,15 @@ export function Layout({ children }: { children: ReactNode }) {
             {children}
           </TooltipProvider>
         </NuqsAdapter>
-        {/* Expanded and capped at 3 so notices never overlap. The bottom offset (used by the
-            room notices at the bottom right) keeps them above the call's control dock. */}
+        {/* Expanded and capped at 3 so notices never overlap. The top offset keeps them below
+            the top bar; the bottom one (used by the room notices at the bottom right) keeps
+            them above the call's control dock. */}
         <Toaster
           position="top-center"
           expand
           visibleToasts={3}
-          offset={{ bottom: "8.5rem" }}
-          mobileOffset={{ bottom: "7.5rem" }}
+          offset={{ top: "5rem", bottom: "8.5rem" }}
+          mobileOffset={{ top: "5rem", bottom: "7.5rem" }}
         />
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
@@ -113,7 +132,11 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function App() {
   const revalidator = useRevalidator();
+  const signedIn = Boolean(useLoaderData<typeof loader>()?.account);
+  usePresenceBeat(signedIn);
+  useLiveUpdates(signedIn);
   useNavigationRecovery();
+  useOfflineNotice();
   useEffect(() => {
     const revalidate = () => {
       void revalidator.revalidate();
@@ -126,7 +149,16 @@ export default function App() {
   return (
     <>
       <Outlet />
-      <ActiveRoom room={room} />
+      <ActiveRoom
+        room={room}
+        renderColumn={
+          room?.column
+            ? (inCall) => room.column && <RoomColumn column={room.column} inCall={inCall} />
+            : undefined
+        }
+      />
+      <NotificationsRuntime />
+      <RingRuntime />
     </>
   );
 }

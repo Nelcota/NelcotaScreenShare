@@ -45,15 +45,14 @@ export function HomeScene({
           data-anim="title"
           className="text-center text-[clamp(3rem,8vw,6.5rem)] leading-[0.95] font-semibold tracking-[-0.05em] text-balance"
         >
-          <span className="block">Mostre a tela.</span>
-          <span className="block text-brand-soft">Com som e ponteiro.</span>
+          <span className="block">Mostre sua tela.</span>
+          <span className="block text-brand-soft">Direto do navegador.</span>
         </h1>
         <p
           data-anim="subtitle"
           className="mt-6 max-w-xl text-center text-lg leading-relaxed text-pretty text-ink-muted sm:text-xl"
         >
-          Para times de tecnologia mostrarem um bug, revisarem uma tela ou parearem num problema.
-          Direto do navegador, e quem recebe o link entra sem criar conta.
+          Feito para times de tecnologia, gamers e grupos de amigos.
         </p>
 
         <div data-anim="card" className="mt-10 w-full max-w-2xl will-change-transform sm:mt-12">

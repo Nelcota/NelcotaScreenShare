@@ -61,6 +61,8 @@ export const roomSessions = pgTable(
     sharePolicy: text("share_policy").$type<SharePolicy>().notNull().default("everyone"),
     allowedSharers: jsonb("allowed_sharers").$type<string[]>().notNull().default([]),
     hostMissingAt: timestamptz("host_missing_at"),
+    // When the owner handed the host over: the owner takes it back only after joining again.
+    hostGivenAt: timestamptz("host_given_at"),
     emptySince: timestamptz("empty_since"),
     closedAt: timestamptz("closed_at"),
     startedAt: timestamptz("started_at"),

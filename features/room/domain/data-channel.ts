@@ -10,6 +10,7 @@ export const TOPICS = {
   annotation: "nelcota.annotation.v1",
   annotationEpoch: "nelcota.annotation.epoch",
   screenStats: "nelcota.screen-stats",
+  screenPreview: "nelcota.screen-preview",
 } as const;
 
 export const REACTIONS = ["👍", "👏", "😂", "❤️", "🎉", "😮"] as const;
@@ -31,8 +32,25 @@ export const screenStatsSchema = z.object({
   pingMs: z.number().int().min(0).max(60_000),
 });
 
+/** Longest preview accepted: a 160 px WebP is a few KB; anything far bigger is not ours. */
+export const SCREEN_PREVIEW_MAX_LENGTH = 24_000;
+
+/**
+ * A tiny, blurred frame of a shared screen, sent every few seconds to the room so the
+ * sharer's tile hints at what is on it. It lives only in the browsers' memory.
+ */
+export const screenPreviewSchema = z.object({
+  trackSid: z.string().min(1).max(64),
+  image: z
+    .string()
+    .max(SCREEN_PREVIEW_MAX_LENGTH)
+    .regex(/^data:image\/(?:webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/),
+});
+
 /** Participant attribute for "raise hand". */
 export const HAND_ATTRIBUTE = "hand";
+/** "1" while the person stopped hearing the room (written by the server, /api/sala/som). */
+export const DEAFENED_ATTRIBUTE = "deafened";
 
 /** Chat limit (LiveKit accepts more; long messages hurt readability). */
 export const CHAT_MAX_LENGTH = 500;

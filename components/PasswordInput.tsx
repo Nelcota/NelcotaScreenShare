@@ -17,7 +17,6 @@ export function PasswordInput({ className, ...props }: Omit<ComponentProps<typeo
         type="button"
         onClick={() => setVisible((value) => !value)}
         aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
-        aria-pressed={visible}
         className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-xl text-ink-subtle transition-colors hover:text-ink"
       >
         {visible ? (

@@ -1,8 +1,11 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
 import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-address";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
+import { useRoomSwitchGuard } from "@/features/room/hooks/use-room-switch-guard";
 import { RoomSession } from "./RoomSession";
+import { RoomSwitchDialog } from "./RoomSwitchDialog";
 
 /** What the room page loads (`/sala/:codigo`). */
 export interface RoomEntry {
@@ -14,8 +17,8 @@ export interface RoomEntry {
   passwordRequired: boolean;
   invite?: string;
   maxParticipants: number;
-  /** "Sala de Ana", from the owner; null when the room has no owner. */
-  roomName: string | null;
+  /** The room's own name, or "Sala de Ana" from the owner; null when it has neither. */
+  roomName: RoomTitle | null;
   presence: RoomPresence | null;
   isAdmin: boolean;
 }
@@ -30,10 +33,22 @@ function HiddenRoomAddress({ entry, active }: { entry: RoomEntry; active: boolea
  * The room lives above the routes, so a call survives navigation: on the room page
  * it fills the screen; on any other page (the admin panel) it goes on minimized
  * until the person comes back. Outside a call, leaving the page discards it.
+ * Going to another room during a call asks first: confirming leaves this call.
  * `room`: the room page's data when it is the current page.
  */
-export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
+export function ActiveRoom({
+  room,
+  renderColumn,
+}: {
+  room: RoomEntry | undefined;
+  /** The app's friends column (signed in), drawn by the app: the room has no friends UI. */
+  renderColumn?: (inCall: boolean) => ReactNode;
+}) {
   const [call, setCall] = useState<RoomEntry>();
+  const pendingSwitch = useRoomSwitchGuard(call?.code, () => setCall(undefined));
+  // The room page's latest data (a new owner's name, who is inside) replaces the one saved at
+  // joining, so the minimized call does not show it stale.
+  if (room && call && room !== call && room.code === call.code) setCall(room);
   const entry = room ?? call;
   if (entry === undefined) return null;
 
@@ -41,7 +56,7 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
     <StreamerModeProvider>
       <HiddenRoomAddress entry={entry} active={room !== undefined} />
       <RoomSession
-        // Another room drops the current call.
+        // Another room drops the current call: unmounting disconnects it (mic and screen stop).
         key={entry.code}
         code={entry.code}
         unavailable={entry.unavailable}
@@ -55,8 +70,10 @@ export function ActiveRoom({ room }: { room: RoomEntry | undefined }) {
         presence={entry.presence}
         isAdmin={entry.isAdmin}
         minimized={room === undefined}
+        renderColumn={room === undefined ? undefined : renderColumn}
         onCallChange={(inCall) => setCall(inCall ? entry : undefined)}
       />
+      <RoomSwitchDialog pending={pendingSwitch} />
     </StreamerModeProvider>
   );
 }

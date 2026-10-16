@@ -7,6 +7,7 @@ import { RoomEvent, type Participant } from "livekit-client";
 import { useEffect, useState } from "react";
 import { participantName } from "@/features/room/domain/participant-label";
 import { roomDisplayName } from "@/features/room/domain/role-change";
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { parseRoomRole, ROLE_ATTRIBUTE, type RoomRole } from "@/features/room/domain/room-role";
 
 function roleOf(participant: Participant): RoomRole {
@@ -37,10 +38,15 @@ function useRoleChanges(): void {
   }, [room]);
 }
 
-/** "Sala de <dono>": the owner in the call when there is one, else the name the page loaded. */
-export function useRoomName(participants: Participant[], loaded: string | null): string | null {
+/**
+ * A permanent room's own name, or "Sala de <dono>": the owner in the call when there is one,
+ * else the name the page loaded.
+ */
+export function useRoomName(participants: Participant[], loaded: RoomTitle | null): string | null {
   useRoleChanges();
+  const loadedText = loaded?.text ?? null;
+  if (loaded && !loaded.followsOwner) return loadedText;
   const owner = participants.find((participant) => roleOf(participant) === "owner");
-  if (!owner) return loaded;
-  return roomDisplayName(participantName(owner)) ?? loaded;
+  if (!owner) return loadedText;
+  return roomDisplayName(participantName(owner)) ?? loadedText;
 }

@@ -7,6 +7,7 @@ const capture = vi.hoisted(() => ({
   cursor: 0,
   level: vi.fn<typeof useMicLevel>(() => ({ current: 0 })),
   saved: vi.fn<() => string | undefined>(() => "mic-a"),
+  label: vi.fn<() => string | undefined>(() => undefined),
   save: vi.fn(),
 }));
 
@@ -17,6 +18,11 @@ vi.mock("react", () => ({
     return [capture.states[index], (value: unknown) => (capture.states[index] = value)];
   },
   useSyncExternalStore: (_subscribe: unknown, getSnapshot: () => unknown) => getSnapshot(),
+  useRef: (initial: unknown) => {
+    const index = capture.cursor++;
+    if (index >= capture.states.length) capture.states.push({ current: initial });
+    return capture.states[index];
+  },
 }));
 
 vi.mock("@/features/room/hooks/use-mic-level", () => ({ useMicLevel: capture.level }));
@@ -25,13 +31,19 @@ vi.mock("@/features/room/hooks/use-mic-permission", () => ({
 }));
 vi.mock("@/features/room/client/saved-microphone", () => ({
   savedMicrophone: capture.saved,
+  savedMicrophoneLabel: capture.label,
   saveMicrophone: capture.save,
+}));
+vi.mock("@/features/room/client/saved-media", () => ({
+  joinsWithMicrophone: () => true,
+  saveJoinsWithMicrophone: vi.fn(),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   capture.states = [];
   capture.saved.mockReturnValue("mic-a");
+  capture.label.mockReturnValue(undefined);
 });
 
 /** Re-renders the hook while keeping its state and controlling capture events. */
@@ -82,4 +94,33 @@ test("a missing preference is forgotten and the replacement is tested separately
   const next = MicSetupHarness();
   expect(next.mic.deviceId).toBe("mic-b");
   expect(next.mic.check).toBe("waiting");
+});
+
+test("a microphone under a new id is found again by its name", () => {
+  capture.label.mockReturnValue("Elgato Virtual Audio");
+  const { events } = MicSetupHarness();
+  events.onDevices([
+    { deviceId: "default", label: "Padrão", kind: "audioinput" } as MediaDeviceInfo,
+    { deviceId: "mic-novo", label: "Elgato Virtual Audio", kind: "audioinput" } as MediaDeviceInfo,
+  ]);
+  events.onMissingDevice();
+  const again = MicSetupHarness();
+  expect(again.requestedId).toBe("mic-novo");
+  expect(capture.save).toHaveBeenLastCalledWith("mic-novo");
+});
+
+test("a browser that renames the microphone on every read does not restart it forever", () => {
+  capture.label.mockReturnValue("Elgato Virtual Audio");
+  const requested: (string | undefined)[] = [];
+  for (const id of ["mic-1", "mic-2", "mic-3", "mic-4"]) {
+    const { events, requestedId } = MicSetupHarness();
+    requested.push(requestedId);
+    events.onDevices([
+      { deviceId: id, label: "Elgato Virtual Audio", kind: "audioinput" } as MediaDeviceInfo,
+    ]);
+    events.onMissingDevice();
+  }
+  // One new capture for the new id, then it keeps the one running.
+  expect(new Set(requested)).toEqual(new Set(["mic-a", "mic-1"]));
+  expect(capture.save).toHaveBeenCalledTimes(1);
 });

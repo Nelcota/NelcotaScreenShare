@@ -1,0 +1,130 @@
+import { House, Users, UsersRound, Video } from "lucide-react";
+import type { ReactNode } from "react";
+import { NavLink } from "react-router";
+import { UnreadCount } from "@/components/UnreadCount";
+import { WorkspaceColumnList } from "@/components/workspace/WorkspaceColumnList";
+import type { AddMenuItem } from "@/features/friends/ui/AddMenu";
+import type { ColumnTab } from "@/features/friends/ui/FriendsColumn";
+import type { ColumnGroup } from "@/features/messages/server/conversation-list.server";
+import { ColumnGroups } from "@/features/messages/ui/ColumnGroups";
+import { CreateGroupWindow, type PickableFriend } from "@/features/messages/ui/CreateGroupDialog";
+import type { WorkspaceColumn } from "./workspace-column.server";
+
+/**
+ * The column's tabs. Each tab owns a path: the tab's own route (no item picked) fills the
+ * middle (AppEmptyState for Amigos, main's cards for Salas and Times), and each picked item is
+ * a child route drawn in the middle. Messages live in Amigos: on each friend's photo and in
+ * Grupos, so the tab counts requests and unread messages together.
+ */
+export function columnTabs(counts: { requests: number; unread: number }): ColumnTab[] {
+  const badge = counts.requests + counts.unread;
+  return [
+    { id: "amigos", label: "Amigos", href: "/amigos", badge },
+    { id: "salas", label: "Salas", href: "/salas" },
+    { id: "times", label: "Times", href: "/times" },
+  ];
+}
+
+/** "Criar grupo" in the column's "+" menu, opening the messages' window. */
+export function createGroupItem(friends: PickableFriend[]): AddMenuItem {
+  return {
+    id: "grupo",
+    label: "Criar grupo",
+    icon: UsersRound,
+    window: (state) => <CreateGroupWindow friends={friends} {...state} />,
+  };
+}
+
+/** What the messages add to the friends column: "Criar grupo" and the "Grupos" section. */
+export function columnExtras(data: { friends: PickableFriend[]; groups: ColumnGroup[] }) {
+  return {
+    addItems: [createGroupItem(data.friends)],
+    groups: <ColumnGroups groups={data.groups} />,
+  };
+}
+
+const TAB =
+  "relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-xs font-semibold text-ink-muted aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink";
+
+/** A tapped tab lights up while its page loads, instead of waiting for it. */
+const TAB_OPENING = "bg-surface-3/60 text-ink";
+
+function PhoneTab({
+  to,
+  icon,
+  label,
+  count = 0,
+}: {
+  to: string;
+  icon: ReactNode;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <NavLink
+      viewTransition
+      to={to}
+      className={({ isPending }) => (isPending ? `${TAB} ${TAB_OPENING}` : TAB)}
+    >
+      {icon}
+      {label}
+      <UnreadCount count={count} className="top-1 right-auto left-[calc(50%+0.25rem)]" />
+    </NavLink>
+  );
+}
+
+/** Phones: the column becomes tabs at the bottom, within reach of the thumb. */
+export function PhoneTabs({ requests, unread }: { requests: number; unread: number }) {
+  const icon = "size-5";
+  return (
+    <nav
+      aria-label="App"
+      className="glass sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] flex gap-1 rounded-2xl p-1.5 sm:hidden"
+    >
+      <PhoneTab to="/inicio" icon={<House className={icon} aria-hidden="true" />} label="Início" />
+      <PhoneTab
+        to="/amigos"
+        icon={<Users className={icon} aria-hidden="true" />}
+        label="Amigos"
+        count={requests + unread}
+      />
+      <PhoneTab to="/salas" icon={<Video className={icon} aria-hidden="true" />} label="Salas" />
+      <PhoneTab
+        to="/times"
+        icon={<UsersRound className={icon} aria-hidden="true" />}
+        label="Times"
+      />
+    </nav>
+  );
+}
+
+/** The list of the open tab in the column; Amigos keeps the friends. */
+export function TabContent({ column }: { column: WorkspaceColumn }) {
+  if (column.tab === "salas") {
+    const items = column.rooms.map((room) => ({ ...room, href: `/salas/${room.id}` }));
+    return (
+      <WorkspaceColumnList
+        kind="room"
+        items={items}
+        searchLabel="Buscar sala"
+        empty="Nenhuma sala aqui."
+      />
+    );
+  }
+  if (column.tab === "times") {
+    const items = column.teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      href: `/times/${team.id}`,
+    }));
+    return (
+      <WorkspaceColumnList
+        kind="team"
+        items={items}
+        searchLabel="Buscar time"
+        empty="Você ainda não está em nenhum time."
+      />
+    );
+  }
+  return null;
+}

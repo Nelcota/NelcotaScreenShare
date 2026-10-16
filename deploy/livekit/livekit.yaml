@@ -2,8 +2,16 @@
 # The keys do NOT live here: they come from the LIVEKIT_KEYS environment variable
 # (set in docker-compose.livekit.yml from LIVEKIT_API_KEY/SECRET).
 
-# HTTP/WebSocket signaling. Sits behind Coolify's HTTPS proxy
-# (lk.yourdomain.com -> 127.0.0.1:7880). Do NOT open 7880 in the firewall.
+# HTTP/WebSocket signaling. Do NOT open 7880 in the firewall in either mode.
+# - Legacy (ROOM_HOST_CONTROLS_ENABLED=false): browsers reach it through Coolify's HTTPS
+#   proxy (lk.yourdomain.com -> 127.0.0.1:7880), so it listens on every interface ("").
+# - Host controls (ROOM_HOST_CONTROLS_ENABLED=true): only the app talks to it, through the
+#   app's relay. Listen only where the app reaches it, the Docker bridge gateway, and remove
+#   the lk.* proxy routes (docs/host-controls.md, "Required deployment boundary"):
+#     bind_addresses:
+#       - "172.17.0.1"
+#   A token kept from before the relay would otherwise still reach LiveKit directly.
+#   The compose healthcheck then has to ask http://172.17.0.1:7880 instead of 127.0.0.1.
 port: 7880
 bind_addresses:
   - ""

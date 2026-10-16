@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -59,8 +58,7 @@ export function ProfileForm({ name }: { name: string }) {
           aria-invalid={error ? true : undefined}
           className="h-10 min-w-0 flex-1 basis-48"
         />
-        <Button type="submit" disabled={pending || unchanged}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending} disabled={unchanged}>
           Salvar
         </Button>
       </div>

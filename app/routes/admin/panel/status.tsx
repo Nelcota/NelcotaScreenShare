@@ -7,13 +7,16 @@ import {
   checkLiveKit,
   checkMailConfiguration,
   deployInfo,
+  lastMailDelivery,
 } from "@/features/admin/status/server/checks.server";
+import { mailHealth } from "@/features/admin/status/domain/mail-health";
 import { getLiveKitEventsSummary } from "@/features/admin/status/server/livekit-events.server";
 import { HealthCard } from "@/features/admin/status/ui/HealthCard";
 import { LiveKitEvents } from "@/features/admin/status/ui/LiveKitEvents";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { formatDateTime, formatRelative } from "@/lib/format";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Status · Nelcota" }];
 
@@ -22,11 +25,14 @@ export const loader = routeLoader(async () => {
   const db = getDb();
   const [database, liveKit] = await Promise.all([checkDatabase(db), checkLiveKit()]);
   // Without the database there are no events to read: the card already says why.
-  const events = database.state === "down" ? null : await getLiveKitEventsSummary(db);
+  const [events, lastDelivery] =
+    database.state === "down"
+      ? [null, null]
+      : await Promise.all([getLiveKitEventsSummary(db), lastMailDelivery(db)]);
   return {
     database,
     liveKit,
-    mail: checkMailConfiguration(),
+    mail: mailHealth(checkMailConfiguration(), lastDelivery),
     deploy: deployInfo(getEnv().APP_VERSION),
     events,
   };
@@ -59,10 +65,7 @@ export default function AdminStatusPage() {
   const { database, liveKit, mail, deploy, events } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Status</h1>
-        <p className="mt-1 text-ink-muted">Banco, chamadas e e-mail agora.</p>
-      </div>
+      <AdminPageHeader title="Status" description="Banco, chamadas e e-mail agora." />
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <HealthCard title="Banco de dados" state={database.state}>
           {database.detail}

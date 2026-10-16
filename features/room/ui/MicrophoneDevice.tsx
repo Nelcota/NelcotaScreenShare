@@ -1,5 +1,6 @@
-import { Bluetooth, Camera, Headphones, Mic, Phone, Star, type LucideIcon } from "lucide-react";
+import { Bluetooth, Camera, Headphones, Mic, Phone, type LucideIcon } from "lucide-react";
 import type { MicrophoneOption } from "@/features/room/domain/microphone-options";
+import { Hint } from "@/components/Hint";
 import { cn } from "@/lib/utils";
 
 const ICONS = { system: Mic, microphone: Mic, headset: Headphones, camera: Camera };
@@ -12,8 +13,8 @@ const KIND_COLORS = {
   camera: "bg-warning/15 text-warning",
 } as const;
 
-const BADGES: Partial<Record<string, { icon: LucideIcon; className: string }>> = {
-  Padrão: { icon: Star, className: "bg-brand/15 text-brand-soft" },
+const BADGES: Partial<Record<string, { icon?: LucideIcon; className: string }>> = {
+  Padrão: { className: "bg-brand/15 text-brand-soft" },
   Chamadas: { icon: Phone, className: "bg-info/15 text-info" },
 };
 
@@ -35,7 +36,7 @@ export function DeviceIcon({
         KIND_COLORS[kind],
       )}
     >
-      <Icon className={size === "md" ? "size-[18px]" : "size-4"} />
+      <Icon className={size === "md" ? "size-4.5" : "size-4"} />
     </span>
   );
 }
@@ -61,13 +62,12 @@ export function DeviceBadges({ option }: { option: MicrophoneOption }) {
         );
       })}
       {option.detail === "Bluetooth" ? (
-        <span
-          title="Bluetooth"
-          className="grid size-6 shrink-0 place-items-center rounded-full bg-info/15 text-info"
-        >
-          <Bluetooth className="size-4" aria-hidden="true" />
-          <span className="sr-only">Bluetooth</span>
-        </span>
+        <Hint text="Bluetooth">
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-info/15 text-info">
+            <Bluetooth className="size-4" aria-hidden="true" />
+            <span className="sr-only">Bluetooth</span>
+          </span>
+        </Hint>
       ) : option.detail ? (
         <span className="shrink-0 text-xs text-ink-subtle">{option.detail}</span>
       ) : null}

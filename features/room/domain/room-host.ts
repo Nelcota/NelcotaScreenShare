@@ -52,14 +52,24 @@ export function electionOrder(candidates: readonly HostCandidate[]): HostCandida
   );
 }
 
-/** The owner in the call becomes its host, whoever had it; `undefined` keeps the current one. */
+/**
+ * The owner in the call becomes its host, whoever had it; `undefined` keeps the current one.
+ * An owner who handed the host over (`givenAt`) takes it back only after joining again.
+ */
 export function ownerTakingOver(
   currentHost: string | null,
   candidates: readonly HostCandidate[],
+  givenAt: Date | null = null,
 ): string | undefined {
   const owner = candidates.find((candidate) => candidate.role === "owner");
   if (!owner || owner.identity === currentHost) return undefined;
+  if (givenAt && !joinedSince(owner, givenAt)) return undefined;
   return owner.identity;
+}
+
+/** LiveKit counts `joinedAt` in seconds; a join in the same second counts as after. */
+function joinedSince(candidate: HostCandidate, moment: Date): boolean {
+  return candidate.joinedAt >= BigInt(Math.floor(moment.getTime() / 1000));
 }
 
 /**

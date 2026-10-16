@@ -1,4 +1,5 @@
-import { parseAsString, parseAsStringLiteral } from "nuqs/server";
+import { createParser, parseAsString, parseAsStringLiteral } from "nuqs/server";
+import { parseDateInput } from "@/lib/date-input";
 
 /**
  * URL parameters shared by every admin table (state in the URL: the link can be
@@ -10,10 +11,19 @@ export const pageParsers = {
   ordem: parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc"),
 };
 
+/**
+ * A calendar day (YYYY-MM-DD). Anything else, like "2026-13-45", is no filter: otherwise the
+ * list would be filtered by a date the date picker cannot show.
+ */
+const parseAsDay = createParser({
+  parse: (value) => (parseDateInput(value) ? value : null),
+  serialize: (value: string) => value,
+});
+
 /** "de/até" (from/until) range in São Paulo days (YYYY-MM-DD), shared by the admin tables. */
 export const periodParsers = {
-  de: parseAsString,
-  ate: parseAsString,
+  de: parseAsDay,
+  ate: parseAsDay,
 };
 
 /** Changing a filter or the sort goes back to the first page. */

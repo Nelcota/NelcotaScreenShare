@@ -38,6 +38,21 @@ async function account(name: string): Promise<string> {
 const roleIn = (roomCode: string, userId: string) => roomRoleOf(db, { roomCode, userId });
 
 describe("role changes", () => {
+  test("a blocked account can be neither given the room nor made a moderator", async () => {
+    const ana = await account("Ana");
+    const bia = await account("Bia");
+    const room = await createRoom(db, ana);
+    await db.update(schema.users).set({ blockedAt: new Date() }).where(eq(schema.users.id, bia));
+    for (const change of ["transfer", "promote"] as const) {
+      assert.deepEqual(
+        await applyRoleChange(db, { roomCode: room, actorUserId: ana, targetUserId: bia, change }),
+        { ok: false, error: "no_account" },
+      );
+    }
+    assert.equal(await roleIn(room, ana), "owner");
+    assert.equal(await roleIn(room, bia), "participant");
+  });
+
   test("the owner makes and unmakes a moderator; repeating either is refused", async () => {
     const ana = await account("Ana");
     const bia = await account("Bia");

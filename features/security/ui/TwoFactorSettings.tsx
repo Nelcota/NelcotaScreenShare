@@ -1,5 +1,3 @@
-import { Loader2 } from "lucide-react";
-
 import { useId } from "react";
 import { FormError } from "@/components/FormError";
 import { QrCode } from "@/components/QrCode";
@@ -144,8 +142,7 @@ function VerifyCodeForm({
         />
       </div>
       <FormError id={state.errorId} message={state.error} />
-      <Button type="submit" disabled={state.pending} className="sm:self-start">
-        {state.pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+      <Button type="submit" loading={state.pending} className="sm:self-start">
         Confirmar e ativar
       </Button>
     </form>

@@ -1,13 +1,15 @@
 import { AppWindow, Globe, Monitor, Volume2, VolumeX } from "lucide-react";
 import { useId } from "react";
+import { ChoiceSelect } from "@/components/ChoiceSelect";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   sharesAudio,
+  surfaceHasAudio,
   type ShareChoice,
   type ShareSurface,
 } from "@/features/room/domain/share-support";
-import { useShareSupport } from "@/features/room/hooks/use-share-support";
+import { useScreenAudioSupport, useShareSupport } from "@/features/room/hooks/use-share-support";
 import { DockPopoverTitle } from "./DockPopover";
 import { parseShareProfile, type ShareProfile } from "@/features/room/domain/share-profile";
 
@@ -16,29 +18,29 @@ const OPTIONS: {
   title: string;
   description: string;
   icon: typeof Monitor;
-  /** The browser captures audio from this surface. */
-  hasAudio: boolean;
+  /** Why it goes without sound, when the browser does not capture it. */
+  silentNote: string;
 }[] = [
   {
     surface: "monitor",
     title: "Tela inteira",
     description: "O monitor inteiro",
     icon: Monitor,
-    hasAudio: true,
+    silentNote: "Vai sem áudio neste navegador: atualize ou escolha uma aba",
   },
   {
     surface: "window",
     title: "Janela",
     description: "Um aplicativo específico",
     icon: AppWindow,
-    hasAudio: false,
+    silentNote: "Janelas vão sem áudio",
   },
   {
     surface: "browser",
     title: "Aba do navegador",
     description: "Melhor para vídeos e slides",
     icon: Globe,
-    hasAudio: true,
+    silentNote: "",
   },
 ];
 
@@ -49,6 +51,13 @@ interface SharePanelProps {
   onProfileChange: (value: ShareProfile) => void;
   onPick: (choice: ShareChoice) => void;
 }
+
+const PROFILE_OPTIONS = [
+  { value: "automatic", label: "Automático" },
+  { value: "text", label: "Texto · mais nitidez" },
+  { value: "video", label: "Vídeo · mais movimento" },
+  { value: "data-saver", label: "Economia de dados" },
+] as const satisfies readonly { value: ShareProfile; label: string }[];
 
 /**
  * Choices before the native picker. The audio switch comes first: picking an
@@ -66,6 +75,7 @@ export function SharePanel({
   const profileId = useId();
   const support = useShareSupport();
   const withAudio = support !== null && sharesAudio(support);
+  const screenAudio = useScreenAudioSupport();
 
   return (
     <>
@@ -77,17 +87,13 @@ export function SharePanel({
         <Label htmlFor={profileId} className="text-sm font-medium">
           Qualidade do compartilhamento
         </Label>
-        <select
+        <ChoiceSelect
           id={profileId}
           value={profile}
-          onChange={(event) => onProfileChange(parseShareProfile(event.currentTarget.value))}
-          className="w-full rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          <option value="automatic">Automático</option>
-          <option value="text">Texto · mais nitidez</option>
-          <option value="video">Vídeo · mais movimento</option>
-          <option value="data-saver">Economia de dados</option>
-        </select>
+          options={PROFILE_OPTIONS}
+          onValueChange={(value) => onProfileChange(parseShareProfile(value))}
+          className="w-full bg-surface"
+        />
         <p className="text-xs text-ink-subtle">Vale para o próximo compartilhamento.</p>
       </div>
 
@@ -107,7 +113,8 @@ export function SharePanel({
       ) : null}
 
       <ul className="flex flex-col gap-1">
-        {OPTIONS.map(({ surface, title, description, icon: Icon, hasAudio }, index) => {
+        {OPTIONS.map(({ surface, title, description, icon: Icon, silentNote }, index) => {
+          const hasAudio = surfaceHasAudio(surface, screenAudio);
           const silent = withAudio && audio && !hasAudio;
           return (
             <li key={surface}>
@@ -126,7 +133,7 @@ export function SharePanel({
                   {silent ? (
                     <span className="mt-0.5 flex items-center gap-1 text-xs text-warning">
                       <VolumeX className="size-3" aria-hidden="true" />
-                      Janelas vão sem áudio
+                      {silentNote}
                     </span>
                   ) : null}
                 </span>

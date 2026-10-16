@@ -45,6 +45,11 @@ favorite and archived rooms. Creation, renaming, link copying, favorites, archiv
 restoration are available according to the current server permissions. Favorites never
 grant admission or access to history. All links keep their original public code.
 
+`/salas` and `/salas/:id` render inside the signed-in app layout. The column's Salas tab
+lists the same rooms with search and the active, favorite and archived filters; picking a
+room opens its history in the middle. Like the rest of the workspace, these pages do not
+require a confirmed e-mail.
+
 Every call uses a separate `room_sessions` row and private media name. Closing a permanent
 call closes only that session; the owner or an eligible team member can start another
 call through the same link. Explicitly closing an ad-hoc room still makes its code
@@ -63,18 +68,23 @@ renaming, archive and membership maintenance remain available.
 
 ## Team roles and invitations
 
-`/times` lists current memberships. Personal Pro beta permits owning up to three teams;
-each team needs its own entitlement for room creation, new starts and invitations.
+`/times` lists current memberships. Personal Pro beta permits owning up to three teams,
+counted when a team is created and when one is handed over (the new owner must have room);
+each team needs its own entitlement for room creation, new starts and invitations. Lowering
+a room limit keeps the rooms already there; creating or unarchiving above it is refused.
 The initial team cap is 100 members and 200 unredeemed, unrevoked, unexpired invitations.
+`/times`, `/times/:id` and team room history also render inside the app layout; the
+column's Times tab lists the memberships. Invitation links (`/times/convite/:token`) keep
+their standalone page.
 
-| Capability                                                 | Owner                    | Manager | Member                                  |
-| ---------------------------------------------------------- | ------------------------ | ------- | --------------------------------------- |
-| Discover/join permitted team rooms; view history; favorite | Yes                      | Yes     | Yes                                     |
-| Create/edit/archive rooms; rename the team                 | Yes                      | Yes     | No                                      |
-| Invite/revoke; remove a non-owner                          | Yes                      | Yes     | No                                      |
-| Change roles; transfer ownership; delete the team          | Yes                      | No      | No                                      |
-| Start or assume host authority                             | Yes                      | Yes     | Only with the room's member-host policy |
-| Leave voluntarily                                          | Transfer or delete first | Yes     | Yes                                     |
+| Capability                                                 | Owner                    | Manager      | Member                                  |
+| ---------------------------------------------------------- | ------------------------ | ------------ | --------------------------------------- |
+| Discover/join permitted team rooms; view history; favorite | Yes                      | Yes          | Yes                                     |
+| Create/edit/archive rooms; rename the team                 | Yes                      | Yes          | No                                      |
+| Invite/revoke; remove a non-owner                          | Yes                      | Members only | No                                      |
+| Change roles; transfer ownership; delete the team          | Yes                      | No           | No                                      |
+| Start or assume host authority                             | Yes                      | Yes          | Only with the room's member-host policy |
+| Leave voluntarily                                          | Transfer or delete first | Yes          | Yes                                     |
 
 Team rooms default to members only. An explicit room setting allows link guests into an
 active call. Owners and managers remain eligible hosts. Role loss is distinguished from
@@ -83,6 +93,9 @@ grace. Every loader, action and cached-token signaling attempt reads current mem
 Workspace/history URLs reject a room belonging to a different team even when the account
 belongs to both teams. Team history never contains IPs, chat or platform audit records.
 
+Managers invite and remove members only. Inviting or removing a manager changes who manages
+the team, so it is the owner's, like changing roles.
+
 Invitations use a 32-byte random base64url token, with only its SHA-256 digest in storage.
 The complete link is shown once to copy and share; this version sends no invitation email.
 It expires in seven days, is bound to the requested email and requires that email to be
@@ -90,7 +103,9 @@ verified even when global verification is disabled. Acceptance locks the team ro
 rereads expiry, issuer role, revocation, prior use, membership, capacity and entitlement.
 Concurrent redemption has one winner. Removing/demoting the issuer revokes their pending
 invitations. The server redirects successful acceptance before revalidation would render
-the consumed invitation as unavailable.
+the consumed invitation as unavailable. Signed out, the person goes to sign in with the
+invitation path in `?voltar=`, token included. That is the same token the shared link
+already carries, bound to one verified email and good once, so it stays there by design.
 
 A partial unique index allows at most one owner per team. Deferred database constraint
 triggers require exactly one owner for every active team at commit, permitting an atomic
@@ -153,3 +168,8 @@ unexpected disconnects, failed/retrying room commands, invitation acceptance fai
 database latency through existing operations/audit and server diagnostics. Do not record
 drawings, chat or recipient addresses as adoption telemetry. Drain calls before rollback,
 retain readable authorized history, and compare pilot outcomes with a measured baseline.
+
+The Pro waitlist (`/api/pro/interesse`) takes an address without confirming it, so a
+third party's email can be added. It has a per-IP rate limit and sends nothing. Before
+anyone writes to that list, confirm each address by email (double opt-in); email delivery
+in production is not ready yet, so this waits for it.

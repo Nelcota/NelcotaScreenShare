@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
   canShare,
+  capturesCall,
   classifyShareSupport,
   echoesRoomAudio,
   sharesAudio,
   showsCaptureBar,
+  surfaceHasAudio,
 } from "@/features/room/domain/share-support";
 
 const UA = {
@@ -82,6 +84,23 @@ test("computer audio from a screen or a window echoes the room unless the browse
   assert.equal(echoesRoomAudio("window", true), false);
 });
 
-test("a tab's audio never carries the room: our own tab is not offered", () => {
+test("a tab's audio is safe unless that tab is in a Nelcota call", () => {
   assert.equal(echoesRoomAudio("browser", undefined), false);
+  assert.equal(echoesRoomAudio("browser", undefined, true), true);
+  assert.equal(echoesRoomAudio("monitor", true, true), true);
+});
+
+test("only the call's own capture handle marks a tab as in a call", () => {
+  assert.equal(capturesCall({ handle: "nelcota-call" }), true);
+  assert.equal(capturesCall({ handle: "" }), false);
+  assert.equal(capturesCall({ handle: "other-app" }), false);
+  assert.equal(capturesCall(null), false);
+  assert.equal(capturesCall(undefined), false);
+});
+
+test("a whole screen has sound only where the room can be stripped from it", () => {
+  assert.equal(surfaceHasAudio("monitor", true), true);
+  assert.equal(surfaceHasAudio("monitor", false), false);
+  assert.equal(surfaceHasAudio("window", true), false);
+  assert.equal(surfaceHasAudio("browser", false), true);
 });

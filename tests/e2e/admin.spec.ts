@@ -128,6 +128,12 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await sql(`insert into users (name, email, email_verified) values ('Pessoa Painel', $1, true)`, [
     participantEmail,
   ]);
+  // One open session, to end it from the panel below.
+  await sql(
+    `insert into user_sessions (user_id, token, expires_at)
+     select id, $2, now() + interval '1 day' from users where email = $1`,
+    [participantEmail, `sessao-${Date.now()}`],
+  );
   await page.goto("/admin/usuarios");
   // Filtering waits for hydration and isolates this attempt's participant from previous retries.
   await page.getByRole("searchbox", { name: "Nome ou e-mail" }).fill(participantEmail);
@@ -138,6 +144,21 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await expect(page.getByRole("heading", { name: "Pessoa Painel" })).toBeVisible();
   await expect(page.getByText("Ainda não entrou em nenhuma sala.")).toBeVisible();
   await expect(page.getByText("Nenhuma ação do painel nesta conta.")).toBeVisible();
+
+  // Ending sessions asks first, like blocking and deleting; cancelling keeps them.
+  await page.getByRole("button", { name: "Encerrar sessões" }).click();
+  const confirm = page.getByRole("dialog");
+  await expect(confirm.getByText("Encerrar as sessões desta conta?")).toBeVisible();
+  await confirm.getByRole("button", { name: "Cancelar" }).click();
+  const open = await sql(
+    `select count(*)::int as n from user_sessions join users on users.id = user_sessions.user_id
+     where users.email = $1`,
+    [participantEmail],
+  );
+  expect(open.rows[0]).toEqual({ n: 1 });
+  await page.getByRole("button", { name: "Encerrar sessões" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Encerrar" }).click();
+  await expect(page.getByText("1 sessão encerrada.")).toBeVisible();
 
   // A mutation revalidates the page and the root without reloading the document.
   await page.goto("/admin/configuracoes");
@@ -155,13 +176,27 @@ test("admin panel: invitation, sign-in with required 2FA, room filter and CSV ex
   await page.goto("/admin/pro");
   await page.getByRole("textbox", { name: "Buscar contas e times" }).fill(participantEmail);
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
-  await page
-    .getByLabel("Conta ou time")
-    .selectOption({ label: `Pessoa Painel · ${participantEmail}` });
+  // Design-system controls only: no browser select, date picker or checkbox on the page
+  // (Radix keeps hidden native ones for forms, marked aria-hidden).
+  await expect(
+    page
+      .locator("main")
+      .locator('select, input[type="date"], input[type="checkbox"]')
+      .and(page.locator(':not([aria-hidden="true"])')),
+  ).toHaveCount(0);
+  // Messages come from the page, not the browser's validation bubble.
+  await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
+  await expect(page.getByText("Escolha a conta ou o time.")).toBeVisible();
+  await page.getByRole("combobox", { name: "Conta ou time" }).click();
+  await page.getByRole("option", { name: `Pessoa Painel · ${participantEmail}` }).click();
   await page.getByLabel("Limite de salas permanentes").fill("4");
+  await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
+  await expect(page.getByText("Escreva o motivo da alteração.")).toBeVisible();
   await page.getByLabel("Motivo da alteração").fill("Selected participant pilot");
   await page.getByRole("button", { name: "Salvar ativação", exact: true }).click();
   await expect(page.getByText("Ativação salva e registrada na auditoria.")).toBeVisible();
+  // The save revalidates the page; the form keeps what was typed (it is not remounted).
+  await expect(page.getByLabel("Motivo da alteração")).toHaveValue("Selected participant pilot");
   const provisioning = await sql(
     "select p.active, p.room_limit from pro_entitlements p join users u on u.id = p.user_id where u.email = $1",
     [participantEmail],

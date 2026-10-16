@@ -1,4 +1,4 @@
-import { Loader2, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useRef, useState, type FormEvent } from "react";
@@ -105,30 +105,30 @@ export function SignInForm({
           invalid={error !== undefined}
           describedBy={error ? errorId : undefined}
         />
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-2">
-            <Label htmlFor={passwordId}>Senha</Label>
-            <Link
-              viewTransition
-              to="/recuperar-senha"
-              className="text-sm font-medium text-brand-soft hover:underline"
-            >
-              Esqueci a senha
-            </Link>
+        {/* The link sits beside the label but comes after the field: Tab goes e-mail → senha. */}
+        <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-2 gap-y-2">
+          <Label htmlFor={passwordId}>Senha</Label>
+          <div className="col-span-2 row-start-2">
+            <PasswordInput
+              ref={passwordRef}
+              id={passwordId}
+              name="password"
+              autoComplete="current-password"
+              required
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
+            />
           </div>
-          <PasswordInput
-            ref={passwordRef}
-            id={passwordId}
-            name="password"
-            autoComplete="current-password"
-            required
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
-          />
+          <Link
+            viewTransition
+            to="/recuperar-senha"
+            className="col-start-2 row-start-1 text-sm font-medium text-brand-soft hover:underline"
+          >
+            Esqueci a senha
+          </Link>
         </div>
         <FormError id={errorId} message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="mt-1 w-full">
           Entrar
         </Button>
       </form>

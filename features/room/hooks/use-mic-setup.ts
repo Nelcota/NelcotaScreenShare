@@ -1,10 +1,15 @@
-import { useState, useSyncExternalStore, type RefObject } from "react";
+import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import {
   micErrorMessage,
   microphonePermissionDenied,
 } from "@/features/room/client/microphone-errors";
-import { saveMicrophone, savedMicrophone } from "@/features/room/client/saved-microphone";
+import {
+  saveMicrophone,
+  savedMicrophone,
+  savedMicrophoneLabel,
+} from "@/features/room/client/saved-microphone";
+import { joinsWithMicrophone, saveJoinsWithMicrophone } from "@/features/room/client/saved-media";
 import { useMicLevel } from "./use-mic-level";
 import { useMicPermission } from "./use-mic-permission";
 import type { MicrophoneCheck } from "@/features/room/domain/microphone-check";
@@ -14,10 +19,18 @@ import type { MicrophoneCheck } from "@/features/room/domain/microphone-check";
  * device (remembered), error and the live meter. `paused`: joining the room.
  */
 export function useMicSetup(paused: boolean, meterRef: RefObject<HTMLDivElement | null>) {
-  const [enabled, setEnabled] = useState(true);
+  // "Entrar com microfone ligado": chosen on this screen, else as last time in this browser.
+  const savedOn = useSyncExternalStore(subscribeNothing, joinsWithMicrophone, () => true);
+  const [switched, setSwitched] = useState<boolean>();
+  const enabled = switched ?? savedOn;
   const [error, setError] = useState<string>();
   const [requesting, setRequesting] = useState(false);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  // The list the capture just read, before the state above updates.
+  const listed = useRef<MediaDeviceInfo[]>([]);
+  // Found again by name once already: a browser that renames it on every read (Brave)
+  // would restart the capture forever ("Conectando microfone…" in a loop).
+  const foundByName = useRef(false);
   const [captured, setCaptured] = useState<{
     requestedId: string | undefined;
     deviceId: string | undefined;
@@ -37,11 +50,25 @@ export function useMicSetup(paused: boolean, meterRef: RefObject<HTMLDivElement 
   const blocked = permission === "denied";
 
   const levelRef = useMicLevel(meterRef, testing, requestedId, {
-    onDevices: setDevices,
+    onDevices: (list) => {
+      listed.current = list;
+      setDevices(list);
+    },
     onDevice: (id, requested) => setCaptured({ requestedId: requested, deviceId: id }),
     onMissingDevice: () => {
-      setChosen(null);
+      // The browser may give the same microphone a new id (Brave): found again by name.
+      const label = savedMicrophoneLabel();
+      const again = label ? listed.current.find((device) => device.label === label) : undefined;
+      // Still there under yet another id: the capture already running is that microphone.
+      if (again && foundByName.current) return;
       setCheck(undefined);
+      if (again) {
+        foundByName.current = true;
+        setChosen(again.deviceId);
+        saveMicrophone(again.deviceId);
+        return;
+      }
+      setChosen(null);
       saveMicrophone(undefined);
     },
     onPermissionDenied: () => setPermission("denied"),
@@ -63,7 +90,8 @@ export function useMicSetup(paused: boolean, meterRef: RefObject<HTMLDivElement 
     /** Joins without a microphone (turned off or blocked by the browser). */
     joinsMuted: !enabled || blocked,
     setEnabled(next: boolean) {
-      setEnabled(next);
+      setSwitched(next);
+      saveJoinsWithMicrophone(next);
       setError(undefined);
       setCheck(undefined);
     },

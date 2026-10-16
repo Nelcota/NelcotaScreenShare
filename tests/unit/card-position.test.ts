@@ -5,7 +5,7 @@ import {
   coversAny,
   nudgeOffset,
   parseOffset,
-  snapToCorner,
+  snapToEdge,
 } from "@/features/room/domain/card-position";
 
 const card = { width: 300, height: 52 };
@@ -56,27 +56,45 @@ describe("a dropped card", () => {
   const callCard = { width: 300, height: 80 };
   const screen = { width: 1280, height: 800 };
 
-  it("goes to the nearest corner: below the top bar, above a message box", () => {
+  it("goes into a corner when dropped close to two edges", () => {
     // Near the top left.
-    expect(snapToCorner({ right: 900, bottom: 600 }, callCard, screen)).toEqual({
+    expect(snapToEdge({ right: 900, bottom: 600 }, callCard, screen)).toEqual({
       right: 1280 - 300 - 16,
       bottom: 800 - 80 - 80,
     });
     // Near the bottom right.
-    expect(snapToCorner({ right: 40, bottom: 30 }, callCard, screen)).toEqual({
+    expect(snapToEdge({ right: 40, bottom: 30 }, callCard, screen)).toEqual({
       right: 16,
       bottom: 96,
     });
-    // Near the top right, close to an edge but not a corner.
-    expect(snapToCorner({ right: 200, bottom: 650 }, callCard, screen)).toEqual({
+  });
+
+  it("sticks to the nearest edge and keeps its place along it", () => {
+    // Halfway down the right edge: it stays at that height instead of going down a corner.
+    expect(snapToEdge({ right: 30, bottom: 360 }, callCard, screen)).toEqual({
       right: 16,
+      bottom: 360,
+    });
+    // Near the top, away from the sides: it goes up and keeps its place across.
+    expect(snapToEdge({ right: 200, bottom: 650 }, callCard, screen)).toEqual({
+      right: 200,
       bottom: 640,
+    });
+    // Near the left edge, halfway down.
+    expect(snapToEdge({ right: 950, bottom: 300 }, callCard, screen)).toEqual({
+      right: 1280 - 300 - 16,
+      bottom: 300,
+    });
+    // Near the bottom, in the middle across: above the message box, same place across.
+    expect(snapToEdge({ right: 490, bottom: 20 }, callCard, screen)).toEqual({
+      right: 490,
+      bottom: 96,
     });
   });
 
   it("stays where it was dropped in the middle of the screen", () => {
     const middle = { right: 490, bottom: 360 };
-    expect(snapToCorner(middle, callCard, screen)).toEqual(middle);
+    expect(snapToEdge(middle, callCard, screen)).toEqual(middle);
   });
 
   // The start's room field, in the middle of the screen, under the dropped card.
@@ -84,7 +102,7 @@ describe("a dropped card", () => {
 
   it("goes to the nearest corner when dropped on the start's room field", () => {
     const middle = { right: 490, bottom: 360 };
-    expect(snapToCorner(middle, callCard, screen, [startField])).toEqual({
+    expect(snapToEdge(middle, callCard, screen, [startField])).toEqual({
       right: 16,
       bottom: 96,
     });
@@ -93,7 +111,7 @@ describe("a dropped card", () => {
   it("stays in the middle when the field is elsewhere", () => {
     const middle = { right: 490, bottom: 360 };
     const farField = { left: 400, top: 100, width: 480, height: 64 };
-    expect(snapToCorner(middle, callCard, screen, [farField])).toEqual(middle);
+    expect(snapToEdge(middle, callCard, screen, [farField])).toEqual(middle);
   });
 });
 

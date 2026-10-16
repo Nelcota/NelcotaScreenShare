@@ -1,11 +1,9 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { withAdminLink } from "@/features/admin/participants/domain/admin-link";
+import { setAdminLink } from "@/features/admin/settings/server/admin-link.server";
 import {
   adminLinkSettings,
-  getSetting,
   invalidateSetting,
-  saveSetting,
 } from "@/features/admin/settings/server/settings.server";
 import { defineAdminOperation } from "@/features/auth/server/operation-policies.server";
 import { getDb } from "@/server/db/index.server";
@@ -31,10 +29,8 @@ export const setAdminLinkAction = defineAdminOperation(
       .from(users)
       .where(eq(users.id, parsedInput.id));
     if (!account) throw new ActionError("Essa conta não existe mais.");
-    const before = await getSetting(adminLinkSettings, db);
-    const userIds = withAdminLink(before.userIds, parsedInput.id, parsedInput.on);
     await db.transaction(async (tx) => {
-      await saveSetting(adminLinkSettings, { userIds }, tx, ctx.admin.user.id);
+      await setAdminLink(tx, parsedInput.id, parsedInput.on, ctx.admin.user.id);
       await ctx.audit.record(tx, {
         action: "user.admin_link",
         resourceType: "user",

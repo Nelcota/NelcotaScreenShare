@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { afterAll, beforeEach, describe, test } from "vitest";
 import * as schema from "@/server/db/schema";
 import { MAX_ADMIN_LINKS } from "@/features/admin/participants/domain/admin-link";
-import { hasAdminLink } from "@/features/admin/settings/server/admin-link.server";
+import { hasAdminLink, setAdminLink } from "@/features/admin/settings/server/admin-link.server";
 import {
   adminLinkSettings,
   clearSettingsCache,
@@ -17,6 +17,16 @@ afterAll(() => pool.end());
 
 const ANA = "01a1453b-cb0f-725d-bde7-1ea89ef03e77";
 const BIA = "01a1453b-cb55-7401-9fcf-91fcb89cc79c";
+
+/** The owner who changes the list (app_settings.updated_by points at a panel account). */
+async function ownerId(): Promise<string> {
+  const [owner] = await db
+    .insert(schema.adminUsers)
+    .values({ name: "Dono", email: `dono-${crypto.randomUUID()}@exemplo.dev` })
+    .returning({ id: schema.adminUsers.id });
+  if (!owner) throw new Error("owner not created");
+  return owner.id;
+}
 
 describe("panel link in Configurações", () => {
   beforeEach(async () => {
@@ -47,5 +57,35 @@ describe("panel link in Configurações", () => {
     );
     clearSettingsCache();
     assert.equal(await hasAdminLink(ANA, db), false);
+  });
+});
+
+describe("two owners changing the list at once", () => {
+  beforeEach(async () => {
+    clearSettingsCache();
+    await db.delete(schema.appSettings);
+  });
+
+  test("both changes stay", async () => {
+    const owner = await ownerId();
+    await Promise.all([
+      db.transaction((tx) => setAdminLink(tx, ANA, true, owner)),
+      db.transaction((tx) => setAdminLink(tx, BIA, true, owner)),
+    ]);
+    clearSettingsCache();
+    assert.equal(await hasAdminLink(ANA, db), true);
+    assert.equal(await hasAdminLink(BIA, db), true);
+  });
+
+  test("turning one off keeps the other", async () => {
+    const owner = await ownerId();
+    await db.transaction((tx) => setAdminLink(tx, ANA, true, owner));
+    await Promise.all([
+      db.transaction((tx) => setAdminLink(tx, ANA, false, owner)),
+      db.transaction((tx) => setAdminLink(tx, BIA, true, owner)),
+    ]);
+    clearSettingsCache();
+    assert.equal(await hasAdminLink(ANA, db), false);
+    assert.equal(await hasAdminLink(BIA, db), true);
   });
 });

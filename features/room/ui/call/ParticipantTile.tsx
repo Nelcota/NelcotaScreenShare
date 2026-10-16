@@ -3,7 +3,6 @@ import {
   useIsSpeaking,
   useParticipantAttribute,
   useParticipantTracks,
-  VideoTrack,
   type TrackReference,
 } from "@livekit/components-react";
 import { Track, type Participant } from "livekit-client";
@@ -22,6 +21,7 @@ import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
 import { ProfileHint, TILE_SURFACE } from "./tile-surface";
 import { TileNamePill } from "./TileNamePill";
+import { CameraVideo, EnlargeButton } from "./camera-face";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -84,40 +84,6 @@ function useCamera(participant: Participant): TrackReference | undefined {
   const muted = useIsMuted({ participant, source: Track.Source.Camera });
   if (!camera?.publication.track || muted) return undefined;
   return camera;
-}
-
-/** Your own camera shows mirrored, as in a mirror; everyone else sees it the right way round. */
-function CameraVideo({ camera, className }: { camera: TrackReference; className: string }) {
-  return (
-    <VideoTrack
-      trackRef={camera}
-      aria-hidden="true"
-      className={cn(className, "object-cover", camera.participant.isLocal && "-scale-x-100")}
-    />
-  );
-}
-
-/** Over a camera: clicking the person's card enlarges it on the stage. */
-function EnlargeButton({
-  name,
-  rounded,
-  onEnlarge,
-}: {
-  name: string;
-  rounded: string;
-  onEnlarge: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={`Ampliar a câmera de ${name}`}
-      onClick={onEnlarge}
-      className={cn(
-        "absolute inset-0 z-20 cursor-zoom-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-        rounded,
-      )}
-    />
-  );
 }
 
 const FACE_STYLES = {

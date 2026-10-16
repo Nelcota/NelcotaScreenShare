@@ -20,14 +20,27 @@ const QUEUE_FULL_MESSAGE = "Muita gente pedindo para entrar agora. Tente de novo
 
 const AWAITING_MESSAGE = "Pedido enviado. Aguarde quem cuida da sala aceitar.";
 
-/** Entry with approval: everyone but the owner and moderators asks first (once accepted, in). */
+/** A guest coming in after another guest was banned from this call: they ask first. */
+async function guestAfterBan(
+  request: ApprovalRequest,
+  deps: Pick<TokenDeps, "guestBannedFromCall">,
+): Promise<boolean> {
+  if (!("guestId" in request.requester)) return false;
+  return deps.guestBannedFromCall(request.room);
+}
+
+/**
+ * Entry with approval: everyone but the owner and moderators asks first (once accepted, in).
+ * In an open room, so do new guests once a guest was banned from the call.
+ */
 export async function checkApproval(
   request: ApprovalRequest,
   role: RoomRole,
-  deps: Pick<TokenDeps, "accessOf" | "awaitApproval">,
+  deps: Pick<TokenDeps, "accessOf" | "awaitApproval" | "guestBannedFromCall">,
 ): Promise<TokenDecision | undefined> {
   if (managesRoomAccess(role)) return undefined;
-  if ((await deps.accessOf(request.room)) === "open") return undefined;
+  if ((await deps.accessOf(request.room)) === "open" && !(await guestAfterBan(request, deps)))
+    return undefined;
   const approval = await deps.awaitApproval(request);
   if (approval.approved) return undefined;
   if ("queueFull" in approval) {

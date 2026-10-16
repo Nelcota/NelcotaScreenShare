@@ -1,23 +1,12 @@
 import { Link, type MetaFunction } from "react-router";
 import {
   ArrowRight,
-  Ban,
   Clock,
   Download,
-  Flag,
-  Fingerprint,
-  Hand,
-  Handshake,
-  Hourglass,
-  Landmark,
-  MessageSquare,
-  ScrollText,
   ShieldCheck,
   Trash2,
-  UserRound,
   UserRoundCheck,
   VideoOff,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -112,14 +101,14 @@ function PurposeAndRetentionSections() {
       </p>
       <PrivacySection id="por-que" index={3} title="Por quê">
         <PrivacyList>
-          <PrivacyItem icon={Wrench} title="Para você usar o serviço">
+          <PrivacyItem title="Para você usar o serviço">
             Criar e entrar em salas e falar com seus amigos.
           </PrivacyItem>
-          <PrivacyItem icon={Landmark} title="Para cumprir a lei">
+          <PrivacyItem title="Para cumprir a lei">
             Registros de acesso a aplicações são guardados por 6 meses (Marco Civil da Internet,
             art. 15).
           </PrivacyItem>
-          <PrivacyItem icon={ShieldCheck} title="Para segurança">
+          <PrivacyItem title="Para segurança">
             Evitar abuso, bloquear tentativas de invasão e investigar incidentes.
           </PrivacyItem>
         </PrivacyList>
@@ -127,45 +116,20 @@ function PurposeAndRetentionSections() {
 
       <PrivacySection id="por-quanto-tempo" index={4} title="Por quanto tempo">
         <PrivacyList>
+          <PrivacyItem title="Conta" aside={<Duration>Enquanto existir</Duration>} />
+          <PrivacyItem title="Registros de acesso (IP)" aside={<Duration>6 meses</Duration>} />
+          <PrivacyItem title="Registros de auditoria (IP)" aside={<Duration>5 anos</Duration>} />
+          <PrivacyItem title="Mensagens" aside={<Duration>Até quem enviou apagar</Duration>} />
           <PrivacyItem
-            icon={UserRound}
-            title="Conta"
-            aside={<Duration>Enquanto existir</Duration>}
-          />
-          <PrivacyItem
-            icon={Fingerprint}
-            title="Registros de acesso (IP)"
-            aside={<Duration>6 meses</Duration>}
-          />
-          <PrivacyItem
-            icon={ScrollText}
-            title="Registros de auditoria (IP)"
-            aside={<Duration>5 anos</Duration>}
-          />
-          <PrivacyItem
-            icon={MessageSquare}
-            title="Mensagens"
-            aside={<Duration>Até quem enviou apagar</Duration>}
-          />
-          <PrivacyItem
-            icon={Flag}
             title="Cópia da mensagem denunciada"
             aside={<Duration>Até a denúncia ser avaliada</Duration>}
           />
-          <PrivacyItem
-            icon={Handshake}
-            title="Amigos e bloqueios"
-            aside={<Duration>Até você desfazer</Duration>}
-          >
+          <PrivacyItem title="Amigos e bloqueios" aside={<Duration>Até você desfazer</Duration>}>
             Ou até excluir a conta.
           </PrivacyItem>
-          <PrivacyItem icon={Hand} title="Pedidos de entrada" aside={<Duration>7 dias</Duration>} />
-          <PrivacyItem icon={Ban} title="Remoções de chamada" aside={<Duration>7 dias</Duration>} />
-          <PrivacyItem
-            icon={Hourglass}
-            title="Nome nas participações"
-            aside={<Duration>12 meses</Duration>}
-          >
+          <PrivacyItem title="Pedidos de entrada" aside={<Duration>7 dias</Duration>} />
+          <PrivacyItem title="Remoções de chamada" aside={<Duration>7 dias</Duration>} />
+          <PrivacyItem title="Nome nas participações" aside={<Duration>12 meses</Duration>}>
             Depois disso, anonimizado.
           </PrivacyItem>
         </PrivacyList>
@@ -180,9 +144,9 @@ function RightsSection() {
       id="seus-direitos"
       index={5}
       title="Seus direitos"
-      description="Em Minha conta você baixa todos os seus dados e exclui a conta."
+      description="Em Configurações você baixa todos os seus dados e exclui a conta."
     >
-      <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <div className="panel rounded-2xl p-5 sm:p-6">
         <div className="grid gap-3 sm:grid-cols-2">
           <RightsLink
             to="/conta#privacidade"
@@ -220,7 +184,7 @@ export default function PrivacyPage() {
             <ShieldCheck className="size-4.5 text-brand-soft" aria-hidden="true" />
             LGPD · Marco Civil da Internet
           </span>
-          <h1 className="mt-5 text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-4xl">
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
             Aviso de privacidade
           </h1>
           <p className="mt-3 text-base leading-relaxed text-pretty text-ink-muted sm:text-lg">
@@ -230,7 +194,7 @@ export default function PrivacyPage() {
 
         <ul aria-label="Resumo" className="mt-8 grid gap-3 sm:grid-cols-3">
           {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
-            <li key={title} className="rounded-2xl border border-line bg-surface p-5">
+            <li key={title} className="panel rounded-2xl p-5">
               <span className="grid size-10 place-items-center rounded-xl bg-brand/12 text-brand-soft">
                 <Icon className="size-5" aria-hidden="true" />
               </span>

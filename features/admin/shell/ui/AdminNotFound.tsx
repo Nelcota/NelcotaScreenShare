@@ -8,7 +8,7 @@ export default function AdminNotFound() {
       <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-surface-2">
         <SearchX className="size-5 text-brand-soft" aria-hidden="true" />
       </span>
-      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.025em]">Não encontrado</h1>
+      <h1 className="mt-5 text-2xl font-semibold tracking-tight">Não encontrado</h1>
       <p className="mt-2 text-ink-muted">Este item não existe ou foi removido.</p>
       <Button asChild className="mt-6">
         <Link viewTransition to="/admin">

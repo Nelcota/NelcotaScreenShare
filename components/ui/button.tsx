@@ -1,21 +1,31 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
+import { Loader2 } from "lucide-react";
 import { Slot } from "radix-ui";
 
+/** `outline` and `secondary` are one look; both names stay, the classes live once. */
+const NEUTRAL = "bg-ink/9 text-ink hover:bg-ink/14 disabled:bg-disabled aria-expanded:bg-ink/14";
+
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium tracking-[-0.01em] whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-(--motion-feedback) ease-out-smooth outline-none select-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand/55 active:not-disabled:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 motion-reduce:transition-none motion-reduce:active:scale-100 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding text-sm font-medium tracking-[-0.01em] whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-(--motion-feedback) ease-out-smooth outline-none select-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand/55 focus-visible:outline-solid active:not-disabled:scale-[0.97] disabled:pointer-events-none disabled:text-disabled-ink aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 motion-reduce:transition-none motion-reduce:active:scale-100 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-brand text-brand-ink hover:bg-brand-hover",
-        outline: "bg-ink/9 text-ink hover:bg-ink/14 aria-expanded:bg-ink/14",
-        secondary: "bg-ink/9 text-ink hover:bg-ink/14 aria-expanded:bg-ink/14",
+        default: "bg-brand text-brand-ink hover:bg-brand-hover disabled:bg-disabled",
+        outline: NEUTRAL,
+        secondary: NEUTRAL,
+        /** Green outline that fills on hover, focus or while its menu/dialog is open. */
+        "brand-outline":
+          "border-brand-soft/70 text-brand-soft hover:border-brand hover:bg-brand hover:text-brand-ink focus-visible:border-brand focus-visible:bg-brand focus-visible:text-brand-ink disabled:border-line disabled:bg-disabled aria-expanded:border-brand aria-expanded:bg-brand aria-expanded:text-brand-ink",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-muted hover:text-foreground disabled:bg-disabled aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        /** The app's discreet icon button: muted at rest, surface-3 on hover. */
+        quiet:
+          "text-ink-muted hover:bg-surface-3 hover:text-ink aria-expanded:bg-surface-3 aria-expanded:text-ink aria-pressed:bg-surface-3 aria-pressed:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:bg-disabled dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+        link: "text-primary underline-offset-4 hover:underline disabled:no-underline",
       },
       size: {
         default:
@@ -36,17 +46,26 @@ const buttonVariants = cva(
   },
 );
 
+/**
+ * `loading` disables the button, marks it `aria-busy` and puts the spinner before the label.
+ * With `asChild` the child is rendered as is (Slot takes a single element).
+ */
 function Button({
   className,
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    loading?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : "button";
+  const spinner = loading ? <Loader2 className="animate-spin" aria-hidden="true" /> : null;
 
   return (
     <Comp
@@ -54,8 +73,19 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {spinner}
+          {children}
+        </>
+      )}
+    </Comp>
   );
 }
 

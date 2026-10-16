@@ -27,7 +27,7 @@ export function PrivacySection({
         <p className="text-xs font-medium text-ink-subtle tabular-nums">
           {String(index).padStart(2, "0")}
         </p>
-        <h2 id={headingId} className="mt-1 text-xl font-semibold tracking-[-0.025em]">
+        <h2 id={headingId} className="mt-1 text-xl font-semibold tracking-tight">
           {title}
         </h2>
         {description ? (
@@ -41,30 +41,28 @@ export function PrivacySection({
 
 /** Card with rows separated by dividers, following the /conta pattern. */
 export function PrivacyList({ children }: { children: ReactNode }) {
-  return (
-    <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
-      {children}
-    </ul>
-  );
+  return <ul className="panel divide-y divide-line overflow-hidden rounded-2xl">{children}</ul>;
 }
 
-/** Row with an icon on the left; `aside` shows a highlight on the right (e.g. a period). */
+/** Row with an optional icon on the left; `aside` shows a highlight on the right (e.g. a period). */
 export function PrivacyItem({
   icon: Icon,
   title,
   aside,
   children,
 }: {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: ReactNode;
   aside?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <li className="flex gap-4 px-5 py-4 sm:px-6 sm:py-5">
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-muted">
-        <Icon className="size-4.5" aria-hidden="true" />
-      </span>
+      {Icon ? (
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-muted">
+          <Icon className="size-4.5" aria-hidden="true" />
+        </span>
+      ) : null}
       <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
           <h3 className="text-sm font-medium">{title}</h3>

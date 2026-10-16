@@ -7,8 +7,11 @@
 
 - **One registry.** `room_definitions` holds every room. Migration 0021 moves each `room_codes` code over as an `ad_hoc` room. The owner is the `room_roles` owner, or else the creator. `room_codes` is dropped. `room_roles`, `room_settings` and `room_join_requests` point at `room_definitions.code`, because codes are never rewritten or reused. `owner_user_id` always matches the `room_roles` owner, and "Sala de <dono>" is derived from it.
 - **Roles decide the host.** Owner and moderators are saved per room and outlive a call. When a session starts, or its host goes missing, the host is the owner if present, else the oldest moderator present, else the account ADR 0006 elects.
+  - A personal room has no `room_roles` row for its owner: its `owner_user_id` counts as the owner when roles are read (`roomRoleOf`, `savedRolesIn`). The owner comes first in the election and takes the host back on return, as in any other room.
 - **Moderator = co-host.** A moderator may lock, remove and choose who shares. Only the host or the owner may transfer or close. ADR 0006 has a single host; this is the only rule added to it.
 - **"Transferir a sala"** makes the target the owner, and the former owner stays a moderator, in one transaction. The new owner then takes the host role as soon as they are admitted. A host transfer given by the owner also moves the room. Otherwise the owner, still present, would take the host back at once. A host who is not the owner transfers only the host role, as in ADR 0006.
+  - A permanent room is never handed over in a call: it counts toward the plan of the account or team that created it. "Transferir a sala" is refused (and hidden on the card). The owner's host transfer passes only the host: `room_sessions.host_given_at` (migration 0039) records it, and the owner takes the host back only after joining again, or in the election once the new host leaves. The owner still makes and unmakes moderators, removes and bans.
+  - A team room has no room owner. The team's owner and managers can always host (`memberCanHost` opens it to members), and the host runs the call as in ADR 0006. Nobody makes moderators there; team roles are managed on the team's page.
 - **Closing a call.** "Encerrar" ends the current session. A room with an owner in `room_roles` stays usable for the next call. Only an `ad_hoc` room with no owner closes its definition, as before.
 - **Kick versus ban.** "Expulsar" drops the person from the call, and they may come back. "Banir desta chamada" keeps them out until the call ends.
   - With `ROOM_HOST_CONTROLS_ENABLED` on, banning is the session removal of ADR 0006 (`room_session_members.excluded_at` and who did it). The signaling relay enforces it on every handshake.
@@ -33,6 +36,7 @@ What changes:
 - Closing keeps a room that has an owner.
 - Transfer also changes the owner.
 - The relay signs the saved room role into the upstream token, and sync commands publish it.
+- Sync keeps the camera with the microphone.
 
 ## Consequences
 

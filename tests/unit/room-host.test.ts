@@ -44,6 +44,14 @@ test("the owner in the call takes the host over; otherwise the host stays", () =
   expect(ownerTakingOver("bia", [guest])).toBeUndefined();
 });
 
+test("an owner who handed the host over takes it back only after joining again", () => {
+  const owner = { identity: "ana", role: "owner" as const, joinedAt: 2n };
+  const guest = { identity: "bia", role: "participant" as const, joinedAt: 1n };
+  const givenAt = new Date(10_500);
+  expect(ownerTakingOver("bia", [guest, owner], givenAt)).toBeUndefined();
+  expect(ownerTakingOver("bia", [guest, { ...owner, joinedAt: 11n }], givenAt)).toBe("ana");
+});
+
 test("ending the call closes only an ad hoc room nobody owns", () => {
   expect(closeEndsRoom({ kind: "ad_hoc", hasOwner: false })).toBe(true);
   expect(closeEndsRoom({ kind: "ad_hoc", hasOwner: true })).toBe(false);

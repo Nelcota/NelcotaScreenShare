@@ -1,5 +1,5 @@
 import type { Participant } from "livekit-client";
-import { MoreHorizontal } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -53,7 +53,7 @@ export function HostParticipantMenu({ participant }: { participant: Participant 
           aria-label={`Moderar ${name}`}
           className="glass relative z-10 grid size-8 shrink-0 place-items-center rounded-full text-ink-muted disabled:opacity-50"
         >
-          <MoreHorizontal className="size-4" aria-hidden="true" />
+          <Ellipsis className="size-4" aria-hidden="true" />
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content

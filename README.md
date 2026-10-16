@@ -53,17 +53,24 @@ Self-hosted, with LiveKit and React Router.
 | Key | Action                                     |
 | --- | ------------------------------------------ |
 | `M` | Toggles the microphone                     |
-| `S` | Opens the share menu (or stops sharing)    |
+| `V` | Toggles the camera                         |
+| `S` | Opens the share menu                       |
 | `F` | Full screen on the stage                   |
 | `J` | Someone else's screen in a floating window |
 | `P` | Point at someone else's screen             |
 | `H` | Raise or lower your hand                   |
 | `C` | Opens and closes the chat                  |
 | `E` | Leave the room (asks for confirmation)     |
+| `?` | Shows the shortcuts help                   |
 
 Shortcuts don't fire while you are typing in the chat or another field.
 
-Before gaming, turn off **Atalhos na sala** in the room's **Mais opções** menu.
+To change a key, click it in the **Atalhos de teclado** dialog and press the new one.
+Only a single letter or digit is accepted: combinations with Ctrl, Alt or Cmd, function keys
+and keys already in use are refused. The choice is saved in the browser. `E` and `?` are fixed.
+
+Before gaming, turn off **Atalhos na sala** in the room's **Atalhos de teclado** dialog
+(the `?` button in the top bar).
 Call buttons keep working, and the choice lasts for the current call.
 
 ## Quick start

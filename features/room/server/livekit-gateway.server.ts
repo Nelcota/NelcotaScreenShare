@@ -7,9 +7,10 @@ import { roomService } from "./room-service.server";
 
 const TOKEN_TTL = "10m";
 
-/** The app only uses microphone and screen: the token does not allow publishing a camera. */
+/** Microphone, camera and screen: nothing else can be published with the token. */
 const PUBLISH_SOURCES = [
   TrackSource.MICROPHONE,
+  TrackSource.CAMERA,
   TrackSource.SCREEN_SHARE,
   TrackSource.SCREEN_SHARE_AUDIO,
 ];
@@ -64,7 +65,8 @@ export const liveKitGateway: LiveKitGateway = {
       room,
       roomJoin: true,
       canPublish: true,
-      canPublishSources: canShare ? PUBLISH_SOURCES : [TrackSource.MICROPHONE],
+      // Without screen sharing the camera stays: only the screen sources go.
+      canPublishSources: canShare ? PUBLISH_SOURCES : [TrackSource.MICROPHONE, TrackSource.CAMERA],
       canSubscribe: true,
       // Chat, reactions and pointer use the data channel.
       canPublishData: true,

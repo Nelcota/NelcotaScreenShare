@@ -1,12 +1,17 @@
 import { TZDate } from "@date-fns/tz";
 
 /** pt-BR formatting, always in the São Paulo time zone (docs/archive/admin-plan.md §6). */
-const TIME_ZONE = "America/Sao_Paulo";
+export const TIME_ZONE = "America/Sao_Paulo";
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", {
   timeZone: TIME_ZONE,
   dateStyle: "short",
   timeStyle: "short",
+});
+const monthYear = new Intl.DateTimeFormat("pt-BR", {
+  month: "long",
+  year: "numeric",
+  timeZone: TIME_ZONE,
 });
 const relative = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
 const number = new Intl.NumberFormat("pt-BR");
@@ -23,6 +28,13 @@ export function formatDateTime(value: Date | string | number): string {
   const time = validTime(value);
   if (time === undefined) return INVALID_DATE;
   return dateTime.format(time);
+}
+
+/** "outubro de 2026": since when someone is a friend or a member. */
+export function formatMonthYear(value: Date | string | number): string {
+  const time = validTime(value);
+  if (time === undefined) return INVALID_DATE;
+  return monthYear.format(time);
 }
 
 export function formatNumber(value: number): string {

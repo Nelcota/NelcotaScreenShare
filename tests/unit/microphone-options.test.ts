@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { microphoneLabel, microphoneOptions } from "@/features/room/domain/microphone-options";
+import {
+  hasMicrophoneChoice,
+  microphoneLabel,
+  microphoneOptions,
+  roomMicrophoneOptions,
+} from "@/features/room/domain/microphone-options";
 
 test("each device appears once, with default and communications as badges", () => {
   const options = microphoneOptions([
@@ -32,4 +37,18 @@ test("when the default device is unknown, it gets its own option", () => {
   expect(microphoneOptions([])).toEqual([
     { value: "", aliases: [], label: "Padrão do sistema", badges: ["Padrão"], kind: "system" },
   ]);
+});
+
+test("the room picker only appears when there is more than one choice", () => {
+  const single = roomMicrophoneOptions([{ deviceId: "fifine-id", label: "fifine Microphone" }]);
+  expect(single.map((option) => option.value)).toEqual(["fifine-id"]);
+  expect(hasMicrophoneChoice(single)).toBe(false);
+
+  const several = roomMicrophoneOptions([
+    { deviceId: "default", label: "Default - fifine Microphone" },
+    { deviceId: "fifine-id", label: "fifine Microphone" },
+    { deviceId: "headset-id", label: "Headset (Space Travel 2)" },
+  ]);
+  expect(several.map((option) => option.value)).toEqual(["", "headset-id"]);
+  expect(hasMicrophoneChoice(several)).toBe(true);
 });

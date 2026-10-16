@@ -6,10 +6,14 @@ import {
   loadRoomHistory,
 } from "@/features/rooms/server/workspace-loader.server";
 import { RoomHistory } from "@/features/rooms/ui/RoomHistory";
+import { skipClientOnlyChanges } from "@/app/revalidation";
 export const meta = () => [
   { title: "Histórico da sala · Nelcota" },
   { name: "robots", content: "noindex" },
 ];
+/** The room filter and ?atendeu are read in the browser: changing them reloads nothing. */
+export const shouldRevalidate = skipClientOnlyChanges;
+
 export const loader = routeLoader(async ({ params, searchParams }) => {
   const roomId = workspaceId(params.id);
   const current = await workspaceUser(`/salas/${roomId}`);

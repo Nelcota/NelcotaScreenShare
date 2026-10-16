@@ -19,3 +19,9 @@ test("separator, quotes, line breaks and types", () => {
   assert.equal(csvCell({ a: 1 }), '"{""a"":1}"');
   assert.equal(csvRow(["a", 1, null]), "a;1;\r\n");
 });
+
+test("a comma stays inside the cell when the spreadsheet splits on commas", () => {
+  // Opened with "," as separator (en-US), "x,=1+2" would become two cells and run "=1+2".
+  assert.equal(csvCell("x,=1+2"), '"x,=1+2"');
+  assert.equal(csvRow(["Ana", "x,=HYPERLINK(1)"]), 'Ana;"x,=HYPERLINK(1)"\r\n');
+});

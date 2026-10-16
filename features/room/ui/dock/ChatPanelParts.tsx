@@ -1,9 +1,10 @@
-import { ArrowDown, EyeOff, MessagesSquare, X } from "lucide-react";
+import { ArrowDown, Hourglass, MessagesSquare, X } from "lucide-react";
 import type { RefObject } from "react";
 import { chatGroupStarts } from "@/features/room/domain/chat-format";
 import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
 import { ChatMessage } from "./ChatMessage";
 import { copyText } from "@/lib/clipboard";
+import { Button } from "@/components/ui/button";
 
 async function copyMessage(text: string) {
   await copyText(text, {
@@ -17,20 +18,22 @@ export function ChatHeader({ onClose }: { onClose: () => void }) {
   return (
     <header className="flex items-center justify-between gap-3 border-b border-line py-3 pr-2 pl-4">
       <div className="min-w-0">
-        <h2 className="text-base font-semibold tracking-[-0.025em]">Chat da sala</h2>
+        <h2 className="text-base font-semibold tracking-tight">Chat da sala</h2>
         <p className="flex items-center gap-1.5 text-xs text-ink-subtle">
-          <EyeOff className="size-3.5 shrink-0" aria-hidden="true" />
+          <Hourglass className="size-3.5 shrink-0" aria-hidden="true" />
           Some quando a sala acaba
         </p>
       </div>
-      <button
+      <Button
         type="button"
+        variant="quiet"
+        size="icon-lg"
         onClick={onClose}
         aria-label="Fechar chat"
-        className="grid size-10 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:bg-surface-3 focus-visible:outline-none active:scale-95"
+        className="size-10"
       >
         <X className="size-5" aria-hidden="true" />
-      </button>
+      </Button>
     </header>
   );
 }

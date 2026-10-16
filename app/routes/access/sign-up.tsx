@@ -8,7 +8,7 @@ import { useLoaderData } from "react-router";
 import { redirect } from "@/server/http.server";
 import { SignUpForm } from "@/features/auth/ui/SignUpForm";
 import { accessContext } from "@/features/auth/domain/access-context";
-import { safeReturnPath } from "@/features/auth/domain/return-path";
+import { APP_START, safeReturnPath } from "@/features/auth/domain/return-path";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
 import { getEnv } from "@/server/env.server";
 
@@ -16,7 +16,7 @@ export const meta = () => [{ title: "Criar conta · Nelcota" }];
 
 export const loader = routeLoader(async ({ searchParams }) => {
   const { voltar } = searchParams;
-  const returnTo = safeReturnPath(voltar);
+  const returnTo = safeReturnPath(voltar, APP_START);
   if (await getUserSession()) redirect(returnTo);
 
   const verificationRequired = getEnv().REQUIRE_EMAIL_VERIFICATION;
@@ -29,7 +29,7 @@ export const action = routeAction(({ request, searchParams }) =>
     request,
     { handle: handleParticipantAuth, basePath: USER_AUTH_BASE_PATH },
     {
-      returnTo: safeReturnPath(searchParams.voltar),
+      returnTo: safeReturnPath(searchParams.voltar, APP_START),
       verificationRequired: getEnv().REQUIRE_EMAIL_VERIFICATION,
     },
   ),

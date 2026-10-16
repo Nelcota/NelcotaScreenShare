@@ -2,12 +2,14 @@ import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { useLocalParticipant, useParticipantAttribute } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useId, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
+import { UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { removeFromCall } from "@/features/room/client/api";
 import { canModerate } from "@/features/room/domain/moderation";
 import { parseRoomRole, ROLE_ATTRIBUTE } from "@/features/room/domain/room-role";
+import { CardMenuItem } from "./CardMenuItem";
 import { useRoomHost } from "./RoomHostProvider";
 
 /** Whether I may remove this person: the owner removes anyone, a moderator participants. */
@@ -53,25 +55,24 @@ export function CardModeration({
       toast.error(result.message);
       return;
     }
-    toast.success(`${name} saiu da sala.`);
+    const guestBan = ban && isGuestIdentity(participant.identity);
+    toast.success(
+      guestBan
+        ? `${name} saiu da sala. Novos convidados agora pedem para entrar.`
+        : `${name} saiu da sala.`,
+    );
     onRemoved();
   }
 
   if (!confirming) {
     return (
-      <div className="border-t border-line pt-3">
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="flex h-10 w-full items-center justify-center rounded-xl text-base font-medium text-danger transition-colors hover:bg-danger/10"
-        >
-          Expulsar da sala
-        </button>
-      </div>
+      <CardMenuItem icon={<UserX />} danger onClick={() => setConfirming(true)}>
+        Expulsar
+      </CardMenuItem>
     );
   }
   return (
-    <div role="alertdialog" aria-label={`Expulsar ${name}?`} className="border-t border-line pt-3">
+    <div role="alertdialog" aria-label={`Expulsar ${name}?`} className="px-1 pt-1">
       <p className="text-base font-medium">Expulsar {name}?</p>
       <p className="mt-1 text-sm text-ink-muted">A pessoa sai da chamada agora.</p>
       <label htmlFor={banId} className="mt-3 flex items-center gap-2 text-sm">
@@ -80,7 +81,7 @@ export function CardModeration({
       </label>
       {ban && isGuestIdentity(participant.identity) ? (
         <p className="mt-2 text-sm text-ink-muted">
-          Sem conta, a pessoa ainda pode voltar por uma janela anônima.
+          Depois disso, novos convidados pedem para entrar nesta chamada.
         </p>
       ) : null}
       <div className="mt-4 flex justify-end gap-2">

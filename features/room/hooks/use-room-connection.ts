@@ -1,8 +1,9 @@
 import { controlledDisconnectNotice } from "@/features/room/client/disconnect-notice";
 import { useSequentialRoomConnectDisconnect } from "@livekit/components-react";
-import { DisconnectReason, Room, RoomEvent } from "livekit-client";
+import { DisconnectReason, Room, RoomEvent, VideoPresets } from "livekit-client";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
+import { savedAudioProcessing, savedCamera, savedOutput } from "@/features/room/client/saved-media";
 import {
   connectErrorMessage,
   disconnectMessage,
@@ -24,18 +25,25 @@ export function useRoomConnection(
   code: string,
   /** No notice: the person left on purpose. */
   onLeave: (notice?: LeaveNotice) => void,
-): { room: Room; connectError: string | undefined; leave: () => void } {
+): {
+  room: Room;
+  connectError: string | undefined;
+  /** No notice: the person left on purpose. */
+  leave: (notice?: LeaveNotice) => void;
+} {
   const [room] = useState(
     () =>
       new Room({
         adaptiveStream: true,
         dynacast: true,
-        audioCaptureDefaults: {
-          deviceId: choices.audioDeviceId,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+        // Light next to a shared screen; simulcast sends smaller layers to small tiles.
+        videoCaptureDefaults: {
+          resolution: VideoPresets.h360.resolution,
+          deviceId: savedCamera(),
         },
+        // Choices from "Áudio e vídeo" in the account (this browser).
+        audioCaptureDefaults: { deviceId: choices.audioDeviceId, ...savedAudioProcessing() },
+        audioOutput: { deviceId: savedOutput() },
       }),
   );
   const { connect, disconnect } = useSequentialRoomConnectDisconnect(room);
@@ -61,7 +69,7 @@ export function useRoomConnection(
     let cancelled = false;
     // Until connect() finishes, the catch below handles failure: the SDK
     // also emits Disconnected when the connection never opens, and that
-    // would lead to the "Você saiu da sala" screen instead of "Tentar de novo".
+    // would lead to the "Você saiu da chamada" screen instead of "Tentar de novo".
     let connected = false;
 
     const handleDisconnected = (reason?: DisconnectReason) => {
@@ -82,7 +90,8 @@ export function useRoomConnection(
     const run = async () => {
       setConnectError(undefined);
       try {
-        await connect(choices.serverUrl, choices.token);
+        // Screens come only when the person chooses to watch (ScreenWatchProvider).
+        await connect(choices.serverUrl, choices.token, { autoSubscribe: false });
         if (cancelled) return;
         connected = true;
         if (choices.micEnabled) {
@@ -111,14 +120,14 @@ export function useRoomConnection(
     };
   }, [room, connect, disconnect, choices]);
 
-  function leave() {
+  function leave(notice?: LeaveNotice) {
     leavingRef.current = true;
-    void disconnectAndLeave();
+    void disconnectAndLeave(notice);
   }
 
-  async function disconnectAndLeave() {
+  async function disconnectAndLeave(notice?: LeaveNotice) {
     await runAndReport(disconnect);
-    onLeave();
+    onLeave(notice);
   }
 
   return { room, connectError, leave };

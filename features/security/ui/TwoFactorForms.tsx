@@ -1,10 +1,8 @@
-import { Loader2 } from "lucide-react";
-
 import type { FormEvent } from "react";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/Field";
 
 /** Feedback shared by every 2FA form: one error message and one pending request. */
 export type TwoFactorFormState = {
@@ -98,8 +96,7 @@ export function EnableTwoFactorForm({
         errorId={state.errorId}
       />
       <FormError id={state.errorId} message={state.error} />
-      <Button type="submit" disabled={state.pending} className="self-start">
-        {state.pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+      <Button type="submit" loading={state.pending} className="self-start">
         Ativar verificação
       </Button>
     </form>
@@ -116,16 +113,14 @@ function PasswordField({
   errorId: string;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>Confirme sua senha</Label>
+    <Field id={id} label="Confirme sua senha">
       <PasswordInput
-        id={id}
         name="password"
         autoComplete="current-password"
         required
         aria-invalid={invalid}
         aria-describedby={errorId}
       />
-    </div>
+    </Field>
   );
 }

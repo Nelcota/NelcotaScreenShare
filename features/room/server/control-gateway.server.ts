@@ -31,16 +31,24 @@ export const controlGateway = {
   /** Applies the session's current permissions and the room's saved roles to everyone in it. */
   async sync(session: ControlSession, roles: ReadonlyMap<string, RoomRole> = new Map()) {
     const participants = await this.participants(session.mediaRoomName);
-    for (const participant of participants) {
+    // In parallel: this runs under the room's lock, so a slow LiveKit costs one request's
+    // wait instead of one per person in the call.
+    const updates = participants.map(async (participant) => {
       const permitted = mayShareScreen(
         participant.identity,
         session.hostUserId,
         session.sharePolicy,
         session.allowedSharers,
       );
+      // The camera stays with the microphone: the policy only covers screen sharing.
       const sources = permitted
-        ? [TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
-        : [TrackSource.MICROPHONE];
+        ? [
+            TrackSource.MICROPHONE,
+            TrackSource.CAMERA,
+            TrackSource.SCREEN_SHARE,
+            TrackSource.SCREEN_SHARE_AUDIO,
+          ]
+        : [TrackSource.MICROPHONE, TrackSource.CAMERA];
       // LiveKit SetPermission removes already published tracks of revoked sources.
       try {
         await roomService().updateParticipant(session.mediaRoomName, participant.identity, {
@@ -55,6 +63,11 @@ export const controlGateway = {
       } catch (error) {
         if (!(error instanceof ServerError && error.status === 404)) throw error;
       }
-    }
+    });
+    // Every update finishes (or fails) before the command reports back, as in the old loop.
+    const failure = (await Promise.allSettled(updates)).find(
+      (result) => result.status === "rejected",
+    );
+    if (failure) throw failure.reason;
   },
 };

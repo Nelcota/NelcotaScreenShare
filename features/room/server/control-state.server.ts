@@ -1,4 +1,5 @@
 import { canHostDefinition } from "@/features/rooms/server/room-access.server";
+import { createRateLimiter } from "@/server/rate-limit.server";
 import { and, eq, ne } from "drizzle-orm";
 import type { Database } from "@/server/db/index.server";
 import { getDb } from "@/server/db/index.server";
@@ -70,6 +71,9 @@ export async function readControlState(
   });
 }
 
+/** Each read takes the room's lock: three times what the call polls (every 2 s). */
+const readLimiter = createRateLimiter({ limit: 120, windowMs: 60_000 });
+
 export async function requestControlState(request: Request) {
   if (!getEnv().ROOM_HOST_CONTROLS_ENABLED) return new Response(null, { status: 404 });
   const input = roomControlInputSchema.safeParse(
@@ -78,6 +82,7 @@ export async function requestControlState(request: Request) {
   if (!input.success) return new Response(null, { status: 400 });
   const caller = await roomCaller(request);
   if (!caller) return new Response(null, { status: 401 });
+  if (!readLimiter.hit(caller.identity).ok) return new Response(null, { status: 429 });
   const state = await readControlState(
     getDb(),
     input.data.room,

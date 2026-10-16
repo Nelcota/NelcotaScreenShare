@@ -1,12 +1,15 @@
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { isPlainWebp, profilePhotoSchema } from "@/features/account/domain/profile-photo";
+import { displayNameSchema } from "@/features/room/domain/participant-label";
 import { recordAudit } from "@/server/audit.server";
 import { clientIpFrom } from "@/server/client-ip.server";
 import type { Database } from "@/server/db/index.server";
 import { users } from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import { enforceEmailPolicy } from "./email-policy.server";
+import { recordAdminLockout } from "./lockout-audit.server";
+import { requireSecondFactorEverySignIn } from "./trusted-device.server";
 import {
   checkLockout,
   clearFailures,
@@ -30,6 +33,37 @@ export const AUTH_RATE_LIMIT_RULES = {
 };
 /** Sign-in completed by the second factor (TOTP or backup code). */
 const TWO_FACTOR_SIGN_IN = new Set(["/two-factor/verify-totp", "/two-factor/verify-backup-code"]);
+
+/**
+ * Signed-in routes that check the password: wrong guesses count toward the same account
+ * lockout as sign-in, so a stolen session cannot try passwords one IP after another.
+ */
+const PASSWORD_CHECKS = new Set([
+  "/change-password",
+  "/two-factor/enable",
+  "/two-factor/disable",
+  "/two-factor/generate-backup-codes",
+  "/two-factor/get-totp-uri",
+]);
+
+type AuthContext = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0];
+
+/** The e-mail whose lockout applies: typed at sign-in, the session's on the other routes. */
+async function lockoutEmail(ctx: AuthContext): Promise<string | null> {
+  if (ctx.path === SIGN_IN_PATH) return stringField(ctx.body, "email") ?? "";
+  if (!PASSWORD_CHECKS.has(ctx.path)) return null;
+  const session = await getSessionFromCtx(ctx);
+  return session?.user.email ?? null;
+}
+
+function wrongPassword(returned: unknown, path: string): boolean {
+  if (!(returned instanceof APIError)) return false;
+  if (path === SIGN_IN_PATH) return returned.statusCode === 401;
+  const body: unknown = returned.body;
+  return (
+    typeof body === "object" && body !== null && Reflect.get(body, "code") === "INVALID_PASSWORD"
+  );
+}
 
 function lockedMessage(seconds: number): string {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
@@ -80,6 +114,30 @@ async function validatePasswordReset(
   }
 }
 
+/**
+ * A wrong password counts toward the lockout. In the panel, the failure that starts a
+ * lockout is audited once (only for a real admin); the others stay in `login_failures`.
+ */
+async function countWrongPassword(
+  db: Database,
+  {
+    scope,
+    hash,
+    email,
+    ip,
+    audit,
+  }: { scope: AuthScope; hash: string; email: string; ip?: string; audit: boolean },
+) {
+  await recordFailure(db, { scope, hash, ip });
+  logger.warn({ event: `${scope}.sign_in_failed` }, "sign-in refused");
+  if (!audit) return;
+  const status = await checkLockout(db, { scope, hash, ip });
+  if (!status.locked) return;
+  await safeAudit(() =>
+    recordAdminLockout(db, { email, hash, retryAfterSeconds: status.retryAfterSeconds }),
+  );
+}
+
 /** Auditing never breaks sign-in: a failure becomes a log entry. */
 async function safeAudit(audit: () => Promise<void>) {
   try {
@@ -87,6 +145,34 @@ async function safeAudit(audit: () => Promise<void>) {
   } catch (error) {
     logger.error({ err: error }, "failed to write authentication audit");
   }
+}
+
+/** A wrong password on a signed-in route counts toward the session account's lockout. */
+async function countWrongPasswordSignedIn(
+  ctx: AuthContext,
+  { db, secret, scope, audit }: { db: Database; secret: string; scope: AuthScope; audit: boolean },
+) {
+  if (!PASSWORD_CHECKS.has(ctx.path) || !wrongPassword(ctx.context.returned, ctx.path)) return;
+  const email = await lockoutEmail(ctx);
+  if (!email) return;
+  const ip = ctx.headers ? clientIpFrom(ctx.headers) : undefined;
+  await countWrongPassword(db, { scope, hash: emailHash(secret, scope, email), email, ip, audit });
+}
+
+/**
+ * The account name goes through the same rules as the screens (1 to 32 characters, no
+ * invisible ones), so a direct call cannot store a disguised name or hit the database check.
+ */
+function cleanName(body: unknown) {
+  if (typeof body !== "object" || body === null || !Reflect.has(body, "name")) return;
+  const parsed = displayNameSchema.safeParse(Reflect.get(body, "name"));
+  if (!parsed.success) {
+    throw new APIError("BAD_REQUEST", {
+      code: "INVALID_NAME",
+      message: parsed.error.issues[0]?.message ?? "Confira o nome.",
+    });
+  }
+  Reflect.set(body, "name", parsed.data);
 }
 
 /**
@@ -101,10 +187,12 @@ export function authHooks(
 ) {
   return {
     before: createAuthMiddleware(async (ctx) => {
+      if (scope === "admin") await requireSecondFactorEverySignIn(db, ctx.path, ctx.body);
       if (scope === "user") {
         await enforceEmailPolicy(ctx, secret, FRESH_SESSION_SECONDS);
         if (ctx.path === "/update-user" || ctx.path === "/sign-up/email") {
           validateProfilePhoto(ctx.body);
+          cleanName(ctx.body);
         }
         if (ctx.path === "/reset-password") {
           await validatePasswordReset(
@@ -114,23 +202,17 @@ export function authHooks(
           );
         }
       }
-      if (ctx.path !== SIGN_IN_PATH) return;
-      const hash = emailHash(secret, scope, stringField(ctx.body, "email") ?? "");
+      const email = await lockoutEmail(ctx);
+      if (email === null) return;
+      const hash = emailHash(secret, scope, email);
       const status = await checkLockout(db, {
         scope,
         hash,
         ip: ctx.headers ? clientIpFrom(ctx.headers) : undefined,
       });
       if (status.locked) {
-        if (audit) {
-          await safeAudit(() =>
-            recordAudit(db, "system", {
-              action: "auth.lockout",
-              resourceType: "admin_user",
-              metadata: { email_hash: hash.slice(0, 16) },
-            }),
-          );
-        }
+        // Attempts while locked only reach the log: the lockout itself was audited once.
+        logger.warn({ event: `${scope}.sign_in_locked` }, "sign-in while locked");
         throw new APIError("TOO_MANY_REQUESTS", {
           code: "SIGN_IN_LOCKED",
           message: lockedMessage(status.retryAfterSeconds),
@@ -160,27 +242,19 @@ export function authHooks(
         return;
       }
 
-      if (ctx.path !== SIGN_IN_PATH) return;
+      if (ctx.path !== SIGN_IN_PATH) {
+        return countWrongPasswordSignedIn(ctx, { db, secret, scope, audit });
+      }
       const hash = emailHash(secret, scope, stringField(ctx.body, "email") ?? "");
       if (failed) {
-        if (returned.statusCode === 401) {
-          await recordFailure(db, {
-            scope,
-            hash,
-            ip: ctx.headers ? clientIpFrom(ctx.headers) : undefined,
-          });
-          logger.warn({ event: `${scope}.sign_in_failed` }, "sign-in refused");
-          if (audit) {
-            await safeAudit(() =>
-              recordAudit(db, "system", {
-                action: "auth.sign_in_failed",
-                resourceType: "admin_user",
-                // Only part of the HMAC: groups attempts without storing the e-mail.
-                metadata: { email_hash: hash.slice(0, 16) },
-              }),
-            );
-          }
-        }
+        if (returned.statusCode !== 401) return;
+        await countWrongPassword(db, {
+          scope,
+          hash,
+          email: stringField(ctx.body, "email") ?? "",
+          ip: ctx.headers ? clientIpFrom(ctx.headers) : undefined,
+          audit,
+        });
         return;
       }
       await clearFailures(db, { scope, hash });

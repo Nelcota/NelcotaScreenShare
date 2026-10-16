@@ -5,7 +5,14 @@ import { pairActivity, type PairPhase } from "@/features/mascot/domain/pair";
 import styles from "./MascotPair.module.css";
 
 /** Both cross the bar together; a single clock keeps the meeting in sync. */
-export function MascotPair({ pending }: { pending: boolean }) {
+export function MascotPair({
+  pending,
+  compact = false,
+}: {
+  pending: boolean;
+  /** Smaller pair for the start of the app, where the column takes part of the width. */
+  compact?: boolean;
+}) {
   const sceneRef = useRef<HTMLDivElement>(null);
   const [{ phase, suspended }, setPlayback] = useState<{ phase: PairPhase; suspended: boolean }>({
     phase: "rest",
@@ -39,6 +46,7 @@ export function MascotPair({ pending }: { pending: boolean }) {
       data-mascot-pair=""
       data-phase={phase}
       data-pending={pending}
+      data-compact={compact}
       className={styles.scene}
     >
       <div className={styles.visitor}>

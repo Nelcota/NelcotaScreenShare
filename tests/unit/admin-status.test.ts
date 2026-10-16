@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { summarizeEventError } from "@/features/admin/status/domain/event-error";
+import { mailHealth } from "@/features/admin/status/domain/mail-health";
 import {
   checkLiveKit,
   checkMailConfiguration,
@@ -66,4 +67,20 @@ test("a malformed sender shows as down without its value", () => {
     MAIL_FROM: "Nelcota sem email",
   });
   assert.deepEqual(broken, { state: "down", detail: "MAIL_FROM em formato inválido." });
+});
+
+test("e-mail set up right but whose last send failed is not shown as working", () => {
+  const configured = { state: "ok" as const, detail: "Enviando pelo Resend." };
+  const failed = mailHealth(configured, { status: "failed", createdAt: new Date() });
+  assert.equal(failed.state, "attention");
+  assert.match(failed.detail, /último envio não saiu/);
+  assert.deepEqual(
+    mailHealth(configured, { status: "accepted", createdAt: new Date() }),
+    configured,
+  );
+  // Nothing sent yet: the configuration is all there is to say.
+  assert.deepEqual(mailHealth(configured, null), configured);
+  // A missing setting wins over the last send.
+  const missing = { state: "down" as const, detail: "Falta MAIL_FROM." };
+  assert.deepEqual(mailHealth(missing, { status: "failed", createdAt: new Date() }), missing);
 });

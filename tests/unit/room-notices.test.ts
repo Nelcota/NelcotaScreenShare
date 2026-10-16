@@ -27,6 +27,15 @@ vi.mock("react", () => ({
   useEffect: (effect: () => (() => void) | undefined) => {
     capture.cleanup = effect();
   },
+  useEffectEvent: <T>(callback: T) => callback,
+}));
+const sounds = vi.hoisted(() => ({
+  peer: vi.fn<(sound: "peer-joined" | "peer-left") => Promise<void>>(),
+  deafened: false,
+}));
+vi.mock("@/features/room/audio/call-sounds", () => ({ playPeerSound: sounds.peer }));
+vi.mock("@/features/room/ui/dock/Deafen", () => ({
+  useDeafen: () => ({ deafened: sounds.deafened }),
 }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 
@@ -125,4 +134,20 @@ test("unmount removes all room notice listeners", () => {
   RoomNoticesHarness();
   capture.cleanup?.();
   expect(room.eventNames()).toEqual([]);
+});
+
+test("someone joining or leaving plays its sound, unless you stopped hearing the room", () => {
+  sounds.deafened = false;
+  RoomNoticesHarness();
+  room.state = ConnectionState.Connected;
+  room.emit(RoomEvent.ParticipantConnected, participant("bia"));
+  room.emit(RoomEvent.ParticipantDisconnected, participant("bia"));
+  expect(sounds.peer.mock.calls.map(([sound]) => sound)).toEqual(["peer-joined", "peer-left"]);
+
+  capture.cleanup?.();
+  sounds.peer.mockClear();
+  sounds.deafened = true;
+  RoomNoticesHarness();
+  room.emit(RoomEvent.ParticipantConnected, participant("caio"));
+  expect(sounds.peer).not.toHaveBeenCalled();
 });

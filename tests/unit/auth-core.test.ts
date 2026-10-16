@@ -72,6 +72,8 @@ describe("permission matrix (docs/archive/admin-plan.md §5.2)", () => {
       "roomInvite.revoke",
       "mail.read",
       "mail.test",
+      "report.read",
+      "report.resolve",
       "audit.read",
       "settings.read",
       "beta.read",

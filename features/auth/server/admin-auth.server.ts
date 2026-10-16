@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
+import { clearFailuresAfterReset } from "./lockout.server";
 import { isolatedTwoFactor } from "./two-factor-plugin.server";
 import { CLIENT_IP_HEADER } from "@/server/client-ip.server";
 import { getDb, type Database } from "@/server/db/index.server";
@@ -88,6 +89,7 @@ function createAdminAuth(db: Database, secret: string) {
       resetPasswordTokenExpiresIn: 30 * 60,
       revokeSessionsOnPasswordReset: true,
       onPasswordReset: async ({ user }) => {
+        await clearFailuresAfterReset(db, { secret, scope: "admin", email: user.email });
         await recordAudit(
           db,
           { adminId: user.id },

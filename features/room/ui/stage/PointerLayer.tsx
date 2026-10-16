@@ -7,7 +7,7 @@ import {
   type MouseEvent,
   type RefObject,
 } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { useVideoContentBox } from "@/features/room/hooks/use-video-content-box";
 import {
   createReceiveThrottle,

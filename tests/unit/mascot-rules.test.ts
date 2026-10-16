@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { EXPRESSIONS } from "@/features/mascot/domain/face";
 import { pairActivity } from "@/features/mascot/domain/pair";
 import {
+  allowsPlay,
   blinkLid,
   blocksPlay,
   canBlink,
@@ -79,6 +81,14 @@ describe("reaction to screen notices", () => {
     expect(reactionTo({ type: "doubt", active: true }).set?.expression).toBe("skeptical");
     expect(reactionTo({ type: "doubt", active: false }).unset).toBe("doubt");
     expect(reactionTo({ type: "nod" })).toEqual({ clear: [], motion: "nod", wave: "simple" });
+  });
+});
+
+describe("activities", () => {
+  it("a dropped call leaves it worried, with no play on top", () => {
+    expect(EXPRESSIONS).toHaveProperty("worried");
+    expect(blocksPlay("worried")).toBe(true);
+    expect(allowsPlay("worried")).toBe(false);
   });
 });
 

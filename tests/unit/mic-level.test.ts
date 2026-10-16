@@ -14,6 +14,10 @@ vi.mock("react", () => ({
   },
   useEffectEvent: (handler: unknown) => handler,
   useRef: (value: unknown) => ({ current: value }),
+  // Outside a browser the saved clean-up reads its server value: the defaults.
+  useSyncExternalStore: (_subscribe: unknown, _read: unknown, readServer: () => unknown) =>
+    readServer(),
+  useMemo: (create: () => unknown) => create(),
 }));
 
 vi.mock("@/features/room/client/microphone-preview", () => ({
@@ -227,4 +231,16 @@ test("a device enumeration failure also releases the analyser and microphone", a
   expect(events.onCheck).not.toHaveBeenCalledWith("waiting", "mic-a");
   expect(frames.size).toBe(0);
   cleanup?.();
+});
+
+test("the capture asks for the clean-up the call uses", async () => {
+  const { cleanup } = MicLevelHarness();
+  await vi.waitFor(() => expect(capture.createTrack).toHaveBeenCalled());
+  expect(capture.createTrack).toHaveBeenCalledWith({
+    deviceId: "mic-a",
+    noiseSuppression: true,
+    echoCancellation: true,
+    autoGainControl: true,
+  });
+  if (typeof cleanup === "function") cleanup();
 });

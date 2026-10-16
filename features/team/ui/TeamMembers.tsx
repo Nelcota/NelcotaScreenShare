@@ -5,6 +5,13 @@ import type { TeamCommand } from "../domain/commands";
 import type { TeamRole } from "../domain/team-policy";
 import { roleLabels } from "./TeamListPage";
 
+/** Leaving is always offered; the owner removes anyone, a manager only members. */
+function mayRemove(role: TeamRole, person: { id: string; role: TeamRole }, actor: string) {
+  if (person.role === "owner") return false;
+  if (person.id === actor || role === "owner") return true;
+  return role === "manager" && person.role === "member";
+}
+
 export function TeamMembers({
   teamId,
   actor,
@@ -26,7 +33,7 @@ export function TeamMembers({
     name: string;
   }>();
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+    <section className="panel flex flex-col gap-4 rounded-2xl p-5">
       <h2 className="text-xl font-semibold">Membros</h2>
       <p className="text-sm text-ink-muted">
         O dono administra o time e sua propriedade. Gestores cuidam de salas, convites e membros.
@@ -36,7 +43,7 @@ export function TeamMembers({
         {members.map((person) => (
           <li key={person.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
             <div className="min-w-0">
-              <p className="font-medium break-words">
+              <p className="font-medium wrap-anywhere">
                 {person.name}
                 {person.id === actor ? " (você)" : ""}
               </p>
@@ -72,7 +79,7 @@ export function TeamMembers({
                   </Button>
                 </>
               ) : null}
-              {person.role !== "owner" && (role !== "member" || person.id === actor) ? (
+              {mayRemove(role, person, actor) ? (
                 <Button
                   variant="ghost"
                   size="sm"

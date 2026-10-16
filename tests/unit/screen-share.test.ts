@@ -144,5 +144,6 @@ test("host restriction does not open capture or publish a screen", async () => {
   expect(capture.publishTrack).not.toHaveBeenCalled();
   expect(capture.toastInfo).toHaveBeenCalledWith(
     "O anfitrião restringiu o compartilhamento de tela.",
+    expect.objectContaining({ className: "pointer-events-none" }),
   );
 });

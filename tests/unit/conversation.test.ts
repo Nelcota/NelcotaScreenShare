@@ -16,15 +16,15 @@ function friendsOf(...ids: string[]) {
 
 describe("group creation", () => {
   test("says how many friends are still missing", () => {
-    expect(groupPickNote(0, 5)).toBe("Escolha mais 2 amigos.");
-    expect(groupPickNote(1, 5)).toBe("Escolha mais 1 amigo.");
+    expect(groupPickNote(0, 5)).toBe("Choose 2 more friends.");
+    expect(groupPickNote(1, 5)).toBe("Choose 1 more friend.");
     expect(groupPickNote(2, 5)).toBeNull();
     expect(groupPickNote(9, 9)).toBeNull();
   });
 
   test("explains why a single friend makes no group", () => {
-    expect(groupPickNote(0, 1)).toBe("Um grupo precisa de você e mais 2 amigos.");
-    expect(groupPickNote(1, 1)).toBe("Um grupo precisa de você e mais 2 amigos.");
+    expect(groupPickNote(0, 1)).toBe("A group needs you and at least 2 friends.");
+    expect(groupPickNote(1, 1)).toBe("A group needs you and at least 2 friends.");
   });
 
   test("leaves the empty list to ask for friends", () => {

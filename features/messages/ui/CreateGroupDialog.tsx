@@ -102,7 +102,7 @@ function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: 
       <p className="flex justify-between px-2 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
         <span>Amigos</span>
         <span>
-          {MIN_GROUP_INVITEES} a {MAX_PICKED} amigos
+          {MIN_GROUP_INVITEES} to {MAX_PICKED} friends
         </span>
       </p>
       {friends.length === 0 ? (

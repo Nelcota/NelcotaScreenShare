@@ -50,17 +50,18 @@ export function decideGroupCreation(state: GroupCreationState): GroupCreationOut
 }
 
 /**
- * The line above "Criar grupo" while the group is still short of people: how many friends
+ * The line above the group creation button while the group is short of people: how many friends
  * are missing or, with a single friend, why there can be no group yet. Nothing once there
  * are enough, and nothing without friends, where the list already says to add some.
  */
 export function groupPickNote(pickedCount: number, friendCount: number): string | null {
   if (pickedCount >= MIN_GROUP_INVITEES) return null;
   if (friendCount === 0) return null;
-  if (friendCount < MIN_GROUP_INVITEES) return "Um grupo precisa de você e mais 2 amigos.";
+  if (friendCount < MIN_GROUP_INVITEES)
+    return `A group needs you and at least ${MIN_GROUP_INVITEES} friends.`;
   const missing = MIN_GROUP_INVITEES - pickedCount;
-  if (missing === 1) return "Escolha mais 1 amigo.";
-  return `Escolha mais ${missing} amigos.`;
+  if (missing === 1) return "Choose 1 more friend.";
+  return `Choose ${missing} more friends.`;
 }
 
 /** The text as it is stored: trimmed, or null when nothing is left. */

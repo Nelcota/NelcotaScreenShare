@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 function subscribeFullscreen(onChange: () => void) {

@@ -3,6 +3,14 @@ import { Facts, Section } from "@/components/Section";
 import { eventLabel } from "@/features/admin/status/domain/event-labels";
 import type { LiveKitEventsSummary } from "@/features/admin/status/server/livekit-events.server";
 import { formatDateTime, formatNumber, formatRelative } from "@/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function RoomLink({ code }: { code: string | null }) {
   if (!code) return <>—</>;
@@ -48,28 +56,28 @@ function FailuresList({ failures }: { failures: Failures }) {
 function FailuresTable({ failures }: { failures: Failures }) {
   return (
     <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full text-left text-sm">
-        <thead className="text-xs text-ink-subtle">
-          <tr>
-            <th className="py-2 pr-4 font-medium">Quando</th>
-            <th className="py-2 pr-4 font-medium">Evento</th>
-            <th className="py-2 pr-4 font-medium">Sala</th>
-            <th className="py-2 font-medium">Erro</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Quando</TableHead>
+            <TableHead>Evento</TableHead>
+            <TableHead>Sala</TableHead>
+            <TableHead>Erro</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {failures.map((failure) => (
-            <tr key={failure.id} className="border-t border-line">
-              <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(failure.receivedAt)}</td>
-              <td className="py-2 pr-4 whitespace-nowrap">{eventLabel(failure.event)}</td>
-              <td className="py-2 pr-4">
+            <TableRow key={failure.id}>
+              <TableCell>{formatDateTime(failure.receivedAt)}</TableCell>
+              <TableCell>{eventLabel(failure.event)}</TableCell>
+              <TableCell className="whitespace-normal">
                 <RoomLink code={failure.roomName} />
-              </td>
-              <td className="py-2 text-ink-muted">{failure.error}</td>
-            </tr>
+              </TableCell>
+              <TableCell className="whitespace-normal text-ink-muted">{failure.error}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

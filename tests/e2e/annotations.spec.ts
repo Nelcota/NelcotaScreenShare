@@ -18,6 +18,10 @@ test("annotations reach real clients, preserve authorship, clear by authority an
     await joinRoom(viewer.page, code);
     await presenter.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
     await presenter.page.getByRole("button", { name: /^Tela inteira/ }).click();
+    // A shared screen waits for "Assistir" (watch to view).
+    await viewer.page
+      .getByRole("button", { name: "Assistir à tela de Apresentador Marcas" })
+      .click();
     await expect(viewer.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
     await expect(presenter.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
     await keyboardMark(viewer.page, "Seta");

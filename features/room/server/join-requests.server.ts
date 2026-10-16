@@ -77,7 +77,8 @@ export async function restoreApproval(db: DbExecutor, requestId: string) {
 }
 
 /** Requests waiting in one room at most: enough for a real crowd, a ceiling for a flood. */
-export const MAX_PENDING_PER_ROOM = 30;
+/** A queue a host can still read through; past it the door says the room is full. */
+export const MAX_PENDING_PER_ROOM = 15;
 
 async function pendingCount(db: DbExecutor, roomCode: string): Promise<number> {
   const [row] = await db

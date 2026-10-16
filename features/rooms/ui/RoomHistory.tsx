@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
+import { TIME_ZONE } from "@/lib/format";
 
 export function RoomHistory({
   account,
@@ -54,7 +55,7 @@ export function RoomHistory({
               <tr key={item.id} className="border-t border-line">
                 <td className="p-4">
                   {new Date(item.startedAt ?? item.createdAt).toLocaleString("pt-BR", {
-                    timeZone: "America/Sao_Paulo",
+                    timeZone: TIME_ZONE,
                   })}
                 </td>
                 <td className="p-4">{duration(item)}</td>

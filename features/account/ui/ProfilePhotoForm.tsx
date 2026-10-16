@@ -40,27 +40,29 @@ export function ProfilePhotoForm({
   const errorId = useId();
   const [draft, setDraft] = useState<string | null>();
   const [error, setError] = useState<string>();
-  const [preparing, setPreparing] = useState(false);
-  const [pending, setPending] = useState(false);
+  // One thing at a time: shrinking the chosen photo or saving it.
+  const [work, setWork] = useState<"idle" | "preparing" | "saving">("idle");
+  const preparing = work === "preparing";
+  const pending = work === "saving";
   const preview = draft === undefined ? image : draft;
-  const busy = preparing || pending;
+  const busy = work !== "idle";
   const changed = draft !== undefined && draft !== image;
 
   async function selectPhoto(file: File) {
-    setPreparing(true);
+    setWork("preparing");
     setError(undefined);
     try {
       setDraft(await preparePhoto(file));
     } catch (failure) {
       setError(photoErrorMessage(failure));
     } finally {
-      setPreparing(false);
+      setWork("idle");
     }
   }
 
   async function savePhoto() {
     if (draft === undefined) return;
-    setPending(true);
+    setWork("saving");
     setError(undefined);
     try {
       const { error: failure } = await authClient.updateUser({ image: draft });
@@ -72,7 +74,7 @@ export function ProfilePhotoForm({
       reportBrowserError(saveError);
       setError("Não foi possível salvar a foto. Tente de novo.");
     } finally {
-      setPending(false);
+      setWork("idle");
     }
   }
 
@@ -218,10 +220,7 @@ function PendingPhotoBar({
         <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="button" disabled={busy} onClick={onSave}>
-          {pending ? (
-            <Loader2 data-icon="inline-start" className="animate-spin" aria-hidden="true" />
-          ) : null}
+        <Button type="button" loading={pending} disabled={busy} onClick={onSave}>
           Salvar foto
         </Button>
       </div>

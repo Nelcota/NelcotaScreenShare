@@ -1,4 +1,4 @@
-import { Loader2, LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -9,11 +9,11 @@ import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { adminAuthClient } from "@/features/auth/client/admin-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { formText } from "@/lib/utils";
+import { Field } from "@/components/Field";
 
 export function AdminSignInForm({ notice }: { notice?: string | undefined }) {
   const navigate = useNavigate();
@@ -69,10 +69,8 @@ export function AdminSignInForm({ notice }: { notice?: string | undefined }) {
         className="flex flex-col gap-4"
       >
         <FormNotice message={notice} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={emailId}>E-mail</Label>
+        <Field id={emailId} label="E-mail">
           <Input
-            id={emailId}
             name="email"
             type="email"
             autoComplete="username"
@@ -81,21 +79,18 @@ export function AdminSignInForm({ notice }: { notice?: string | undefined }) {
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={passwordId}>Senha</Label>
+        </Field>
+        <Field id={passwordId} label="Senha">
           <PasswordInput
-            id={passwordId}
             name="password"
             autoComplete="current-password"
             required
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : undefined}
           />
-        </div>
+        </Field>
         <FormError id={errorId} message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="mt-1 w-full">
           Entrar
         </Button>
       </form>

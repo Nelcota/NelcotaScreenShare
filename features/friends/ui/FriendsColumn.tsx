@@ -1,0 +1,181 @@
+import { PanelLeftClose } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Link, useNavigation } from "react-router";
+import type { FriendStatus } from "@/features/friends/domain/friend-lists";
+import { Hint } from "@/components/Hint";
+import { UnreadCount } from "@/components/UnreadCount";
+import { AddMenu, type AddMenuItem } from "@/features/friends/ui/AddMenu";
+import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
+import { FriendGroups } from "@/features/friends/ui/FriendGroups";
+import { NoFriendsYet } from "@/features/friends/ui/NoFriendsYet";
+import { opensTab } from "@/features/friends/domain/opening-tab";
+import { RequestsButton } from "@/features/friends/ui/RequestsButton";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { SearchField } from "@/components/SearchField";
+import { searchable } from "@/lib/search-text";
+
+/** A tab at the top of the column: Amigos, Salas and Times. */
+export interface ColumnTab {
+  id: string;
+  label: string;
+  href: string;
+  /** Unread or pending items, shown as a count on the tab. */
+  badge?: number;
+}
+
+/** Every tab shows its name, so it reads without a hint (touch has none). */
+function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
+  const navigation = useNavigation();
+  // Clicked and still loading: it lights up at once instead of waiting for the page.
+  const opening = !active && opensTab(navigation.location?.pathname, tab.href);
+  const badge = tab.badge ?? 0;
+  const label = badge > 0 ? `${tab.label}: ${badge}` : tab.label;
+  return (
+    <Link
+      viewTransition
+      to={tab.href}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      data-opening={opening || undefined}
+      className="relative inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong data-opening:bg-surface-3/60 data-opening:text-ink"
+    >
+      <span>{tab.label}</span>
+      <UnreadCount count={badge} aria-hidden="true" className="static ring-0" />
+    </Link>
+  );
+}
+
+function ColumnTabs({ tabs, activeId }: { tabs: ColumnTab[]; activeId: string }) {
+  return (
+    <nav
+      aria-label="Coluna"
+      className="flex w-full min-w-0 gap-0.5 rounded-full border border-line bg-surface-2 p-1"
+    >
+      {tabs.map((tab) => (
+        <TabLink key={tab.id} tab={tab} active={tab.id === activeId} />
+      ))}
+    </nav>
+  );
+}
+
+function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
+  return (
+    <Hint text="Recolher amigos" shortcut={COLUMN_SHORTCUT.toUpperCase()}>
+      <Button
+        type="button"
+        variant="quiet"
+        size="icon"
+        aria-label="Recolher amigos"
+        aria-keyshortcuts={COLUMN_SHORTCUT.toUpperCase()}
+        onClick={onCollapse}
+      >
+        <PanelLeftClose aria-hidden="true" />
+      </Button>
+    </Hint>
+  );
+}
+
+/** What another feature adds to the friends list; the page that draws the column composes it. */
+export interface ColumnExtras {
+  /** Unread messages by friend, on their photo. */
+  unreadByFriend: Readonly<Record<string, number>>;
+  /** In the "+" menu, after "Adicionar amigo": "Criar grupo". */
+  addItems?: readonly AddMenuItem[];
+  /** Above the friends while nobody is searching: "Grupos". */
+  groups?: ReactNode;
+}
+
+function FriendsBody({
+  friends,
+  extras,
+  requests,
+  code,
+  linkPath,
+}: {
+  friends: FriendStatus[];
+  extras: ColumnExtras;
+  requests: number;
+  code: string;
+  linkPath: string;
+}) {
+  const [query, setQuery] = useState("");
+  const wanted = searchable(query.trim());
+  const shown = wanted
+    ? friends.filter((friend) => searchable(friend.name).includes(wanted))
+    : friends;
+  return (
+    <>
+      <div className="mt-3 flex items-center gap-2 px-3">
+        <SearchField
+          label="Buscar amigo"
+          placeholder="Buscar"
+          value={query}
+          onChange={setQuery}
+          className="flex-1"
+        />
+        <RequestsButton count={requests} />
+        <AddMenu code={code} linkPath={linkPath} items={extras.addItems} />
+      </div>
+      <nav aria-label="Amigos" className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-3">
+        {friends.length === 0 ? (
+          <NoFriendsYet code={code} requests={requests} />
+        ) : (
+          <FriendGroups
+            friends={shown}
+            unreadByFriend={extras.unreadByFriend}
+            before={wanted ? null : extras.groups}
+          />
+        )}
+      </nav>
+    </>
+  );
+}
+
+/**
+ * The column: tabs on top, then the friends (search, requests, "Adicionar amigo") or, for
+ * another tab, the list it brings in `children`.
+ */
+export function FriendsColumn({
+  tabs,
+  activeTab,
+  friends,
+  extras,
+  requests,
+  code,
+  linkPath,
+  onCollapse,
+  children,
+  className,
+}: {
+  tabs: ColumnTab[];
+  activeTab: string;
+  friends: FriendStatus[];
+  extras: ColumnExtras;
+  requests: number;
+  code: string;
+  linkPath: string;
+  onCollapse: () => void;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+      <div className="flex items-center gap-2 px-3 pt-3">
+        <div className="min-w-0 flex-1">
+          <ColumnTabs tabs={tabs} activeId={activeTab} />
+        </div>
+        <CollapseButton onCollapse={onCollapse} />
+      </div>
+      {children ?? (
+        <FriendsBody
+          friends={friends}
+          extras={extras}
+          requests={requests}
+          code={code}
+          linkPath={linkPath}
+        />
+      )}
+    </div>
+  );
+}

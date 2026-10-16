@@ -8,7 +8,7 @@ import {
   screenStatsSchema,
   TOPICS,
 } from "@/features/room/domain/data-channel";
-import { readStreamMetrics } from "@/features/room/domain/stream-metrics";
+import { createPingTracker, readStreamMetrics } from "@/features/room/domain/stream-metrics";
 import { useTimeouts } from "@/lib/hooks/use-timeouts";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
@@ -33,10 +33,11 @@ export function useBroadcastPresenterPing() {
     let disposed = false;
     let warned = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const trackPing = createPingTracker();
     async function report(screen: Track, sid: string) {
       try {
         const stats = await screen.getRTCStatsReport();
-        const pingMs = stats ? readStreamMetrics(stats.values()).pingMs : null;
+        const pingMs = trackPing(stats ? readStreamMetrics(stats.values()).roundTrip : null);
         if (!disposed && pingMs !== null) await sendStats(encodeMessage({ trackSid: sid, pingMs }));
       } catch (error) {
         if (!warned) logBrowserWarning("Could not share the presenter's ping", error);

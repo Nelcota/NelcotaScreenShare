@@ -2,10 +2,10 @@ import type { BadgeTone } from "@/components/StatusBadge";
 import { PARTICIPANT_STATUSES, type ParticipantStatus } from "./search-params";
 
 export const STATUS_LABELS: Record<ParticipantStatus, { label: string; tone: BadgeTone }> = {
-  ativo: { label: "Ativo", tone: "success" },
-  nao_verificado: { label: "Não verificado", tone: "warning" },
-  bloqueado: { label: "Bloqueado", tone: "danger" },
-  excluido: { label: "Excluído", tone: "neutral" },
+  ativo: { label: "Ativa", tone: "success" },
+  nao_verificado: { label: "Não verificada", tone: "warning" },
+  bloqueado: { label: "Bloqueada", tone: "danger" },
+  excluido: { label: "Excluída", tone: "neutral" },
 };
 
 export const STATUS_OPTIONS = PARTICIPANT_STATUSES.map((value) => ({

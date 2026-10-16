@@ -216,6 +216,8 @@ describe("join requests", () => {
         mayOpen: () => false,
       }),
     ).toBeNull();
+    // A queue the host can still read through.
+    expect(requests.MAX_PENDING_PER_ROOM).toBe(15);
     for (let index = 1; index < requests.MAX_PENDING_PER_ROOM; index++) {
       await openRequest(db, {
         roomCode: code,

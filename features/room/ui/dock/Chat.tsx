@@ -22,6 +22,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
       aria-hidden={!chat.open}
       inert={!chat.open}
       aria-label="Chat da sala"
+      data-chat-open={chat.open || undefined}
       // Wide screen: a column as tall as the room, aligned with the top of the bar and the bottom of the dock.
       className="glass invisible fixed top-20 right-3 bottom-32 z-40 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl group-data-capture-bar/room:max-lg:bottom-42 sm:right-6 lg:top-4 lg:bottom-4"
     >
@@ -61,7 +62,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
           if (!next) editor.setDeletingId(undefined);
         }}
         title="Apagar mensagem?"
-        description="Ela some para todos na sala. Quem já leu pode ter visto."
+        description="Ela some da sala. Quem já leu pode ter visto."
         confirmLabel="Apagar"
         danger
         pending={editor.busy}

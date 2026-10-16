@@ -10,7 +10,7 @@ import { closeEndsRoom } from "@/features/room/domain/room-host";
 import type { RoomRole } from "@/features/room/domain/room-role";
 import { roomRoles } from "@/server/db/schema";
 import { roomRoleOf } from "./room-roles.server";
-import { transferOwnership } from "./role-changes.server";
+import { isPermanentRoom, transferOwnership } from "./role-changes.server";
 
 /** Who gives the command: their account and the role saved for the room. */
 interface HostActor {
@@ -43,7 +43,7 @@ async function transferHost(
     throw new ActionError("Esta pessoa não pode ser anfitriã.");
   await tx
     .update(roomSessions)
-    .set({ hostUserId: identity, hostMissingAt: null })
+    .set({ hostUserId: identity, hostMissingAt: null, hostGivenAt: null })
     .where(eq(roomSessions.id, session.id));
 }
 
@@ -73,14 +73,7 @@ export async function applyHostChange(
   }
   if (input.kind === "transfer") {
     await transferHost(tx, session, input.identity, participants, actor.identity);
-    // From the owner, the room goes too: otherwise the owner, still here, would take the
-    // host back at once.
-    if (actor.role === "owner")
-      await transferOwnership(tx, {
-        roomCode: await codeOf(tx, session),
-        fromUserId: actor.identity,
-        toUserId: input.identity,
-      });
+    if (actor.role === "owner") await ownerGaveHost(tx, session, actor.identity, input.identity);
     return { kind: "sync", targetIdentity: input.identity };
   }
   if (input.kind === "remove") {
@@ -109,8 +102,9 @@ export async function applyHostChange(
 }
 
 /**
- * The host and the owner remove anyone; a moderator, as co-host, removes participants
- * only, never the host, the owner or another moderator.
+ * The owner removes anyone. The host removes anyone but the owner, who may be away for a
+ * moment (a reconnect) and would come back shut out of their own room. A moderator, as
+ * co-host, removes participants only, never the host, the owner or another moderator.
  */
 async function assertMayRemove(
   tx: DbExecutor,
@@ -118,13 +112,37 @@ async function assertMayRemove(
   actor: HostActor,
   identity: string,
 ) {
-  if (session.hostUserId === actor.identity || actor.role === "owner") return;
+  if (actor.role === "owner") return;
   const roomCode = await codeOf(tx, session);
   const target = isAccountIdentity(identity)
     ? await roomRoleOf(tx, { roomCode, userId: identity })
     : "participant";
+  if (target === "owner") throw new ActionError("Ninguém remove o dono da sala.");
+  if (session.hostUserId === actor.identity) return;
   if (identity === session.hostUserId || !canModerate(actor.role, target))
     throw new ActionError("Moderadores só removem participantes.");
+}
+
+/**
+ * The owner's host transfer. A one-off room goes along: otherwise the owner, still here,
+ * would take the host back at once. A permanent room stays with its owner, who takes the
+ * host back only after joining again (`hostGivenAt`).
+ */
+async function ownerGaveHost(
+  tx: DbExecutor,
+  session: ControlSession,
+  fromUserId: string,
+  toUserId: string,
+) {
+  const roomCode = await codeOf(tx, session);
+  if (!(await isPermanentRoom(tx, roomCode))) {
+    await transferOwnership(tx, { roomCode, fromUserId, toUserId });
+    return;
+  }
+  await tx
+    .update(roomSessions)
+    .set({ hostGivenAt: new Date() })
+    .where(eq(roomSessions.id, session.id));
 }
 
 /** A room someone owns stays for the next call; only an ownerless ad hoc room closes. */

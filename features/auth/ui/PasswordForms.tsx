@@ -1,4 +1,4 @@
-import { KeyRound, Loader2, MailCheck } from "lucide-react";
+import { KeyRound, MailCheck } from "lucide-react";
 import { Link, useActionData, useNavigate } from "react-router";
 
 import { useId, useState, type FormEvent } from "react";
@@ -8,13 +8,14 @@ import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { adminAuthClient } from "@/features/auth/client/admin-auth-client";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { newPasswordError, PASSWORD_LIMITS } from "@/features/auth/domain/password-rules";
+import { emailProblem } from "@/features/auth/domain/sign-up";
 import { formText } from "@/lib/utils";
+import { Field } from "@/components/Field";
 
 type Scope = "admin" | "user";
 
@@ -78,13 +79,17 @@ export function ForgotPasswordForm({ scope }: { scope: Scope }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    const email = formText(new FormData(event.currentTarget), "email").trim();
+    const problem = emailProblem(email);
+    if (problem) {
+      setError(problem);
+      event.currentTarget.querySelector<HTMLInputElement>("input[name=email]")?.focus();
+      return;
+    }
     setPending(true);
     setError(undefined);
     const { error: failure } = await callAuth(() =>
-      client.requestPasswordReset({
-        email: formText(new FormData(event.currentTarget), "email"),
-        redirectTo: PATHS[scope].reset,
-      }),
+      client.requestPasswordReset({ email, redirectTo: PATHS[scope].reset }),
     );
     setPending(false);
     if (failure) {
@@ -132,20 +137,11 @@ export function ForgotPasswordForm({ scope }: { scope: Scope }) {
         className="flex flex-col gap-4"
       >
         <OtherAccountRecovery scope={scope} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={emailId}>E-mail</Label>
-          <Input
-            id={emailId}
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="h-11"
-          />
-        </div>
+        <Field id={emailId} label="E-mail">
+          <Input name="email" type="email" autoComplete="email" required className="h-11" />
+        </Field>
         <FormError message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="w-full">
           Enviar link
         </Button>
       </form>
@@ -214,24 +210,20 @@ export function ResetPasswordForm({ scope, token }: { scope: Scope; token: strin
         noValidate
         className="flex flex-col gap-4"
       >
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={passwordId}>Nova senha</Label>
+        <Field id={passwordId} label="Nova senha">
           <PasswordInput
-            id={passwordId}
             name="password"
             autoComplete="new-password"
             required
             minLength={minLength}
             maxLength={PASSWORD_LIMITS[scope].max}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={confirmId}>Repita a senha</Label>
-          <PasswordInput id={confirmId} name="confirm" autoComplete="new-password" required />
-        </div>
+        </Field>
+        <Field id={confirmId} label="Repita a senha">
+          <PasswordInput name="confirm" autoComplete="new-password" required />
+        </Field>
         <FormError message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="w-full">
           Salvar nova senha
         </Button>
       </form>

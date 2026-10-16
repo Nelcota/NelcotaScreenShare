@@ -34,7 +34,7 @@ test("a missing, malformed or forged cookie is not a guest", async () => {
 });
 
 test("guests show up with a marked name; accounts do not", () => {
-  assert.equal(participantName({ identity: "convidado-1", name: "Iris" }), "Iris (convidado)");
+  assert.equal(participantName({ identity: "convidado-1", name: "Iris" }), "Iris (sem conta)");
   assert.equal(participantName({ identity: "6f1c", name: "Iris" }), "Iris");
   assert.equal(participantName(undefined), "Alguém");
 });

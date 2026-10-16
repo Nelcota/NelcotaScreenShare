@@ -7,6 +7,14 @@ import type { RemovedBy, RemovedPerson } from "@/features/admin/rooms/server/roo
 import type { RoomStaff } from "@/features/admin/rooms/server/room-staff.server";
 import { ReadmitButton } from "@/features/admin/rooms/ui/ReadmitButton";
 import { formatDateTime, formatRelative, formatSpan } from "@/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type RoomDetail = NonNullable<Awaited<ReturnType<typeof getRoomDetail>>>;
 
@@ -169,25 +177,25 @@ export function RoomParticipants({
     >
       {participants.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-ink-subtle">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Pessoa</th>
-                <th className="py-2 pr-4 font-medium">Entrou</th>
-                <th className="py-2 pr-4 font-medium">Saiu</th>
-                <th className="py-2 pr-4 font-medium">Duração</th>
-                <th className="py-2 font-medium">Saída</th>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pessoa</TableHead>
+                <TableHead>Entrou</TableHead>
+                <TableHead>Saiu</TableHead>
+                <TableHead>Duração</TableHead>
+                <TableHead>Saída</TableHead>
                 {canRemove ? (
-                  <th className="py-2 font-medium">
+                  <TableHead>
                     <span className="sr-only">Ações</span>
-                  </th>
+                  </TableHead>
                 ) : null}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {participants.map((participant) => (
-                <tr key={participant.id} className="border-t border-line">
-                  <td className="py-2 pr-4">
+                <TableRow key={participant.id}>
+                  <TableCell className="whitespace-normal">
                     {participant.userId ? (
                       <Link
                         viewTransition
@@ -199,23 +207,19 @@ export function RoomParticipants({
                     ) : (
                       participant.name
                     )}
-                  </td>
-                  <td className="py-2 pr-4 whitespace-nowrap">
-                    {formatDateTime(participant.joinedAt)}
-                  </td>
-                  <td className="py-2 pr-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell>{formatDateTime(participant.joinedAt)}</TableCell>
+                  <TableCell>
                     {participant.leftAt ? formatDateTime(participant.leftAt) : "—"}
-                  </td>
-                  <td className="py-2 pr-4 whitespace-nowrap">
-                    {formatSpan(participant.joinedAt, participant.leftAt)}
-                  </td>
-                  <td className="py-2 text-ink-muted">
+                  </TableCell>
+                  <TableCell>{formatSpan(participant.joinedAt, participant.leftAt)}</TableCell>
+                  <TableCell className="whitespace-normal text-ink-muted">
                     {participant.leaveReason
                       ? (LEAVE_REASON_LABELS[participant.leaveReason] ?? "—")
                       : "Na sala"}
-                  </td>
+                  </TableCell>
                   {canRemove ? (
-                    <td className="py-1 pl-4">
+                    <TableCell className="pl-4 whitespace-normal">
                       {participant.leftAt === null ? (
                         <RemoveParticipant
                           participationId={participant.id}
@@ -223,12 +227,12 @@ export function RoomParticipants({
                           guest={participant.userId === null}
                         />
                       ) : null}
-                    </td>
+                    </TableCell>
                   ) : null}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : null}
     </Section>

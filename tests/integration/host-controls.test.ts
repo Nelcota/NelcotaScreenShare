@@ -8,7 +8,7 @@ import {
   roomSessions,
 } from "@/server/db/schema/room-control";
 import { auditLogs } from "@/server/db/schema/audit";
-import { roomRoles } from "@/server/db/schema";
+import { roomParticipations, roomRoles, rooms, shareSessions } from "@/server/db/schema";
 import { applyRoleChange } from "@/features/room/server/role-changes.server";
 import { reserveAdmission } from "@/features/room/server/session-admission.server";
 import { controlGateway } from "@/features/room/server/control-gateway.server";
@@ -18,7 +18,10 @@ import {
   openSignal,
   validateSignal,
 } from "@/features/room/server/signal-admission.server";
-import { applyRoomCommand } from "@/features/room/server/control-commands.server";
+import {
+  applyRoomCommand,
+  retryRoomCommands,
+} from "@/features/room/server/control-commands.server";
 import { reconcileSessionPresence } from "@/features/room/server/session-presence.server";
 import { readControlState } from "@/features/room/server/control-state.server";
 import { maintainRoomControls } from "@/features/room/server/control-maintenance.server";
@@ -53,6 +56,7 @@ test("signaling refuses forged credentials and foreign origins before admission"
 test("concurrent host claims and capacity reservations have a single winner", async () => {
   const identities = await Promise.all([account(), account(), account()]);
   const code = "simultaneous-hosts";
+  await getDb().insert(roomDefinitions).values({ code });
   const results = await Promise.allSettled(
     identities.map((identity) => reserveAdmission(getDb(), grant(code, identity), 2)),
   );
@@ -65,6 +69,7 @@ test("concurrent host claims and capacity reservations have a single winner", as
 });
 
 test("guest cannot claim host and token reservation is not admission", async () => {
+  await getDb().insert(roomDefinitions).values({ code: "guest-no-host" });
   await expect(
     reserveAdmission(getDb(), grant("guest-no-host", "convidado-test"), 6),
   ).rejects.toMatchObject({ code: "host_absent" });
@@ -114,6 +119,26 @@ test("original and server-refreshed credentials cannot bypass exclusion or closu
   await expect(reserveAdmission(getDb(), grant(room.code, room.host), 6)).rejects.toMatchObject({
     code: "room_closed",
   });
+});
+
+test("a retry that throws does not hold up the other rooms' commands", async () => {
+  const first = await controlledRoom();
+  const second = await controlledRoom();
+  vi.spyOn(controlGateway, "sync")
+    .mockRejectedValueOnce(new Error("unavailable"))
+    .mockRejectedValueOnce(new Error("unavailable"));
+  const stuck = await first.command({ kind: "sharing", policy: "host", allowed: [] });
+  const waiting = await second.command({ kind: "sharing", policy: "host", allowed: [] });
+  expect([stuck.status, waiting.status]).toEqual(["failed", "failed"]);
+  const db = getDb();
+  // The first command in line breaks before its own transport step (a lock timeout, say).
+  vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("lock timeout"));
+  await retryRoomCommands(db, new Date(Date.now() + 120_000));
+  const [stored] = await db
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, waiting.commandId));
+  expect(stored?.status).toBe("applied");
 });
 
 test("old broad grants are rewritten to the current sharing policy on reconnect", async () => {
@@ -166,6 +191,26 @@ test("transport failure preserves policy/audit and retry applies current state",
   expect(applied?.status).toBe("applied");
 });
 
+test("one room failing in maintenance does not hold up the others", async () => {
+  const broken = await controlledRoom();
+  const room = await controlledRoom();
+  vi.spyOn(controlGateway, "sync").mockRejectedValueOnce(new Error("unavailable"));
+  const failed = await room.command({ kind: "lock", locked: true });
+  expect(failed.status).toBe("failed");
+  vi.spyOn(controlGateway, "participants").mockImplementation(async (media) => {
+    if (media === broken.mediaRoomName) throw new Error("LiveKit down for this room");
+    return online.get(media) ?? [];
+  });
+  await expect(
+    maintainRoomControls(getDb(), new Date(Date.now() + 6_000)),
+  ).resolves.toBeUndefined();
+  const [applied] = await getDb()
+    .select()
+    .from(roomCommands)
+    .where(eq(roomCommands.id, failed.commandId));
+  expect(applied?.status).toBe("applied");
+});
+
 test("host absence respects grace and elects oldest admitted active account", async () => {
   const room = await controlledRoom();
   const db = getDb();
@@ -188,11 +233,42 @@ test("empty call expires without making definition terminal; old JWT cannot open
   const [initial] = await db.select().from(roomSessions).where(eq(roomSessions.id, room.sessionId));
   if (!initial) throw new Error("Missing session");
   const now = new Date();
+  // Someone LiveKit dropped without a participant_left: still "in the call" with a share.
+  const [record] = await db.insert(rooms).values({ code: room.code }).returning();
+  if (!record) throw new Error("Missing room");
+  const [left] = await db
+    .insert(roomParticipations)
+    .values({
+      roomId: record.id,
+      sessionId: room.sessionId,
+      livekitIdentity: room.other,
+      livekitSid: `PA_${crypto.randomUUID()}`,
+      joinedAt: new Date(now.getTime() - 60_000),
+    })
+    .returning();
+  if (!left) throw new Error("Missing participation");
+  await db.insert(shareSessions).values({
+    roomId: record.id,
+    participationId: left.id,
+    trackSid: `TR_${crypto.randomUUID()}`,
+    startedAt: new Date(now.getTime() - 30_000),
+  });
   const waiting = await db.transaction((tx) => reconcileSessionPresence(tx, initial, [], now));
   const closed = await db.transaction((tx) =>
     reconcileSessionPresence(tx, waiting, [], new Date(now.getTime() + 60_001)),
   );
   expect(closed.status).toBe("closed");
+  const [gone] = await db
+    .select()
+    .from(roomParticipations)
+    .where(eq(roomParticipations.id, left.id));
+  expect(gone?.leaveReason).toBe("unknown");
+  expect(gone?.leftAt).not.toBeNull();
+  const shares = await db
+    .select({ endedAt: shareSessions.endedAt })
+    .from(shareSessions)
+    .where(eq(shareSessions.participationId, left.id));
+  expect(shares.every((share) => share.endedAt !== null)).toBe(true);
   const token = await liveKitGateway.signToken(grant(room.mediaRoomName, room.host));
   await expect(authorizeSignal(db, token)).rejects.toMatchObject({ code: "room_closed" });
   const [definition] = await db
@@ -246,6 +322,26 @@ test("a moderator co-hosts: lock, sharing and removal of participants, not trans
   await expect(
     room.command({ kind: "remove", identity: third }, room.other),
   ).resolves.toMatchObject({ status: "applied" });
+});
+
+test("a host who is not the owner cannot remove the owner, back from a reconnect", async () => {
+  const room = await controlledRoom();
+  await saveRole(room.code, room.other, "owner");
+  // The owner is reconnecting: admitted to the session, but not in LiveKit right now.
+  online.set(room.mediaRoomName, [participant(room.host)]);
+  await expect(room.command({ kind: "remove", identity: room.other })).rejects.toThrow(
+    "Ninguém remove o dono da sala",
+  );
+  const [owner] = await getDb()
+    .select({ excludedAt: roomSessionMembers.excludedAt })
+    .from(roomSessionMembers)
+    .where(
+      and(
+        eq(roomSessionMembers.sessionId, room.sessionId),
+        eq(roomSessionMembers.identity, room.other),
+      ),
+    );
+  expect(owner?.excludedAt).toBeNull();
 });
 
 test("host absence elects a moderator before an older account", async () => {

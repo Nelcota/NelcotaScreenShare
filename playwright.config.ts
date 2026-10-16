@@ -50,6 +50,8 @@ export default defineConfig({
             "--use-fake-ui-for-media-stream",
             "--use-fake-device-for-media-stream",
             "--auto-select-desktop-capture-source=Entire screen",
+            // Test browsers never play sound.
+            "--mute-audio",
           ],
         },
       },

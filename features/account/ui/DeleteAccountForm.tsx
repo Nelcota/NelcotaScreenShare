@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { Loader2 } from "lucide-react";
 
 import { useOperation } from "@/lib/operations/use-operation";
 import { useId, useState } from "react";
@@ -7,13 +6,27 @@ import { deleteMyAccount } from "@/features/account/actions";
 import { FormError } from "@/components/FormError";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
+import { Field } from "@/components/Field";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-/** Account deletion confirmation (LGPD): asks for the current password. */
-export function DeleteAccountForm({ ownedTeamCount = 0 }: { ownedTeamCount?: number }) {
+/**
+ * Account deletion confirmation (LGPD): asks for the current password and, with two-step
+ * verification on, a code from the authenticator app or a backup code.
+ */
+export function DeleteAccountForm({
+  ownedTeamCount = 0,
+  askCode = false,
+}: {
+  ownedTeamCount?: number;
+  askCode?: boolean;
+}) {
   const passwordId = useId();
+  const codeId = useId();
+  const teamsId = useId();
   const errorId = useId();
   const closeRow = useCloseRow();
   const [passwordError, setPasswordError] = useState<string>();
@@ -33,15 +46,19 @@ export function DeleteAccountForm({ ownedTeamCount = 0 }: { ownedTeamCount?: num
           event.currentTarget.querySelector<HTMLInputElement>("input[name=password]")?.focus();
           return;
         }
+        const code = askCode ? formText(data, "code") : undefined;
+        if (askCode && !code) {
+          setPasswordError("Digite o código de duas etapas para confirmar.");
+          event.currentTarget.querySelector<HTMLInputElement>("input[name=code]")?.focus();
+          return;
+        }
         setPasswordError(undefined);
-        remove.execute({ password, deleteOwnedTeams: data.get("deleteTeams") === "on" });
+        remove.execute({ password, code, deleteOwnedTeams: data.get("deleteTeams") === "on" });
       }}
       className="flex max-w-sm flex-col gap-3"
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={passwordId}>Digite sua senha para confirmar</Label>
+      <Field id={passwordId} label="Digite sua senha para confirmar">
         <PasswordInput
-          id={passwordId}
           name="password"
           autoComplete="current-password"
           required
@@ -49,20 +66,41 @@ export function DeleteAccountForm({ ownedTeamCount = 0 }: { ownedTeamCount?: num
           aria-describedby={error ? errorId : undefined}
           onChange={() => setPasswordError(undefined)}
         />
-      </div>
+      </Field>
+      {askCode ? (
+        <Field
+          id={codeId}
+          label="Código de duas etapas"
+          footer={
+            <p className="text-sm text-ink-muted">Do app autenticador, ou um código de backup.</p>
+          }
+        >
+          <Input
+            name="code"
+            autoComplete="one-time-code"
+            spellCheck={false}
+            required
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            onChange={() => setPasswordError(undefined)}
+          />
+        </Field>
+      ) : null}
       {ownedTeamCount ? (
         <div className="flex flex-col gap-3 rounded-xl border border-danger/30 p-3 text-sm">
           <p>
-            Você é dono de {ownedTeamCount} time(s).{" "}
+            Você tem {ownedTeamCount === 1 ? "1 time" : `${ownedTeamCount} times`}.{" "}
             <Link className="underline" to="/times">
               Transfira a propriedade
             </Link>{" "}
             para manter esses times.
           </p>
-          <label className="flex items-start gap-2">
-            <input type="checkbox" name="deleteTeams" className="mt-1" />
-            <span>Excluir também meus times, encerrar suas chamadas e arquivar suas salas.</span>
-          </label>
+          <div className="flex items-start gap-2">
+            <Checkbox id={teamsId} name="deleteTeams" className="mt-0.5" />
+            <Label htmlFor={teamsId} className="leading-snug font-normal">
+              Excluir também meus times, encerrar suas chamadas e arquivar suas salas.
+            </Label>
+          </div>
         </div>
       ) : null}
       <FormError id={errorId} message={error} />
@@ -70,10 +108,9 @@ export function DeleteAccountForm({ ownedTeamCount = 0 }: { ownedTeamCount?: num
         <Button
           type="submit"
           variant="destructive"
-          disabled={remove.isPending}
+          loading={remove.isPending}
           className="h-auto! min-h-10 max-w-full py-2 whitespace-normal"
         >
-          {remove.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
           Excluir minha conta para sempre
         </Button>
         {closeRow ? (

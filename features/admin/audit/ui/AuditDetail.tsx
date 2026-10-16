@@ -8,6 +8,14 @@ import {
 import { actionLabel, actorText, resourceLabel } from "@/features/admin/audit/domain/labels";
 import type { AuditRow } from "@/features/admin/audit/server/queries.server";
 import { formatDateTime } from "@/lib/format";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function value(recorded: unknown): string {
   if (recorded === null || recorded === undefined) return "—";
@@ -53,24 +61,30 @@ export function AuditDetail({ row, onClose }: { row: AuditRow | null; onClose: (
             {row.changes ? (
               <div className="px-4">
                 <h3 className="mb-2 text-sm font-medium">Antes → depois</h3>
-                <table className="w-full text-left text-sm">
-                  <thead className="text-xs text-ink-subtle">
-                    <tr>
-                      <th className="py-1 pr-3 font-medium">Campo</th>
-                      <th className="py-1 pr-3 font-medium">Antes</th>
-                      <th className="py-1 font-medium">Depois</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campo</TableHead>
+                      <TableHead>Antes</TableHead>
+                      <TableHead>Depois</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {Object.entries(row.changes).map(([field, change]) => (
-                      <tr key={field} className="border-t border-line align-top">
-                        <td className="py-1.5 pr-3 font-sans text-xs tabular-nums">{field}</td>
-                        <td className="py-1.5 pr-3 text-danger">{value(change.antes)}</td>
-                        <td className="py-1.5 text-brand-soft">{value(change.depois)}</td>
-                      </tr>
+                      <TableRow key={field} className="align-top">
+                        <TableCell className="font-sans text-xs whitespace-normal tabular-nums">
+                          {field}
+                        </TableCell>
+                        <TableCell className="whitespace-normal text-danger">
+                          {value(change.antes)}
+                        </TableCell>
+                        <TableCell className="whitespace-normal text-brand-soft">
+                          {value(change.depois)}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : null}
             {Object.keys(row.metadata).length > 0 ? (

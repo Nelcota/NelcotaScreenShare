@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { startMicLevel, type MicLevelEvents } from "./mic-level-capture";
+import { useSavedAudioProcessing } from "./use-saved-audio-processing";
 
 /**
  * Live microphone meter: local capture + voice level, written straight to the
@@ -13,6 +14,8 @@ export function useMicLevel(
   events: MicLevelEvents,
 ): RefObject<number> {
   const levelRef = useRef(0);
+  // A changed switch restarts the capture with the new clean-up.
+  const processing = useSavedAudioProcessing();
   const onDevices = useEffectEvent(events.onDevices);
   const onDevice = useEffectEvent(events.onDevice);
   const onMissingDevice = useEffectEvent(events.onMissingDevice);
@@ -33,6 +36,7 @@ export function useMicLevel(
       meterStyle,
       mediaDevices,
       deviceId,
+      processing,
       levelRef,
       events: {
         onDevices: (devices) => onDevices(devices),
@@ -43,7 +47,7 @@ export function useMicLevel(
         onCheck: (state, source) => onCheck(state, source),
       },
     });
-  }, [active, deviceId, meterRef]);
+  }, [active, deviceId, meterRef, processing]);
 
   return levelRef;
 }

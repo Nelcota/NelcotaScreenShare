@@ -87,7 +87,7 @@ export default function RoomPage() {
           Salas
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-sans text-2xl font-semibold tracking-[-0.025em] tabular-nums">
+          <h1 className="font-sans text-2xl font-semibold tracking-tight tabular-nums">
             {room.code}
           </h1>
           <RoomStatus status={room.status} deleted={room.deletedAt !== null} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { roomPath } from "@/features/room/domain/room-code";
 import { copyText } from "@/lib/clipboard";
 

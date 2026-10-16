@@ -7,13 +7,22 @@ function httpUrlFrom(wsUrl: string): string {
   return url.origin;
 }
 
-/** LiveKit admin API (same keys as the token). */
+let cached: { key: string; client: RoomServiceClient } | undefined;
+
+/**
+ * LiveKit admin API (same keys as the token). One client for the process: every call
+ * used to build a new one. A change of address or keys (tests) builds it again.
+ */
 export function roomService(): RoomServiceClient {
   const env = getEnv();
-  return new RoomServiceClient(
+  const key = `${env.LIVEKIT_URL}\n${env.LIVEKIT_API_KEY}\n${env.LIVEKIT_API_SECRET}`;
+  if (cached?.key === key) return cached.client;
+  const client = new RoomServiceClient(
     httpUrlFrom(env.LIVEKIT_URL),
     env.LIVEKIT_API_KEY,
     env.LIVEKIT_API_SECRET,
     { requestTimeout: 4 },
   );
+  cached = { key, client };
+  return client;
 }

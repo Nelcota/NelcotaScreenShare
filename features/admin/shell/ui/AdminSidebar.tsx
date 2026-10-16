@@ -1,4 +1,4 @@
-import { ArrowUpRight, ChevronsUpDown, LogOut, UserRound } from "lucide-react";
+import { ArrowLeft, ChevronsUpDown, LogOut, UserRound } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { NavBrand } from "@/components/shell/NavBar";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -135,7 +135,7 @@ function SidebarAccountFooter({ user, onSignOut }: { user: ShellUser; onSignOut:
         <SidebarMenuItem>
           <SidebarMenuButton asChild tooltip="Voltar ao app">
             <Link viewTransition to="/">
-              <ArrowUpRight aria-hidden="true" />
+              <ArrowLeft aria-hidden="true" />
               <span>Voltar ao app</span>
             </Link>
           </SidebarMenuButton>

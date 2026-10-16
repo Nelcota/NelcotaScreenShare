@@ -4,6 +4,16 @@ import { passwordTooShortMessage } from "./password-rules";
 /** E-mail that looks valid (the server does the real check). */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const INVALID_EMAIL = "Digite um e-mail válido.";
+
+/**
+ * What is wrong with a typed e-mail, or null. Checked before calling the server, so a
+ * blank or half-typed address never spends the attempt limit.
+ */
+export function emailProblem(email: string): string | null {
+  return EMAIL_PATTERN.test(email.trim()) ? null : INVALID_EMAIL;
+}
+
 export type SignUpCheck =
   | { ok: true; name: string; email: string }
   | { ok: false; field: "name" | "email" | "password"; message: string };
@@ -24,9 +34,7 @@ export function checkSignUp(input: {
     };
   }
   const email = input.email.trim();
-  if (!EMAIL_PATTERN.test(email)) {
-    return { ok: false, field: "email", message: "Digite um e-mail válido." };
-  }
+  if (!EMAIL_PATTERN.test(email)) return { ok: false, field: "email", message: INVALID_EMAIL };
   if (input.password.length < input.minPassword) {
     return {
       ok: false,

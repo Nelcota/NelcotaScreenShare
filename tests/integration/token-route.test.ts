@@ -214,7 +214,12 @@ describe("token", () => {
     assert.equal(payload.name, "Dani Souza");
     const video = jsonObject.parse(payload.video);
     assert.equal(video.room, "sala-teste");
-    assert.deepEqual(video.canPublishSources, ["microphone", "screen_share", "screen_share_audio"]);
+    assert.deepEqual(video.canPublishSources, [
+      "microphone",
+      "camera",
+      "screen_share",
+      "screen_share_audio",
+    ]);
     assert.equal(video.canPublishData, true);
     // No changing one's own name in the room: the raised hand goes through the server.
     assert.equal(video.canUpdateOwnMetadata, undefined);
@@ -292,6 +297,15 @@ describe("token", () => {
     assert.equal(blocked.status, 429);
     assert.ok(Number(blocked.headers.get("retry-after")) > 60);
   });
+
+  test.each(["", ACCESS.slice(0, -1), `${ACCESS}extra`, `${ACCESS}\0`, "\0"])(
+    "rejects a mismatched access password without padding or truncation changing equality: %j",
+    async (password) => {
+      const response = await post({ room: "sala-ok", password, guestName: "Guest" });
+      assert.equal(response.status, 401);
+      assert.equal(await errorCode(response), "invalid_password");
+    },
+  );
 
   test("limit of 20 requests per minute per account, even when switching IPs", async () => {
     const hugo = await verifiedParticipant(db, handler);

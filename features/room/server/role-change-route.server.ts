@@ -20,6 +20,7 @@ const REFUSALS: Record<Refusal, { status: number; message: string }> = {
   already: { status: 409, message: "Essa pessoa já é moderadora." },
   not_moderator: { status: 409, message: "Essa pessoa não é moderadora." },
   no_account: { status: 409, message: "Só quem tem conta pode ter um papel na sala." },
+  permanent: { status: 409, message: "Uma sala permanente continua com quem a criou." },
 };
 
 const AUDIT_ACTIONS: Record<RoleChange, string> = {

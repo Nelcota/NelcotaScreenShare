@@ -13,18 +13,26 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
     await expect(chatInput).toBeVisible();
     await page.getByRole("button", { name: "Fechar chat", exact: true }).click();
 
-    await page.setViewportSize({ width: 390, height: 844 });
-    const options = page.getByRole("button", { name: "Mais opções", exact: true });
-    await options.click();
-    const shortcuts = page.getByRole("switch", { name: "Atalhos na sala", exact: true });
+    const help = page.getByRole("dialog", { name: "Atalhos de teclado", exact: true });
+    await page.keyboard.press("Shift+Slash");
+    await expect(help).toBeVisible();
+    await expect(help.getByText("Esta ajuda", { exact: true })).toBeVisible();
+    // Keys pressed inside the dialog belong to it: the chat stays closed behind it.
+    await page.keyboard.press("c");
+    await expect(chatInput).toBeHidden();
+    await page.keyboard.press("Escape");
+    await expect(help).toBeHidden();
+
+    const helpButton = page.getByRole("button", { name: "Atalhos de teclado", exact: true });
+    await helpButton.click();
+    const shortcuts = help.getByRole("switch", { name: "Atalhos na sala", exact: true });
     await expect(shortcuts).toBeChecked();
     await shortcuts.click();
     await expect(shortcuts).not.toBeChecked();
-    await options.click();
-    await expect(page.getByRole("dialog", { name: "Mais opções", exact: true })).toBeHidden();
-    await page.setViewportSize({ width: 1280, height: 720 });
+    await help.getByRole("button", { name: "Entendi", exact: true }).click();
+    await expect(help).toBeHidden();
 
-    for (const key of ["m", "c", "s", "h", "e"]) await page.keyboard.press(key);
+    for (const key of ["m", "c", "s", "h", "e", "?"]) await page.keyboard.press(key);
     await expect(dock.getByRole("button", { name: "Ligar microfone", exact: true })).toBeVisible();
     await expect(chatInput).toBeHidden();
     await expect(page.getByRole("dialog")).toBeHidden();
@@ -36,11 +44,11 @@ test("turning off shortcuts leaves gameplay keys free and call buttons usable", 
     await expect(chatInput).toBeVisible();
     await page.getByRole("button", { name: "Fechar chat", exact: true }).click();
 
-    await options.click();
+    await helpButton.click();
     await expect(shortcuts).not.toBeChecked();
     await shortcuts.click();
-    await options.click();
-    await expect(page.getByRole("dialog", { name: "Mais opções", exact: true })).toBeHidden();
+    await page.keyboard.press("Escape");
+    await expect(help).toBeHidden();
     await page.keyboard.press("c");
     await expect(chatInput).toBeVisible();
   } finally {
@@ -80,6 +88,70 @@ test("typing and modified or repeated keys do not toggle the microphone", async 
     await expect(
       page.getByRole("button", { name: "Desligar microfone", exact: true }),
     ).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test("a shortcut gets another key, refuses browser keys and keeps the choice", async ({
+  browser,
+}) => {
+  const { page, context } = await newParticipant(browser, "Atalhos Troca");
+  try {
+    await joinRoom(page, await newRoomCode(), { micOn: false });
+    const microphoneOff = page.getByRole("button", { name: "Ligar microfone", exact: true });
+    const microphoneOn = page.getByRole("button", { name: "Desligar microfone", exact: true });
+    const help = page.getByRole("dialog", { name: "Atalhos de teclado", exact: true });
+    const micKey = help.getByRole("button", { name: /Liga e desliga o microfone/ });
+
+    await page.getByRole("button", { name: "Atalhos de teclado", exact: true }).click();
+    await expect(help.getByText("Clique numa tecla para trocar.", { exact: true })).toBeVisible();
+    await micKey.click();
+    await expect(help.getByText("Aperte a nova tecla.", { exact: true })).toBeVisible();
+
+    await page.keyboard.press("Alt+F4");
+    await expect(help.getByRole("alert")).toHaveText("Use uma tecla só, sem Ctrl, Alt ou Cmd.");
+    await page.keyboard.press("ArrowUp");
+    await expect(help.getByRole("alert")).toHaveText("Escolha uma letra ou um número.");
+    await page.keyboard.press("c");
+    await expect(help.getByRole("alert")).toHaveText("Essa tecla já é de “Abre e fecha o chat”.");
+
+    await page.keyboard.press("k");
+    await expect(micKey).toHaveText("K");
+    await page.keyboard.press("Escape");
+    await expect(help).toBeHidden();
+    await expect(page.getByPlaceholder("Escreva para a sala", { exact: true })).toBeHidden();
+
+    await expect(microphoneOff).toHaveAttribute("aria-keyshortcuts", "K");
+    await page.keyboard.press("m");
+    await expect(microphoneOff).toBeVisible();
+    await page.keyboard.press("k");
+    await expect(microphoneOn).toBeVisible();
+
+    await joinRoom(page, await newRoomCode(), { micOn: false });
+    await page.keyboard.press("k");
+    await expect(microphoneOn).toBeVisible();
+
+    await page.getByRole("button", { name: "Atalhos de teclado", exact: true }).click();
+    await help.getByRole("button", { name: "Restaurar padrão", exact: true }).click();
+    await expect(micKey).toHaveText("M");
+  } finally {
+    await context.close();
+  }
+});
+
+test("after picking a reaction, H still raises the hand", async ({ browser }) => {
+  const { page, context } = await newParticipant(browser, "Atalho Mao");
+  try {
+    await joinRoom(page, await newRoomCode(), { micOn: false });
+    await page.getByRole("button", { name: "Reações" }).click();
+    await page.getByRole("button", { name: "Reagir com 🎉" }).click();
+    // Closed, the menu stays in the page with the focus on the reaction; its keys go back to
+    // the room.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Reações" })).toBeHidden();
+    await page.keyboard.press("h");
+    await expect(page.getByText("✋ Você levantou a mão")).toBeVisible();
   } finally {
     await context.close();
   }

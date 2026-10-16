@@ -1,14 +1,29 @@
 import { Link } from "react-router";
+import type { SocialCounts } from "@/features/admin/participants/server/social-counts.server";
 import { Facts, Section } from "@/components/Section";
 import { LEAVE_REASON_LABELS } from "@/features/admin/rooms/domain/labels";
 import type { getParticipantDetail } from "@/features/admin/participants/server/queries.server";
 import { formatDateTime, formatNumber, formatSpan } from "@/lib/format";
 import { describeUserAgent } from "@/lib/user-agent";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type ParticipantDetail = NonNullable<Awaited<ReturnType<typeof getParticipantDetail>>>;
 
 /** Account data: sign-up, access, 2FA, blocking and anonymization. */
-export function ParticipantAccount({ account }: { account: ParticipantDetail["account"] }) {
+export function ParticipantAccount({
+  account,
+  social,
+}: {
+  account: ParticipantDetail["account"];
+  social: SocialCounts;
+}) {
   return (
     <Section title="Conta">
       <Facts
@@ -18,6 +33,11 @@ export function ParticipantAccount({ account }: { account: ParticipantDetail["ac
           ["E-mail confirmado", account.emailVerified ? "Sim" : "Não"],
           ["Verificação em 2 etapas", account.twoFactorEnabled ? "Ativa" : "Desligada"],
           ["Participações", formatNumber(account.participations)],
+          ["Amigos", formatNumber(social.friends)],
+          [
+            "Bloqueios",
+            `Fez ${formatNumber(social.blocksMade)} · Recebeu ${formatNumber(social.blocksReceived)}`,
+          ],
           ...(account.blockedAt
             ? ([
                 ["Bloqueada em", formatDateTime(account.blockedAt)],
@@ -73,21 +93,21 @@ export function ParticipantTimeline({ timeline }: { timeline: ParticipantDetail[
     <Section title="Participações" description={timelineNote(timeline.length)}>
       {timeline.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-ink-subtle">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Sala</th>
-                <th className="py-2 pr-4 font-medium">Entrou</th>
-                <th className="py-2 pr-4 font-medium">Duração</th>
-                <th className="py-2 pr-4 font-medium">Saída</th>
-                <th className="py-2 pr-4 font-medium">Compartilhou</th>
-                <th className="py-2 font-medium">IP</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Sala</TableHead>
+                <TableHead>Entrou</TableHead>
+                <TableHead>Duração</TableHead>
+                <TableHead>Saída</TableHead>
+                <TableHead>Compartilhou</TableHead>
+                <TableHead>IP</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {timeline.map((item) => (
-                <tr key={item.id} className="border-t border-line">
-                  <td className="py-2 pr-4">
+                <TableRow key={item.id}>
+                  <TableCell className="whitespace-normal">
                     <Link
                       viewTransition
                       to={`/admin/salas/${item.roomId}`}
@@ -95,22 +115,22 @@ export function ParticipantTimeline({ timeline }: { timeline: ParticipantDetail[
                     >
                       {item.roomCode}
                     </Link>
-                  </td>
-                  <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(item.joinedAt)}</td>
-                  <td className="py-2 pr-4 whitespace-nowrap">
-                    {formatSpan(item.joinedAt, item.leftAt)}
-                  </td>
-                  <td className="py-2 pr-4 text-ink-muted">
+                  </TableCell>
+                  <TableCell>{formatDateTime(item.joinedAt)}</TableCell>
+                  <TableCell>{formatSpan(item.joinedAt, item.leftAt)}</TableCell>
+                  <TableCell className="whitespace-normal text-ink-muted">
                     {item.leaveReason ? (LEAVE_REASON_LABELS[item.leaveReason] ?? "—") : "Na sala"}
-                  </td>
-                  <td className="py-2 pr-4 tabular-nums">
+                  </TableCell>
+                  <TableCell className="whitespace-normal tabular-nums">
                     {item.shares === 0 ? "—" : `${item.shares}×`}
-                  </td>
-                  <td className="py-2 font-sans text-xs tabular-nums">{item.ip ?? "—"}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="font-sans text-xs whitespace-normal tabular-nums">
+                    {item.ip ?? "—"}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : null}
     </Section>

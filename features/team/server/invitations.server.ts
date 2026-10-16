@@ -11,6 +11,25 @@ import { requireEntitlement } from "@/features/rooms/server/entitlements.server"
 function invitationHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
+
+/**
+ * Closes the open invitations for one e-mail in the team: a new link replaces the old one, and
+ * once the person joins, no other link for them stays valid.
+ */
+async function revokeOpenInvitations(tx: DbExecutor, teamId: string, email: string) {
+  await tx
+    .update(teamInvitations)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(teamInvitations.teamId, teamId),
+        eq(teamInvitations.email, email.toLowerCase()),
+        isNull(teamInvitations.usedAt),
+        isNull(teamInvitations.revokedAt),
+      ),
+    );
+}
+
 export async function createTeamInvitation(
   tx: DbExecutor,
   teamId: string,
@@ -45,6 +64,7 @@ export async function createTeamInvitation(
     throw new ActionError(
       "Revogue convites pendentes antes de criar mais. O piloto permite até 200 convites ativos por time.",
     );
+  await revokeOpenInvitations(tx, teamId, email);
   const token = randomBytes(32).toString("base64url");
   const [invite] = await tx
     .insert(teamInvitations)
@@ -102,6 +122,7 @@ export async function acceptTeamInvitation(tx: DbExecutor, token: string, actor:
     .update(teamInvitations)
     .set({ usedAt: new Date(), acceptedBy: actor })
     .where(and(eq(teamInvitations.id, invite.id), isNull(teamInvitations.usedAt)));
+  await revokeOpenInvitations(tx, invite.teamId, invite.email);
   return { teamId: invite.teamId, invitationId: invite.id };
 }
 

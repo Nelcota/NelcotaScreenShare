@@ -8,6 +8,7 @@ import { denialsByReason, recentDenials } from "@/features/admin/entries/server/
 import { DenialsList } from "@/features/admin/entries/ui/DenialsList";
 import { ReasonSummary } from "@/features/admin/entries/ui/ReasonSummary";
 import { getDb } from "@/server/db/index.server";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Entradas negadas · Nelcota" }];
 
@@ -23,10 +24,10 @@ export default function AdminEntriesPage() {
   const { counts, recent, reason } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Entradas negadas</h1>
-        <p className="mt-1 text-ink-muted">Quem tentou entrar numa sala e não conseguiu.</p>
-      </div>
+      <AdminPageHeader
+        title="Entradas negadas"
+        description="Quem tentou entrar numa sala e não conseguiu."
+      />
       <Section title="Por motivo">
         <ReasonSummary counts={counts} selected={reason} />
       </Section>

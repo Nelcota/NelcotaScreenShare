@@ -1,7 +1,7 @@
 import { Check, DoorOpen, ShieldCheck } from "lucide-react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { callToast as toast } from "@/features/room/client/call-notices";
 import { roomAccess, setRoomAccess } from "@/features/room/actions";
 import {
   ROOM_ACCESS_HINT,

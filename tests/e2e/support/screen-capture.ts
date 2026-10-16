@@ -2,11 +2,19 @@ import type { Page } from "@playwright/test";
 /**
  * Fake shared screen: an animated canvas instead of the browser's picker. `withSound`
  * adds computer audio that, like a real capture without `restrictOwnAudio`, would carry
- * the room's playback.
+ * the room's playback. `callTab` makes the capture a Nelcota tab in a call; with "later",
+ * it becomes one when the page calls `window.joinCapturedTabToCall()`.
  */
-export async function fakeScreenCapture(page: Page, { withSound = false, safeAudio = false } = {}) {
+export async function fakeScreenCapture(
+  page: Page,
+  {
+    withSound = false,
+    safeAudio = false,
+    callTab,
+  }: { withSound?: boolean; safeAudio?: boolean; callTab?: "start" | "later" } = {},
+) {
   await page.addInitScript(
-    ({ sound, restricted }) => {
+    ({ sound, restricted, call }) => {
       navigator.mediaDevices.getDisplayMedia = () => {
         const canvas = document.createElement("canvas");
         canvas.width = 1280;
@@ -20,6 +28,17 @@ export async function fakeScreenCapture(page: Page, { withSound = false, safeAud
           context.fillRect(0, 0, canvas.width, canvas.height);
         }, 100);
         const stream = canvas.captureStream(15);
+        if (call) {
+          const video = stream.getVideoTracks()[0]!;
+          let handle = call === "start" ? "nelcota-call" : "";
+          Object.assign(video, { getCaptureHandle: () => ({ handle }) });
+          Object.assign(window, {
+            joinCapturedTabToCall: () => {
+              handle = "nelcota-call";
+              video.dispatchEvent(new Event("capturehandlechange"));
+            },
+          });
+        }
         if (sound) {
           const audio = new AudioContext();
           const destination = audio.createMediaStreamDestination();
@@ -32,6 +51,6 @@ export async function fakeScreenCapture(page: Page, { withSound = false, safeAud
         return Promise.resolve(stream);
       };
     },
-    { sound: withSound, restricted: safeAudio },
+    { sound: withSound, restricted: safeAudio, call: callTab },
   );
 }

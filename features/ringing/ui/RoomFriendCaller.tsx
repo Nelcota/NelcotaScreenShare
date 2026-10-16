@@ -8,25 +8,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { canBeCalled, SHOWN_STATUS_LABEL } from "@/features/friends/domain/presence-status";
-import { callFriend } from "@/features/ringing/actions";
-import { markCalling, useCalling } from "@/features/ringing/client/calling";
+import { ringFriend, useCalling } from "@/features/ringing/client/calling";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
 /** The empty room's invite card leaves this spot free. */
 const INVITE_SLOT_ID = "room-invite-actions";
 
-/** Rings one friend; "Chamando…" shows from the click and goes away if it fails. */
-async function ringOne(room: string, friendId: string) {
-  markCalling(friendId, true);
-  const result = await callFriend({ friendId, room });
-  if (!result.data?.ringId) markCalling(friendId, false);
-  return result;
-}
-
 /** Rings each chosen friend into the room; says how many could not be rung. */
 async function ringAll(room: string, friendIds: string[]) {
-  const results = await Promise.all(friendIds.map((friendId) => ringOne(room, friendId)));
-  const failed = results.filter((result) => !result.data?.ringId).length;
+  const results = await Promise.all(friendIds.map((friendId) => ringFriend({ room, friendId })));
+  const failed = results.filter((result) => result !== null && !result.data?.ringId).length;
   if (failed === 0) return;
   toast.error(
     failed === friendIds.length

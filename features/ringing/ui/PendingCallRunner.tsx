@@ -4,14 +4,14 @@ import { createPortal } from "react-dom";
 import { useLocation, useRevalidator, useRouteLoaderData } from "react-router";
 import { toast } from "sonner";
 import type { loader as rootLoader } from "@/app/root";
-import { callFriend, callGroup } from "@/features/ringing/actions";
+import { callGroup } from "@/features/ringing/actions";
 import {
   savePendingCall,
   usePendingCall,
   type PendingCall,
 } from "@/features/ringing/client/pending-call";
 import { useConnectedCallRoom } from "@/features/ringing/client/call-connection";
-import { markCalling } from "@/features/ringing/client/calling";
+import { ringFriend } from "@/features/ringing/client/calling";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 
 /** The spot above "Pronto para entrar?" kept free for notices like this one. */
@@ -23,10 +23,9 @@ const CHECK_MS = 3_000;
 async function ring(call: PendingCall) {
   const result =
     call.kind === "friend"
-      ? await callFriend({ friendId: call.friendId, room: call.room })
+      ? await ringFriend({ friendId: call.friendId, room: call.room })
       : await callGroup({ conversationId: call.conversationId, room: call.room });
-  if (result.data) return;
-  if (call.kind === "friend") markCalling(call.friendId, false);
+  if (!result || result.data) return;
   toast.error(result.serverError ?? "Não dá para chamar agora.");
 }
 
@@ -66,7 +65,6 @@ export function PendingCallRunner() {
   useEffect(() => {
     if (!pending || callRoom !== pending.room) return;
     // "Chamando…" stays on while the ring reaches the page.
-    if (pending.kind === "friend") markCalling(pending.friendId, true);
     savePendingCall(null);
     void ring(pending);
   }, [pending, callRoom]);

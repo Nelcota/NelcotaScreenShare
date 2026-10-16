@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
 import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { createRoomAction } from "@/features/room/actions";
-import { callFriend, callGroup } from "@/features/ringing/actions";
-import { cancelCalling, markCalling, useCalling } from "@/features/ringing/client/calling";
+import { callGroup } from "@/features/ringing/actions";
+import { cancelCalling, ringFriend, useCalling } from "@/features/ringing/client/calling";
 import { savePendingCall, type PendingCall } from "@/features/ringing/client/pending-call";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +40,8 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 function useOpenRoom() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  return async (waiting: Waiting) => {
+  return async (waiting: Waiting, active: () => boolean = () => true) => {
+    if (!active()) return;
     const here = roomOnPage(pathname);
     if (here) {
       savePendingCall({ ...waiting, room: here });
@@ -48,6 +49,7 @@ function useOpenRoom() {
     }
     // A room opened by Chamar asks for approval: whoever is rung still goes straight in.
     const created = await createRoomAction({ access: "approval" });
+    if (!active()) return;
     const room = created.data ? codeFromPath(created.data.path) : null;
     if (!created.data || !room) {
       toast.error(created.serverError ?? "Não foi possível criar a sala.");
@@ -68,17 +70,14 @@ export function useCallFriend(friend: { id: string; name: string }) {
   const [starting, setStarting] = useState(false);
   const call = async () => {
     setStarting(true);
-    markCalling(friend.id, true);
-    const result = await callFriend({ friendId: friend.id });
-    if (result.data?.needsRoom) {
-      await openRoom({ kind: "friend", friendId: friend.id, name: friend.name });
-      // From here the waiting call shows "Chamando…", or nothing if the room did not open.
-      markCalling(friend.id, false);
+    try {
+      const result = await ringFriend({ friendId: friend.id }, (active) =>
+        openRoom({ kind: "friend", friendId: friend.id, name: friend.name }, active),
+      );
+      if (result && !result.data) toast.error(result.serverError ?? "Unable to call right now.");
+    } finally {
+      setStarting(false);
     }
-    setStarting(false);
-    if (result.data) return;
-    markCalling(friend.id, false);
-    toast.error(result.serverError ?? "Não dá para chamar agora.");
   };
   return { call, starting };
 }

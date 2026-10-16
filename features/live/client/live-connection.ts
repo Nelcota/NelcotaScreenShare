@@ -5,8 +5,6 @@ const LIVE_URL = "/api/eventos";
 const BATCH_MS = 300;
 /** While the stream is down, the page still reloads its data this often. */
 const FALLBACK_MS = 60_000;
-/** A tab hidden this long gives its connection back; it catches up when shown again. */
-const HIDDEN_CLOSE_MS = 5 * 60_000;
 
 const isVisible = () => document.visibilityState === "visible";
 
@@ -20,7 +18,6 @@ export function startLiveConnection(refresh: () => void): () => void {
   // Something may have changed while the stream was down: catch up on the next open.
   let missed = false;
   let fallback: ReturnType<typeof setInterval> | undefined;
-  let hiddenTimer: ReturnType<typeof setTimeout> | undefined;
 
   function stopFallback() {
     clearInterval(fallback);
@@ -30,7 +27,6 @@ export function startLiveConnection(refresh: () => void): () => void {
   function startFallback() {
     if (fallback !== undefined) return;
     fallback = setInterval(() => {
-      if (!isVisible()) return;
       batcher.nudge();
       // The browser gives up after an error status; try again from here.
       if (!source) open();
@@ -62,12 +58,7 @@ export function startLiveConnection(refresh: () => void): () => void {
   }
 
   function onVisibility() {
-    clearTimeout(hiddenTimer);
-    if (!isVisible()) {
-      hiddenTimer = setTimeout(close, HIDDEN_CLOSE_MS);
-      return;
-    }
-    open();
+    if (isVisible()) open();
   }
 
   function onPageShow(event: PageTransitionEvent) {
@@ -82,7 +73,6 @@ export function startLiveConnection(refresh: () => void): () => void {
     document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("pagehide", close);
     window.removeEventListener("pageshow", onPageShow);
-    clearTimeout(hiddenTimer);
     stopFallback();
     batcher.cancel();
     source?.close();

@@ -1,10 +1,9 @@
 import type { Participant } from "livekit-client";
-import { MonitorPlay } from "lucide-react";
+import { MonitorPlay, MonitorUp } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { useScreenPreview } from "@/features/room/hooks/use-screen-preview";
 import { useScreenWatch } from "@/features/room/hooks/use-screen-watch";
-import { cn } from "@/lib/utils";
 import { HostBadge } from "./HostBadge";
 import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { ParticipantAvatar } from "./ParticipantAvatar";
@@ -51,7 +50,7 @@ interface ShareTileCardProps {
 
 /**
  * The sharer's tile while nobody here watches their screen: a blurred glimpse of it, with
- * "Assistir" in the middle; the person moves to the top-left corner. Assistir takes the
+ * "Assistir" in the middle and the person in the same corner as on every card. Assistir takes the
  * screen to the stage, as before.
  */
 export function ShareTileCard({
@@ -87,21 +86,9 @@ export function ShareTileCard({
           className="pointer-events-none absolute inset-0 z-10 rounded-3xl opacity-0 ring-3 ring-brand-soft ring-inset"
         />
 
-        <span className="glass absolute top-3 left-3 z-20 inline-flex max-w-[calc(100%-5rem)] items-center gap-2 rounded-full py-1 pr-1.5 pl-1 text-sm font-medium">
-          <ParticipantCard participant={participant} roomCode={roomCode}>
-            <ParticipantAvatar
-              participant={participant}
-              roomCode={roomCode}
-              className="size-7 bg-brand/15 text-[0.6875rem] font-medium text-brand-soft"
-            />
-          </ParticipantCard>
-          <HostBadge identity={participant.identity} />
-          <span className={cn("truncate", !muted && !deafened && "pr-2")}>{name}</span>
-          <SoundBadge deafened={deafened} muted={muted} variant="chip" />
-        </span>
         <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3 z-20" />
 
-        <div className="relative z-20 flex flex-col items-center gap-2.5">
+        <div className="relative z-20 flex flex-col items-center">
           <Button
             size="lg"
             ref={(button) => {
@@ -113,10 +100,28 @@ export function ShareTileCard({
             <MonitorPlay aria-hidden="true" />
             Assistir
           </Button>
-          <span className="glass rounded-full px-3 py-1 text-sm font-medium" aria-hidden="true">
-            Mostrando a tela
-          </span>
           <span className="sr-only">{name} está compartilhando a tela</span>
+        </div>
+
+        {/* The same corners as every other card: the person below left, their sound below right. */}
+        <div className="absolute inset-x-3 bottom-3 z-20 flex items-center justify-between gap-2">
+          <span className="glass inline-flex min-w-0 items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-sm font-medium">
+            <ParticipantCard participant={participant} roomCode={roomCode}>
+              <ParticipantAvatar
+                participant={participant}
+                roomCode={roomCode}
+                className="size-6 bg-brand/15 text-[0.625rem] font-medium text-brand-soft"
+              />
+            </ParticipantCard>
+            <HostBadge identity={participant.identity} />
+            <span className="truncate">{name}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5">
+            <span className="grid size-8 place-items-center rounded-full bg-brand text-brand-ink">
+              <MonitorUp className="size-4" aria-hidden="true" />
+            </span>
+            <SoundBadge deafened={deafened} muted={muted} variant="large" />
+          </span>
         </div>
         {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
       </div>

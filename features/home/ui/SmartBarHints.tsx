@@ -40,11 +40,30 @@ const EMPTY_HINT = (
   </span>
 );
 
+/** Empty bar hint during a call: Enter goes back to it. */
+const IN_CALL_HINT = (
+  <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+    <span className="inline-flex items-center gap-1.5 max-sm:hidden">
+      <Keycap>Enter</Keycap>
+      volta à chamada
+    </span>
+    <span aria-hidden="true" className="size-1 rounded-full bg-line-strong max-sm:hidden" />
+    <span className="inline-flex items-center gap-1.5">
+      <ClipboardPaste className="size-4 text-ink-subtle" aria-hidden="true" />
+      <span className="max-sm:hidden">ou cole o link que recebeu</span>
+      <span className="sm:hidden">Cole o link de outra sala</span>
+    </span>
+  </span>
+);
+
 /** Hint below the bar: shortcuts when the bar is empty; recognized room; or the error. */
-export function hintFor(input: BarInput): { text: ReactNode; tone: "muted" | "ok" | "error" } {
+export function hintFor(
+  input: BarInput,
+  inCall = false,
+): { text: ReactNode; tone: "muted" | "ok" | "error" } {
   switch (input.kind) {
     case "empty":
-      return { text: EMPTY_HINT, tone: "muted" };
+      return { text: inCall ? IN_CALL_HINT : EMPTY_HINT, tone: "muted" };
     case "friend":
       return {
         text: (

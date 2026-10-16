@@ -1,4 +1,4 @@
-import { ArrowRight, Link2, Loader2, Plus, UserPlus } from "lucide-react";
+import { ArrowRight, Link2, Loader2, Plus, Undo2, UserPlus } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -27,6 +27,8 @@ interface SmartBarProps {
   onNavigate: (href: string) => void;
   /** An empty bar's "Criar sala". */
   onCreateRoom: () => void;
+  /** During a call: an empty bar goes back to it instead of creating a room. */
+  onBackToCall?: () => void;
   /** Mascot "peeking" over the bar. */
   mascot: ReactNode;
   /** Whether "/" focuses this bar; only one bar on the page should answer it. */
@@ -37,12 +39,28 @@ interface SmartBarProps {
   onAddFriend?: (code: string) => void;
 }
 
-function SubmitLabel({ pending, input }: { pending: boolean; input: BarInput }) {
+function SubmitLabel({
+  pending,
+  input,
+  inCall,
+}: {
+  pending: boolean;
+  input: BarInput;
+  inCall: boolean;
+}) {
   if (pending) {
     return (
       <>
         <Loader2 className="size-4 animate-spin" aria-hidden="true" />
         Abrindo…
+      </>
+    );
+  }
+  if (input.kind === "empty" && inCall) {
+    return (
+      <>
+        <Undo2 className="size-4" aria-hidden="true" />
+        Voltar à chamada
       </>
     );
   }
@@ -79,6 +97,7 @@ export function SmartBar({
   pending,
   onNavigate,
   onCreateRoom,
+  onBackToCall,
   mascot,
   focusShortcut = true,
   compact = false,
@@ -99,12 +118,13 @@ export function SmartBar({
   const linkError = invalidCode && !errorDismissed;
   const readInput = (value: string) => parseBarInput(value, { friends: onAddFriend !== undefined });
   const input = readInput(text);
+  const inCall = onBackToCall !== undefined;
   const hint = linkError
     ? {
         text: <ErrorHint>Esse código de sala não existe. Confira o link.</ErrorHint>,
         tone: "error" as const,
       }
-    : hintFor(input);
+    : hintFor(input, inCall);
 
   useEffect(() => {
     if (!invalidCode) return;
@@ -141,6 +161,10 @@ export function SmartBar({
     if (input.kind === "friend") {
       onAddFriend?.(input.code);
       setText("");
+      return;
+    }
+    if (input.kind !== "room" && onBackToCall) {
+      onBackToCall();
       return;
     }
     if (input.kind !== "room") {
@@ -198,7 +222,7 @@ export function SmartBar({
               compact ? "h-10 px-4 text-sm" : "h-12 px-5 text-base",
             )}
           >
-            <SubmitLabel pending={pending} input={input} />
+            <SubmitLabel pending={pending} input={input} inCall={inCall} />
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { LogIn } from "lucide-react";
-import { Link, useNavigate, useRevalidator, useSearchParams } from "react-router";
+import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import { AccessTabs } from "./AccessTabs";
@@ -32,7 +32,6 @@ export function SignInForm({
   notice?: string | undefined;
 }) {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const revalidator = useRevalidator();
   const emailId = useId();
   const passwordId = useId();
@@ -74,7 +73,7 @@ export function SignInForm({
     }
     forgetTypedEmail();
     // With 2FA the code comes next; an in-app navigation keeps a call going.
-    const codePage = twoFactorStep(result, searchParams.get("voltar"));
+    const codePage = twoFactorStep(result, returnTo);
     if (codePage) {
       nodMascot();
       void navigate(codePage, { replace: true, viewTransition: true });

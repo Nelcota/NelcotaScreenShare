@@ -88,6 +88,16 @@ export function NotificationSettings() {
           onCheckedChange={(ringSound) => updateNotificationPreferences({ ringSound })}
         />
       </SettingsRow>
+      <SettingsRow
+        title="Som de mensagem"
+        description="Um aviso curto quando chega mensagem fora da conversa aberta."
+      >
+        <LabeledSwitch
+          label="Som de mensagem"
+          checked={preferences.messageSound}
+          onCheckedChange={(messageSound) => updateNotificationPreferences({ messageSound })}
+        />
+      </SettingsRow>
       <SettingsRow title="Sons da chamada" description="Ao ligar e desligar o microfone e o som.">
         <LabeledSwitch
           label="Sons da chamada"

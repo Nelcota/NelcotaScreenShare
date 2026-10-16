@@ -6,6 +6,8 @@ import {
   Loader2,
   Plus,
   Ticket,
+  UserPlus,
+  UserRound,
   Video,
 } from "lucide-react";
 import {
@@ -24,7 +26,7 @@ import {
   upsetMascot,
 } from "@/features/mascot/client/events";
 import { roomLink } from "@/features/room/domain/room-code";
-import { parseRoomInput, type RoomInput } from "@/features/room/domain/room-input";
+import { parseBarInput, type BarInput } from "@/features/home/domain/bar-input";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import { cn } from "@/lib/utils";
@@ -41,6 +43,8 @@ interface SmartBarProps {
   focusShortcut?: boolean;
   /** Shorter bar and button, for the start of the app. */
   compact?: boolean;
+  /** Signed in: a friend code (NELC-…) in the bar adds that person instead of opening a room. */
+  onAddFriend?: (code: string) => void;
 }
 
 /** Key drawn like a real key (thicker bottom border). */
@@ -82,10 +86,21 @@ const EMPTY_HINT = (
 );
 
 /** Hint below the bar: shortcuts when the bar is empty; recognized room; or the error. */
-function hintFor(input: RoomInput): { text: ReactNode; tone: "muted" | "ok" | "error" } {
+function hintFor(input: BarInput): { text: ReactNode; tone: "muted" | "ok" | "error" } {
   switch (input.kind) {
     case "empty":
       return { text: EMPTY_HINT, tone: "muted" };
+    case "friend":
+      return {
+        text: (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 py-0.5 pr-2.5 pl-2">
+            <span className="sr-only">Código de amigo:</span>
+            <UserRound className="size-3.5 text-brand-soft" aria-hidden="true" />
+            <span className="font-sans font-medium text-ink tabular-nums">{input.code}</span>
+          </span>
+        ),
+        tone: "ok",
+      };
     case "room":
       return {
         text: (
@@ -123,7 +138,7 @@ function hintFor(input: RoomInput): { text: ReactNode; tone: "muted" | "ok" | "e
   }
 }
 
-function SubmitLabel({ pending, creating }: { pending: boolean; creating: boolean }) {
+function SubmitLabel({ pending, input }: { pending: boolean; input: BarInput }) {
   if (pending) {
     return (
       <>
@@ -132,11 +147,19 @@ function SubmitLabel({ pending, creating }: { pending: boolean; creating: boolea
       </>
     );
   }
-  if (creating) {
+  if (input.kind === "empty") {
     return (
       <>
         <Plus className="icon-turn size-4" aria-hidden="true" />
         Criar sala
+      </>
+    );
+  }
+  if (input.kind === "friend") {
+    return (
+      <>
+        <UserPlus className="size-4" aria-hidden="true" />
+        Adicionar
       </>
     );
   }
@@ -160,6 +183,7 @@ export function SmartBar({
   mascot,
   focusShortcut = true,
   compact = false,
+  onAddFriend,
 }: SmartBarProps) {
   const hydrated = useSyncExternalStore(
     subscribeNothing,
@@ -174,7 +198,8 @@ export function SmartBar({
   // Typing dismisses the error that came in the address; a new error remounts the bar (key).
   const [errorDismissed, setErrorDismissed] = useState(false);
   const linkError = invalidCode && !errorDismissed;
-  const input = parseRoomInput(text);
+  const readInput = (value: string) => parseBarInput(value, { friends: onAddFriend !== undefined });
+  const input = readInput(text);
   const hint = linkError
     ? {
         text: <ErrorHint>Esse código de sala não existe. Confira o link.</ErrorHint>,
@@ -199,9 +224,10 @@ export function SmartBar({
   function handleChange(value: string) {
     setText(value);
     setErrorDismissed(true);
-    const next = parseRoomInput(value);
+    const next = readInput(value);
     setMascotDoubt(next.kind === "invalid" && value.trim().length > 3);
-    if (next.kind === "room" && input.kind !== "room") nodMascot();
+    const recognized = next.kind === "room" || next.kind === "friend";
+    if (recognized && next.kind !== input.kind) nodMascot();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -213,6 +239,11 @@ export function SmartBar({
       return;
     }
     celebrateMascot();
+    if (input.kind === "friend") {
+      onAddFriend?.(input.code);
+      setText("");
+      return;
+    }
     if (input.kind !== "room") {
       onCreateRoom();
       return;
@@ -220,8 +251,6 @@ export function SmartBar({
     onNavigate(roomLink(input.code, input.invite));
   }
 
-  // "Criar sala" only with an empty bar; with text, the person is trying to join.
-  const creating = input.kind === "empty";
   return (
     <form onSubmit={handleSubmit} noValidate className="flex w-full flex-col items-center gap-3">
       <div className="relative w-full">
@@ -264,7 +293,7 @@ export function SmartBar({
               compact ? "h-10 px-4 text-sm" : "h-12 px-5 text-base",
             )}
           >
-            <SubmitLabel pending={pending} creating={creating} />
+            <SubmitLabel pending={pending} input={input} />
           </button>
         </div>
       </div>

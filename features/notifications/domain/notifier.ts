@@ -1,6 +1,6 @@
 import type { NotificationPreferences } from "./preferences";
 
-/** A call rings; a message only counts and, in the background, shows a notification. */
+/** A call rings; a message makes a short sound, counts and, in the background, shows a notification. */
 type NotifyKind = "call" | "message";
 
 interface NotifyAction {
@@ -50,6 +50,7 @@ export interface NotifierEnvironment {
   preferences: () => NotificationPreferences;
   showSystem: (notification: SystemNotification) => { close: () => void };
   startRing: () => { stop: () => void };
+  playMessage: () => void;
   addUnread: () => void;
   /** Returns a function that cancels the timer. */
   after: (milliseconds: number, run: () => void) => () => void;
@@ -99,6 +100,7 @@ export function createNotifier(environment: NotifierEnvironment) {
             onAction: options.onAction,
           })
         : undefined;
+    if (options.kind === "message" && preferences.messageSound) environment.playMessage();
     const ring =
       options.kind === "call" && preferences.ringSound ? environment.startRing() : undefined;
 

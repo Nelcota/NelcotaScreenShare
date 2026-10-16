@@ -23,6 +23,8 @@ import {
   SettingsSection,
 } from "@/features/account/ui/settings/Settings";
 import { NotificationSettings } from "@/features/account/ui/NotificationSettings";
+import { blockedPeople } from "@/features/friends/server/friend-list.server";
+import { BlockedList } from "@/features/friends/ui/BlockedList";
 import { PanelClose } from "@/features/friends/ui/PanelClose";
 import { BackLink } from "@/components/shell/BackLink";
 import { Button } from "@/components/ui/button";
@@ -120,6 +122,7 @@ export const loader = routeLoader(async ({ searchParams }) => {
   const { name, email, image, emailVerified, twoFactorEnabled } = current.user;
   return {
     ownedTeamCount: (await ownedTeams(getDb(), current.user.id)).length,
+    blocked: await blockedPeople(getDb(), current.user.id),
     currentId: current.session.id,
     back,
     sessions,
@@ -135,8 +138,16 @@ export const loader = routeLoader(async ({ searchParams }) => {
  * in anchored sections (/conta#seguranca). Long forms open inline.
  */
 export default function AccountPage() {
-  const { currentId, back, sessions, notice, user, requireEmailVerification, ownedTeamCount } =
-    useLoaderData<typeof loader>();
+  const {
+    currentId,
+    back,
+    sessions,
+    notice,
+    user,
+    requireEmailVerification,
+    ownedTeamCount,
+    blocked,
+  } = useLoaderData<typeof loader>();
   return (
     <div className="relative">
       <PanelClose className="absolute top-3 right-3" />
@@ -230,6 +241,16 @@ export default function AccountPage() {
                 </a>
               </Button>
             </SettingsRow>
+          </SettingsSection>
+
+          <SettingsSection
+            id="bloqueios"
+            title="Bloqueios"
+            description="Quem está aqui não te chama nem te manda mensagem."
+          >
+            <SettingsBlock>
+              <BlockedList people={blocked} />
+            </SettingsBlock>
           </SettingsSection>
 
           <SettingsSection id="excluir" title="Encerrar conta" danger>

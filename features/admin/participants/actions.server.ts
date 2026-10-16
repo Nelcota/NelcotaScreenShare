@@ -7,6 +7,7 @@ import { getUserAuth } from "@/features/auth/server/participant-auth.server";
 import { getDb } from "@/server/db/index.server";
 import { users } from "@/server/db/schema";
 import { createRateLimiter } from "@/server/rate-limit.server";
+import { notifyUsers } from "@/features/live/server/live-bus.server";
 import {
   anonymizeParticipant,
   blockParticipants,
@@ -144,6 +145,8 @@ export const revokeParticipantSessionsAction = defineAdminOperation(
       });
       return removed;
     });
+    // Open tabs of that account learn it at once and go to sign-in, not on the next 60 s check.
+    notifyUsers([parsedInput.id], "session");
     return { count };
   },
 );

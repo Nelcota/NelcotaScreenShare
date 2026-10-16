@@ -76,5 +76,11 @@ export function acceptRing(ringId: string, calleeId: string): Ring | null {
   return ring;
 }
 
+/**
+ * When this server started: rings live in memory, so a restart (a deploy) drops them. Pages
+ * compare it to tell a dropped call from one that was answered.
+ */
+export const RINGS_SINCE = Date.now();
+
 export const incomingRings = (userId: string) => ringStore.incomingFor(userId);
 export const outgoingRings = (userId: string) => ringStore.outgoingFrom(userId);

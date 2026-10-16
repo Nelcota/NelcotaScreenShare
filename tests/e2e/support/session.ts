@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import {
   expect,
   type Browser,
@@ -21,6 +22,21 @@ export async function chooseOption(scope: Page | Locator, label: string, option:
 let sequence = 0;
 
 /**
+ * Where this worker's addresses start. Playwright starts a new worker after a failed test,
+ * and the sign-up limit is kept in the database: counting from zero again would reuse the
+ * addresses of earlier tests (or of the run before) and hit "Too many requests".
+ */
+const FIRST_ADDRESS = randomInt(0, 2 ** 23);
+
+/** 10.x.y.z from a number, skipping .0 and .255 in the last part. */
+function visitorAddress(index: number): string {
+  const spread = index % 2 ** 24;
+  const last = (spread % 254) + 1;
+  const rest = Math.floor(spread / 254);
+  return `10.${Math.floor(rest / 256) % 256}.${rest % 256}.${last}`;
+}
+
+/**
  * Each test person comes from their own "IP" (X-Forwarded-For, read by the
  * server middleware as in production behind Traefik): sign-up is rate-limited per IP.
  */
@@ -28,7 +44,7 @@ export async function newVisitor(
   browser: Browser,
 ): Promise<{ context: BrowserContext; page: Page }> {
   sequence += 1;
-  const ip = `10.77.${Math.floor(sequence / 250)}.${(sequence % 250) + 1}`;
+  const ip = visitorAddress(FIRST_ADDRESS + sequence);
   const context = await browser.newContext({
     baseURL: E2E_URL,
     locale: "pt-BR",

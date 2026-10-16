@@ -35,7 +35,9 @@ const Toaster = ({ style, toastOptions, ...props }: ToasterProps) => {
         ...toastOptions,
         classNames: toastOptions?.classNames ?? {
           // 16 px: o padrão do Sonner (13 px) é pequeno demais para ler de relance.
-          toast: "cn-toast font-sans text-base!",
+          // A rounded pill sized to its text, like the call notices.
+          toast:
+            "cn-toast font-sans text-base! w-fit! max-w-[min(28rem,calc(100vw-2rem))]! mx-auto! left-0! right-0! rounded-3xl! px-5! py-3.5! gap-3! shadow-soft!",
           // At most two lines each: expanded toasts never grow down over the call's dock.
           title: "line-clamp-2",
           // Same look as the app's buttons, not Sonner's black and gray.

@@ -18,7 +18,9 @@ import { usePushedRing } from "@/features/ringing/client/pushed-ring";
 import { showCallNotice } from "@/features/room/client/call-notices";
 import { PendingCallRunner } from "@/features/ringing/ui/PendingCallRunner";
 import { RoomRingStatus } from "@/features/ringing/ui/RoomRingStatus";
+import { droppedRings, type OutgoingSnapshot } from "@/features/ringing/domain/dropped-rings";
 import {
+  DROPPED_CALL,
   ringSoundLeft,
   type IncomingRing,
   type OutgoingRing,
@@ -117,6 +119,24 @@ function useOnCallPage(): boolean {
   return connectedRoom !== null && pathname === `/sala/${connectedRoom}`;
 }
 
+/** The server restarted mid-ring (a deploy): "Chamando…" goes away with a word on why. */
+function showDroppedNotice(ring: OutgoingRing, inCall: boolean) {
+  const id = `toque-${ring.id}`;
+  if (inCall) return showCallNotice(DROPPED_CALL, { id });
+  toast(ring.calleeName, { description: DROPPED_CALL, id });
+}
+
+/** Rings that vanished because the server restarted, told once when the page catches up. */
+function useDroppedNotices(snapshot: OutgoingSnapshot | null) {
+  const before = useRef<OutgoingSnapshot | null>(null);
+  const inCall = useOnCallPage();
+  useEffect(() => {
+    if (!snapshot) return;
+    for (const ring of droppedRings(before.current, snapshot)) showDroppedNotice(ring, inCall);
+    before.current = snapshot;
+  }, [snapshot, inCall]);
+}
+
 /** "Ninguém atendeu" or "Bia recusou", once per ring that ended without an answer. */
 function useEndNotices(outgoing: readonly OutgoingRing[]) {
   const shown = useRef(new Set<string>());
@@ -135,7 +155,8 @@ function useEndNotices(outgoing: readonly OutgoingRing[]) {
 export function RingRuntime() {
   const ringing = useRouteLoaderData<typeof rootLoader>("root")?.ringing ?? null;
   useEndNotices(ringing?.outgoing ?? []);
-  const pushed = usePushedRing();
+  useDroppedNotices(ringing);
+  const pushed = usePushedRing(ringing);
   // The loaders decide; the ring that came with the nudge only fills the gap until they reload.
   const incoming = ringing?.incoming[0] ?? pushed;
   if (!ringing) return null;

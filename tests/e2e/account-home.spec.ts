@@ -57,6 +57,10 @@ test("sign-up through the UI, account page and ending the other session", async 
   await expect(page.getByLabel("Nome na sala")).toHaveValue("Gil Novo");
   await expect(page.getByRole("button", { name: "Encerrar", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Encerrar todas as outras" }).click();
+  // Ending sessions asks first.
+  const confirm = page.getByRole("dialog", { name: "Encerrar a outra sessão?" });
+  await confirm.getByRole("button", { name: "Encerrar", exact: true }).click();
+  await expect(confirm).toBeHidden();
   await expect(page.getByRole("button", { name: "Encerrar", exact: true })).toHaveCount(0);
 
   const session = await other.context.request.get("/api/auth/get-session");

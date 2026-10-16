@@ -24,6 +24,8 @@ const { liveBus } = await import("@/features/live/server/live-bus.server");
 const { conversationPage } = await import("@/features/messages/server/conversation-page.server");
 const { markOnline } = await import("@/features/friends/server/online-presence.server");
 const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
+const { unreadSummary, columnConversations } =
+  await import("@/features/messages/server/conversation-list.server");
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
@@ -178,6 +180,48 @@ describe("direct messages", () => {
     });
     const listed = await chat.listConversations({});
     expect(listed.data?.conversations[0]?.lastMessage).toBeNull();
+  });
+});
+
+/** What the tab and the notifications see for this person. */
+async function unreadOf(person: Person) {
+  const summary = await unreadSummary(db, person.id);
+  const column = await columnConversations(db, person.id);
+  return { total: summary.total, latest: summary.latest?.body ?? null, column };
+}
+
+describe("unread after the friendship ends", () => {
+  test("an ex-friend's messages stop counting and notifying, after unfriending or a block", async () => {
+    for (const end of ["unfriend", "block"] as const) {
+      const { ana, bia } = await friendsPair();
+      const conversationId = await openWith(ana, bia);
+      await chat.sendMessage({ conversationId, body: `antes de ${end}` });
+      expect((await unreadOf(bia)).total).toBe(1);
+      as(bia);
+      if (end === "unfriend") await friends.removeFriend({ userId: ana.id });
+      if (end === "block") await friends.blockUser({ userId: ana.id });
+      const after = await unreadOf(bia);
+      expect(after.total).toBe(0);
+      expect(after.latest).toBeNull();
+      expect(after.column.unreadByFriend[ana.id]).toBeUndefined();
+    }
+  });
+
+  test("a group still counts a member who is no longer a friend", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    const caio = await verifiedParticipant(db, handler, { name: "Caio" });
+    await befriend(ana, bia);
+    await befriend(ana, caio);
+    as(ana);
+    const created = await chat.createGroupConversation({ memberIds: [bia.id, caio.id] });
+    assert(created.data, created.serverError ?? "group not created");
+    await chat.sendMessage({ conversationId: created.data.conversationId, body: "no grupo" });
+    as(bia);
+    await friends.removeFriend({ userId: ana.id });
+    const after = await unreadOf(bia);
+    expect(after.total).toBe(1);
+    expect(after.latest).toBe("no grupo");
   });
 });
 

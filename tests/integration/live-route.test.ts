@@ -96,10 +96,37 @@ describe("live stream", () => {
     if (!body) throw new Error("no body");
     expect(await readUntil(body, ": keep-alive")).toContain("retry: 5000");
     await revoke(ana.id);
-    const reader = body.getReader();
-    let done = false;
-    for (let reads = 0; reads < 50 && !done; reads++) done = (await reader.read()).done;
-    expect(done).toBe(true);
+    // The tab is told why before the stream closes, so it can send the person to sign in.
+    expect(await readToEnd(body)).toContain("event: session-ended");
     expect(bus.streamCount(ana.id)).toBe(0);
   });
+
+  test("a session ended elsewhere closes the stream at once, not on the next check", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const { response, bus } = open(ana.jar.header(), createLiveBus(), 20, 60_000);
+    const body = (await response).body;
+    if (!body) throw new Error("no body");
+    await readUntil(body, ": keep-alive");
+    // Still valid: the check passes and nothing reaches the page.
+    bus.notify([ana.id], "session");
+    expect(bus.streamCount(ana.id)).toBe(1);
+    await db.delete(userSessions).where(eq(userSessions.userId, ana.id));
+    bus.notify([ana.id], "session");
+    const text = await readToEnd(body);
+    expect(text).toContain("event: session-ended");
+    expect(text).not.toContain("data: session");
+  });
 });
+
+/** Reads until the stream closes (or gives up after a while). */
+async function readToEnd(body: ReadableStream<Uint8Array>) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  for (let reads = 0; reads < 200; reads++) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+  }
+  return text;
+}

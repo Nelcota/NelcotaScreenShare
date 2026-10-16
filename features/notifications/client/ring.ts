@@ -1,7 +1,9 @@
 import {
   CALL_END_SOUNDS,
+  MESSAGE_SOUND,
   RING_VOLUME,
   type CallEnd,
+  type Note,
 } from "@/features/notifications/domain/call-end-sounds";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
@@ -79,17 +81,25 @@ export function startRing(): { stop: () => void } {
   return { stop: () => window.clearInterval(timer) };
 }
 
-/** The short sound when a call ends (missed, declined). Silent without unlocked audio. */
-export function playCallEnd(kind: CallEnd) {
+function playShortSound(sound: { volume: number; notes: readonly Note[] }, what: string) {
   const context = audio;
   if (!context || context.state !== "running") return;
-  const sound = CALL_END_SOUNDS[kind];
   const start = context.currentTime;
   try {
     for (const note of sound.notes) {
       scheduleNote(context, note.frequency, start + note.at, note.length, sound.volume);
     }
   } catch (error) {
-    logBrowserWarning("Could not play the call end sound", error);
+    logBrowserWarning(`Could not play the ${what} sound`, error);
   }
+}
+
+/** The short sound when a call ends (missed, declined). Silent without unlocked audio. */
+export function playCallEnd(kind: CallEnd) {
+  playShortSound(CALL_END_SOUNDS[kind], "call end");
+}
+
+/** The short sound of a new message. Silent without unlocked audio. */
+export function playMessageSound() {
+  playShortSound(MESSAGE_SOUND, "message");
 }

@@ -81,3 +81,9 @@ export function canAnswer(existing: ExistingFriendship | null, answererId: strin
   if (!existing || existing.dismissed) return false;
   return existing.status === "pending" && existing.requestedBy !== answererId;
 }
+
+/** What adding someone did: a request sent, or a friendship (they had asked first). */
+export const ADD_FRIEND_DONE: Record<"sent" | "friends", string> = {
+  sent: "Pedido enviado.",
+  friends: "Vocês agora são amigos.",
+};

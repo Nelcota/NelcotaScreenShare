@@ -1,6 +1,12 @@
 import { and, asc, count, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
-import { conversationMembers, conversations, messages, users } from "@/server/db/schema";
+import {
+  conversationMembers,
+  conversations,
+  friendships,
+  messages,
+  users,
+} from "@/server/db/schema";
 import { visibleTo, type StoredMessage } from "./messages.server";
 
 /** Conversations shown in the column; older ones beyond this wait for a later page. */
@@ -87,17 +93,7 @@ async function unreadCounts(db: DbExecutor, userId: string, ids: string[]) {
         eq(conversationMembers.userId, userId),
       ),
     )
-    .where(
-      and(
-        inArray(messages.conversationId, ids),
-        ne(messages.authorId, userId),
-        visibleTo(userId),
-        gt(
-          messages.createdAt,
-          sql`coalesce(${conversationMembers.lastReadAt}, ${conversationMembers.joinedAt})`,
-        ),
-      ),
-    )
+    .where(and(inArray(messages.conversationId, ids), unreadCondition(userId)))
     .groupBy(messages.conversationId);
   return new Map(rows.map((row) => [row.conversationId, row.total]));
 }
@@ -144,10 +140,28 @@ export interface UnreadSummary {
   } | null;
 }
 
+/**
+ * A group's messages always count; a direct one only while the pair are still friends. What
+ * an ex-friend (or someone blocked) sent before stays in the history, without counts or
+ * notifications: nobody can answer it anyway.
+ */
+function stillTalking(userId: string) {
+  return sql`(exists (
+    select 1 from ${conversations}
+    where ${conversations.id} = ${messages.conversationId} and ${conversations.kind} = 'group'
+  ) or exists (
+    select 1 from ${friendships}
+    where ${friendships.status} = 'accepted'
+      and ${friendships.userLowId} = least(${userId}::uuid, ${messages.authorId})
+      and ${friendships.userHighId} = greatest(${userId}::uuid, ${messages.authorId})
+  ))`;
+}
+
 function unreadCondition(userId: string) {
   return and(
     ne(messages.authorId, userId),
     visibleTo(userId),
+    stillTalking(userId),
     gt(
       messages.createdAt,
       sql`coalesce(${conversationMembers.lastReadAt}, ${conversationMembers.joinedAt})`,

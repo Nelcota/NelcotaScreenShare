@@ -1,8 +1,11 @@
 import { Monitor } from "lucide-react";
+import { useState } from "react";
 import { useOperation } from "@/lib/operations/use-operation";
 import { toast } from "sonner";
 import type { revokeMyOtherSessions, revokeMySession } from "@/features/account/actions";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { sessionEndConfirmation, type SessionEnd } from "@/features/security/domain/session-end";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { describeUserAgent } from "@/lib/user-agent";
@@ -40,15 +43,27 @@ export function SessionList({
   variant?: "card" | "plain";
 }) {
   const plain = variant === "plain";
+  // Ending sessions signs devices out: it asks first.
+  const [ending, setEnding] = useState<SessionEnd | null>(null);
   const revokeOne = useOperation(revokeSession, {
-    onSuccess: () => toast.success("Sessão encerrada."),
+    onSuccess: () => {
+      setEnding(null);
+      toast.success("Sessão encerrada.");
+    },
     onError: ({ error }) => toast.error(error.serverError ?? "Não foi possível encerrar."),
   });
   const revokeOthers = useOperation(revokeOtherSessions, {
-    onSuccess: ({ data }) => toast.success(revokedMessage(data.revoked)),
+    onSuccess: ({ data }) => {
+      setEnding(null);
+      toast.success(revokedMessage(data.revoked));
+    },
     onError: ({ error }) => toast.error(error.serverError ?? "Não foi possível encerrar."),
   });
   const others = sessions.filter((session) => session.id !== currentId).length;
+  const confirmEnd = (end: SessionEnd) => {
+    if (end.kind === "one") return revokeOne.execute({ sessionId: end.sessionId });
+    revokeOthers.execute();
+  };
 
   return (
     <section
@@ -91,7 +106,13 @@ export function SessionList({
                   variant="outline"
                   size="sm"
                   disabled={revokeOne.isPending}
-                  onClick={() => revokeOne.execute({ sessionId: session.id })}
+                  onClick={() =>
+                    setEnding({
+                      kind: "one",
+                      sessionId: session.id,
+                      device: describeUserAgent(session.userAgent),
+                    })
+                  }
                 >
                   Encerrar
                 </Button>
@@ -110,11 +131,22 @@ export function SessionList({
           <Button
             variant="outline"
             loading={revokeOthers.isPending}
-            onClick={() => revokeOthers.execute()}
+            onClick={() => setEnding({ kind: "others", count: others })}
           >
             Encerrar todas as outras
           </Button>
         </div>
+      ) : null}
+      {ending ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setEnding(null);
+          }}
+          {...sessionEndConfirmation(ending)}
+          pending={revokeOne.isPending || revokeOthers.isPending}
+          onConfirm={() => confirmEnd(ending)}
+        />
       ) : null}
     </section>
   );

@@ -15,6 +15,7 @@ import { usePageFullscreen } from "@/features/room/hooks/use-page-fullscreen";
 import { usePictureInPicture } from "@/features/room/hooks/use-picture-in-picture";
 import { cn } from "@/lib/utils";
 import { PointerLayer, usePointers } from "./PointerLayer";
+import { OwnScreenSound } from "./OwnScreenSound";
 import { ScreenSoundControl } from "./ScreenVolume";
 import { StreamMetrics } from "./StreamMetrics";
 import { StopWatchingButton } from "./StopWatchingButton";
@@ -211,6 +212,7 @@ export function ScreenStage({ shares, invites, focused, onFocus }: ScreenStagePr
 
         <span className="flex shrink-0 gap-1 sm:gap-2">
           <AnnotationTools control={annotations} onStart={() => setPointingAt(undefined)} />
+          {isOwnScreen ? <OwnScreenSound /> : null}
           <Hint text={showMetrics ? "Ocultar FPS e ping" : "Mostrar FPS e ping"}>
             <button
               type="button"

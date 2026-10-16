@@ -46,8 +46,9 @@ export default function AppLayout() {
     // A page marked data-phone-fill (an open conversation) keeps the phone screen fixed and
     // scrolls inside, so its bottom bar stays above the tabs.
     <div className="flex min-h-dvh flex-col bg-canvas has-[[data-phone-fill]]:h-dvh sm:h-dvh">
-      <ParticipantHeader inApp className="shrink-0" />
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 px-3 pt-3 sm:px-6 sm:pb-4">
+      <ParticipantHeader inApp wide className="shrink-0" />
+      {/* 90rem like the header, plus this row's own side padding, so both edges line up. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-[93rem] flex-1 px-3 pt-3 sm:px-6 sm:pb-4">
         <FriendsSidebar
           data={data}
           tabs={columnTabs(counts)}

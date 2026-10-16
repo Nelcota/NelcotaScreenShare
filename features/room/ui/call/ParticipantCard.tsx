@@ -12,6 +12,7 @@ import { CardFriendButton } from "./CardFriendButton";
 import { ListeningControls } from "./CardListening";
 import { CardModeration } from "./CardModeration";
 import { CardRoles } from "./CardRoles";
+import { CardReportButton } from "./CardReportButton";
 import { ParticipantAvatar } from "./ParticipantAvatar";
 import { RoleBadge } from "./RoleBadge";
 
@@ -140,6 +141,9 @@ function CardBody({
       {participant.isLocal ? null : <ListeningControls participant={participant} />}
       <CardRoles participant={participant} roomCode={roomCode} />
       <CardModeration participant={participant} roomCode={roomCode} onRemoved={onClose} />
+      {participant.isLocal || isGuestIdentity(participant.identity) ? null : (
+        <CardReportButton userId={participant.identity} name={plainName(participant)} />
+      )}
     </div>
   );
 }

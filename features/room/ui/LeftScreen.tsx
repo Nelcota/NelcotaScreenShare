@@ -7,6 +7,7 @@ import type { Expression } from "@/features/mascot/domain/face";
 import { Mascot } from "@/features/mascot/ui/Mascot";
 import { formatCallDuration, type LeaveReason } from "@/features/room/domain/leave";
 import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
+import { startPath } from "@/features/room/domain/start-path";
 import { gsap, MOTION_DURATION, MOTION_QUERIES, useGSAP } from "@/lib/animation/gsap";
 
 /** Title, mascot mood and what can be done for each leave reason. */
@@ -186,7 +187,7 @@ export function LeftScreen({
             </Button>
           ) : (
             <Button asChild size="lg" data-primary="">
-              <Link viewTransition to="/">
+              <Link viewTransition to={startPath(!guest)}>
                 {reason === "ended" ? <Plus aria-hidden="true" /> : <Home aria-hidden="true" />}
                 {reason === "ended" ? "Criar nova sala" : "Ir para o início"}
               </Link>
@@ -203,7 +204,7 @@ export function LeftScreen({
         {rejoinIsPrimary ? (
           <Link
             viewTransition
-            to="/"
+            to={startPath(!guest)}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />

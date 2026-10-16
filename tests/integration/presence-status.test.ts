@@ -64,7 +64,7 @@ describe("presence status", () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     as(ana);
     await statuses.setPresenceStatus({ status: "busy" });
-    expect((await personalData(db, ana.id)).status_escolhido?.status).toBe("busy");
+    expect((await personalData(db, ana.id)).status_escolhido?.status).toBe("Ocupado");
     await db.transaction((tx) => anonymizeParticipant(tx, ana.id));
     const rows = await db
       .select()

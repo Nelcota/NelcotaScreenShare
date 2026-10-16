@@ -58,6 +58,17 @@ test("CSP allows only the app itself and LiveKit", () => {
     sentryDsn: "https://chave@o123.ingest.sentry.io/456",
   });
   assert.match(withSentry, /connect-src [^;]*https:\/\/o123\.ingest\.sentry\.io/);
+
+  assert.doesNotMatch(prod, /klipy/, "KLIPY only when GIFs are on");
+  const withGifs = buildCsp({
+    livekitUrl: "wss://lk.exemplo.com",
+    dev: false,
+    nonce: "bm9uY2U=",
+    gifs: true,
+  });
+  assert.match(withGifs, /connect-src [^;]*https:\/\/api\.klipy\.com/);
+  assert.match(withGifs, /img-src [^;]*https:\/\/static\.klipy\.com/);
+  assert.match(withGifs, /media-src [^;]*https:\/\/static2\.klipy\.com/);
 });
 
 test("room code: normalizes and rejects invalid formats", () => {

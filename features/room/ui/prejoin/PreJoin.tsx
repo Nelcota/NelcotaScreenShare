@@ -212,6 +212,7 @@ export function PreJoin({
         <WaitingApproval onCancel={cancelWaiting} />
       ) : (
         <JoinActions
+          signedIn={userName !== null}
           mic={mic}
           submitting={submitting}
           joinDisabled={joinDisabled}

@@ -1,7 +1,9 @@
 import { cleanWorkspaceAccount, revokeWorkspaceIdentity } from "./workspace-privacy.server";
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { forgetFriendships } from "@/features/friends/server/friendships.server";
+import { forgetMessages } from "@/features/messages/server/message-privacy.server";
 import { forgetRoomLinks } from "@/features/room/server/account-room-links.server";
+import { forgetReports } from "@/features/reports/server/personal-data.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { roomDefinitions, roomSessionMembers, roomSessions } from "@/server/db/schema/room-control";
 import {
@@ -134,7 +136,9 @@ export async function anonymizeParticipant(tx: DbExecutor, id: string, deleteOwn
   await tx.delete(userTwoFactors).where(eq(userTwoFactors.userId, id));
   await tx.delete(userSessions).where(eq(userSessions.userId, id));
   await forgetFriendships(tx, id);
+  await forgetMessages(tx, id);
   await forgetRoomLinks(tx, id);
+  await forgetReports(tx, id);
   await tx
     .update(roomDefinitions)
     .set({ ownerUserId: null, name: null })

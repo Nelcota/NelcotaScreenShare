@@ -31,9 +31,15 @@ import {
 } from "@/features/admin/rooms/actions.server";
 import { closeGhostRoomAction } from "@/features/admin/live/actions.server";
 import { sendTestMailAction } from "@/features/admin/mail/actions.server";
+import {
+  blockReportedAccountAction,
+  deleteReportedMessageAction,
+  resolveReportAction,
+} from "@/features/admin/reports/actions.server";
 import { searchPanelAction } from "@/features/admin/search/actions.server";
 import { saveMascotSettings } from "@/features/admin/settings/actions.server";
 import { acceptInvitation } from "@/features/auth/actions.server";
+import { reportAction } from "@/features/reports/actions.server";
 import {
   sendFriendRequest,
   answerFriendRequest,
@@ -51,6 +57,21 @@ import {
   roomAccess,
   setRoomAccess,
 } from "@/features/room/actions.server";
+import {
+  openDirectConversation,
+  createGroupConversation,
+  sendMessage,
+  listMessages,
+  listConversations,
+  deleteMessage,
+  markConversationRead,
+  leaveGroup,
+} from "@/features/messages/actions.server";
+import {
+  favoriteGif,
+  unfavoriteGif,
+  listGifFavorites,
+} from "@/features/messages/gif-actions.server";
 import { addFriend, newFriendCode } from "@/features/friends/code-actions.server";
 import { setPresenceStatus } from "@/features/friends/status-actions.server";
 
@@ -87,9 +108,13 @@ export const operations: OperationHandlers = {
   "admin-rooms-removeParticipantAction": removeParticipantAction,
   "admin-rooms-readmitParticipantAction": readmitParticipantAction,
   "admin-mail-sendTestMailAction": sendTestMailAction,
+  "admin-reports-resolveReportAction": resolveReportAction,
+  "admin-reports-deleteReportedMessageAction": deleteReportedMessageAction,
+  "admin-reports-blockReportedAccountAction": blockReportedAccountAction,
   "admin-search-searchPanelAction": searchPanelAction,
   "admin-settings-saveMascotSettings": saveMascotSettings,
   "auth-acceptInvitation": acceptInvitation,
+  "reports-reportAction": reportAction,
   "room-createRoomAction": createRoomAction,
   "friends-sendFriendRequest": sendFriendRequest,
   "friends-answerFriendRequest": answerFriendRequest,
@@ -102,6 +127,17 @@ export const operations: OperationHandlers = {
   "room-setRoomAccess": setRoomAccess,
   "room-joinRequests": joinRequests,
   "room-answerJoin": answerJoin,
+  "messages-openDirectConversation": openDirectConversation,
+  "messages-createGroupConversation": createGroupConversation,
+  "messages-sendMessage": sendMessage,
+  "messages-listMessages": listMessages,
+  "messages-listConversations": listConversations,
+  "messages-deleteMessage": deleteMessage,
+  "messages-markConversationRead": markConversationRead,
+  "messages-leaveGroup": leaveGroup,
+  "messages-favoriteGif": favoriteGif,
+  "messages-unfavoriteGif": unfavoriteGif,
+  "messages-listGifFavorites": listGifFavorites,
   "friends-addFriend": addFriend,
   "friends-newFriendCode": newFriendCode,
   "friends-setPresenceStatus": setPresenceStatus,
@@ -111,4 +147,7 @@ export const readOperations = new Set([
   "friends-friendRelation",
   "room-roomAccess",
   "room-joinRequests",
+  "messages-listMessages",
+  "messages-listConversations",
+  "messages-listGifFavorites",
 ]);

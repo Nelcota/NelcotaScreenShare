@@ -1,4 +1,4 @@
-import { PanelLeftClose, Search } from "lucide-react";
+import { PanelLeftClose, Search, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
@@ -9,33 +9,67 @@ import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
 
-/** A tab at the top of the column: Amigos, Salas and Times; "Mensagens" will join them. */
+/** A tab at the top of the column: Amigos, Mensagens, Salas and Times. */
 export interface ColumnTab {
   id: string;
   label: string;
   href: string;
+  icon: LucideIcon;
+  /** Unread or pending items, shown as a count on the tab. */
+  badge?: number;
+}
+
+function TabBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className="grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-bold text-canvas"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+/** The open tab shows its name; the others only their icon, named in the hint. */
+function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
+  const Icon = tab.icon;
+  const badge = tab.badge ?? 0;
+  const label = badge > 0 ? `${tab.label}: ${badge}` : tab.label;
+  return (
+    <Hint text={active ? undefined : tab.label}>
+      <Link
+        viewTransition
+        to={tab.href}
+        aria-label={label}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "relative inline-flex h-8 items-center justify-center gap-1 rounded-full text-sm font-semibold text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong",
+          active ? "min-w-0 flex-1 px-1.5" : "w-8 shrink-0",
+        )}
+      >
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
+        {active ? <span className="truncate">{tab.label}</span> : null}
+        {active ? (
+          <TabBadge count={badge} />
+        ) : (
+          <span className="absolute -top-1 -right-1">
+            <TabBadge count={badge} />
+          </span>
+        )}
+      </Link>
+    </Hint>
+  );
 }
 
 function ColumnTabs({ tabs, activeId }: { tabs: ColumnTab[]; activeId: string }) {
-  const [only] = tabs;
-  if (tabs.length === 1 && only) {
-    return <h2 className="px-1 text-lg font-semibold tracking-tight">{only.label}</h2>;
-  }
   return (
     <nav
       aria-label="Coluna"
-      className="flex gap-1 rounded-full border border-line bg-surface-2 p-1"
+      className="flex w-full min-w-0 gap-0.5 rounded-full border border-line bg-surface-2 p-1"
     >
       {tabs.map((tab) => (
-        <Link
-          key={tab.id}
-          viewTransition
-          to={tab.href}
-          aria-current={tab.id === activeId ? "page" : undefined}
-          className="inline-flex h-8 flex-1 items-center justify-center rounded-full text-sm font-semibold text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong"
-        >
-          {tab.label}
-        </Link>
+        <TabLink key={tab.id} tab={tab} active={tab.id === activeId} />
       ))}
     </nav>
   );

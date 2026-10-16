@@ -31,3 +31,9 @@ export function describeUserAgent(userAgent: string | null | undefined): string 
   const system = firstMatch(userAgent, SYSTEMS, "sistema desconhecido");
   return `${browser} no ${system}`;
 }
+
+/** Browser family only ("Chrome"), for counts. */
+export function browserName(userAgent: string | null | undefined): string {
+  if (!userAgent) return "Desconhecido";
+  return firstMatch(userAgent, BROWSERS, "Outro");
+}

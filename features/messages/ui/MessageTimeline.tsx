@@ -1,0 +1,179 @@
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { deleteMessage } from "@/features/messages/actions";
+import type { Gif } from "@/features/messages/domain/klipy";
+import {
+  groupTimeline,
+  messageTime,
+  type MessageRun,
+  type TimelineMessage,
+} from "@/features/messages/domain/timeline";
+import { useNow } from "@/lib/hooks/use-now";
+import { useOperation } from "@/lib/operations/use-operation";
+import { cn } from "@/lib/utils";
+
+/** The time inside the bubble, at its end, like a phone chat. */
+function BubbleTime({ at, own, overlay }: { at: Date; own: boolean; overlay?: boolean }) {
+  return (
+    <time
+      dateTime={at.toISOString()}
+      className={cn(
+        "text-[0.6875rem] leading-none tabular-nums",
+        overlay
+          ? "absolute right-2.5 bottom-2.5 rounded-full bg-black/55 px-1.5 py-1 text-white"
+          : "float-right mt-2 ml-3 translate-y-0.5",
+        !overlay && (own ? "text-brand-ink/70" : "text-ink-subtle"),
+      )}
+    >
+      {messageTime(at)}
+    </time>
+  );
+}
+
+/** A GIF inside its bubble, keeping its proportions; a short note when it is gone. */
+function GifView({ gif, at, own }: { gif: Gif | null; at: Date; own: boolean }) {
+  if (!gif) {
+    return (
+      <p className="px-3 py-2 text-sm italic opacity-80">
+        GIF indisponível
+        <BubbleTime at={at} own={own} />
+      </p>
+    );
+  }
+  return (
+    <span className="relative block">
+      <img
+        src={gif.full.url}
+        alt={gif.title || "GIF"}
+        width={gif.full.width}
+        height={gif.full.height}
+        loading="lazy"
+        className="block h-auto w-56 rounded-[0.875rem] sm:w-64"
+      />
+      <BubbleTime at={at} own={own} overlay />
+    </span>
+  );
+}
+
+/** Only your own messages can be deleted; they disappear for everyone. */
+function DeleteButton({ messageId }: { messageId: string }) {
+  const remove = useOperation(deleteMessage, {
+    onError: () => toast.error("Não foi possível apagar agora."),
+  });
+  return (
+    <button
+      type="button"
+      aria-label="Apagar mensagem"
+      disabled={remove.isPending}
+      onClick={() => remove.execute({ messageId })}
+      className="grid size-8 shrink-0 place-items-center self-center rounded-full text-danger opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-danger/10 pointer-coarse:opacity-100"
+    >
+      <Trash2 className="size-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+function MessageItem({
+  message,
+  first,
+  own,
+  showName,
+}: {
+  message: TimelineMessage;
+  first: boolean;
+  own: boolean;
+  /** Groups name the other person above their first bubble. */
+  showName: boolean;
+}) {
+  const gif = message.gifSlug !== null;
+  return (
+    <li
+      className={cn(
+        "group flex items-end gap-1.5 px-3 sm:px-4",
+        own ? "justify-end" : "justify-start",
+        first ? "mt-4" : "mt-1.5",
+      )}
+    >
+      {own ? <DeleteButton messageId={message.id} /> : null}
+      <div
+        className={cn(
+          "max-w-[min(80%,34rem)] rounded-2xl shadow-xs",
+          own ? "bg-brand text-brand-ink" : "border border-line bg-surface-2 text-ink",
+          first && (own ? "rounded-tr-md" : "rounded-tl-md"),
+          gif ? "p-1" : "px-3 py-2",
+        )}
+      >
+        {first && showName && !own ? (
+          <p
+            className={cn(
+              "text-xs font-semibold text-brand-soft",
+              gif ? "px-2 pt-1 pb-1.5" : "pb-0.5",
+            )}
+          >
+            {message.authorName}
+          </p>
+        ) : null}
+        {gif ? (
+          <GifView gif={message.gif} at={message.createdAt} own={own} />
+        ) : (
+          <p className="text-[0.9375rem] leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {message.body}
+            <BubbleTime at={message.createdAt} own={own} />
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function Run({ run, selfId, showNames }: { run: MessageRun; selfId: string; showNames: boolean }) {
+  return (
+    <>
+      {run.messages.map((message, index) => (
+        <MessageItem
+          key={message.id}
+          message={message}
+          first={index === 0}
+          own={message.authorId === selfId}
+          showName={showNames}
+        />
+      ))}
+    </>
+  );
+}
+
+/** The conversation, oldest first: a divider per day, then runs of the same person. */
+export function MessageTimeline({
+  messages,
+  selfId,
+  showNames = false,
+}: {
+  messages: readonly TimelineMessage[];
+  selfId: string;
+  /** In groups, whose bubble it is. */
+  showNames?: boolean;
+}) {
+  const now = useNow();
+  const days = groupTimeline(messages, now);
+  if (days.length === 0) {
+    return <p className="px-4 py-10 text-center text-sm text-ink-muted">Nenhuma mensagem ainda.</p>;
+  }
+  return (
+    <ol aria-label="Mensagens" className="flex flex-col pb-2">
+      {days.map((day) => (
+        <li key={day.key}>
+          <p className="mt-5 flex justify-center px-3">
+            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-muted">
+              {day.label}
+            </span>
+          </p>
+          <ul>
+            {day.runs.map((run) => (
+              <Run key={run.messages[0]?.id} run={run} selfId={selfId} showNames={showNames} />
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ol>
+  );
+}

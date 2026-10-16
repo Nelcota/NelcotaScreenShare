@@ -36,10 +36,12 @@ import { NavigationProgress } from "@/components/shell/NavigationProgress";
 import { usePresenceBeat } from "@/features/friends/client/use-presence-beat";
 import { useLiveUpdates } from "@/features/live/client/use-live-updates";
 import { ActiveRoom } from "@/features/room/ui/ActiveRoom";
+import { RoomColumn } from "./routes/app/room-column";
 import type { loader as roomLoader } from "./routes/room";
 import "./fonts.css";
 import manrope from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
 import "./globals.css";
+import { NotificationsRuntime } from "@/features/notifications/ui/NotificationsRuntime";
 
 export const middleware = [requestMiddleware];
 export const links: LinksFunction = () => [
@@ -136,7 +138,15 @@ export default function App() {
   return (
     <>
       <Outlet />
-      <ActiveRoom room={room} />
+      <ActiveRoom
+        room={room}
+        renderColumn={
+          room?.column
+            ? (inCall) => room.column && <RoomColumn column={room.column} inCall={inCall} />
+            : undefined
+        }
+      />
+      <NotificationsRuntime />
     </>
   );
 }

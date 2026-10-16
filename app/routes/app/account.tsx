@@ -17,6 +17,7 @@ import {
   SettingsRow,
   SettingsSection,
 } from "@/features/account/ui/settings/Settings";
+import { NotificationSettings } from "@/features/account/ui/NotificationSettings";
 import { PanelClose } from "@/features/friends/ui/PanelClose";
 import { BackLink } from "@/components/shell/BackLink";
 import { Button } from "@/components/ui/button";
@@ -205,6 +206,8 @@ export default function AccountPage() {
           </SettingsSection>
 
           <SecuritySection twoFactorEnabled={user.twoFactorEnabled} />
+
+          <NotificationSettings />
 
           <SettingsSection
             id="dispositivos"

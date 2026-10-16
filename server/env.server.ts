@@ -99,6 +99,9 @@ const envSchema = z
     // Issues page of the Sentry project (e.g. https://org.sentry.io/issues/?project=123): the
     // admin panel links each recent error to its events there. Optional.
     SENTRY_ISSUES_URL: z.preprocess(emptyToUndefined, z.url({ protocol: /^https$/ }).optional()),
+    // GIFs in messages. The browser calls KLIPY with this key, so it is public by design;
+    // without it, the GIF button does not show.
+    KLIPY_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     LOG_LEVEL: logLevelSchema,
     // Commit SHA, set by CI in the image (shows up in /api/ready and in Sentry).
     APP_VERSION: z.preprocess(emptyToUndefined, z.string().max(64).optional()),

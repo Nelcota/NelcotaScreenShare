@@ -2,9 +2,9 @@ import { Archive } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { StatusScreen } from "./StatusScreen";
-import { lazy, Suspense, useEffect, useEffectEvent, useState } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { AppHeader } from "@/components/shell/AppHeader";
+import { CallShell, ScreenShell } from "./RoomShell";
 import { requestToken } from "@/features/room/client/api";
 import type { JoinChoices } from "@/features/room/domain/join";
 import type { RoomPresence } from "@/features/room/domain/presence";
@@ -48,6 +48,8 @@ interface RoomSessionProps {
   minimized: boolean;
   /** Whether there is a call to keep while the person visits other pages. */
   onCallChange: (inCall: boolean) => void;
+  /** The app's friends column, signed in; `inCall` starts it as the rail. */
+  renderColumn?: (inCall: boolean) => ReactNode;
 }
 
 type Phase =
@@ -70,6 +72,7 @@ export function RoomSession({
   isAdmin,
   minimized,
   onCallChange,
+  renderColumn,
 }: RoomSessionProps) {
   const [phase, setPhase] = useState<Phase>({ kind: "prejoin" });
   const inCall = phase.kind === "room";
@@ -117,76 +120,74 @@ export function RoomSession({
 
   if (phase.kind === "room") {
     return (
-      <Suspense
-        fallback={
-          <output hidden={minimized} className="grid min-h-dvh place-items-center text-ink-muted">
-            Preparando a sala…
-          </output>
-        }
-      >
-        <RoomView
-          key={phase.attempt}
-          code={code}
-          choices={phase.choices}
-          maxParticipants={maxParticipants}
-          roomName={roomName}
-          isAdmin={isAdmin}
-          minimized={minimized}
-          onLeave={(notice) => leave(notice, phase.startedAt)}
-          onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
-        />
-      </Suspense>
+      <CallShell column={renderColumn?.(true)} minimized={minimized}>
+        <Suspense
+          fallback={
+            <output hidden={minimized} className="grid min-h-dvh place-items-center text-ink-muted">
+              Preparando a sala…
+            </output>
+          }
+        >
+          <RoomView
+            key={phase.attempt}
+            code={code}
+            choices={phase.choices}
+            maxParticipants={maxParticipants}
+            roomName={roomName}
+            isAdmin={isAdmin}
+            minimized={minimized}
+            onLeave={(notice) => leave(notice, phase.startedAt)}
+            onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
+          />
+        </Suspense>
+      </CallShell>
     );
   }
 
   if (minimized) return null;
+  const account = userName === null ? null : { name: userName, image: userImage };
 
   if (unavailable)
     return (
-      <div className="flex min-h-dvh flex-col">
-        <AppHeader account={userName === null ? null : { name: userName, image: userImage }} />
-        <main className="flex flex-1 items-center justify-center px-4">
-          <StatusScreen icon={Archive} title="Sala indisponível" message={unavailable}>
-            <Button asChild>
-              <Link to={userName ? "/salas" : "/"}>Voltar</Link>
-            </Button>
-          </StatusScreen>
-        </main>
-      </div>
+      <ScreenShell column={renderColumn?.(false)} account={account}>
+        <StatusScreen icon={Archive} title="Sala indisponível" message={unavailable}>
+          <Button asChild>
+            <Link to={userName ? "/salas" : "/"}>Voltar</Link>
+          </Button>
+        </StatusScreen>
+      </ScreenShell>
     );
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <AppHeader
-        account={userName === null ? null : { name: userName, image: userImage }}
-        accountHref={`/conta?voltar=${encodeURIComponent(roomLink(code, invite))}`}
-      />
-      <main className="flex flex-1 items-center justify-center px-4 py-6 sm:px-8 sm:py-10">
-        {phase.kind === "prejoin" ? (
-          <PreJoin
-            onPrepareJoin={prepareRoomView}
-            code={code}
-            userName={userName}
-            passwordRequired={passwordRequired && !invite}
-            invite={invite}
-            presence={presence}
-            maxParticipants={maxParticipants}
-            onJoin={(choices) =>
-              setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() })
-            }
-          />
-        ) : (
-          <LeftScreen
-            code={code}
-            reason={phase.reason}
-            permanent={permanent}
-            message={phase.message}
-            durationMs={phase.durationMs}
-            guest={userName === null}
-            onRejoin={() => setPhase({ kind: "prejoin" })}
-          />
-        )}
-      </main>
-    </div>
+    <ScreenShell
+      column={renderColumn?.(false)}
+      account={account}
+      accountHref={`/conta?voltar=${encodeURIComponent(roomLink(code, invite))}`}
+    >
+      {phase.kind === "prejoin" ? (
+        <PreJoin
+          onPrepareJoin={prepareRoomView}
+          code={code}
+          userName={userName}
+          passwordRequired={passwordRequired && !invite}
+          invite={invite}
+          presence={presence}
+          maxParticipants={maxParticipants}
+          onJoin={(choices) =>
+            setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() })
+          }
+        />
+      ) : (
+        <LeftScreen
+          code={code}
+          reason={phase.reason}
+          permanent={permanent}
+          message={phase.message}
+          durationMs={phase.durationMs}
+          guest={userName === null}
+          onRejoin={() => setPhase({ kind: "prejoin" })}
+        />
+      )}
+    </ScreenShell>
   );
 }

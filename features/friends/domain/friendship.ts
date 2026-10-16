@@ -22,6 +22,12 @@ export interface ExistingFriendship {
   privateRequest?: boolean;
 }
 
+/** How a friendship's state reads in "Baixar meus dados". */
+export const FRIENDSHIP_STATUS_IN_EXPORT: Record<ExistingFriendship["status"], string> = {
+  pending: "pendente",
+  accepted: "aceita",
+};
+
 /** Who blocked whom between the two people of a request. */
 export type BlockState = "none" | "by_requester" | "by_target";
 

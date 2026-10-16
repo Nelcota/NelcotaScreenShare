@@ -97,6 +97,11 @@ export async function blockBetween(
   return "none";
 }
 
+/** Either one blocked the other (messages and calls use this). */
+export async function isBlockedEitherWay(db: DbExecutor, one: string, other: string) {
+  return (await blockBetween(db, one, other)) !== "none";
+}
+
 export async function countFriends(db: DbExecutor, userId: string): Promise<number> {
   const [row] = await db
     .select({ total: count() })

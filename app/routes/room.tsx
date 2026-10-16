@@ -25,6 +25,8 @@ import { roomOwnerName } from "@/features/room/server/role-changes.server";
 import { decodeRoomParam, roomCodeSchema, roomLink } from "@/features/room/domain/room-code";
 import { INVITE_TOKEN_PATTERN } from "@/features/room/domain/invite-token";
 import type { RoomEntry } from "@/features/room/ui/ActiveRoom";
+import { friendsSidebarData } from "@/features/friends/server/friends-sidebar.server";
+import { unreadSummary } from "@/features/messages/server/conversation-list.server";
 
 export const meta = () => [{ title: "Sala · Nelcota" }];
 
@@ -74,7 +76,7 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
   ]);
   const presence = roomNow ? presenceForGuests(roomNow, passwordRequired || waiting) : null;
 
-  return {
+  const entry = {
     unavailable,
     permanent,
     invite,
@@ -87,7 +89,26 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
     // Admin session in this browser: the call offers the panel without leaving the room.
     isAdmin: admin !== null,
   } satisfies RoomEntry;
+  // Signed in, the friends column comes along, as on every page of the app.
+  return { ...entry, column: user ? await roomColumn(user, request) : null };
 });
+
+async function roomColumn(
+  user: { id: string; name: string; image?: string | null },
+  request: Request,
+) {
+  const db = getDb();
+  const [sidebar, unread] = await Promise.all([
+    friendsSidebarData(db, user, request),
+    unreadSummary(db, user.id),
+  ]);
+  return {
+    sidebar,
+    requests: sidebar.requests,
+    unread: unread.total,
+    latestUnread: unread.latest,
+  };
+}
 
 /**
  * The session is drawn by `ActiveRoom` in the root, from this page's data: a call

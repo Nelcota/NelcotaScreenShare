@@ -208,7 +208,7 @@ describe("friendships", () => {
     await friendCode(db, ana.id);
     const exported = await personalData(db, ana.id);
     expect(exported.amizades).toEqual([
-      expect.objectContaining({ pessoa: "Bia", situacao: "pending", pedidoFeitoPorVoce: true }),
+      expect.objectContaining({ pessoa: "Bia", situacao: "pendente", pedido_feito_por_voce: true }),
     ]);
     expect(exported.pessoas_bloqueadas).toEqual([expect.objectContaining({ pessoa: "Caio" })]);
     expect(exported.codigo_de_amigo?.codigo).toMatch(/^[2-9A-HJKMNP-Z]{4}$/);

@@ -3,24 +3,20 @@ import { Mascot } from "@/features/mascot/ui/Mascot";
 import { splitByPresence, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import { FriendAvatar, presenceLabel } from "@/features/friends/ui/FriendAvatar";
 import { FriendMenu } from "@/features/friends/ui/FriendMenu";
-import { useToggleLink } from "@/features/friends/hooks/use-app-panel";
 import { cn } from "@/lib/utils";
 
 const GROUP_TITLE = "px-2 pt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase";
 
 /**
- * One friend: opens their card, and a second click closes it; "…" shows on hover or focus
- * (always on touch screens).
+ * One friend: opens the conversation with them; "Chamar" and "…" show on hover or focus
+ * (always on touch screens). Their profile sits beside the conversation.
  */
 function FriendLine({ friend }: { friend: FriendStatus }) {
-  const path = `/amigos/${friend.id}`;
-  const toggle = useToggleLink(path);
   return (
     <li className="group relative flex items-center rounded-2xl transition-colors hover:bg-surface-3 has-[a[aria-current=page]]:bg-surface-3">
       <NavLink
         viewTransition
-        to={path}
-        onClick={toggle.onClick}
+        to={`/amigos/${friend.id}/conversa`}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 focus-visible:outline-2 focus-visible:outline-brand"
       >
         <FriendAvatar friend={friend} />

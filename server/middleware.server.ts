@@ -39,6 +39,7 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
         nonce,
         dev: process.env.NODE_ENV !== "production",
         sentryDsn: env.PUBLIC_SENTRY_DSN,
+        gifs: env.KLIPY_API_KEY !== undefined,
         devWebSocketOrigin: new URL(request.url).origin.replace(/^http/, "ws"),
       }),
     );

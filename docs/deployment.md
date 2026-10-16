@@ -21,7 +21,7 @@ You will create two resources on the same server: LiveKit and the app.
 2. Generate a key pair:
 
    ```bash
-   docker run --rm livekit/livekit-server:v1.13.7 generate-keys
+   docker run --rm livekit/livekit-server:v1.13.9 generate-keys
    # or: echo "API$(openssl rand -hex 6)"  and  openssl rand -base64 48
    ```
 

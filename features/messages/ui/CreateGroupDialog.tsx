@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { friendPhotoPath } from "@/features/friends/domain/friend-lists";
 import { createGroupConversation } from "@/features/messages/actions";
-import { MAX_GROUP_MEMBERS } from "@/features/messages/domain/conversation";
+import {
+  groupPickNote,
+  MAX_GROUP_MEMBERS,
+  MIN_GROUP_INVITEES,
+} from "@/features/messages/domain/conversation";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
 
@@ -20,8 +24,6 @@ export interface PickableFriend {
 
 /** Friends you can add besides yourself. */
 const MAX_PICKED = MAX_GROUP_MEMBERS - 1;
-/** A group has you and at least two friends; one friend is their conversation. */
-const MIN_PICKED = 2;
 
 function PickRow({
   friend,
@@ -88,7 +90,8 @@ function useStart(onDone: () => void) {
 function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: () => void }) {
   const [picked, setPicked] = useState<string[]>([]);
   const start = useStart(onDone);
-  const pickedEnough = picked.length >= MIN_PICKED;
+  const pickedEnough = picked.length >= MIN_GROUP_INVITEES;
+  const note = groupPickNote(picked.length, friends.length);
   const toggle = (id: string) =>
     setPicked((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
@@ -98,7 +101,9 @@ function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: 
     <div className="flex min-h-0 flex-col gap-4">
       <p className="flex justify-between px-2 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
         <span>Amigos</span>
-        <span>Até {MAX_PICKED} amigos</span>
+        <span>
+          {MIN_GROUP_INVITEES} to {MAX_PICKED} friends
+        </span>
       </p>
       {friends.length === 0 ? (
         <p className="px-2 text-sm text-ink-muted">Adicione amigos para conversar.</p>
@@ -115,6 +120,9 @@ function NewGroupForm({ friends, onDone }: { friends: PickableFriend[]; onDone: 
           ))}
         </ul>
       )}
+      <p aria-live="polite" className="px-2 text-center text-sm text-ink-muted empty:hidden">
+        {note}
+      </p>
       <Button
         size="lg"
         disabled={!pickedEnough || start.pending}

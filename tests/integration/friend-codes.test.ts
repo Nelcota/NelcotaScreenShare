@@ -248,7 +248,6 @@ describe("adding a friend", () => {
 test("private email quotas do not reveal registered addresses through public requests", async () => {
   const ana = await verifiedParticipant(db, handler, { name: "Ana" });
   const bia = await verifiedParticipant(db, handler, { name: "Bia" });
-  const { MAX_PENDING_SENT, friendPair } = await import("@/features/friends/domain/friendship");
   const { countPendingSent } = await import("@/features/friends/server/friendships.server");
   const people = await db
     .insert(schema.users)

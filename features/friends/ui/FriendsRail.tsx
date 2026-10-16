@@ -56,7 +56,7 @@ export function FriendsRail({
             <PanelLeftOpen aria-hidden="true" />
           </Button>
         </Hint>
-        <RequestsButton count={requests} />
+        <RequestsButton count={requests} compact />
         <AddFriendDialog code={code} linkPath={linkPath} />
       </div>
       <span aria-hidden="true" className="my-3 h-px w-7 shrink-0 bg-line" />

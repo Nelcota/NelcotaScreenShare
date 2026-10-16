@@ -12,6 +12,7 @@ import {
   gazeFocus,
   isSleeping,
   listeningFace,
+  temperamentFace,
   reactionTo,
   waitingGaze,
 } from "@/features/mascot/domain/rules";
@@ -43,8 +44,18 @@ describe("rules per expression", () => {
   it("where to look besides the pointer", () => {
     expect(gazeFocus("walking")).toBe("partner");
     expect(gazeFocus("greeting")).toBe("partner");
+    expect(gazeFocus("noticing")).toBe("partner");
+    expect(gazeFocus("welcoming")).toBe("participants");
     expect(gazeFocus("presenting")).toBe("stage");
     expect(gazeFocus("neutral")).toBe("free");
+  });
+
+  it("the calm temperament preserves password eyelids and leaves task and error poses intact", () => {
+    const face = { tilt: 0, pupil: 1, lid0: 1, lid1: 0, rest: 0 };
+    expect(temperamentFace(face, "neutral", "calm")).toMatchObject({ lid0: 1, lid1: 0.15 });
+    for (const expression of ["presenting", "grumpy", "asleep"] as const) {
+      expect(temperamentFace(face, expression, "calm")).toBe(face);
+    }
   });
 
   it("waiting, listening and blinking", () => {
@@ -98,5 +109,9 @@ describe("home page pair", () => {
     expect(pairActivity("hit", false)).toBe("greeting");
     expect(pairActivity("rest", false)).toBe("idle");
     expect(pairActivity("hit", true)).toBe("waiting");
+    expect(pairActivity("invite", false, "curious")).toBe("greeting");
+    expect(pairActivity("invite", false, "calm")).toBe("noticing");
+    expect(pairActivity("answer", false, "curious")).toBe("noticing");
+    expect(pairActivity("answer", false, "calm")).toBe("greeting");
   });
 });

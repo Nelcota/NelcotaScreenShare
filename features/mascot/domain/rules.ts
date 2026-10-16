@@ -1,6 +1,6 @@
 import { IDLE, type Gaze } from "./eye-tracking";
 import type { Expression, FaceState } from "./face";
-import type { MascotActivity } from "./personality";
+import type { MascotActivity, MascotTemperament } from "./personality";
 import type { Reason } from "./reasons";
 
 /**
@@ -23,8 +23,7 @@ export function blocksPlay(expression: Expression): boolean {
 }
 
 /**
- * Petting, high fives and other play: only while idle or walking, which alternate
- * every few seconds in the home page pair.
+ * Petting and high fives can interrupt quiet rest or the home pair's walk.
  */
 export function allowsPlay(activity: MascotActivity): boolean {
   return activity === "idle" || activity === "walking";
@@ -65,11 +64,14 @@ export const PAIR_BUSY_SELECTOR = [
 ].join(", ");
 
 /** Where to look besides the pointer and focus. */
-export type GazeFocus = "idle" | "partner" | "stage" | "free";
+export type GazeFocus = "idle" | "partner" | "stage" | "participants" | "free";
 
 export function gazeFocus(expression: Expression): GazeFocus {
   if (isSleeping(expression)) return "idle";
-  if (expression === "greeting" || expression === "walking") return "partner";
+  if (expression === "greeting" || expression === "walking" || expression === "noticing") {
+    return "partner";
+  }
+  if (expression === "welcoming") return "participants";
   if (expression === "presenting") return "stage";
   return "free";
 }
@@ -93,6 +95,23 @@ export function waitingGaze(time: number): Gaze {
 /** "Listening": tilts the head and opens the eyes according to the voice (0–1). */
 export function listeningFace(face: FaceState, voice: number): FaceState {
   return { ...face, tilt: -4 + voice * 7, pupil: 1 + voice * 0.05 };
+}
+
+/** The calm partner relaxes its posture; task, error and password poses stay intact. */
+export function temperamentFace(
+  face: FaceState,
+  expression: Expression,
+  temperament: MascotTemperament,
+): FaceState {
+  if (temperament !== "calm") return face;
+  if (!["neutral", "curious", "noticing", "walking", "greeting"].includes(expression)) return face;
+  return {
+    ...face,
+    tilt: face.tilt + 3,
+    lid0: Math.max(face.lid0, 0.15),
+    lid1: Math.max(face.lid1, 0.15),
+    rest: 0.1,
+  };
 }
 
 /** Eyelid during a 180 ms blink (0 open → 1 closed → 0). */

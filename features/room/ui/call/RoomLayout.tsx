@@ -94,14 +94,17 @@ function CornerMascot({
   connection,
   hasStage,
   alone,
+  welcome,
 }: {
   connection: Connection;
   hasStage: boolean;
   alone: boolean;
+  welcome: number;
 }) {
   const activity = CONNECTION_ACTIVITY[connection] ?? (hasStage ? "presenting" : "idle");
   return (
     <div
+      data-room-mascot=""
       hidden={alone}
       className={cn(
         "pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-6 z-30 max-lg:hidden",
@@ -116,6 +119,7 @@ function CornerMascot({
           canSleep={false}
           facing="right"
           activity={activity}
+          welcome={welcome}
         />
       </div>
     </div>
@@ -180,7 +184,7 @@ export function RoomLayout({
   const share = useScreenShare();
   useCallCaptureHandle();
   useMicrophoneRecovery();
-  useRoomNotices();
+  const welcome = useRoomNotices();
   useBroadcastScreenPreview(published.find((trackReference) => trackReference.participant.isLocal));
 
   const stage = useStageFocus(screenShares);
@@ -285,7 +289,7 @@ export function RoomLayout({
         ) : null}
       </main>
 
-      <CornerMascot connection={connection} hasStage={hasStage} alone={alone} />
+      <CornerMascot connection={connection} hasStage={hasStage} alone={alone} welcome={welcome} />
       <ChatPanel chat={chat} />
       <ControlDock chat={chat} share={share} onLeave={onLeave} />
     </div>

@@ -20,10 +20,12 @@ type TestRoom = EventEmitter & {
 const capture = vi.hoisted(() => ({
   room: undefined as TestRoom | undefined,
   cleanup: undefined as (() => void) | undefined,
+  welcome: vi.fn(),
 }));
 
 vi.mock("@livekit/components-react", () => ({ useRoomContext: () => capture.room }));
 vi.mock("react", () => ({
+  useState: () => [0, capture.welcome],
   useEffect: (effect: () => (() => void) | undefined) => {
     capture.cleanup = effect();
   },
@@ -69,6 +71,7 @@ test("initial participants and screens are silent, including repeated synchroniz
   room.emit(RoomEvent.ParticipantConnected, ana);
   room.emit(RoomEvent.TrackPublished, share, ana);
   expect(toast).not.toHaveBeenCalled();
+  expect(capture.welcome).not.toHaveBeenCalled();
 });
 
 test("new joins, screen changes and departures are announced once, and rejoining still works", () => {
@@ -95,6 +98,7 @@ test("new joins, screen changes and departures are announced once, and rejoining
     "Bia saiu da sala",
     "Bia entrou na sala",
   ]);
+  expect(capture.welcome).toHaveBeenCalledTimes(2);
 });
 
 test("reconnection synchronizes the current room without replaying activity notices", () => {
@@ -112,6 +116,7 @@ test("reconnection synchronizes the current room without replaying activity noti
   room.emit(RoomEvent.ParticipantConnected, caio);
   room.emit(RoomEvent.TrackPublished, share, caio);
   expect(toast).not.toHaveBeenCalled();
+  expect(capture.welcome).not.toHaveBeenCalled();
   room.emit(RoomEvent.TrackUnpublished, share, caio);
   expect(toast).toHaveBeenCalledOnce();
 });

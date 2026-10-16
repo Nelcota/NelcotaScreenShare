@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { createFaceRenderer } from "@/features/mascot/client/face-renderer";
 import { createMascotController } from "@/features/mascot/client/mascot-controller";
 import type { Expression } from "@/features/mascot/domain/face";
-import type { MascotActivity } from "@/features/mascot/domain/personality";
+import type { MascotActivity, MascotTemperament } from "@/features/mascot/domain/personality";
 
 type Controller = ReturnType<typeof createMascotController>;
 
@@ -18,16 +18,21 @@ export function useMascot(
   baseExpression: Expression,
   canSleep: boolean,
   activity: MascotActivity,
+  temperament: MascotTemperament,
+  welcome: number,
   voiceLevelRef?: RefObject<number>,
 ) {
-  const props = useRef({ baseExpression, canSleep, activity, voiceLevelRef });
+  const props = useRef({ baseExpression, canSleep, activity, temperament, voiceLevelRef });
   const controller = useRef<Controller | undefined>(undefined);
+  const lastWelcome = useRef(welcome);
 
   useEffect(() => {
     props.current.activity = activity;
     props.current.voiceLevelRef = voiceLevelRef;
+    props.current.temperament = temperament;
     controller.current?.syncContext();
-  }, [activity, voiceLevelRef]);
+    controller.current?.update();
+  }, [activity, temperament, voiceLevelRef]);
 
   useEffect(() => {
     props.current.baseExpression = baseExpression;
@@ -49,6 +54,7 @@ export function useMascot(
       canSleep: () => props.current.canSleep,
       activity: () => props.current.activity,
       voice: () => props.current.voiceLevelRef?.current ?? 0,
+      temperament: () => props.current.temperament,
     });
     controller.current = created;
     return () => {
@@ -56,4 +62,10 @@ export function useMascot(
       created.dispose();
     };
   }, [rootRef, faceRef]);
+
+  useEffect(() => {
+    if (lastWelcome.current === welcome) return;
+    lastWelcome.current = welcome;
+    controller.current?.welcome();
+  }, [welcome]);
 }

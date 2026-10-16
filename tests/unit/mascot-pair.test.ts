@@ -6,10 +6,22 @@ function approaching() {
   const motion = createPairMotion(() => 0);
   motion.resize({ width: 672, size: 128 });
   motion.advance(6000, true);
+  motion.advance(PAIR_STEP_MS.invite, true);
+  motion.advance(PAIR_STEP_MS.answer, true);
   return motion;
 }
 
 describe("synchronized pair movement", () => {
+  test("resizing a resting pair keeps both characters inside the new scene", () => {
+    const motion = createPairMotion(() => 0);
+    motion.resize({ width: 672, size: 128 });
+    motion.suspend(true);
+    motion.resize({ width: 343, size: 112 });
+    expect(motion.state.visitor).toBeGreaterThanOrEqual(56);
+    expect(motion.state.resident).toBeLessThanOrEqual(343 - 56);
+    expect(motion.state.phase).toBe("rest");
+  });
+
   test("rest varies between six and ten seconds and respects busy fields", () => {
     expect(nextPairRest(0)).toBe(6000);
     expect(nextPairRest(1)).toBe(10000);
@@ -20,7 +32,26 @@ describe("synchronized pair movement", () => {
     motion.advance(1, false);
     expect(motion.state.phase).toBe("rest");
     motion.advance(100, true);
+    expect(motion.state.phase).toBe("invite");
+  });
+
+  test("the curious partner invites first and waits for the calm partner's answer", () => {
+    const motion = createPairMotion(() => 0);
+    motion.resize({ width: 672, size: 128 });
+    const home = motion.state;
+    motion.advance(6000, true);
+    expect(motion.state.phase).toBe("invite");
+    motion.advance(PAIR_STEP_MS.invite - 1, true);
+    expect(motion.state.visitor).toBe(home.visitor);
+    expect(motion.state.resident).toBe(home.resident);
+    motion.advance(1, true);
+    expect(motion.state.phase).toBe("answer");
+    motion.advance(PAIR_STEP_MS.answer, true);
     expect(motion.state.phase).toBe("approach");
+    motion.advance(1000, true);
+    expect(motion.state.visitor - home.visitor).toBeGreaterThan(
+      home.resident - motion.state.resident,
+    );
   });
 
   test("only gets ready for the greeting when both arrive", () => {
@@ -116,6 +147,6 @@ describe("synchronized pair movement", () => {
     motion.advance(PAIR_STEP_MS.walk, true);
     expect(motion.state.phase).toBe("rest");
     motion.advance(6000, true);
-    expect(motion.state.phase).toBe("approach");
+    expect(motion.state.phase).toBe("invite");
   });
 });

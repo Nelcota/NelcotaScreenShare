@@ -68,6 +68,23 @@ export const NOD: Motion = {
   options: { duration: 480, easing: "ease-in-out" },
 };
 
+/** The host's restrained excitement after a polite wave. */
+export const HOST_HOP: Motion = {
+  keyframes: [
+    { translate: "0 0", scale: "1" },
+    { translate: "0 1%", scale: "1.02 0.97", offset: 0.2 },
+    { translate: "0 -4%", scale: "0.99 1.02", offset: 0.5 },
+    { translate: "0 0", scale: "1" },
+  ],
+  options: { duration: 650, easing: "ease-out" },
+};
+
+/** Lowers into a comfortable pose after inviting the presenter to begin. */
+export const SETTLE: Motion = {
+  keyframes: [{ scale: "1" }, { scale: "1.025 0.97", offset: 0.5 }, { scale: "1" }],
+  options: { duration: 900, easing: "ease-in-out" },
+};
+
 /** Shrinks at the moment of touch (immediate response)... */
 export const PRESS: Motion = {
   keyframes: [{ scale: "1" }, { scale: "0.92" }],

@@ -9,6 +9,7 @@ export type Reason =
   | "typing"
   | "sleep"
   | "interaction"
+  | "host"
   | "context"
   | "curiosity";
 

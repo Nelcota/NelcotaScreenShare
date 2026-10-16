@@ -1,5 +1,12 @@
 .root {
+  --walk-duration: 460ms;
+  --walk-half: -230ms;
   filter: saturate(var(--mascot-saturation, 1));
+}
+
+.root[data-temperament="calm"] {
+  --walk-duration: 560ms;
+  --walk-half: -280ms;
 }
 
 .body {
@@ -17,7 +24,7 @@
 
 .root[data-expression="walking"] .body {
   clip-path: inset(0 0 14% 0);
-  animation: walking-body 460ms ease-in-out infinite;
+  animation: walking-body var(--walk-duration) ease-in-out infinite;
 }
 
 .root[data-expression="walking"] .walkingFeet {
@@ -27,7 +34,7 @@
 .leftFoot,
 .rightFoot {
   transform-box: view-box;
-  animation: walking-foot 460ms ease-in-out infinite;
+  animation: walking-foot var(--walk-duration) ease-in-out infinite;
 }
 
 .leftFoot {
@@ -36,7 +43,7 @@
 
 .rightFoot {
   transform-origin: 320px 440px;
-  animation-delay: -230ms;
+  animation-delay: var(--walk-half);
 }
 
 @keyframes walking-body {

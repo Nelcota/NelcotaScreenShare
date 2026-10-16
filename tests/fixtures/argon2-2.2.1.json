@@ -1,0 +1,5 @@
+{
+  "version": "2.2.1",
+  "password": "Previous release password",
+  "hash": "$argon2id$v=19$m=19456,t=2,p=1$bmVsY290YS10ZXN0LXNhbHQ$17QLjM97n+KxduiX3uyk1W/dK13vrP6RgEcEqrv/aOw"
+}

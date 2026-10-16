@@ -88,6 +88,16 @@ jobs:
           tags: nelcota-ci
           cache-from: type=gha,scope=nelcota-image
           cache-to: type=gha,scope=nelcota-image,mode=max
+      - name: Existing password hashes verify in the production image
+        run: |
+          docker run --rm -i --entrypoint node nelcota-ci --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { readFileSync } from "node:fs";
+            import { verify } from "@node-rs/argon2";
+            const { hash, password } = JSON.parse(readFileSync(0, "utf8"));
+            assert.equal(await verify(hash, password), true);
+            assert.equal(await verify(hash, password + "-wrong"), false);
+          ' < tests/fixtures/argon2-2.2.1.json
       - name: Production container starts and curl can probe its health
         run: |
           cleanup() {

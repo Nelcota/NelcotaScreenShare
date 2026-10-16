@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   decideGroupCreation,
   GIF_SLUG_PATTERN,
+  groupPickNote,
   inviteesOf,
   normalizeGroupName,
   normalizeMessageBody,
@@ -14,6 +15,22 @@ function friendsOf(...ids: string[]) {
 }
 
 describe("group creation", () => {
+  test("says how many friends are still missing", () => {
+    expect(groupPickNote(0, 5)).toBe("Escolha mais 2 amigos.");
+    expect(groupPickNote(1, 5)).toBe("Escolha mais 1 amigo.");
+    expect(groupPickNote(2, 5)).toBeNull();
+    expect(groupPickNote(9, 9)).toBeNull();
+  });
+
+  test("explains why a single friend makes no group", () => {
+    expect(groupPickNote(0, 1)).toBe("Um grupo precisa de você e mais 2 amigos.");
+    expect(groupPickNote(1, 1)).toBe("Um grupo precisa de você e mais 2 amigos.");
+  });
+
+  test("leaves the empty list to ask for friends", () => {
+    expect(groupPickNote(0, 0)).toBeNull();
+  });
+
   test("needs two friends or more", () => {
     expect(
       decideGroupCreation({ creatorId: ME, memberIds: ["a"], friendIds: friendsOf("a") }),

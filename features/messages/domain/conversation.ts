@@ -1,5 +1,7 @@
 /** A group holds up to 10 people, counting whoever created it. */
 export const MAX_GROUP_MEMBERS = 10;
+/** Friends a group needs besides whoever creates it; one friend is a direct conversation. */
+export const MIN_GROUP_INVITEES = 2;
 export const MAX_GROUP_NAME_LENGTH = 60;
 export const MAX_MESSAGE_LENGTH = 2000;
 
@@ -41,10 +43,24 @@ export function inviteesOf(creatorId: string, memberIds: readonly string[]): str
 /** A group needs two invitees or more, all of them the creator's friends. */
 export function decideGroupCreation(state: GroupCreationState): GroupCreationOutcome {
   const invitees = inviteesOf(state.creatorId, state.memberIds);
-  if (invitees.length < 2) return "too_few";
+  if (invitees.length < MIN_GROUP_INVITEES) return "too_few";
   if (invitees.length + 1 > MAX_GROUP_MEMBERS) return "too_many";
   if (invitees.some((inviteeId) => !state.friendIds.has(inviteeId))) return "not_friends";
   return "ok";
+}
+
+/**
+ * The line above "Criar grupo" while the group is still short of people: how many friends
+ * are missing or, with a single friend, why there can be no group yet. Nothing once there
+ * are enough, and nothing without friends, where the list already says to add some.
+ */
+export function groupPickNote(pickedCount: number, friendCount: number): string | null {
+  if (pickedCount >= MIN_GROUP_INVITEES) return null;
+  if (friendCount === 0) return null;
+  if (friendCount < MIN_GROUP_INVITEES) return "Um grupo precisa de você e mais 2 amigos.";
+  const missing = MIN_GROUP_INVITEES - pickedCount;
+  if (missing === 1) return "Escolha mais 1 amigo.";
+  return `Escolha mais ${missing} amigos.`;
 }
 
 /** The text as it is stored: trimmed, or null when nothing is left. */

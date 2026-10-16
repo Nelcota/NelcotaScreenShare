@@ -16,12 +16,12 @@ import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { ParticipantCard } from "./ParticipantCard";
 import { SwitchCameraButton } from "./SwitchCameraButton";
 import { cn } from "@/lib/utils";
-import { HostBadge } from "./HostBadge";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
 import { ProfileHint, TILE_SURFACE } from "./tile-surface";
 import { TileNamePill } from "./TileNamePill";
 import { CameraVideo, EnlargeButton } from "./camera-face";
+import { StripAvatarTile } from "./StripAvatarTile";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -169,20 +169,17 @@ export function ParticipantTile({
   if (compact) {
     // Stage in use: round avatar with the name below (FaceTime style).
     return (
-      // key per variant: without it React reuses the divs from the large block and the
-      // avatar inherits styles GSAP left on them (the glow with opacity 0).
-      <div
-        key="avatar"
-        ref={scope}
-        data-flip-id={`tile-${participant.identity}`}
-        className="flex w-20 shrink-0 flex-col items-center gap-2 lg:w-full lg:flex-row lg:gap-3"
-      >
-        <div className="relative isolate shrink-0">
-          <div
-            data-glow
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-1.5 -z-10 rounded-full bg-brand/40 opacity-0 blur-md"
-          />
+      <StripAvatarTile
+        scope={scope}
+        participant={participant}
+        name={name}
+        label={label}
+        muted={isMuted}
+        deafened={isDeafened}
+        isSharing={isSharing}
+        handRaised={handRaised}
+        isSpeaking={isSpeaking}
+        face={
           <PersonFace
             participant={participant}
             name={name}
@@ -191,32 +188,8 @@ export function ParticipantTile({
             variant="compact"
             onEnlarge={onEnlarge}
           />
-          <div
-            data-ring
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-0.5 rounded-full opacity-0 ring-3 ring-brand-soft"
-          />
-          <SoundBadge deafened={isDeafened} muted={isMuted} variant="compact" />
-          {isSharing ? (
-            <span className="absolute -top-1 -right-1 grid size-6 place-items-center rounded-full bg-brand text-brand-ink ring-2 ring-canvas">
-              <MonitorUp className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">compartilhando a tela</span>
-            </span>
-          ) : null}
-          {handRaised ? (
-            <span className="absolute -top-1 -left-1 grid size-6 place-items-center rounded-full bg-warning text-canvas ring-2 ring-canvas">
-              <Hand className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">{name} está com a mão levantada</span>
-            </span>
-          ) : null}
-          <ParticipantAudioMenu participant={participant} className="absolute -bottom-1 -left-1" />
-        </div>
-        <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
-          {label}
-          <HostBadge identity={participant.identity} />
-        </span>
-        {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
-      </div>
+        }
+      />
     );
   }
 

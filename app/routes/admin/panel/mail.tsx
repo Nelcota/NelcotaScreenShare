@@ -7,10 +7,12 @@ import { can } from "@/features/auth/server/permissions.server";
 import { mailConfiguration } from "@/features/admin/mail/domain/configuration";
 import { deliveryCounts, listRecentDeliveries } from "@/features/admin/mail/server/queries.server";
 import { DeliveriesTable } from "@/features/admin/mail/ui/DeliveriesTable";
+import { MailSenderForm } from "@/features/admin/mail/ui/MailSenderForm";
 import { MailSetup } from "@/features/admin/mail/ui/MailSetup";
 import { TestMailButton } from "@/features/admin/mail/ui/TestMailButton";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
+import { currentMailSender } from "@/server/mail-sender.server";
 import { formatNumber } from "@/lib/format";
 import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
@@ -19,12 +21,22 @@ export const meta = () => [{ title: "E-mails · Nelcota" }];
 export const loader = routeLoader(async () => {
   const admin = await requireAdmin({ mail: ["read"] });
   const db = getDb();
-  const [deliveries, counts] = await Promise.all([listRecentDeliveries(db), deliveryCounts(db)]);
+  const [deliveries, counts, sender] = await Promise.all([
+    listRecentDeliveries(db),
+    deliveryCounts(db),
+    currentMailSender(db),
+  ]);
+  const env = getEnv();
+  // Only the owner edits the sender, so only the owner sees it.
+  const senderForm = can(admin.user.role, { settings: ["update"] })
+    ? { saved: sender.fromPanel ? sender.value : null, hosting: env.MAIL_FROM ?? null }
+    : null;
   return {
-    configuration: mailConfiguration(getEnv()),
+    configuration: mailConfiguration(env, sender),
     deliveries,
     counts,
     canTest: can(admin.user.role, { mail: ["test"] }),
+    senderForm,
   };
 });
 
@@ -39,7 +51,7 @@ function CountsLine({ counts }: { counts: { accepted: number; refused: number } 
 }
 
 export default function AdminMailPage() {
-  const { configuration, deliveries, counts, canTest } = useLoaderData<typeof loader>();
+  const { configuration, deliveries, counts, canTest, senderForm } = useLoaderData<typeof loader>();
   return (
     <>
       <AdminPageHeader
@@ -51,6 +63,7 @@ export default function AdminMailPage() {
         action={canTest && configuration.issues.length === 0 ? <TestMailButton /> : null}
       >
         <MailSetup configuration={configuration} />
+        {senderForm ? <MailSenderForm {...senderForm} /> : null}
       </Section>
       <Section title="Últimos envios" description={<CountsLine counts={counts} />}>
         <DeliveriesTable rows={deliveries} />

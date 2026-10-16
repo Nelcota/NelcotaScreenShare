@@ -4,3 +4,7 @@ export const sendTestMailAction = operation<
   Parameters<typeof server.sendTestMailAction>[0],
   NonNullable<Awaited<ReturnType<typeof server.sendTestMailAction>>["data"]>
 >("admin-mail-sendTestMailAction");
+export const saveMailSenderAction = operation<
+  Parameters<typeof server.saveMailSenderAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.saveMailSenderAction>>["data"]>
+>("admin-mail-saveMailSenderAction");

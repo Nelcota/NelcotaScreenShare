@@ -30,7 +30,7 @@ import {
   readmitParticipantAction,
 } from "@/features/admin/rooms/actions.server";
 import { closeGhostRoomAction } from "@/features/admin/live/actions.server";
-import { sendTestMailAction } from "@/features/admin/mail/actions.server";
+import { saveMailSenderAction, sendTestMailAction } from "@/features/admin/mail/actions.server";
 import {
   blockReportedAccountAction,
   deleteReportedMessageAction,
@@ -122,6 +122,7 @@ export const operations: OperationHandlers = {
   "admin-rooms-removeParticipantAction": removeParticipantAction,
   "admin-rooms-readmitParticipantAction": readmitParticipantAction,
   "admin-mail-sendTestMailAction": sendTestMailAction,
+  "admin-mail-saveMailSenderAction": saveMailSenderAction,
   "admin-reports-resolveReportAction": resolveReportAction,
   "admin-reports-deleteReportedMessageAction": deleteReportedMessageAction,
   "admin-reports-blockReportedAccountAction": blockReportedAccountAction,

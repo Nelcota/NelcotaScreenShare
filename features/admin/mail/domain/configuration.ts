@@ -1,9 +1,9 @@
 import { isValidSender } from "@/lib/mail-sender";
+import type { MailSender } from "@/features/admin/mail/domain/sender";
 
 interface MailEnvironment {
   RESEND_API_KEY?: string;
   SMTP_URL?: string;
-  MAIL_FROM?: string;
   REQUIRE_EMAIL_VERIFICATION: boolean;
 }
 
@@ -20,7 +20,7 @@ function providerOf(env: MailEnvironment): MailConfiguration["provider"] {
 }
 
 /** Reads the e-mail settings and says, in plain Portuguese, what keeps e-mails from going out. */
-export function mailConfiguration(env: MailEnvironment): MailConfiguration {
+export function mailConfiguration(env: MailEnvironment, sender: MailSender): MailConfiguration {
   const provider = providerOf(env);
   const issues: string[] = [];
   if (!provider) {
@@ -28,9 +28,9 @@ export function mailConfiguration(env: MailEnvironment): MailConfiguration {
       "Nenhum provedor de e-mail configurado. Defina RESEND_API_KEY ou SMTP_URL na hospedagem.",
     );
   }
-  if (!env.MAIL_FROM) issues.push("Falta o remetente. Defina MAIL_FROM na hospedagem.");
-  if (env.MAIL_FROM && !isValidSender(env.MAIL_FROM)) {
-    issues.push("MAIL_FROM está em formato inválido. Use Nome <email@dominio> ou só o e-mail.");
+  if (!sender.value) issues.push("Falta o remetente.");
+  if (sender.value && !isValidSender(sender.value)) {
+    issues.push("O MAIL_FROM da hospedagem está em formato inválido.");
   }
   if (!provider && env.REQUIRE_EMAIL_VERIFICATION) {
     issues.push("A confirmação de e-mail está ligada e os links não saem.");

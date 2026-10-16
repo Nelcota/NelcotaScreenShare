@@ -15,6 +15,7 @@ import { HealthCard } from "@/features/admin/status/ui/HealthCard";
 import { LiveKitEvents } from "@/features/admin/status/ui/LiveKitEvents";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
+import { currentMailSender } from "@/server/mail-sender.server";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
@@ -23,7 +24,11 @@ export const meta = () => [{ title: "Status · Nelcota" }];
 export const loader = routeLoader(async () => {
   await requireAdmin({ system: ["status"] });
   const db = getDb();
-  const [database, liveKit] = await Promise.all([checkDatabase(db), checkLiveKit()]);
+  const [database, liveKit, sender] = await Promise.all([
+    checkDatabase(db),
+    checkLiveKit(),
+    currentMailSender(db),
+  ]);
   // Without the database there are no events to read: the card already says why.
   const [events, lastDelivery] =
     database.state === "down"
@@ -32,7 +37,7 @@ export const loader = routeLoader(async () => {
   return {
     database,
     liveKit,
-    mail: mailHealth(checkMailConfiguration(), lastDelivery),
+    mail: mailHealth(checkMailConfiguration(sender), lastDelivery),
     deploy: deployInfo(getEnv().APP_VERSION),
     events,
   };

@@ -8,6 +8,8 @@ import {
   deployInfo,
 } from "@/features/admin/status/server/checks.server";
 
+const NO_SENDER = { value: null, fromPanel: false };
+
 test("event errors never show query parameters", () => {
   const error = "Failed query: insert into room_participations ...\nparams: Ana,203.0.113.7";
   assert.equal(summarizeEventError(error), "Falha ao gravar no banco");
@@ -21,18 +23,16 @@ test("event errors never show query parameters", () => {
 });
 
 test("the e-mail check says what is missing without showing secrets", () => {
-  const missing = checkMailConfiguration({});
+  const missing = checkMailConfiguration(NO_SENDER, {});
   assert.equal(missing.state, "down");
 
-  const noSender = checkMailConfiguration({ RESEND_API_KEY: "re_secret_key" });
-  assert.equal(noSender.state, "down");
-  assert.match(noSender.detail, /MAIL_FROM/);
-  assert.doesNotMatch(noSender.detail, /re_secret_key/);
+  const noSender = checkMailConfiguration(NO_SENDER, { RESEND_API_KEY: "re_secret_key" });
+  assert.deepEqual(noSender, { state: "down", detail: "Falta o remetente." });
 
-  const smtp = checkMailConfiguration({
-    SMTP_URL: "smtp://user:password@mail.example.com",
-    MAIL_FROM: "Nelcota <oi@example.com>",
-  });
+  const smtp = checkMailConfiguration(
+    { value: "Nelcota <oi@example.com>", fromPanel: true },
+    { SMTP_URL: "smtp://user:password@mail.example.com" },
+  );
   assert.equal(smtp.state, "ok");
   assert.doesNotMatch(smtp.detail, /password|oi@example\.com/);
 });
@@ -62,11 +62,11 @@ test("the deployed version links to its commit only when it is a SHA", () => {
 });
 
 test("a malformed sender shows as down without its value", () => {
-  const broken = checkMailConfiguration({
-    RESEND_API_KEY: "re_secret",
-    MAIL_FROM: "Nelcota sem email",
-  });
-  assert.deepEqual(broken, { state: "down", detail: "MAIL_FROM em formato inválido." });
+  const broken = checkMailConfiguration(
+    { value: "Nelcota sem email", fromPanel: false },
+    { RESEND_API_KEY: "re_secret" },
+  );
+  assert.deepEqual(broken, { state: "down", detail: "Remetente em formato inválido." });
 });
 
 test("e-mail set up right but whose last send failed is not shown as working", () => {
@@ -81,6 +81,6 @@ test("e-mail set up right but whose last send failed is not shown as working", (
   // Nothing sent yet: the configuration is all there is to say.
   assert.deepEqual(mailHealth(configured, null), configured);
   // A missing setting wins over the last send.
-  const missing = { state: "down" as const, detail: "Falta MAIL_FROM." };
+  const missing = { state: "down" as const, detail: "Falta o remetente." };
   assert.deepEqual(mailHealth(missing, { status: "failed", createdAt: new Date() }), missing);
 });

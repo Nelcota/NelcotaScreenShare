@@ -1,4 +1,5 @@
 import { desc, sql } from "drizzle-orm";
+import type { MailSender } from "@/features/admin/mail/domain/sender";
 import type { DbExecutor } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
@@ -61,7 +62,6 @@ export async function checkLiveKit(listRooms = listRoomsFromLiveKit): Promise<He
 interface MailEnvironment {
   RESEND_API_KEY?: string;
   SMTP_URL?: string;
-  MAIL_FROM?: string;
 }
 
 function mailProvider(env: MailEnvironment): string | null {
@@ -71,16 +71,19 @@ function mailProvider(env: MailEnvironment): string | null {
 }
 
 /** Only says what is configured; never the key, the SMTP URL or the sender address. */
-export function checkMailConfiguration(env: MailEnvironment = getEnv()): HealthCheck {
+export function checkMailConfiguration(
+  sender: MailSender,
+  env: MailEnvironment = getEnv(),
+): HealthCheck {
   const provider = mailProvider(env);
   if (!provider) {
     return { state: "down", detail: "Nenhum provedor configurado." };
   }
-  if (!env.MAIL_FROM) {
-    return { state: "down", detail: "Falta MAIL_FROM." };
+  if (!sender.value) {
+    return { state: "down", detail: "Falta o remetente." };
   }
-  if (!isValidSender(env.MAIL_FROM)) {
-    return { state: "down", detail: "MAIL_FROM em formato inválido." };
+  if (!isValidSender(sender.value)) {
+    return { state: "down", detail: "Remetente em formato inválido." };
   }
   return { state: "ok", detail: `Enviando pelo ${provider}.` };
 }

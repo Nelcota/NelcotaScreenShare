@@ -2,7 +2,8 @@ import { badgeLabel } from "@/features/notifications/domain/unread";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 const SIZE = 64;
-const ORIGINAL_HREF = "data-original-href";
+// Keep URLs outside the DOM so another attribute cannot replace the saved value.
+const originalIcons = new Map<HTMLLinkElement, string>();
 
 let icon: Promise<HTMLImageElement> | undefined;
 /** The latest call wins: an icon still loading never overwrites a newer count. */
@@ -46,12 +47,12 @@ function drawBadge(image: HTMLImageElement, count: number): string | undefined {
 }
 
 function restoreIcons() {
-  for (const link of iconLinks()) {
-    const original = link.getAttribute(ORIGINAL_HREF);
-    if (original === null) continue;
-    link.href = original;
-    link.removeAttribute(ORIGINAL_HREF);
+  for (const [link, href] of originalIcons) {
+    const original = new URL(href);
+    if (original.protocol !== "http:" && original.protocol !== "https:") continue;
+    link.href = original.href;
   }
+  originalIcons.clear();
 }
 
 /** A red dot with the count on the tab icon; zero puts the original icon back. */
@@ -68,7 +69,7 @@ export async function setFaviconBadge(count: number): Promise<void> {
     const badge = drawBadge(image, count);
     if (!badge) return;
     for (const link of iconLinks()) {
-      if (!link.hasAttribute(ORIGINAL_HREF)) link.setAttribute(ORIGINAL_HREF, link.href);
+      if (!originalIcons.has(link)) originalIcons.set(link, link.href);
       link.href = badge;
     }
   } catch (error) {

@@ -128,8 +128,9 @@ const FACE_STYLES = {
   },
   large: {
     video: "absolute inset-0 size-full",
+    // Grows with the card (its height, `cqh`), from a small card to a full-width one.
     avatar:
-      "size-20 bg-brand/15 text-2xl font-medium text-brand-soft ring-1 ring-brand/20 sm:size-24 sm:text-3xl",
+      "size-[clamp(4.5rem,26cqh,9rem)] bg-brand/15 text-[clamp(1.5rem,8cqh,3rem)] font-medium text-brand-soft ring-1 ring-brand/20",
     rounded: "rounded-3xl",
   },
 } as const;
@@ -265,7 +266,7 @@ export function ParticipantTile({
         aria-hidden="true"
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
-      <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-tile-line bg-tile shadow-soft">
+      <div className="[container-type:size] relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-tile-line bg-tile shadow-soft">
         <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3" />
         {handRaised ? (
           <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">

@@ -21,6 +21,8 @@ const SOUND_BADGE_STYLES = {
     icon: "size-3.5",
   },
   large: { badge: "size-8", icon: "size-4" },
+  /** On the camera rectangle in the column next to a screen. */
+  small: { badge: "size-6", icon: "size-3.5" },
 } as const;
 
 /** Red badge: "Sem som" (headphones) wins over the muted microphone, which it implies. */

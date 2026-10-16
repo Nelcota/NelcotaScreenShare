@@ -22,6 +22,7 @@ import { ProfileHint, TILE_SURFACE } from "./tile-surface";
 import { TileNamePill } from "./TileNamePill";
 import { CameraVideo, EnlargeButton } from "./camera-face";
 import { StripAvatarTile } from "./StripAvatarTile";
+import { StripCameraTile } from "./StripCameraTile";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -165,6 +166,24 @@ export function ParticipantTile({
   const share = { participant, roomCode, name, muted: isMuted, deafened: isDeafened, isSpeaking };
   if (screenInvite && !compact)
     return <ShareTileCard scope={scope} trackSid={screenInvite} {...share} />;
+
+  if (compact && camera) {
+    return (
+      <StripCameraTile
+        scope={scope}
+        participant={participant}
+        camera={camera}
+        name={name}
+        label={label}
+        muted={isMuted}
+        deafened={isDeafened}
+        isSharing={isSharing}
+        handRaised={handRaised}
+        isSpeaking={isSpeaking}
+        onEnlarge={onEnlarge}
+      />
+    );
+  }
 
   if (compact) {
     // Stage in use: round avatar with the name below (FaceTime style).

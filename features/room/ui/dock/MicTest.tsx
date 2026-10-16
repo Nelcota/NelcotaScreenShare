@@ -11,6 +11,7 @@ import { ProcessingSwitches } from "@/features/room/ui/settings/ProcessingSwitch
 import { logBrowserWarning } from "@/lib/telemetry.client";
 import { useDeafen } from "./Deafen";
 import { MicTestContext, useMicTest } from "./mic-test-context";
+import { Notice } from "@/components/Notice";
 
 /** The level of a stream, read from the test's own audio context. */
 function levelReader(context: AudioContext, source: MediaStreamAudioSourceNode) {
@@ -161,10 +162,9 @@ export function MicTestPanel() {
           className="h-full origin-left rounded-full bg-brand transition-transform duration-75"
         />
       </div>
-      <p className="flex items-center gap-2 rounded-xl bg-warning/15 px-3 py-2 text-sm text-warning">
-        <Headphones className="size-4 shrink-0" aria-hidden="true" />
+      <Notice tone="warning" icon={Headphones} className="gap-2 px-3 py-2 text-warning">
         Use fone para não microfonar.
-      </p>
+      </Notice>
       <ProcessingSwitches />
       <Button
         type="button"

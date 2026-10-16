@@ -18,6 +18,7 @@ import {
   snapToCorner,
   type CardOffset,
 } from "@/features/room/domain/card-position";
+import { prefersReducedMotion } from "@/lib/animation/motion";
 
 interface DragStart {
   pointerX: number;
@@ -50,10 +51,6 @@ function startsOnControl(target: EventTarget): boolean {
 const CLICK_SLOP = 4;
 /** How long the dropped card takes to slide into its corner. */
 const SNAP_MS = 200;
-
-function reducedMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 /**
  * The card goes where the person drags it, always whole on screen, and stays there next
@@ -130,7 +127,7 @@ export function useDraggableCard(
     setDragging(false);
     if (!moved.current) return;
     const settled = snapToCorner(currentOffset(card), measure(card), viewport());
-    setSnapping(!reducedMotion());
+    setSnapping(!prefersReducedMotion());
     setOffset(settled);
     saveCardOffset(settled);
   }

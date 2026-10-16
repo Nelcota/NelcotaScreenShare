@@ -30,7 +30,7 @@ async function sharesCall(callerIdentity: string, personId: string, room: string
 /**
  * Profile photo of someone in the same call. The token carries no image (a data URL is too
  * large for it), so the browser asks for each one. Only someone connected to the room sees
- * the photos of the others in it; otherwise, the same 404 as "no photo" so the route does not
+ * the photos of the others in it; otherwise, the same empty 204 as "no photo" so the route does not
  * tell who is in which room.
  */
 export async function participantPhoto(request: Request) {

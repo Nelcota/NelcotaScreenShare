@@ -5,6 +5,7 @@ import { Hint } from "@/components/Hint";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { SiteFooter } from "@/components/shell/SiteFooter";
 import { navItemClass } from "@/components/shell/nav-item-class";
+import { Button } from "@/components/ui/button";
 
 /** The app layout's route id: inside it, the column already has the Salas and Times tabs. */
 const APP_LAYOUT_ID = "app";
@@ -31,14 +32,16 @@ function WorkspacePanel({
   return (
     <div className="relative flex flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <Hint text="Fechar" shortcut="Esc">
-        <Link
-          viewTransition
-          to="/inicio"
-          aria-label="Fechar"
-          className="absolute top-3 right-3 grid size-9 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand max-sm:hidden"
+        <Button
+          asChild
+          variant="quiet"
+          size="icon-lg"
+          className="absolute top-3 right-3 max-sm:hidden"
         >
-          <X className="size-4" aria-hidden="true" />
-        </Link>
+          <Link viewTransition to="/inicio" aria-label="Fechar">
+            <X aria-hidden="true" />
+          </Link>
+        </Button>
       </Hint>
       <Heading title={title} description={description} />
       {children}

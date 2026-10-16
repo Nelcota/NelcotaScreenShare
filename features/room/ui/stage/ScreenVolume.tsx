@@ -7,7 +7,7 @@ import { Hint } from "@/components/Hint";
 import { Slider } from "@/components/ui/slider";
 import { useParticipantAudio } from "@/features/room/hooks/use-participant-audio";
 import { useMediaVolumeSettable } from "@/features/room/hooks/use-media-volume-settable";
-import { DockPopoverContent } from "@/features/room/ui/dock/DockPopover";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 
 const STEP = 5;
 
@@ -73,7 +73,7 @@ export function ScreenSoundControl({ identity, name }: { identity: string; name:
           </button>
         </Popover.Trigger>
       </Hint>
-      <DockPopoverContent
+      <GlassPopoverContent
         side="bottom"
         align="end"
         sideOffset={8}
@@ -97,7 +97,7 @@ export function ScreenSoundControl({ identity, name }: { identity: string; name:
         <span className="w-9 shrink-0 text-right text-xs text-ink-subtle tabular-nums">
           {percent}%
         </span>
-      </DockPopoverContent>
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

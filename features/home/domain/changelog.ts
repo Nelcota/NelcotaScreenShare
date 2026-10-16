@@ -31,7 +31,7 @@ export const RELEASES: Release[] = [
         kind: "new",
         text: "Amigos: adicione por e-mail, pelo código NELC ou por link de convite.",
       },
-      { kind: "new", text: "Escolha seu status: Online, Ausente, Ocupado ou Invisível." },
+      { kind: "new", text: "Escolha seu status: Online, Ausente, Não perturbe ou Invisível." },
       {
         kind: "new",
         text: "Chame um amigo para a chamada. O toque aparece em qualquer página do Nelcota.",

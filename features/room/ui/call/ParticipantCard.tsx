@@ -1,7 +1,8 @@
 import { useIsSpeaking, useParticipantAttribute } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
 import { useRef, useState, type PointerEvent, type ReactNode } from "react";
-import { Popover as PopoverPrimitive, Dialog as DialogPrimitive } from "radix-ui";
+import { Popover as PopoverPrimitive } from "radix-ui";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { isGuestIdentity } from "@/features/room/domain/participant-label";
 import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { parseRoomRole, ROLE_ATTRIBUTE, type RoomRole } from "@/features/room/domain/room-role";
@@ -155,32 +156,35 @@ function CardSheet({ children, ...props }: CardProps & { children: ReactNode }) 
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <DialogPrimitive.Trigger asChild>{children}</DialogPrimitive.Trigger>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-        <DialogPrimitive.Content
-          aria-describedby={undefined}
-          style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
-          className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-line bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] outline-none data-open:animate-in data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:slide-out-to-bottom-10"
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>{children}</SheetTrigger>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        aria-describedby={undefined}
+        style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
+        className={cn(
+          "gap-0 rounded-t-3xl border-line bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink outline-none",
+          // While the finger drags, the sheet follows it without easing.
+          drag > 0 && "transition-none",
+        )}
+      >
+        <div
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className="flex touch-none justify-center pt-3 pb-4"
         >
-          <div
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            className="flex touch-none justify-center pt-3 pb-4"
-          >
-            <span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-line-strong" />
-          </div>
-          <CardBody
-            {...props}
-            onClose={() => setOpen(false)}
-            title={<DialogPrimitive.Title className={NAME_CLASS}>{plain}</DialogPrimitive.Title>}
-          />
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+          <span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-line-strong" />
+        </div>
+        <CardBody
+          {...props}
+          onClose={() => setOpen(false)}
+          title={<SheetTitle className={cn(NAME_CLASS, "text-ink")}>{plain}</SheetTitle>}
+        />
+      </SheetContent>
+    </Sheet>
   );
 }
 

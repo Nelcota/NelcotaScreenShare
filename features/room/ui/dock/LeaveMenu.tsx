@@ -5,24 +5,25 @@ import { Button } from "@/components/ui/button";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { LEAVE_SHORTCUT_KEY } from "@/lib/shortcuts";
 import { DockButton } from "./DockButton";
-import { DockPopoverContent } from "./DockPopover";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 
 /** "Sair da sala?" with Cancelar and Sair, for the dock and the minimized call. */
 export function LeaveConfirm({
   onCancel,
   onConfirm,
   ...props
-}: { onCancel: () => void; onConfirm: () => void } & ComponentProps<typeof DockPopoverContent>) {
+}: { onCancel: () => void; onConfirm: () => void } & ComponentProps<typeof GlassPopoverContent>) {
   const confirmRef = useRef<HTMLButtonElement>(null);
   return (
-    <DockPopoverContent
+    <GlassPopoverContent
       role="alertdialog"
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         confirmRef.current?.focus();
       }}
       aria-label="Sair da sala?"
-      className="w-[min(18rem,calc(100vw-2rem))] p-4"
+      width="sm"
+      className="p-4"
       {...props}
     >
       <p className="text-sm font-medium tracking-tight">Sair da sala?</p>
@@ -42,7 +43,7 @@ export function LeaveConfirm({
           Sair
         </Button>
       </div>
-    </DockPopoverContent>
+    </GlassPopoverContent>
   );
 }
 

@@ -1,3 +1,4 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import {
   useAudioPlayback,
   useConnectionState,
@@ -204,7 +205,7 @@ export function RoomLayout({
 }: {
   code: string;
   maxParticipants: number;
-  roomName: string | null;
+  roomName: RoomTitle | null;
   isAdmin: boolean;
   onLeave: () => void;
 }) {

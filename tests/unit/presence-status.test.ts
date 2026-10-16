@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { canBeCalled, shownStatus } from "@/features/friends/domain/presence-status";
+import {
+  canBeCalled,
+  SHOWN_STATUS_LABEL,
+  shownStatus,
+} from "@/features/friends/domain/presence-status";
 
 describe("presence status", () => {
   test("friends see the chosen status only while the person is connected", () => {
@@ -13,10 +17,16 @@ describe("presence status", () => {
     expect(shownStatus("invisible", true)).toBe("offline");
   });
 
-  test("Ausente can still be called; Ocupado and Offline cannot", () => {
+  test("Ausente can still be called; Não perturbe and Offline cannot", () => {
     expect(canBeCalled("online")).toBe(true);
     expect(canBeCalled("away")).toBe(true);
     expect(canBeCalled("busy")).toBe(false);
     expect(canBeCalled("offline")).toBe(false);
+  });
+});
+
+describe("status names", () => {
+  test("have no grammatical gender", () => {
+    expect(SHOWN_STATUS_LABEL.busy).toBe("Não perturbe");
   });
 });

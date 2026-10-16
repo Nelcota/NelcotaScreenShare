@@ -16,7 +16,7 @@ export function shownStatus(chosen: PresenceStatus, connected: boolean): ShownSt
   return chosen;
 }
 
-/** Whether a call reaches the person: Ausente still rings; Ocupado and Offline do not. */
+/** Whether a call reaches the person: Ausente still rings; Não perturbe and Offline do not. */
 export function canBeCalled(status: ShownStatus): boolean {
   return status === "online" || status === "away";
 }
@@ -24,7 +24,7 @@ export function canBeCalled(status: ShownStatus): boolean {
 export const SHOWN_STATUS_LABEL: Record<ShownStatus, string> = {
   online: "Online",
   away: "Ausente",
-  busy: "Ocupado",
+  busy: "Não perturbe",
   offline: "Offline",
 };
 
@@ -32,7 +32,7 @@ export const SHOWN_STATUS_LABEL: Record<ShownStatus, string> = {
 export const STATUS_CHOICES: { status: PresenceStatus; label: string; hint?: string }[] = [
   { status: "online", label: "Online" },
   { status: "away", label: "Ausente", hint: "Fora do PC" },
-  { status: "busy", label: "Ocupado", hint: "Ninguém consegue te chamar" },
+  { status: "busy", label: "Não perturbe", hint: "Ninguém consegue te chamar" },
   { status: "invisible", label: "Invisível", hint: "Aparece offline para os amigos" },
 ];
 
@@ -40,6 +40,6 @@ export const STATUS_CHOICES: { status: PresenceStatus; label: string; hint?: str
 export const OWN_STATUS_LABEL: Record<PresenceStatus, string> = {
   online: "Online",
   away: "Ausente",
-  busy: "Ocupado",
+  busy: "Não perturbe",
   invisible: "Invisível",
 };

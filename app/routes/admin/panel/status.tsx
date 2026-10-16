@@ -16,6 +16,7 @@ import { LiveKitEvents } from "@/features/admin/status/ui/LiveKitEvents";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { formatDateTime, formatRelative } from "@/lib/format";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Status · Nelcota" }];
 
@@ -64,10 +65,7 @@ export default function AdminStatusPage() {
   const { database, liveKit, mail, deploy, events } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Status</h1>
-        <p className="mt-1 text-ink-muted">Banco, chamadas e e-mail agora.</p>
-      </div>
+      <AdminPageHeader title="Status" description="Banco, chamadas e e-mail agora." />
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <HealthCard title="Banco de dados" state={database.state}>
           {database.detail}

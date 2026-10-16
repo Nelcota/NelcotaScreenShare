@@ -1,4 +1,4 @@
-import { Copy, Link2, RefreshCw, UserPlus } from "lucide-react";
+import { Copy, RefreshCw, UserPlus } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { useRouteLoaderData } from "react-router";
 import { toast } from "sonner";
@@ -113,7 +113,7 @@ function LinkActions({ linkPath }: { linkPath: string }) {
     <div className="border-t border-line pt-4">
       <div className="flex flex-wrap gap-2">
         <Button variant="ghost" onClick={() => void copyLink()}>
-          <Link2 aria-hidden="true" />
+          <Copy aria-hidden="true" />
           Convidar por link
         </Button>
         <Button variant="ghost" disabled={rotate.isPending} onClick={() => rotate.execute()}>

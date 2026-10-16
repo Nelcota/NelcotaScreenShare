@@ -54,3 +54,25 @@ export function incomingView(ring: Ring): IncomingRing {
   const { id, callerId, callerName, roomCode, startedAt, expiresAt } = ring;
   return { id, callerId, callerName, roomCode, startedAt, expiresAt };
 }
+
+const firstWord = (name: string) => name.trim().split(" ")[0] ?? name;
+
+/**
+ * The line under "Você é a primeira pessoa aqui" while you call someone: "Chamando Bia…"
+ * with a way to cancel, then "Bia não atendeu" or "Bia recusou" while the server keeps it.
+ */
+export function ringStatusLine(outgoing: readonly OutgoingRing[]): {
+  text: string;
+  cancel: { ringId: string; calleeId: string } | null;
+} | null {
+  const ringing = outgoing.findLast((ring) => ring.state === "ringing");
+  if (ringing) {
+    const cancel = { ringId: ringing.id, calleeId: ringing.calleeId };
+    return { text: `Chamando ${firstWord(ringing.calleeName)}…`, cancel };
+  }
+  const ended = outgoing.at(-1);
+  if (!ended) return null;
+  const name = firstWord(ended.calleeName);
+  const text = ended.state === "declined" ? `${name} recusou` : `${name} não atendeu`;
+  return { text, cancel: null };
+}

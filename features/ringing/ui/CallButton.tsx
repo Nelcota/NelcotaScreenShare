@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
+import { Button } from "@/components/ui/button";
 import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { createRoomAction } from "@/features/room/actions";
 import { callGroup } from "@/features/ringing/actions";
@@ -14,6 +15,13 @@ type Status = "online" | "away" | "busy" | "offline";
 
 const OUTLINE =
   "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-brand";
+
+/** The text "Chamar" buttons: the green outline at the column's h-8. */
+const CALL_TEXT = "h-8 gap-1.5 px-3 text-sm font-semibold";
+
+/** Busy: the outline greys out and hovering does not fill it. */
+const UNAVAILABLE_OUTLINE =
+  "cursor-not-allowed border-line-strong text-ink-subtle hover:border-line-strong hover:bg-transparent hover:text-ink-subtle";
 
 function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? name;
@@ -84,7 +92,7 @@ export function useCallFriend(friend: { id: string; name: string }) {
 
 /**
  * "Chamar" for a friend who can take a call; "Chamando…" with Cancelar while it rings.
- * Ocupado shows it disabled; Invisível and Offline show nothing.
+ * Não perturbe shows it disabled; Invisível and Offline show nothing.
  */
 export function CallButton({
   friend,
@@ -111,24 +119,20 @@ export function CallButton({
   }
   const busy = friend.status === "busy";
   return (
-    <Hint text={busy ? "Ocupado agora" : undefined}>
-      <button
+    <Hint text={busy ? "Não perturbe" : undefined}>
+      <Button
         type="button"
+        variant="brand-outline"
+        size="sm"
         aria-disabled={busy || starting}
         onClick={() => {
           if (!busy && !starting) void call();
         }}
-        className={cn(
-          OUTLINE,
-          busy
-            ? "cursor-not-allowed border-line-strong text-ink-subtle"
-            : "border-brand-soft/70 text-brand-soft hover:border-brand hover:bg-brand hover:text-brand-ink",
-          className,
-        )}
+        className={cn(CALL_TEXT, busy && UNAVAILABLE_OUTLINE, className)}
       >
         <Phone className="size-4" aria-hidden="true" />
         Chamar
-      </button>
+      </Button>
     </Hint>
   );
 }
@@ -138,7 +142,7 @@ const ICON =
 
 /** Why the round button cannot call now, for the hint. */
 const UNAVAILABLE: Partial<Record<Status, string>> = {
-  busy: "Ocupado agora",
+  busy: "Não perturbe",
   offline: "Offline agora",
 };
 
@@ -207,20 +211,18 @@ export function GroupCallButton({
     if (!result.data) toast.error(result.serverError ?? "Não foi possível chamar agora.");
   };
   return (
-    <button
+    <Button
       type="button"
+      variant="brand-outline"
+      size="sm"
       aria-disabled={starting}
       onClick={() => {
         if (!starting) void start();
       }}
-      className={cn(
-        OUTLINE,
-        "border-brand-soft/70 text-brand-soft hover:border-brand hover:bg-brand hover:text-brand-ink",
-        className,
-      )}
+      className={cn(CALL_TEXT, className)}
     >
       <Phone className="size-4" aria-hidden="true" />
       Chamar o grupo
-    </button>
+    </Button>
   );
 }

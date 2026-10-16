@@ -11,17 +11,13 @@ import { getEnv } from "@/server/env.server";
 import { notFound } from "@/server/http.server";
 import { routeLoader } from "@/server/route-loader.server";
 import type { loader as appLoader } from "./layout";
+import { Button } from "@/components/ui/button";
+import { formatMonthYear } from "@/lib/format";
 
 export const meta = () => [
   { title: "Mensagens · Nelcota" },
   { name: "robots", content: "noindex" },
 ];
-
-const SINCE = new Intl.DateTimeFormat("pt-BR", {
-  month: "long",
-  year: "numeric",
-  timeZone: "America/Sao_Paulo",
-});
 
 export const loader = routeLoader(async ({ params }) => {
   const conversationId = params.conversa ?? "";
@@ -35,7 +31,7 @@ export const loader = routeLoader(async ({ params }) => {
   return {
     ...page,
     klipyKey: getEnv().KLIPY_API_KEY ?? null,
-    profile: profile ? { ...profile, since: SINCE.format(profile.since) } : null,
+    profile: profile ? { ...profile, since: formatMonthYear(profile.since) } : null,
   };
 });
 
@@ -49,14 +45,11 @@ export default function ConversationPage() {
       data={data}
       selfId={app?.selfId ?? ""}
       leading={
-        <Link
-          viewTransition
-          to="/amigos"
-          aria-label="Voltar aos amigos"
-          className="grid size-9 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-surface-3 hover:text-ink sm:hidden"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </Link>
+        <Button asChild variant="quiet" size="icon-lg" className="sm:hidden">
+          <Link viewTransition to="/amigos" aria-label="Voltar aos amigos">
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </Link>
+        </Button>
       }
       trailing={<PanelClose />}
       profile={

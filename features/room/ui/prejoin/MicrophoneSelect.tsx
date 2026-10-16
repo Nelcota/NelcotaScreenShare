@@ -23,7 +23,7 @@ function DeviceOption({ option, index }: { option: MicrophoneOption; index: numb
     <SelectItem
       value={`microphone-${index}`}
       textValue={option.label}
-      className="min-h-12 gap-3 rounded-xl px-2.5 py-2 pr-9 text-ink-muted focus:bg-surface-3 focus:text-ink data-[state=checked]:font-semibold data-[state=checked]:text-ink [&>span:last-child]:min-w-0 [&>span:last-child]:flex-1"
+      className="min-h-12 gap-3 rounded-xl px-2.5 py-2 pr-9 text-ink-muted focus:bg-accent focus:text-ink data-[state=checked]:font-semibold data-[state=checked]:text-ink [&>span:last-child]:min-w-0 [&>span:last-child]:flex-1"
     >
       <DeviceIcon kind={option.kind} />
       <span className="flex min-w-0 flex-1 items-center gap-2">

@@ -1,3 +1,4 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
 import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-address";
 import { useState, type ReactNode } from "react";
@@ -16,8 +17,8 @@ export interface RoomEntry {
   passwordRequired: boolean;
   invite?: string;
   maxParticipants: number;
-  /** "Sala de Ana", from the owner; null when the room has no owner. */
-  roomName: string | null;
+  /** The room's own name, or "Sala de Ana" from the owner; null when it has neither. */
+  roomName: RoomTitle | null;
   presence: RoomPresence | null;
   isAdmin: boolean;
 }

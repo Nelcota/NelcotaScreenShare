@@ -1,3 +1,4 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { Archive } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ interface RoomSessionProps {
   passwordRequired: boolean;
   invite?: string;
   maxParticipants: number;
-  roomName: string | null;
+  roomName: RoomTitle | null;
   /** People in the room now (null: unknown). */
   presence: RoomPresence | null;
   /** Shows the link to the admin panel inside the call. */
@@ -56,7 +57,14 @@ interface RoomSessionProps {
 type Phase =
   | { kind: "prejoin" }
   /** `startedAt`: when they joined, for the leave summary (kept across attempts). */
-  | { kind: "room"; choices: JoinChoices; attempt: number; startedAt: number }
+  | {
+      kind: "room";
+      choices: JoinChoices;
+      attempt: number;
+      startedAt: number;
+      /** Joined without the pre-join (from "Chamar" or a ring). */
+      direct?: boolean;
+    }
   | { kind: "left"; reason: LeaveReason; message?: string; durationMs?: number };
 
 export function RoomSession({
@@ -142,6 +150,7 @@ export function RoomSession({
             minimized={minimized}
             onLeave={(notice) => leave(notice, phase.startedAt)}
             onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
+            directEntry={phase.direct === true && phase.attempt === 0}
           />
         </Suspense>
       </CallShell>
@@ -172,6 +181,7 @@ export function RoomSession({
         <PreJoin
           onPrepareJoin={prepareRoomView}
           code={code}
+          roomName={roomName?.followsOwner === false ? roomName.text : null}
           userName={userName}
           userImage={userImage}
           passwordRequired={passwordRequired && !invite}
@@ -181,7 +191,13 @@ export function RoomSession({
           autoJoin={autoJoin}
           onJoin={(choices) => {
             setAutoJoin(false);
-            setPhase({ kind: "room", choices, attempt: 0, startedAt: Date.now() });
+            setPhase({
+              kind: "room",
+              choices,
+              attempt: 0,
+              startedAt: Date.now(),
+              direct: autoJoin,
+            });
           }}
         />
       ) : (

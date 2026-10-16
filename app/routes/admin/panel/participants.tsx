@@ -13,6 +13,7 @@ import { PAGE_SIZE } from "@/lib/table-params";
 import { requireAdmin } from "@/features/auth/server/admin-session.server";
 import { can } from "@/features/auth/server/permissions.server";
 import { getDb } from "@/server/db/index.server";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Participantes · Nelcota" }];
 
@@ -35,10 +36,7 @@ export default function ParticipantsPage() {
   const { params, page, canUpdate, canDelete, canExport } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Participantes</h1>
-        <p className="mt-1 text-ink-muted">Contas de quem entra nas salas.</p>
-      </div>
+      <AdminPageHeader title="Participantes" description="Contas de quem entra nas salas." />
       <ParticipantsTable
         rows={page.items}
         page={pageInfo(page)}

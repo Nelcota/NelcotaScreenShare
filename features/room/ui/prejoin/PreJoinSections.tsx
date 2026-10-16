@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Headphones, Loader2, Ticket } from "lucide-react";
+import { ArrowLeft, ArrowRight, Headphones, Ticket } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/features/mascot/ui/Mascot";
@@ -10,9 +10,32 @@ import { PresenceLine } from "./PresenceLine";
 import { startPath } from "@/features/room/domain/start-path";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
 
-/** Mascot, title, room code, presence and the invite badge. */
+/** "Daily do time · abc-defg-hij", or "Sala abc-defg-hij"; streamer mode hides the code. */
+function RoomLine({
+  code,
+  name,
+  hideCode,
+}: {
+  code: string;
+  name: string | null;
+  hideCode: boolean;
+}) {
+  if (name && hideCode) return <p className="text-sm font-medium wrap-anywhere text-ink">{name}</p>;
+  if (hideCode) return null;
+  return (
+    <p className="text-sm text-ink-muted">
+      {name ? <span className="font-medium text-ink">{name} · </span> : "Sala "}
+      <span translate="no" className="font-sans font-medium text-ink tabular-nums">
+        {code}
+      </span>
+    </p>
+  );
+}
+
+/** Mascot, title, room name and code, presence and the invite badge. */
 export function PreJoinHeader({
   code,
+  roomName,
   invite,
   presence,
   maxParticipants,
@@ -21,6 +44,7 @@ export function PreJoinHeader({
   submitting,
 }: {
   code: string;
+  roomName: string | null;
   invite?: string;
   presence: RoomPresence | null;
   maxParticipants: number;
@@ -41,18 +65,9 @@ export function PreJoinHeader({
       <div className="flex flex-col items-center gap-2">
         {/* Other features show a short notice here, e.g. who will be called on joining. */}
         <div id="pre-join-notice" className="empty:hidden" />
-        <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
-          Pronto para entrar?
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pronto para entrar?</h1>
         <div className="flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1">
-          {!streamerMode ? (
-            <p className="text-sm text-ink-muted">
-              Sala{" "}
-              <span translate="no" className="font-sans font-medium text-ink tabular-nums">
-                {code}
-              </span>
-            </p>
-          ) : null}
+          <RoomLine code={code} name={roomName} hideCode={streamerMode} />
           <InviteLinkButton code={code} />
         </div>
         <PresenceLine presence={presence} max={maxParticipants} guest={guest} />
@@ -87,11 +102,11 @@ export function JoinActions({
         type="submit"
         size="lg"
         disabled={joinDisabled}
+        loading={submitting}
         onMouseEnter={onPrepareJoin}
         onFocus={onPrepareJoin}
         className="h-12! w-full"
       >
-        {submitting ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
         {submitting ? "Entrando…" : mic.joinsMuted ? "Entrar só ouvindo" : "Entrar na sala"}
         {submitting ? null : <ArrowRight className="icon-nudge" aria-hidden="true" />}
       </Button>

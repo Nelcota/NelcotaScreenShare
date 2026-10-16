@@ -1,5 +1,6 @@
 import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { prefersReducedMotion } from "@/lib/animation/motion";
 import { cn } from "@/lib/utils";
 import { SettingsRowLabel } from "./Settings";
 
@@ -98,8 +99,8 @@ export function ExpandableRow({
         return;
       }
       revealOnOpen.current = false;
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      row.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+      const behavior = prefersReducedMotion() ? "auto" : "smooth";
+      row.current?.scrollIntoView({ behavior, block: "start" });
       field?.focus({ preventScroll: true });
     }
 

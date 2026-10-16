@@ -18,6 +18,7 @@ import { useConnectedCallRoom } from "@/features/ringing/client/call-connection"
 import { usePushedRing } from "@/features/ringing/client/pushed-ring";
 import { showCallNotice } from "@/features/room/client/call-notices";
 import { PendingCallRunner } from "@/features/ringing/ui/PendingCallRunner";
+import { RoomRingStatus } from "@/features/ringing/ui/RoomRingStatus";
 import {
   ringSoundLeft,
   type IncomingRing,
@@ -151,6 +152,7 @@ export function RingRuntime() {
   return (
     <>
       <PendingCallRunner />
+      <RoomRingStatus />
       {incoming ? <IncomingCard key={incoming.id} ring={incoming} /> : null}
     </>
   );

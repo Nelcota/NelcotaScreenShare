@@ -68,3 +68,12 @@ export function presenceText(online: number, max: number, guest = false): Presen
     text: online === 1 ? "1 pessoa já está na sala" : `${online} pessoas já estão na sala`,
   };
 }
+
+/**
+ * Shown for a few seconds after joining straight from "Chamar" or a ring, without the
+ * pre-join: the microphone came in as saved, and this is how to switch it.
+ */
+export function directEntryNotice(micOn: boolean, key: string): string {
+  if (micOn) return `Microfone ligado · ${key} para desligar`;
+  return `Microfone desligado · ${key} para ligar`;
+}

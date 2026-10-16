@@ -1,5 +1,5 @@
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-import { Check, Link2 } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { roomUrl, useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,7 @@ export function InviteLinkButton({ code }: { code: string }) {
       {copied ? (
         <Check className="icon-pop size-4" aria-hidden="true" />
       ) : (
-        <Link2 className="size-4" aria-hidden="true" />
+        <Copy className="size-4" aria-hidden="true" />
       )}
       {copied ? "Link copiado" : "Copiar convite"}
     </button>

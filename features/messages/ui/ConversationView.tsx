@@ -1,4 +1,4 @@
-import { LogOut, MoreHorizontal, UserRound } from "lucide-react";
+import { Ellipsis, LogOut, UserRound } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -14,7 +14,11 @@ import {
   conversationTitle,
   type ConversationItem,
 } from "@/features/messages/domain/conversation-display";
-import type { TimelineCall, TimelineMessage } from "@/features/messages/domain/timeline";
+import {
+  mergeMessages,
+  type TimelineCall,
+  type TimelineMessage,
+} from "@/features/messages/domain/timeline";
 import { GroupCallBanner, type LiveGroupCall } from "@/features/messages/ui/GroupCallBanner";
 import { KlipyContext, klipyFor } from "@/features/messages/hooks/use-gif";
 import { Composer } from "@/features/messages/ui/Composer";
@@ -29,8 +33,14 @@ import { GroupCallButton, IconCallButton } from "@/features/ringing/ui/CallButto
 import { offerNotifications } from "@/features/notifications/client/permission-offer";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-const STATUS_LABEL = { online: "Online", away: "Ausente", busy: "Ocupado", offline: "Offline" };
+const STATUS_LABEL = {
+  online: "Online",
+  away: "Ausente",
+  busy: "Não perturbe",
+  offline: "Offline",
+};
 
 export interface OpenConversation {
   conversation: Pick<ConversationItem, "id" | "kind" | "name" | "others" | "status">;
@@ -52,11 +62,10 @@ function MoreMenu({ conversation }: { conversation: OpenConversation["conversati
   const [other] = conversation.others;
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Mais opções"
-        className="grid size-9 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
-      >
-        <MoreHorizontal className="size-4" aria-hidden="true" />
+      <DropdownMenuTrigger asChild>
+        <Button variant="quiet" size="icon-lg" aria-label="Mais opções">
+          <Ellipsis aria-hidden="true" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {conversation.kind === "direct" && other ? (
@@ -132,26 +141,37 @@ function Header({
   );
 }
 
-/** Older pages are fetched on demand and kept above the newest page from the loader. */
-function useOlder(conversationId: string, firstId: string | undefined, initialHasMore: boolean) {
-  const [older, setOlder] = useState<TimelineMessage[]>([]);
+/**
+ * The messages on screen: every page seen (older ones fetched on demand, and each newest
+ * page the loader brought) joined by id with the loader's current page, so nothing in
+ * between goes missing when new messages arrive.
+ */
+function useTimeline(conversationId: string, page: TimelineMessage[], initialHasMore: boolean) {
+  const [seen, setSeen] = useState(page);
+  const [lastPage, setLastPage] = useState(page);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loading, setLoading] = useState(false);
+  // A new page from the loader joins what was seen while rendering, without an effect.
+  if (page !== lastPage) {
+    setLastPage(page);
+    setSeen((current) => mergeMessages(current, page));
+  }
+  const messages = mergeMessages(seen, page);
   const load = async () => {
-    const beforeId = older[0]?.id ?? firstId;
+    const beforeId = messages[0]?.id;
     if (!beforeId || loading) return;
     setLoading(true);
     const result = await listMessages({ conversationId, beforeId });
     setLoading(false);
     if (!result.data) return toast.error("Não foi possível carregar agora.");
-    const page = result.data.messages.map((message) => ({
+    const olderPage = result.data.messages.map((message) => ({
       ...message,
       createdAt: new Date(message.createdAt),
     }));
-    setOlder((current) => [...page, ...current]);
+    setSeen((current) => mergeMessages(olderPage, current));
     setHasMore(result.data.hasMore);
   };
-  return { older, hasMore, loading, load };
+  return { messages, hasMore, loading, load };
 }
 
 /** Reading the conversation clears its unread count, here and on the other tabs. */
@@ -198,7 +218,7 @@ export function ConversationView({
 }) {
   const { conversation } = data;
   const latestId = data.messages.at(-1)?.id;
-  const older = useOlder(conversation.id, data.messages[0]?.id, data.hasMore);
+  const timeline = useTimeline(conversation.id, data.messages, data.hasMore);
   useMarkRead(conversation.id, latestId);
   // Opening a conversation is a good moment to offer notifications, with the tab in front.
   useEffect(() => offerNotifications(), []);
@@ -220,12 +240,12 @@ export function ConversationView({
           />
           {data.groupCall ? <GroupCallBanner call={data.groupCall} /> : null}
           <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
-            {older.hasMore ? (
+            {timeline.hasMore ? (
               <p className="pt-3 text-center">
                 <button
                   type="button"
-                  disabled={older.loading}
-                  onClick={() => void older.load()}
+                  disabled={timeline.loading}
+                  onClick={() => void timeline.load()}
                   className="text-sm font-semibold text-brand-soft hover:underline disabled:opacity-60"
                 >
                   Mensagens anteriores
@@ -233,7 +253,7 @@ export function ConversationView({
               </p>
             ) : null}
             <MessageTimeline
-              messages={[...older.older, ...data.messages]}
+              messages={timeline.messages}
               calls={data.calls}
               selfId={selfId}
               showNames={conversation.kind === "group"}

@@ -218,10 +218,7 @@ function PendingPhotoBar({
         <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="button" disabled={busy} onClick={onSave}>
-          {pending ? (
-            <Loader2 data-icon="inline-start" className="animate-spin" aria-hidden="true" />
-          ) : null}
+        <Button type="button" loading={pending} disabled={busy} onClick={onSave}>
           Salvar foto
         </Button>
       </div>

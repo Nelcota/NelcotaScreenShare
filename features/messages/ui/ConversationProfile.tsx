@@ -1,8 +1,10 @@
 import { UserRound } from "lucide-react";
-import { useSyncExternalStore, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Hint } from "@/components/Hint";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useStoredValue } from "@/lib/hooks/use-stored-value";
+import { createStoredValue } from "@/lib/stored-value";
 
 /** The friend's profile beside a direct conversation; on phones, their card instead. */
 export interface ConversationProfile {
@@ -11,42 +13,19 @@ export interface ConversationProfile {
   link: string;
 }
 
-const HEADER_ICON =
-  "grid size-9 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand";
-
-const PROFILE_KEY = "nelcota-conversation-profile";
-const PROFILE_EVENT = "nelcota-conversation-profile-change";
-
-function readProfileOpen(): boolean {
-  try {
-    return window.localStorage.getItem(PROFILE_KEY) !== "closed";
-  } catch {
-    return true;
-  }
-}
-
-function saveProfileOpen(open: boolean) {
-  try {
-    window.localStorage.setItem(PROFILE_KEY, open ? "open" : "closed");
-  } catch {
-    // Private windows may refuse storage; the panel simply forgets.
-  }
-  window.dispatchEvent(new Event(PROFILE_EVENT));
-}
-
-function subscribe(changed: () => void) {
-  window.addEventListener(PROFILE_EVENT, changed);
-  window.addEventListener("storage", changed);
-  return () => {
-    window.removeEventListener(PROFILE_EVENT, changed);
-    window.removeEventListener("storage", changed);
-  };
-}
+const profileOpen = createStoredValue<boolean>({
+  key: "nelcota-conversation-profile",
+  changeEvent: "nelcota-conversation-profile-change",
+  fallback: true,
+  parse: (raw) => raw !== "closed",
+  serialize: (open) => (open ? "open" : "closed"),
+  warning: "Could not access the conversation profile storage",
+});
 
 /** Whether the profile panel is open, remembered in this browser (open by default). */
 export function useProfileOpen() {
-  const open = useSyncExternalStore(subscribe, readProfileOpen, () => true);
-  return { open, toggle: () => saveProfileOpen(!open) };
+  const open = useStoredValue(profileOpen, true);
+  return { open, toggle: () => profileOpen.write(!open) };
 }
 
 /** "Perfil": opens or closes the panel on wide screens, the friend's card on narrow ones. */
@@ -62,27 +41,23 @@ export function ProfileToggle({
   return (
     <>
       <Hint text={open ? "Esconder perfil" : "Mostrar perfil"}>
-        <button
+        <Button
           type="button"
+          variant="quiet"
+          size="icon-lg"
           aria-label="Perfil"
           aria-pressed={open}
           onClick={onToggle}
-          className={cn(
-            HEADER_ICON,
-            "aria-pressed:bg-surface-3 aria-pressed:text-ink max-lg:hidden",
-          )}
+          className="max-lg:hidden"
         >
           <UserRound className="size-5" aria-hidden="true" />
-        </button>
+        </Button>
       </Hint>
-      <Link
-        viewTransition
-        to={profile.link}
-        aria-label="Perfil"
-        className={cn(HEADER_ICON, "lg:hidden")}
-      >
-        <UserRound className="size-5" aria-hidden="true" />
-      </Link>
+      <Button asChild variant="quiet" size="icon-lg" className="lg:hidden">
+        <Link viewTransition to={profile.link} aria-label="Perfil">
+          <UserRound className="size-5" aria-hidden="true" />
+        </Link>
+      </Button>
     </>
   );
 }

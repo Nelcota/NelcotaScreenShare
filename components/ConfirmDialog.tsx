@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Field } from "@/components/Field";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -76,31 +75,32 @@ export function ConfirmDialog({
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
           {reason ? (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={reasonId}>{reason.label}</Label>
+            <Field id={reasonId} label={<>{reason.label}</>}>
               <Textarea
-                id={reasonId}
                 value={text}
                 maxLength={reason.maxLength}
                 placeholder={reason.placeholder}
                 onChange={(event) => setText(event.target.value)}
                 required
               />
-            </div>
+            </Field>
           ) : null}
           {typedConfirmation ? (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor={typedId}>
-                Digite <strong className="font-sans tabular-nums">{typedConfirmation}</strong> para
-                confirmar
-              </Label>
+            <Field
+              id={typedId}
+              label={
+                <>
+                  Digite <strong className="font-sans tabular-nums">{typedConfirmation}</strong>{" "}
+                  para confirmar
+                </>
+              }
+            >
               <Input
-                id={typedId}
                 value={typed}
                 autoComplete="off"
                 onChange={(event) => setTyped(event.target.value)}
               />
-            </div>
+            </Field>
           ) : null}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
@@ -109,9 +109,9 @@ export function ConfirmDialog({
             <Button
               type="submit"
               variant={danger ? "destructive" : "default"}
-              disabled={!ready || pending}
+              loading={pending}
+              disabled={!ready}
             >
-              {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
               {confirmLabel}
             </Button>
           </DialogFooter>

@@ -1,4 +1,4 @@
-import { MoreHorizontal } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -55,7 +55,7 @@ export function FriendMenu({
             aria-label={`Opções para ${person.name}`}
             className={cn("shrink-0", className)}
           >
-            <MoreHorizontal aria-hidden="true" />
+            <Ellipsis aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">

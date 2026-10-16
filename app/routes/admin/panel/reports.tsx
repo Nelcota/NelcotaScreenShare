@@ -6,6 +6,7 @@ import { listReports } from "@/features/admin/reports/server/queries.server";
 import { ReportQueue } from "@/features/admin/reports/ui/ReportQueue";
 import { getDb } from "@/server/db/index.server";
 import { cn } from "@/lib/utils";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Denúncias · Nelcota" }];
 
@@ -35,12 +36,10 @@ export default function AdminReportsPage() {
   const { status, rows, open } = useLoaderData<typeof loader>();
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Denúncias</h1>
-        <p className="mt-1 text-ink-muted">
-          {open === 0 ? "Nenhuma denúncia aberta." : `${open} para avaliar.`}
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Denúncias"
+        description={open === 0 ? "Nenhuma denúncia aberta." : `${open} para avaliar.`}
+      />
       <nav className="flex gap-1" aria-label="Situação">
         <Tab to="/admin/denuncias" active={status === "open"}>
           Abertas

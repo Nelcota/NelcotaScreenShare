@@ -1,3 +1,4 @@
+import type { RoomTitle } from "@/features/room/domain/room-title";
 import { RoomContext } from "@livekit/components-react";
 import { useState } from "react";
 import { useAnnounceCall } from "@/features/room/hooks/use-call-tabs";
@@ -15,6 +16,7 @@ import { ShortcutScope, ShortcutSettings } from "@/lib/hooks/use-shortcut";
 import { ConnectError } from "./ConnectError";
 import { MinimizedCall } from "./MinimizedCall";
 import { CallToaster } from "./CallToaster";
+import { DirectEntryNotice } from "./DirectEntryNotice";
 import { RoomLayout } from "./RoomLayout";
 import { RoomHostProvider } from "./RoomHostProvider";
 
@@ -22,13 +24,15 @@ interface RoomViewProps {
   code: string;
   choices: JoinChoices;
   maxParticipants: number;
-  roomName: string | null;
+  roomName: RoomTitle | null;
   /** Shows the link to the admin panel. */
   isAdmin: boolean;
   /** Another page is open: the call goes on hidden, with a card to go back. */
   minimized: boolean;
   onLeave: (notice?: LeaveNotice) => void;
   onRetry: () => Promise<void>;
+  /** Joined straight from "Chamar" or a ring: a pill says how the microphone came in. */
+  directEntry?: boolean;
 }
 
 /** Connects to the room and shows the call (or the failure screen, with "Tentar de novo"). */
@@ -41,6 +45,7 @@ export function RoomView({
   minimized,
   onLeave,
   onRetry,
+  directEntry = false,
 }: RoomViewProps) {
   const { room, connectError, leave } = useRoomConnection(choices, code, onLeave);
   // "Sair" (dock or minimized card): your own sound, unlike someone else leaving.
@@ -95,6 +100,7 @@ export function RoomView({
                 </ShortcutScope>
               </ShortcutSettings>
               {minimized ? <MinimizedCall code={code} onLeave={leaveOnPurpose} /> : <CallToaster />}
+              {directEntry ? <DirectEntryNotice micOn={choices.micEnabled} /> : null}
             </MicTestProvider>
           </DeafenProvider>
         </ScreenWatchProvider>

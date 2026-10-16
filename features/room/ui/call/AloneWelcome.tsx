@@ -34,6 +34,8 @@ export function AloneWelcome({
         <h1 id="alone-title" className="text-base font-medium text-ink-muted">
           {aloneTitle(everyoneLeft)}
         </h1>
+        {/* Other features add a line here, e.g. who is being called. */}
+        <div id="room-call-status" className="empty:hidden" />
       </div>
       <InviteCard code={code} />
     </section>

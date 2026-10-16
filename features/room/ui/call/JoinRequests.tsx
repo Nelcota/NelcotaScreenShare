@@ -3,9 +3,10 @@ import { callToast as toast } from "@/features/room/client/call-notices";
 import { answerJoin, joinRequests } from "@/features/room/actions";
 import { managesRoomAccess } from "@/features/room/domain/room-access";
 import { useLocalRoomRole } from "@/features/room/hooks/use-room-roles";
-import { initials } from "@/lib/initials";
 import { useOperation } from "@/lib/operations/use-operation";
 import { logBrowserWarning } from "@/lib/telemetry.client";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { Button } from "@/components/ui/button";
 
 interface Request {
   id: string;
@@ -66,12 +67,11 @@ function RequestCard({
   return (
     <li className="glass flex flex-col gap-3 rounded-2xl p-3">
       <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-medium text-brand-soft"
-        >
-          {initials(request.name)}
-        </span>
+        <InitialsAvatar
+          name={request.name}
+          source={null}
+          className="size-10 shrink-0 bg-brand/15 text-sm font-medium text-brand-soft"
+        />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-base font-medium">{request.name}</span>
           <span className="block truncate text-sm text-ink-muted">
@@ -80,22 +80,23 @@ function RequestCard({
         </span>
       </div>
       <div className="flex justify-end gap-2">
-        <button
+        <Button
           type="button"
+          variant="quiet"
           disabled={answer.isPending}
           onClick={() => answer.execute({ room: code, requestId: request.id, accept: false })}
-          className="h-9 rounded-full px-3 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
+          className="h-9 px-3 text-sm"
         >
           Recusar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled={answer.isPending}
           onClick={() => answer.execute({ room: code, requestId: request.id, accept: true })}
-          className="h-9 rounded-full bg-brand px-4 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-hover"
+          className="h-9 text-sm"
         >
           Aceitar
-        </button>
+        </Button>
       </div>
     </li>
   );

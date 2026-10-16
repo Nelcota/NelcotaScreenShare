@@ -97,9 +97,7 @@ export default function AdminReportPage() {
           Denúncias
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-[-0.025em]">
-            {REASON_LABELS[report.reason]}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{REASON_LABELS[report.reason]}</h1>
           {report.resolution ? (
             <StatusBadge tone="neutral">{RESOLUTION_LABELS[report.resolution]}</StatusBadge>
           ) : (

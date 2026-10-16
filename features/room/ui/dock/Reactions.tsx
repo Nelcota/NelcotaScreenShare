@@ -28,7 +28,7 @@ import {
   type Reaction,
 } from "@/features/room/domain/data-channel";
 import { DockButton } from "./DockButton";
-import { DockPopoverContent } from "./DockPopover";
+import { GlassPopoverContent } from "@/components/GlassPopover";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 interface FloatingReaction {
@@ -194,7 +194,7 @@ export function ReactionsMenu() {
           <Hand className={handRaised ? "icon-wave size-5" : "size-5"} aria-hidden="true" />
         </DockButton>
       </Popover.Trigger>
-      <DockPopoverContent aria-label="Reações">
+      <GlassPopoverContent aria-label="Reações">
         <div className="flex gap-1">
           {REACTIONS.map((emoji, index) => (
             <button
@@ -219,7 +219,7 @@ export function ReactionsMenu() {
           </Label>
           <Switch id={handId} checked={handRaised} onCheckedChange={() => void toggleHand()} />
         </div>
-      </DockPopoverContent>
+      </GlassPopoverContent>
     </Popover.Root>
   );
 }

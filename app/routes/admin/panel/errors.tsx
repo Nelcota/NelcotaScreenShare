@@ -8,6 +8,7 @@ import { ErrorList } from "@/features/admin/errors/ui/ErrorList";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { formatNumber } from "@/lib/format";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Erros · Nelcota" }];
 
@@ -30,10 +31,7 @@ export default function AdminErrorsPage() {
   const count = lastDay === 1 ? "1 erro" : `${formatNumber(lastDay)} erros`;
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Erros</h1>
-        <p className="mt-1 text-ink-muted">{count} nas últimas 24 h.</p>
-      </div>
+      <AdminPageHeader title="Erros" description={<>{count} nas últimas 24 h.</>} />
       <Section
         title="Recentes"
         description={

@@ -1,4 +1,4 @@
-import { ChevronDown, LogOut, Sparkles, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, Settings, Sparkles } from "lucide-react";
 import { Popover } from "radix-ui";
 import { Link } from "react-router";
 import { NavPopover } from "@/components/shell/NavBar";
@@ -35,8 +35,8 @@ export function AccountMenu({
       <nav aria-label="Sua conta" className="-m-2 flex flex-col gap-0.5">
         <Popover.Close asChild>
           <Link viewTransition to={accountHref} className={ITEM}>
-            <UserRound className="size-4 text-ink-muted" aria-hidden="true" />
-            Minha conta
+            <Settings className="size-4 text-ink-muted" aria-hidden="true" />
+            Configurações
           </Link>
         </Popover.Close>
         <Popover.Close asChild>

@@ -11,6 +11,8 @@ import { LiveRoomCard } from "@/features/admin/live/ui/LiveRoomCard";
 import { useAutoRefresh } from "@/features/admin/live/ui/use-auto-refresh";
 import { getDb } from "@/server/db/index.server";
 import { formatNumber } from "@/lib/format";
+import { Notice } from "@/components/Notice";
+import { AdminPageHeader } from "@/features/admin/shell/ui/AdminPageHeader";
 
 export const meta = () => [{ title: "Ao vivo · Nelcota" }];
 
@@ -34,15 +36,11 @@ export default function AdminLivePage() {
   const people = rooms.reduce((total, room) => total + room.people.length, 0);
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.025em]">Ao vivo</h1>
-        <p className="mt-1 text-ink-muted">Quem está em cada sala e desde quando.</p>
-      </div>
+      <AdminPageHeader title="Ao vivo" description="Quem está em cada sala e desde quando." />
       {liveKitChecked ? null : (
-        <p className="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
-          <TriangleAlert className="size-4 shrink-0 text-warning" aria-hidden="true" />
+        <Notice tone="warning" icon={TriangleAlert}>
           O LiveKit não respondeu. Não deu para conferir salas fantasma.
-        </p>
+        </Notice>
       )}
       {rooms.length === 0 ? (
         <p className="panel rounded-2xl p-5 text-ink-muted">Nenhuma chamada agora.</p>

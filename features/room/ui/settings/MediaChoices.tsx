@@ -1,4 +1,4 @@
-import { Camera, Loader2, Mic, Square, Volume2 } from "lucide-react";
+import { Camera, Mic, Square, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -93,14 +93,10 @@ function OutputChoiceBody() {
         type="button"
         variant="outline"
         className="self-start"
-        disabled={playing}
+        loading={playing}
         onClick={() => void test()}
       >
-        {playing ? (
-          <Loader2 className="animate-spin" aria-hidden="true" />
-        ) : (
-          <Volume2 aria-hidden="true" />
-        )}
+        {playing ? null : <Volume2 aria-hidden="true" />}
         Testar som
       </Button>
     </div>

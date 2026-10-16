@@ -20,7 +20,7 @@ import { awaitsApproval } from "@/features/room/server/room-access.server";
 import { liveKitGateway } from "@/features/room/server/livekit-gateway.server";
 import { visitorBannedFromCall } from "@/features/room/server/room-bans.server";
 import { RoomUnavailable } from "@/features/room/ui/RoomUnavailable";
-import { roomDisplayName } from "@/features/room/domain/role-change";
+import { roomTitle } from "@/features/room/domain/room-title";
 import { roomOwnerName } from "@/features/room/server/role-changes.server";
 import { decodeRoomParam, roomCodeSchema, roomLink } from "@/features/room/domain/room-code";
 import { INVITE_TOKEN_PATTERN } from "@/features/room/domain/invite-token";
@@ -65,7 +65,8 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
   if (banned) throw new Response(null, { status: 403 });
   const { ACCESS_PASSWORD, MAX_PARTICIPANTS } = getEnv();
   const passwordRequired = ACCESS_PASSWORD !== undefined;
-  const { unavailable, permanent } = await roomUnavailable(code, user?.id);
+  const definition = await definitionByCode(getDb(), code);
+  const { unavailable, permanent } = await roomUnavailable(definition, user?.id);
   // Who is already inside, for the pre-join screen to show.
   // Hidden without an account, behind the password, or until someone is let in.
   const [roomNow, admin, ownerName, waiting] = await Promise.all([
@@ -84,7 +85,7 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
     user: user && { name: user.name, image: user.image },
     passwordRequired,
     maxParticipants: MAX_PARTICIPANTS,
-    roomName: roomDisplayName(ownerName),
+    roomName: roomTitle(definition, ownerName),
     presence,
     // Admin session in this browser: the call offers the panel without leaving the room.
     isAdmin: admin !== null,
@@ -132,8 +133,10 @@ export function ErrorBoundary() {
   );
 }
 
-async function roomUnavailable(code: string, identity: string | undefined) {
-  const definition = await definitionByCode(getDb(), code);
+async function roomUnavailable(
+  definition: Awaited<ReturnType<typeof definitionByCode>>,
+  identity: string | undefined,
+) {
   if (!definition) return { unavailable: undefined, permanent: false };
   try {
     await assertDefinitionAdmission(getDb(), definition, identity ?? "convidado-prejoin", false);

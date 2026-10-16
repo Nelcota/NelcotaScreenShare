@@ -140,17 +140,16 @@ export function CreateGroupDialog({ friends }: { friends: PickableFriend[] }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Hint text="Criar grupo">
-        <DialogTrigger
-          aria-label="Criar grupo"
-          className="grid size-9 shrink-0 place-items-center rounded-full border border-brand-soft/70 text-brand-soft transition-colors hover:border-brand hover:bg-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-brand"
-        >
-          <span aria-hidden="true" className="relative">
-            <UsersRound className="size-4" />
-            <Plus className="absolute -top-1 -right-1.5 size-2.5" strokeWidth={3.5} />
-          </span>
+        <DialogTrigger asChild>
+          <Button variant="brand-outline" size="icon-lg" aria-label="Criar grupo">
+            <span aria-hidden="true" className="relative">
+              <UsersRound className="size-4" />
+              <Plus className="absolute -top-1 -right-1.5 size-2.5" strokeWidth={3.5} />
+            </span>
+          </Button>
         </DialogTrigger>
       </Hint>
-      <DialogContent className="max-w-md rounded-3xl" showCloseButton>
+      <DialogContent className="max-w-md" showCloseButton>
         <DialogTitle>Criar grupo</DialogTitle>
         <DialogDescription className="sr-only">Escolha dois ou mais amigos.</DialogDescription>
         {open ? <NewGroupForm friends={friends} onDone={() => setOpen(false)} /> : null}

@@ -19,7 +19,7 @@ export function AccessShell({
     <div className="flex min-h-dvh flex-col">
       {header}
       <main className="flex flex-1 flex-col items-center px-4 pt-6 pb-8 sm:px-6 lg:justify-center lg:py-8">
-        <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl border border-line bg-surface lg:min-h-[34rem] lg:grid-cols-[5fr_6fr]">
+        <div className="panel grid w-full max-w-4xl overflow-hidden rounded-2xl lg:min-h-[34rem] lg:grid-cols-[5fr_6fr]">
           <BrandPanel scope={scope} />
           <div
             data-layout="split"

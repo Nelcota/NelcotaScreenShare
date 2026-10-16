@@ -1,13 +1,17 @@
-import { PanelLeftClose, Search, type LucideIcon } from "lucide-react";
+import { PanelLeftClose, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { FriendStatus } from "@/features/friends/domain/friend-lists";
 import { Hint } from "@/components/Hint";
+import { UnreadCount } from "@/components/UnreadCount";
 import { AddFriendDialog } from "@/features/friends/ui/AddFriendDialog";
 import { COLUMN_SHORTCUT } from "@/features/friends/domain/column-layout";
 import { FriendGroups } from "@/features/friends/ui/FriendGroups";
 import { RequestsButton } from "@/features/friends/ui/RequestsButton";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { SearchField } from "@/components/SearchField";
+import { searchable } from "@/lib/search-text";
 
 /** A tab at the top of the column: Amigos, Salas and Times. */
 export interface ColumnTab {
@@ -17,18 +21,6 @@ export interface ColumnTab {
   icon: LucideIcon;
   /** Unread or pending items, shown as a count on the tab. */
   badge?: number;
-}
-
-function TabBadge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span
-      aria-hidden="true"
-      className="grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] font-bold text-canvas"
-    >
-      {count > 99 ? "99+" : count}
-    </span>
-  );
 }
 
 /** The open tab shows its name; the others only their icon, named in the hint. */
@@ -50,13 +42,11 @@ function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
       >
         <Icon className="size-4 shrink-0" aria-hidden="true" />
         {active ? <span className="truncate">{tab.label}</span> : null}
-        {active ? (
-          <TabBadge count={badge} />
-        ) : (
-          <span className="absolute -top-1 -right-1">
-            <TabBadge count={badge} />
-          </span>
-        )}
+        <UnreadCount
+          count={badge}
+          aria-hidden="true"
+          className={active ? "static ring-0" : undefined}
+        />
       </Link>
     </Hint>
   );
@@ -75,26 +65,19 @@ function ColumnTabs({ tabs, activeId }: { tabs: ColumnTab[]; activeId: string })
   );
 }
 
-/** Accents and case do not matter in the search. */
-function searchable(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
-
 function CollapseButton({ onCollapse }: { onCollapse: () => void }) {
   return (
     <Hint text="Recolher amigos" shortcut={COLUMN_SHORTCUT.toUpperCase()}>
-      <button
+      <Button
         type="button"
+        variant="quiet"
+        size="icon"
         aria-label="Recolher amigos"
         aria-keyshortcuts={COLUMN_SHORTCUT.toUpperCase()}
         onClick={onCollapse}
-        className="grid size-8 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
       >
-        <PanelLeftClose className="size-4" aria-hidden="true" />
-      </button>
+        <PanelLeftClose aria-hidden="true" />
+      </Button>
     </Hint>
   );
 }
@@ -130,17 +113,13 @@ function FriendsBody({
   return (
     <>
       <div className="mt-3 flex items-center gap-2 px-3">
-        <label className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full border border-line bg-surface-2 px-3 focus-within:border-brand-soft">
-          <Search className="size-4 shrink-0 text-ink-subtle" aria-hidden="true" />
-          <span className="sr-only">Buscar amigo</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar"
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-subtle"
-          />
-        </label>
+        <SearchField
+          label="Buscar amigo"
+          placeholder="Buscar"
+          value={query}
+          onChange={setQuery}
+          className="flex-1"
+        />
         <RequestsButton count={requests} />
         {extras.actions}
         <AddFriendDialog code={code} linkPath={linkPath} />

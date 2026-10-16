@@ -1,5 +1,6 @@
 import { AppWindow, Globe, Monitor, Volume2, VolumeX } from "lucide-react";
 import { useId } from "react";
+import { ChoiceSelect } from "@/components/ChoiceSelect";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -51,6 +52,13 @@ interface SharePanelProps {
   onPick: (choice: ShareChoice) => void;
 }
 
+const PROFILE_OPTIONS = [
+  { value: "automatic", label: "Automático" },
+  { value: "text", label: "Texto · mais nitidez" },
+  { value: "video", label: "Vídeo · mais movimento" },
+  { value: "data-saver", label: "Economia de dados" },
+] as const satisfies readonly { value: ShareProfile; label: string }[];
+
 /**
  * Choices before the native picker. The audio switch comes first: picking an
  * option starts right away, so the sound has to be decided before. It only
@@ -79,17 +87,13 @@ export function SharePanel({
         <Label htmlFor={profileId} className="text-sm font-medium">
           Qualidade do compartilhamento
         </Label>
-        <select
+        <ChoiceSelect
           id={profileId}
           value={profile}
-          onChange={(event) => onProfileChange(parseShareProfile(event.currentTarget.value))}
-          className="w-full rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          <option value="automatic">Automático</option>
-          <option value="text">Texto · mais nitidez</option>
-          <option value="video">Vídeo · mais movimento</option>
-          <option value="data-saver">Economia de dados</option>
-        </select>
+          options={PROFILE_OPTIONS}
+          onValueChange={(value) => onProfileChange(parseShareProfile(value))}
+          className="w-full bg-surface"
+        />
         <p className="text-xs text-ink-subtle">Vale para o próximo compartilhamento.</p>
       </div>
 

@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,16 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { reportAction } from "@/features/reports/actions";
-import {
-  REASON_LABELS,
-  REPORT_DETAILS_MAX,
-  REPORT_REASONS,
-  type ReportReason,
-} from "@/features/reports/domain/reports";
+import { REPORT_DETAILS_MAX, type ReportReason } from "@/features/reports/domain/reports";
+import { ReasonChoice } from "@/features/reports/ui/ReasonChoice";
 import { useOperation } from "@/lib/operations/use-operation";
+import { Field } from "@/components/Field";
 
 type ReportTargetInput = Parameters<typeof reportAction>[0]["target"];
 
@@ -64,37 +59,19 @@ export function ReportDialog({ open, onOpenChange, target, title }: ReportDialog
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>A pessoa não fica sabendo quem denunciou.</DialogDescription>
           </DialogHeader>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-sm font-medium">Motivo</legend>
-            {REPORT_REASONS.map((option) => (
-              <label key={option} className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="motivo"
-                  value={option}
-                  checked={reason === option}
-                  onChange={() => setReason(option)}
-                  className="size-4 accent-brand"
-                />
-                {REASON_LABELS[option]}
-              </label>
-            ))}
-          </fieldset>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={detailsId}>Detalhes</Label>
+          <ReasonChoice value={reason} onChange={setReason} />
+          <Field id={detailsId} label="Detalhes">
             <Textarea
-              id={detailsId}
               value={details}
               maxLength={REPORT_DETAILS_MAX}
               onChange={(event) => setDetails(event.target.value)}
             />
-          </div>
+          </Field>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={!reason || report.isPending}>
-              {report.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+            <Button type="submit" loading={report.isPending} disabled={!reason}>
               Enviar denúncia
             </Button>
           </DialogFooter>

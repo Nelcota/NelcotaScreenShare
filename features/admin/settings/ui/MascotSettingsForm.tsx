@@ -1,4 +1,4 @@
-import { Loader2, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useOperation } from "@/lib/operations/use-operation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
@@ -67,7 +67,7 @@ export function MascotSettingsForm({
       }}
       className="panel w-full max-w-3xl rounded-2xl p-6 sm:p-8"
     >
-      <h2 className="text-xl font-semibold tracking-[-0.025em]">Saturação do mascote</h2>
+      <h2 className="text-xl font-semibold tracking-tight">Saturação do mascote</h2>
       <p className="mt-1 text-sm text-ink-muted">
         0% deixa o mascote cinza, 100% mantém a arte original e 200% deixa as cores mais vivas. O
         site só muda depois de salvar.
@@ -134,8 +134,7 @@ export function MascotSettingsForm({
           <RotateCcw aria-hidden="true" />
           Restaurar original
         </Button>
-        <Button type="submit" disabled={!canEdit || pending || !changed}>
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" loading={pending} disabled={!canEdit || !changed}>
           Salvar
         </Button>
       </div>

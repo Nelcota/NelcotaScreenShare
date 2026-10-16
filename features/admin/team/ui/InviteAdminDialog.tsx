@@ -16,6 +16,7 @@ import { toastError } from "@/features/admin/shell/ui/toast-error";
 import { copyText } from "@/lib/clipboard";
 import { useOperation } from "@/lib/operations/use-operation";
 import { formText } from "@/lib/utils";
+import { Field } from "@/components/Field";
 
 const ROLES = [
   { value: "viewer", label: "Leitor", hint: "Vê o painel, sem mudar nada." },
@@ -102,10 +103,9 @@ export function InviteAdminDialog() {
               <DialogTitle>Convidar para o painel</DialogTitle>
               <DialogDescription>O link vale por 48 horas e só aparece uma vez.</DialogDescription>
             </DialogHeader>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={emailId}>E-mail</Label>
-              <Input id={emailId} name="email" type="email" autoComplete="off" required />
-            </div>
+            <Field id={emailId} label="E-mail">
+              <Input name="email" type="email" autoComplete="off" required />
+            </Field>
             <fieldset className="flex flex-col gap-2 text-sm">
               <legend className="mb-2 font-medium">Papel</legend>
               {ROLES.map((role, index) => (
@@ -132,7 +132,7 @@ export function InviteAdminDialog() {
               <Button type="button" variant="ghost" onClick={() => close(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={invite.isPending}>
+              <Button type="submit" loading={invite.isPending}>
                 Criar convite
               </Button>
             </DialogFooter>

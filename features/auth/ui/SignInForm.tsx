@@ -1,4 +1,4 @@
-import { Loader2, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { Link, useNavigate, useRevalidator } from "react-router";
 
 import { useId, useRef, useState, type FormEvent } from "react";
@@ -128,8 +128,7 @@ export function SignInForm({
           </Link>
         </div>
         <FormError id={errorId} message={error} />
-        <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+        <Button type="submit" size="lg" loading={pending} className="mt-1 w-full">
           Entrar
         </Button>
       </form>

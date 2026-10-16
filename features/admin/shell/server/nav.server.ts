@@ -19,6 +19,7 @@ export type NavIcon =
   | "status"
   | "mail"
   | "errors"
+  | "pro"
   | "settings"
   | "security"
   | "sessions"
@@ -140,7 +141,7 @@ const NAV: { label: string; items: NavItemDefinition[] }[] = [
       {
         href: "/admin/pro",
         label: "Pro beta",
-        icon: "settings",
+        icon: "pro",
         permission: { beta: ["read"] },
         keywords: ["piloto", "ativação", "time"],
       },

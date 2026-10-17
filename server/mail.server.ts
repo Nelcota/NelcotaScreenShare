@@ -4,6 +4,7 @@ import { createTransport, type Transporter } from "nodemailer";
 import { getEnv } from "@/server/env.server";
 import { logger } from "@/server/logger.server";
 import { recordMailDelivery } from "@/server/mail-deliveries.server";
+import { currentMailSender } from "@/server/mail-sender.server";
 import { recipientDomain, type MailProvider } from "@/features/admin/mail/domain/delivery";
 import { isValidSender } from "@/lib/mail-sender";
 export { mailLayout } from "@/server/mail-layout.server";
@@ -321,18 +322,19 @@ async function refuseInvalidSender(message: MailMessage, provider: MailProvider)
 }
 
 export async function sendMail(message: MailMessage): Promise<void> {
-  const { RESEND_API_KEY, SMTP_URL, MAIL_FROM } = getEnv();
-  if (MAIL_FROM && !senderIsValid(MAIL_FROM)) {
+  const { RESEND_API_KEY, SMTP_URL } = getEnv();
+  const sender = (await currentMailSender()).value ?? undefined;
+  if (sender && !senderIsValid(sender)) {
     await refuseInvalidSender(message, configuredProvider(RESEND_API_KEY, SMTP_URL));
   }
   if (RESEND_API_KEY) {
     await deliverAndRecord(message, "resend", () =>
-      MAIL_FROM ? sendWithResend(message, RESEND_API_KEY, MAIL_FROM) : missingSender(),
+      sender ? sendWithResend(message, RESEND_API_KEY, sender) : missingSender(),
     );
     return;
   }
   if (SMTP_URL) {
-    await deliverAndRecord(message, "smtp", () => sendWithSmtp(message, SMTP_URL, MAIL_FROM));
+    await deliverAndRecord(message, "smtp", () => sendWithSmtp(message, SMTP_URL, sender));
     return;
   }
   await recordMailDelivery({

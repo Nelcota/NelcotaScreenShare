@@ -92,6 +92,7 @@ const envSchema = z
       emptyToUndefined,
       z.url({ protocol: /^smtps?$/, error: "SMTP_URL must be smtp:// or smtps://" }).optional(),
     ),
+    // Sender used when none is saved in the panel (E-mails); the panel's one wins.
     MAIL_FROM: z.preprocess(unquoteMailFrom, z.string().min(3).optional()),
     // Optional observability. Only the public DSN is sent to the browser.
     SENTRY_DSN: z.preprocess(emptyToUndefined, z.url().optional()),
@@ -130,14 +131,14 @@ const envSchema = z
         message: "Set APP_URL (e.g. https://app.yourdomain.com) for the e-mail links",
       });
     }
+    // The sender may come from the panel, so only the provider is checked on boot.
     const mailProvider = env.RESEND_API_KEY || env.SMTP_URL;
-    const mailRequired = env.REQUIRE_EMAIL_VERIFICATION || mailProvider || env.MAIL_FROM;
-    if (mailRequired && (!mailProvider || !env.MAIL_FROM)) {
+    if ((env.REQUIRE_EMAIL_VERIFICATION || env.MAIL_FROM) && !mailProvider) {
       ctx.addIssue({
         code: "custom",
-        path: ["MAIL_FROM"],
+        path: ["RESEND_API_KEY"],
         message:
-          "MAIL_FROM and an e-mail provider (RESEND_API_KEY or SMTP_URL) are required when delivery or verification is enabled",
+          "An e-mail provider (RESEND_API_KEY or SMTP_URL) is required when MAIL_FROM is set or verification is enabled",
       });
     }
     refuseDevelopmentLiveKit(env, ctx);

@@ -10,7 +10,7 @@ export const STATUS_LABELS: Record<MailDeliveryStatus, { label: string; tone: Ba
 // Resend codes (https://resend.com/docs/api-reference/errors) and Nodemailer codes.
 const REASON_LABELS: Record<string, string> = {
   no_provider: "Nenhum provedor configurado",
-  missing_sender: "Falta MAIL_FROM",
+  missing_sender: "Falta o remetente",
   invalid_sender: "Remetente em formato inválido",
   validation_error: "Domínio não verificado ou destinatário não permitido",
   invalid_from_address: "Remetente inválido",

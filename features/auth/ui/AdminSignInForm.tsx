@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { adminAuthClient } from "@/features/auth/client/admin-auth-client";
+import { adminSignInNext } from "@/features/auth/domain/admin-sign-in-next";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
 import { formText } from "@/lib/utils";
 import { Field } from "@/components/Field";
@@ -41,9 +42,8 @@ export function AdminSignInForm({ notice }: { notice?: string | undefined }) {
       setError(authErrorMessage(failure));
       return;
     }
-    // With 2FA active, the plugin redirects to /admin/verificar-2fa.
-    if (result && "twoFactorRedirect" in result && result.twoFactorRedirect) return;
-    void navigate("/admin", { replace: true, viewTransition: true });
+    // With 2FA active, the code comes next; an in-app navigation keeps a call going.
+    void navigate(adminSignInNext(result), { replace: true, viewTransition: true });
     void revalidator.revalidate();
   }
 

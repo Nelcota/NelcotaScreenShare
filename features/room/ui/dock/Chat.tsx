@@ -2,10 +2,29 @@ import { useRef } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import type { ChatState } from "@/features/room/hooks/use-chat-state";
+import { callToast as toast } from "@/features/room/client/call-notices";
+import { chatImageProblem } from "@/features/room/domain/chat-images";
+import { reportBrowserError } from "@/lib/telemetry.client";
 import { ChatComposer } from "./ChatComposer";
 import { ChatSoundSettings } from "./ChatSoundSettings";
 import { ChatEmptyState, ChatHeader, ChatMessageList } from "./ChatPanelParts";
 import { useChatEditing, useChatPanelMotion, useChatScroll } from "./use-chat-panel";
+
+/** Checks a picked or pasted image and sends it, saying why when it cannot go. */
+async function sendChatImage(chat: ChatState, file: File) {
+  const problem = chatImageProblem(file);
+  if (problem) {
+    toast.error(problem);
+    return;
+  }
+  try {
+    const refused = await chat.sendImage(file);
+    if (refused) toast.error(refused);
+  } catch (error) {
+    reportBrowserError(error);
+    toast.error("Não foi possível enviar a imagem. Tente de novo.");
+  }
+}
 
 export function ChatPanel({ chat }: { chat: ChatState }) {
   const reducedMotion = useReducedMotion();
@@ -54,6 +73,8 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
         onCancelEdit={editor.cancelEditing}
         onEditLast={editor.editLast}
         onClose={() => chat.setOpen(false)}
+        sendingImage={chat.sendingImage}
+        onImage={(file) => void sendChatImage(chat, file)}
       />
 
       <ConfirmDialog

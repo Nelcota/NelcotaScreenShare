@@ -3,11 +3,12 @@ import {
   ConnectionState,
   RoomEvent,
   Track,
+  type LocalTrackPublication,
   type RemoteParticipant,
   type RemoteTrackPublication,
 } from "livekit-client";
 import { useEffect, useEffectEvent, useState } from "react";
-import { playPeerSound } from "@/features/room/audio/call-sounds";
+import { playCallSound, playPeerSound } from "@/features/room/audio/call-sounds";
 import { useDeafen } from "@/features/room/ui/dock/Deafen";
 import {
   addToNoticeGroup,
@@ -29,15 +30,22 @@ function showGroupedNotice(group: NoticeGroup) {
 
 /**
  * Short notices of what happens in the room: who joined, who left and who
- * started or stopped showing their screen. They disappear on their own and need no click.
+ * started or stopped showing their screen, with a short sound for each ("Sons da chamada").
+ * They disappear on their own and need no click.
  */
 export function useRoomNotices() {
   const room = useRoomContext();
   const [welcome, setWelcome] = useState(0);
   const { deafened } = useDeafen();
   // Not hearing the room: nobody's coming and going makes a sound either.
-  const playPeer = useEffectEvent((sound: "peer-joined" | "peer-left") => {
-    if (!deafened) void playPeerSound(sound);
+  const playPeer = useEffectEvent(
+    (sound: "peer-joined" | "peer-left" | "screen-on" | "screen-off") => {
+      if (!deafened) void playPeerSound(sound);
+    },
+  );
+
+  const playOwnScreen = useEffectEvent((sound: "screen-on" | "screen-off") => {
+    if (!deafened) void playCallSound(sound, false);
   });
 
   useEffect(() => {
@@ -84,6 +92,7 @@ export function useRoomNotices() {
       if (!screens || screens.has(publication.trackSid)) return;
       screens.add(publication.trackSid);
       showRoomNotice(`${participantName(participant)} começou a mostrar a tela`);
+      playPeer("screen-on");
     };
     const unpublished = (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (publication.source !== Track.Source.ScreenShare) return;
@@ -93,6 +102,15 @@ export function useRoomNotices() {
       const screens = participants.get(participant.identity);
       if (!screens?.delete(publication.trackSid)) return;
       showRoomNotice(`${participantName(participant)} parou de mostrar a tela`);
+      playPeer("screen-off");
+    };
+    // Your own screen: whichever way it started or stopped (the menu, the browser's bar).
+    const ownPublished = (publication: LocalTrackPublication) => {
+      if (publication.source === Track.Source.ScreenShare) playOwnScreen("screen-on");
+    };
+    const ownUnpublished = (publication: LocalTrackPublication) => {
+      if (room.state !== ConnectionState.Connected) return;
+      if (publication.source === Track.Source.ScreenShare) playOwnScreen("screen-off");
     };
 
     room
@@ -101,7 +119,9 @@ export function useRoomNotices() {
       .on(RoomEvent.ParticipantConnected, joined)
       .on(RoomEvent.ParticipantDisconnected, left)
       .on(RoomEvent.TrackPublished, published)
-      .on(RoomEvent.TrackUnpublished, unpublished);
+      .on(RoomEvent.TrackUnpublished, unpublished)
+      .on(RoomEvent.LocalTrackPublished, ownPublished)
+      .on(RoomEvent.LocalTrackUnpublished, ownUnpublished);
     return () => {
       room
         .off(RoomEvent.Connected, synchronize)
@@ -109,7 +129,9 @@ export function useRoomNotices() {
         .off(RoomEvent.ParticipantConnected, joined)
         .off(RoomEvent.ParticipantDisconnected, left)
         .off(RoomEvent.TrackPublished, published)
-        .off(RoomEvent.TrackUnpublished, unpublished);
+        .off(RoomEvent.TrackUnpublished, unpublished)
+        .off(RoomEvent.LocalTrackPublished, ownPublished)
+        .off(RoomEvent.LocalTrackUnpublished, ownUnpublished);
     };
   }, [room]);
 

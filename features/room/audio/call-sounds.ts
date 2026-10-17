@@ -13,7 +13,13 @@ export type CallSound =
   | "hear-again"
   | "leave"
   | "peer-joined"
-  | "peer-left";
+  | "peer-left"
+  | "screen-on"
+  | "screen-off"
+  | "watch-on"
+  | "watch-off"
+  | "viewer-joined"
+  | "viewer-left";
 
 /** One note: `to` glides it there (down when someone goes, up when someone comes). */
 interface Note {
@@ -49,11 +55,47 @@ const CALL_SOUND_NOTES: Record<CallSound, readonly Note[]> = {
   // Someone else: a single note, gliding up as they come and down as they go.
   "peer-joined": [{ frequency: 392, to: 523, at: 0, length: 0.22 }],
   "peer-left": [{ frequency: 523, to: 392, at: 0, length: 0.22 }],
+  // A screen comes on or goes off for the room: three quick notes, up or down (C, E, G).
+  "screen-on": [
+    { frequency: 523, at: 0, length: NOTE_LENGTH },
+    { frequency: 659, at: NOTE_GAP, length: NOTE_LENGTH },
+    { frequency: 784, at: NOTE_GAP * 2, length: NOTE_LENGTH },
+  ],
+  "screen-off": [
+    { frequency: 784, at: 0, length: NOTE_LENGTH },
+    { frequency: 659, at: NOTE_GAP, length: NOTE_LENGTH },
+    { frequency: 523, at: NOTE_GAP * 2, length: NOTE_LENGTH },
+  ],
+  // You start or stop watching a screen.
+  "watch-on": pair(523, 784),
+  "watch-off": pair(784, 523),
+  // Someone starts or stops watching yours: a single note, like someone coming or going.
+  "viewer-joined": [{ frequency: 587, to: 784, at: 0, length: 0.2 }],
+  "viewer-left": [{ frequency: 784, to: 587, at: 0, length: 0.2 }],
 };
 
 /** Many people coming or going at once make one sound, not a burst. */
 const PEER_SOUND_EVERY_MS = 2000;
-let lastPeerSoundAt = Number.NEGATIVE_INFINITY;
+
+/** Sounds that come from other people, grouped so a burst plays once. */
+type GroupedSound =
+  | "peer-joined"
+  | "peer-left"
+  | "screen-on"
+  | "screen-off"
+  | "viewer-joined"
+  | "viewer-left";
+
+const SOUND_GROUP: Record<GroupedSound, "peer" | "screen" | "viewer"> = {
+  "peer-joined": "peer",
+  "peer-left": "peer",
+  "screen-on": "screen",
+  "screen-off": "screen",
+  "viewer-joined": "viewer",
+  "viewer-left": "viewer",
+};
+
+const lastGroupSoundAt = new Map<string, number>();
 
 let audio: AudioContext | undefined;
 
@@ -115,14 +157,12 @@ export async function playCallSound(sound: CallSound, gesture = true): Promise<v
 }
 
 /**
- * Someone else joined or left: at most one sound every 2 s, so ten people at once (a class
- * arriving) make a single one.
+ * Something other people did (joined, left, shared a screen, started watching yours): at
+ * most one sound every 2 s per kind, so ten people at once (a class arriving) make a single one.
  */
-export async function playPeerSound(
-  sound: "peer-joined" | "peer-left",
-  now = Date.now(),
-): Promise<void> {
-  if (now - lastPeerSoundAt < PEER_SOUND_EVERY_MS) return;
-  lastPeerSoundAt = now;
+export async function playPeerSound(sound: GroupedSound, now = Date.now()): Promise<void> {
+  const group = SOUND_GROUP[sound];
+  if (now - (lastGroupSoundAt.get(group) ?? Number.NEGATIVE_INFINITY) < PEER_SOUND_EVERY_MS) return;
+  lastGroupSoundAt.set(group, now);
   await playCallSound(sound, false);
 }

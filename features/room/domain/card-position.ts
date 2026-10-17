@@ -53,16 +53,35 @@ function inCenter(position: number, size: number): boolean {
   return position >= margin && position <= size - margin;
 }
 
-/**
- * Where a dropped card settles: the nearest corner (below the top bar, above a message
- * box), or right where it was when dropped in the middle of the screen.
- */
-export function snapToCorner(offset: CardOffset, card: Size, viewport: Size): CardOffset {
+/** A box on screen, in viewport pixels, such as a page's main field. */
+export interface Area {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** Does the card, at this offset, cover any of these areas? */
+export function coversAny(
+  offset: CardOffset,
+  card: Size,
+  viewport: Size,
+  areas: readonly Area[],
+): boolean {
+  const left = viewport.width - offset.right - card.width;
+  const top = viewport.height - offset.bottom - card.height;
+  return areas.some(
+    (area) =>
+      left < area.left + area.width &&
+      left + card.width > area.left &&
+      top < area.top + area.height &&
+      top + card.height > area.top,
+  );
+}
+
+function nearestCorner(offset: CardOffset, card: Size, viewport: Size): CardOffset {
   const centerX = viewport.width - offset.right - card.width / 2;
   const centerY = viewport.height - offset.bottom - card.height / 2;
-  if (inCenter(centerX, viewport.width) && inCenter(centerY, viewport.height)) {
-    return clampOffset(offset, card, viewport);
-  }
   const corner = {
     right:
       centerX < viewport.width / 2 ? viewport.width - card.width - CORNER_MARGIN : CORNER_MARGIN,
@@ -72,6 +91,84 @@ export function snapToCorner(offset: CardOffset, card: Size, viewport: Size): Ca
         : BOTTOM_CORNER_CLEARANCE,
   };
   return clampOffset(corner, card, viewport);
+}
+
+/** Within this distance of a second edge, a card at one edge goes into that corner. */
+const CORNER_REACH = 120;
+
+/** How far the card is from each edge of the window. */
+function edgeDistances(offset: CardOffset, card: Size, viewport: Size) {
+  return {
+    left: viewport.width - offset.right - card.width,
+    right: offset.right,
+    top: viewport.height - offset.bottom - card.height,
+    bottom: offset.bottom,
+  };
+}
+
+/** The card against the left or right edge, as a distance from the right. */
+function rightAgainst(side: "left" | "right", card: Size, viewport: Size): number {
+  return side === "left" ? viewport.width - card.width - CORNER_MARGIN : CORNER_MARGIN;
+}
+
+/** The card against the top (below the top bar) or the bottom (above a message box). */
+function bottomAgainst(side: "top" | "bottom", card: Size, viewport: Size): number {
+  return side === "top" ? viewport.height - card.height - TOP_CLEARANCE : BOTTOM_CORNER_CLEARANCE;
+}
+
+/**
+ * The card against its nearest edge, keeping where it was along that edge: at the right
+ * edge it keeps its height. Close to a second edge as well, it goes into that corner.
+ */
+function nearestEdge(offset: CardOffset, card: Size, viewport: Size): CardOffset {
+  const distance = edgeDistances(offset, card, viewport);
+  const horizontal = distance.left < distance.right ? "left" : "right";
+  const vertical = distance.top < distance.bottom ? "top" : "bottom";
+  const toSide = distance[horizontal] <= distance[vertical];
+  const snapsSide = toSide || distance[horizontal] <= CORNER_REACH;
+  const snapsEnd = !toSide || distance[vertical] <= CORNER_REACH;
+  return clampOffset(
+    {
+      right: snapsSide ? rightAgainst(horizontal, card, viewport) : offset.right,
+      bottom: snapsEnd ? bottomAgainst(vertical, card, viewport) : offset.bottom,
+    },
+    card,
+    viewport,
+  );
+}
+
+/**
+ * Where a dropped card settles: against the nearest edge (see `nearestEdge`), or right
+ * where it was when dropped in the middle of the screen. A card dropped on an area it must
+ * keep clear (the start's room field) goes to the nearest corner instead.
+ */
+export function snapToEdge(
+  offset: CardOffset,
+  card: Size,
+  viewport: Size,
+  keepClear: readonly Area[] = [],
+): CardOffset {
+  if (coversAny(offset, card, viewport, keepClear)) return nearestCorner(offset, card, viewport);
+  const centerX = viewport.width - offset.right - card.width / 2;
+  const centerY = viewport.height - offset.bottom - card.height / 2;
+  if (inCenter(centerX, viewport.width) && inCenter(centerY, viewport.height)) {
+    return clampOffset(offset, card, viewport);
+  }
+  return nearestEdge(offset, card, viewport);
+}
+
+/**
+ * A saved place that now covers an area to keep clear (another page has its field there)
+ * moves to the nearest corner; elsewhere it stays as saved.
+ */
+export function clearOfAreas(
+  offset: CardOffset,
+  card: Size,
+  viewport: Size,
+  keepClear: readonly Area[],
+): CardOffset {
+  if (!coversAny(offset, card, viewport, keepClear)) return offset;
+  return nearestCorner(offset, card, viewport);
 }
 
 const STEP = 16;

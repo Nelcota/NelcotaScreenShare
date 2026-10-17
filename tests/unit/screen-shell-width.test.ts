@@ -27,8 +27,8 @@ test("signed in, the room's screens are as wide as the app", () => {
   expect(html).not.toContain("max-w-5xl");
 });
 
-test("a guest keeps the narrow header", () => {
+test("a guest gets the same bar, over a centered page", () => {
   const html = render(null);
-  expect(html).toContain("max-w-5xl");
-  expect(html).not.toContain("max-w-[90rem]");
+  expect(html).toContain("max-w-[90rem]");
+  expect(html).not.toContain("max-w-5xl");
 });

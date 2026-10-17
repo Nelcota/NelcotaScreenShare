@@ -74,8 +74,8 @@
 }
 
 /*
- * The page's content column: the same edges as the fixed navigation (a 1rem gutter on
- * phones, 1.5rem from 640px, at most 64rem wide), so every section lines up under it.
+ * The page's content column: a 1rem gutter on phones, 1.5rem from 640px, at most 64rem
+ * wide, centered under the navigation.
  */
 @utility page-column {
   width: min(100% - 2rem, 64rem);
@@ -83,6 +83,19 @@
 
   @media (width >= 40rem) {
     width: min(100% - 3rem, 64rem);
+  }
+}
+
+/*
+ * The site's frame: the same edges as the navigation bar (at most 90rem, the app's width),
+ * for what spans the whole page, such as the footer.
+ */
+@utility site-column {
+  width: min(100% - 2rem, 90rem);
+  margin-inline: auto;
+
+  @media (width >= 40rem) {
+    width: min(100% - 3rem, 90rem);
   }
 }
 

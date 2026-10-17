@@ -53,7 +53,7 @@ export function ScreenShell({
   }
   return (
     <div className="flex min-h-dvh flex-col bg-canvas sm:h-dvh">
-      <AppHeader account={account} accountHref={accountHref} inApp wide className="shrink-0" />
+      <AppHeader account={account} accountHref={accountHref} inApp className="shrink-0" />
       {/* Same width as the app (app/routes/app/layout.tsx), so leaving a call keeps the size. */}
       <div className="mx-auto flex min-h-0 w-full max-w-[93rem] flex-1 px-3 pt-3 sm:px-6 sm:pb-4">
         {column}

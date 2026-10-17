@@ -15,6 +15,7 @@ import { Mascot } from "@/features/mascot/ui/Mascot";
 import type { MascotActivity } from "@/features/mascot/domain/personality";
 import { useRoomAnimations } from "@/features/room/hooks/use-room-animations";
 import { useRoomNotices } from "@/features/room/hooks/use-room-notices";
+import { useViewerSounds } from "@/features/room/hooks/use-viewer-sounds";
 import { useScreenShare } from "@/features/room/hooks/use-screen-share";
 import { useCallCaptureHandle } from "@/features/room/hooks/use-call-capture-handle";
 import { useEnlargedCamera } from "@/features/room/hooks/use-enlarged-camera";
@@ -185,6 +186,7 @@ export function RoomLayout({
   useCallCaptureHandle();
   useMicrophoneRecovery();
   const welcome = useRoomNotices();
+  useViewerSounds();
   useBroadcastScreenPreview(published.find((trackReference) => trackReference.participant.isLocal));
 
   const stage = useStageFocus(screenShares);

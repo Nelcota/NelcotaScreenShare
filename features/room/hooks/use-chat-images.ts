@@ -2,6 +2,7 @@ import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import type { ByteStreamReader, Participant, Room } from "livekit-client";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
+  admitImage,
   CHAT_IMAGE_MAX_BYTES,
   CHAT_IMAGE_TOPIC,
   receivedImageType,
@@ -64,7 +65,15 @@ export function useChatImages() {
   const keepReceived = useEffectEvent(remember);
 
   useEffect(() => {
+    // When each person's images arrived in the last minute.
+    const arrivals = new Map<string, readonly number[]>();
+    const admit = (identity: string) => {
+      const admitted = admitImage(arrivals.get(identity) ?? [], Date.now());
+      if (admitted) arrivals.set(identity, admitted);
+      return admitted !== undefined;
+    };
     const receive = async (reader: ByteStreamReader, { identity }: { identity: string }) => {
+      if (!admit(identity)) return;
       try {
         const bytes = await readWithinLimit(reader);
         const type = bytes ? receivedImageType(bytes) : undefined;

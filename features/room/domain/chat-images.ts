@@ -20,6 +20,7 @@ export const CHAT_IMAGE_TYPES: readonly ChatImageType[] = [
 
 const NOT_AN_IMAGE_MESSAGE = "Envie só imagens: PNG, JPG, WebP ou GIF.";
 const IMAGE_TOO_BIG_MESSAGE = "A imagem passa de 5 MB.";
+const TOO_MANY_IMAGES_MESSAGE = "Espere um pouco para mandar mais imagens.";
 
 function startsWith(bytes: Uint8Array, signature: readonly number[], offset = 0): boolean {
   return signature.every((byte, index) => bytes[offset + index] === byte);
@@ -68,4 +69,13 @@ export function admitImage(recent: readonly number[], now: number): readonly num
   const lastMinute = recent.filter((time) => now - time < MINUTE_MS);
   if (lastMinute.length >= CHAT_IMAGES_PER_MINUTE) return undefined;
   return [...lastMinute, now];
+}
+
+/**
+ * Why one more image cannot go out now: past the limit the others drop it, and the sender
+ * would see an image nobody else got.
+ */
+export function sendingPaceProblem(recent: readonly number[], now: number): string | undefined {
+  if (admitImage(recent, now)) return undefined;
+  return TOO_MANY_IMAGES_MESSAGE;
 }

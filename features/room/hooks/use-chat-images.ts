@@ -6,6 +6,7 @@ import {
   CHAT_IMAGE_MAX_BYTES,
   CHAT_IMAGE_TOPIC,
   receivedImageType,
+  sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
@@ -57,6 +58,8 @@ export function useChatImages() {
   const [sending, setSending] = useState(false);
   // Object URLs to free when the call ends.
   const urls = useRef<string[]>([]);
+  // When this browser's images went out in the last minute, under the limit the others apply.
+  const sent = useRef<readonly number[]>([]);
 
   function remember(image: ChatImage) {
     urls.current.push(image.url);
@@ -103,14 +106,20 @@ export function useChatImages() {
     };
   }, []);
 
-  /** Sends an image already checked by the form (type and size). */
-  async function sendImage(file: File) {
+  /**
+   * Sends an image already checked by the form (type and size). Returns why it did not go
+   * out when this person already sent as many as the others accept in a minute.
+   */
+  async function sendImage(file: File): Promise<string | undefined> {
+    const paceProblem = sendingPaceProblem(sent.current, Date.now());
+    if (paceProblem) return paceProblem;
     setSending(true);
     try {
       const { id } = await localParticipant.sendFile(file, {
         topic: CHAT_IMAGE_TOPIC,
         mimeType: file.type,
       });
+      sent.current = admitImage(sent.current, Date.now()) ?? sent.current;
       remember({
         id,
         from: localParticipant,
@@ -119,6 +128,7 @@ export function useChatImages() {
         url: URL.createObjectURL(file),
         name: file.name,
       });
+      return undefined;
     } finally {
       setSending(false);
     }

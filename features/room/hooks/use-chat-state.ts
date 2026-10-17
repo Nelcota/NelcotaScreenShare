@@ -38,8 +38,11 @@ export interface ChatEntry {
 export interface ChatState {
   messages: ChatEntry[];
   send: (text: string) => Promise<unknown>;
-  /** Sends an image already checked (type and size) to everyone in the call. */
-  sendImage: (file: File) => Promise<void>;
+  /**
+   * Sends an image already checked (type and size) to everyone in the call; resolves with
+   * why it did not go out, when it did not.
+   */
+  sendImage: (file: File) => Promise<string | undefined>;
   sendingImage: boolean;
   /** Own messages only: others apply it by the sender's identity. */
   edit: (id: string, text: string) => Promise<void>;

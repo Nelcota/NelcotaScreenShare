@@ -18,7 +18,8 @@ async function sendChatImage(chat: ChatState, file: File) {
     return;
   }
   try {
-    await chat.sendImage(file);
+    const refused = await chat.sendImage(file);
+    if (refused) toast.error(refused);
   } catch (error) {
     reportBrowserError(error);
     toast.error("Não foi possível enviar a imagem. Tente de novo.");

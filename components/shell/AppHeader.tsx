@@ -14,6 +14,8 @@ export interface AppHeaderProps {
   accountHref?: string;
   /** Inside the app: the logo goes to the app's start and "Abrir" is not needed. */
   inApp?: boolean;
+  /** The signed-in app's wider width, lined up with its column and page. */
+  wide?: boolean;
   showAuthLinks?: boolean;
   actions?: ReactNode;
   className?: string;
@@ -107,6 +109,7 @@ export function AppHeader({
   account,
   accountHref = "/conta",
   inApp = false,
+  wide = false,
   showAuthLinks = true,
   actions,
   className,
@@ -114,7 +117,10 @@ export function AppHeader({
 }: AppHeaderProps) {
   return (
     <header data-anim={animation} className={cn("px-4 pt-4 sm:px-6", className)}>
-      <NavBar aria-label="Principal" className="mx-auto max-w-5xl">
+      <NavBar
+        aria-label="Principal"
+        className={cn("mx-auto", wide ? "max-w-[90rem]" : "max-w-5xl")}
+      >
         <NavBrand href={inApp ? APP_START_PATH : "/"} />
         {account ? null : (
           <>

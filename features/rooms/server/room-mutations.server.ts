@@ -13,6 +13,7 @@ import {
   workspaceAccount,
 } from "@/features/team/server/access.server";
 import { accessibleDefinition, type RoomDefinition } from "./room-access.server";
+import { claimRoomAddress, drawnRoomAddress } from "./room-address.server";
 import { lockProSubject, requireEntitlement, type ProSubject } from "./entitlements.server";
 
 async function allowance(tx: DbExecutor, subject: ProSubject) {
@@ -35,6 +36,7 @@ async function createRoom(
   tx: DbExecutor,
   actor: string,
   input: Extract<RoomWorkspaceCommand, { kind: "create" }>,
+  mayUseReservedWords: boolean,
 ) {
   if (!getEnv().ROOM_HOST_CONTROLS_ENABLED)
     throw new ActionError("Salas permanentes estão indisponíveis nesta instância.");
@@ -43,10 +45,11 @@ async function createRoom(
     await requireMembership(tx, input.teamId, actor, "manage");
   }
   await allowance(tx, input.teamId ? { teamId: input.teamId } : { userId: actor });
+  if (input.code) await claimRoomAddress(tx, input.code, mayUseReservedWords);
   const [room] = await tx
     .insert(roomDefinitions)
     .values({
-      code: `sala-${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
+      code: input.code ?? drawnRoomAddress(),
       kind: input.teamId ? "team" : "personal",
       name: input.name,
       ownerUserId: input.teamId ? null : actor,
@@ -114,12 +117,14 @@ export async function mutateWorkspaceRoom(
   actor: string,
   input: RoomWorkspaceCommand,
   audit: AuditRecorder,
+  /** Whether a chosen address may carry a reserved word ("nelcota-staff"). */
+  { mayUseReservedWords = false }: { mayUseReservedWords?: boolean } = {},
 ) {
   return db.transaction(async (tx) => {
     await workspaceAccount(tx, actor);
     const room =
       input.kind === "create"
-        ? await createRoom(tx, actor, input)
+        ? await createRoom(tx, actor, input, mayUseReservedWords)
         : await changeRoom(tx, actor, input);
     await audit.record(tx, {
       action: `permanent_room.${input.kind}`,

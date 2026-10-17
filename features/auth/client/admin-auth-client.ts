@@ -7,11 +7,7 @@ import { createAuthClient } from "better-auth/react";
  */
 export const adminAuthClient = createAuthClient({
   basePath: "/api/admin/auth",
-  plugins: [
-    twoFactorClient({
-      onTwoFactorRedirect() {
-        window.location.assign("/admin/verificar-2fa");
-      },
-    }),
-  ],
+  // No redirect here: the sign-in form goes to the code page inside the app, so a call going
+  // on in the background survives (a full page load would end it).
+  plugins: [twoFactorClient()],
 });

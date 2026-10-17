@@ -196,8 +196,17 @@ function CardSheet({ children, ...props }: CardProps & { children: ReactNode }) 
 export function ParticipantCard({
   children,
   className,
+  tabIndex,
+  label,
   ...props
-}: CardProps & { children: ReactNode; className?: string }) {
+}: CardProps & {
+  children: ReactNode;
+  className?: string;
+  /** -1 for a second way in that only the mouse uses (the photo already takes the Tab). */
+  tabIndex?: number;
+  /** The button's name, when it differs from "Ver <name>" (a second way in). */
+  label?: (name: string) => string;
+}) {
   const { plain } = useParticipantName(props.participant);
   const isMobile = useIsMobile();
   const { participant } = props;
@@ -209,7 +218,8 @@ export function ParticipantCard({
   const trigger = (
     <button
       type="button"
-      aria-label={`Ver ${plain}`}
+      aria-label={label ? label(plain) : `Ver ${plain}`}
+      tabIndex={tabIndex}
       onPointerEnter={prefetch}
       onFocus={prefetch}
       onPointerDown={prefetch}

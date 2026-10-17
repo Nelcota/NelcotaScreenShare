@@ -79,8 +79,8 @@ export function RoomView({
   return (
     <RoomContext.Provider value={room}>
       <RoomHostProvider code={code} sessionId={choices.sessionId} onLeave={onLeave}>
-        <ScreenWatchProvider>
-          <DeafenProvider>
+        <DeafenProvider>
+          <ScreenWatchProvider>
             <MicTestProvider>
               <ShortcutSettings
                 value={{ enabled: shortcutsEnabled, setEnabled: setShortcutsEnabled }}
@@ -102,8 +102,8 @@ export function RoomView({
               {minimized ? <MinimizedCall code={code} onLeave={leaveOnPurpose} /> : <CallToaster />}
               {directEntry ? <DirectEntryNotice micOn={choices.micEnabled} /> : null}
             </MicTestProvider>
-          </DeafenProvider>
-        </ScreenWatchProvider>
+          </ScreenWatchProvider>
+        </DeafenProvider>
       </RoomHostProvider>
     </RoomContext.Provider>
   );

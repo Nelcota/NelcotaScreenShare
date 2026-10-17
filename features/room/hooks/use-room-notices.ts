@@ -44,6 +44,10 @@ export function useRoomNotices() {
     },
   );
 
+  const playOwnScreen = useEffectEvent((sound: "screen-on" | "screen-off") => {
+    if (!deafened) void playCallSound(sound, false);
+  });
+
   useEffect(() => {
     const participants = new Map<string, Set<string>>();
     const groups = new Map<GroupedNoticeKind, NoticeGroup>();
@@ -102,11 +106,11 @@ export function useRoomNotices() {
     };
     // Your own screen: whichever way it started or stopped (the menu, the browser's bar).
     const ownPublished = (publication: LocalTrackPublication) => {
-      if (publication.source === Track.Source.ScreenShare) void playCallSound("screen-on", false);
+      if (publication.source === Track.Source.ScreenShare) playOwnScreen("screen-on");
     };
     const ownUnpublished = (publication: LocalTrackPublication) => {
       if (room.state !== ConnectionState.Connected) return;
-      if (publication.source === Track.Source.ScreenShare) void playCallSound("screen-off", false);
+      if (publication.source === Track.Source.ScreenShare) playOwnScreen("screen-off");
     };
 
     room

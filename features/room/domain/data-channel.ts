@@ -11,6 +11,7 @@ export const TOPICS = {
   annotationEpoch: "nelcota.annotation.epoch",
   screenStats: "nelcota.screen-stats",
   screenPreview: "nelcota.screen-preview",
+  screenWatch: "nelcota.screen-watch",
 } as const;
 
 export const REACTIONS = ["👍", "👏", "😂", "❤️", "🎉", "😮"] as const;
@@ -45,6 +46,15 @@ export const screenPreviewSchema = z.object({
     .string()
     .max(SCREEN_PREVIEW_MAX_LENGTH)
     .regex(/^data:image\/(?:webp|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/),
+});
+
+/**
+ * Sent only to a screen's sharer when someone starts or stops watching it, so the sharer
+ * hears it (#413). Nothing else reads it.
+ */
+export const screenWatchSchema = z.object({
+  trackSid: z.string().min(1).max(64),
+  watching: z.boolean(),
 });
 
 /** Participant attribute for "raise hand". */

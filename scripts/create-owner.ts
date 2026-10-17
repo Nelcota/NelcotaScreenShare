@@ -1,23 +1,23 @@
 /**
- * Creates the invitation for the panel's first owner (there is no default password).
+ * Creates a panel owner's invitation (there is no default password).
  * Prints a single-use link, valid for `OWNER_BOOTSTRAP_TTL_MS`.
  *
  *   Dev:        pnpm admin:create-owner owner@example.com
  *   Production: docker exec -it <app-container> node create-owner.mjs owner@example.com
  *
- * Refuses if an active owner already exists (use --force only to recover access,
- * for example when the only owner lost their 2FA and backup codes). With --force and an
- * e-mail that already has panel access, that account is locked (sessions ended, 2FA
- * removed, audited) and the invitation brings it back with a new password and 2FA again.
+ * Up to three owners, counting pending owner invitations; a fourth is refused. With --force
+ * and the e-mail of an existing owner (who lost their 2FA and backup codes), that account is
+ * locked (sessions ended, 2FA removed, audited) and the invitation brings it back with a new
+ * password and 2FA again. An admin or reader is never promoted here.
  */
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { decideOwnerCommand } from "@/features/auth/domain/owner-seats";
 import {
   createAdminInvitation,
   OWNER_BOOTSTRAP_TTL_MS,
 } from "@/features/auth/server/admin-invitations.server";
 import { startOwnerRecovery } from "@/features/auth/server/owner-recovery.server";
-import { adminUsers } from "@/server/db/schema";
+import { ownerSeatsTaken, panelRoleOfEmail } from "@/features/auth/server/owner-seats.server";
 import { openDb } from "./open-db";
 
 const args = process.argv.slice(2);
@@ -31,19 +31,18 @@ if (!email.success) {
 
 const db = openDb();
 
-const owners = await db
-  .select({ id: adminUsers.id })
-  .from(adminUsers)
-  .where(and(eq(adminUsers.role, "owner"), eq(adminUsers.banned, false)));
+const command = decideOwnerCommand({
+  roleOfEmail: await panelRoleOfEmail(db, email.data),
+  seatsTaken: await ownerSeatsTaken(db),
+  force,
+});
 
-if (owners.length > 0 && !force) {
-  console.error(
-    "An active owner already exists. Invite new admins from the panel. To recover access, run again with --force.",
-  );
+if (command.kind === "refuse") {
+  console.error(command.message);
   process.exit(1);
 }
 
-const recovery = force ? await startOwnerRecovery(db, email.data) : null;
+const recovery = command.kind === "recover" ? await startOwnerRecovery(db, email.data) : null;
 if (recovery) {
   console.info(
     `\nAccess recovery for ${recovery.invitation.email}: the account is locked, its sessions ended and its 2FA removed.\nSingle-use link, valid for ${OWNER_BOOTSTRAP_TTL_MS / 60_000} minutes:\n\n  ${recovery.url}\n`,

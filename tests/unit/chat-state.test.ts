@@ -32,6 +32,7 @@ vi.mock("react", () => ({
   useRef: (initial: unknown) => ({ current: initial }),
   useEffect: () => {},
   useCallback: <T>(callback: T) => callback,
+  useEffectEvent: <T>(callback: T) => callback,
 }));
 // Chat notices listen for departures on the room; nothing leaves in these tests.
 const fakeRoom = vi.hoisted(() => {

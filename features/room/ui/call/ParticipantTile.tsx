@@ -3,7 +3,6 @@ import {
   useIsSpeaking,
   useParticipantAttribute,
   useParticipantTracks,
-  VideoTrack,
   type TrackReference,
 } from "@livekit/components-react";
 import { Track, type Participant } from "livekit-client";
@@ -17,10 +16,13 @@ import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { ParticipantCard } from "./ParticipantCard";
 import { SwitchCameraButton } from "./SwitchCameraButton";
 import { cn } from "@/lib/utils";
-import { HostBadge } from "./HostBadge";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
+import { ProfileHint, TILE_SURFACE } from "./tile-surface";
 import { TileNamePill } from "./TileNamePill";
+import { CameraVideo, EnlargeButton } from "./camera-face";
+import { StripAvatarTile } from "./StripAvatarTile";
+import { StripCameraTile } from "./StripCameraTile";
 
 interface ParticipantTileProps {
   participant: Participant;
@@ -85,40 +87,6 @@ function useCamera(participant: Participant): TrackReference | undefined {
   return camera;
 }
 
-/** Your own camera shows mirrored, as in a mirror; everyone else sees it the right way round. */
-function CameraVideo({ camera, className }: { camera: TrackReference; className: string }) {
-  return (
-    <VideoTrack
-      trackRef={camera}
-      aria-hidden="true"
-      className={cn(className, "object-cover", camera.participant.isLocal && "-scale-x-100")}
-    />
-  );
-}
-
-/** Over a camera: clicking the person's card enlarges it on the stage. */
-function EnlargeButton({
-  name,
-  rounded,
-  onEnlarge,
-}: {
-  name: string;
-  rounded: string;
-  onEnlarge: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={`Ampliar a câmera de ${name}`}
-      onClick={onEnlarge}
-      className={cn(
-        "absolute inset-0 z-20 cursor-zoom-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-        rounded,
-      )}
-    />
-  );
-}
-
 const FACE_STYLES = {
   compact: {
     video: "size-14 rounded-full ring-1 ring-line",
@@ -128,8 +96,9 @@ const FACE_STYLES = {
   },
   large: {
     video: "absolute inset-0 size-full",
+    // Grows with the card (its height, `cqh`), from a small card to a full-width one.
     avatar:
-      "size-20 bg-brand/15 text-2xl font-medium text-brand-soft ring-1 ring-brand/20 sm:size-24 sm:text-3xl",
+      "size-[clamp(4.5rem,26cqh,9rem)] bg-brand/15 text-[clamp(1.5rem,8cqh,3rem)] font-medium text-brand-soft ring-1 ring-brand/20",
     rounded: "rounded-3xl",
   },
 } as const;
@@ -198,23 +167,38 @@ export function ParticipantTile({
   if (screenInvite && !compact)
     return <ShareTileCard scope={scope} trackSid={screenInvite} {...share} />;
 
+  if (compact && camera) {
+    return (
+      <StripCameraTile
+        scope={scope}
+        participant={participant}
+        camera={camera}
+        name={name}
+        label={label}
+        muted={isMuted}
+        deafened={isDeafened}
+        isSharing={isSharing}
+        handRaised={handRaised}
+        isSpeaking={isSpeaking}
+        onEnlarge={onEnlarge}
+      />
+    );
+  }
+
   if (compact) {
     // Stage in use: round avatar with the name below (FaceTime style).
     return (
-      // key per variant: without it React reuses the divs from the large block and the
-      // avatar inherits styles GSAP left on them (the glow with opacity 0).
-      <div
-        key="avatar"
-        ref={scope}
-        data-flip-id={`tile-${participant.identity}`}
-        className="flex w-20 shrink-0 flex-col items-center gap-2 lg:w-full lg:flex-row lg:gap-3"
-      >
-        <div className="relative isolate shrink-0">
-          <div
-            data-glow
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-1.5 -z-10 rounded-full bg-brand/40 opacity-0 blur-md"
-          />
+      <StripAvatarTile
+        scope={scope}
+        participant={participant}
+        name={name}
+        label={label}
+        muted={isMuted}
+        deafened={isDeafened}
+        isSharing={isSharing}
+        handRaised={handRaised}
+        isSpeaking={isSpeaking}
+        face={
           <PersonFace
             participant={participant}
             name={name}
@@ -223,32 +207,8 @@ export function ParticipantTile({
             variant="compact"
             onEnlarge={onEnlarge}
           />
-          <div
-            data-ring
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-0.5 rounded-full opacity-0 ring-3 ring-brand-soft"
-          />
-          <SoundBadge deafened={isDeafened} muted={isMuted} variant="compact" />
-          {isSharing ? (
-            <span className="absolute -top-1 -right-1 grid size-6 place-items-center rounded-full bg-brand text-brand-ink ring-2 ring-canvas">
-              <MonitorUp className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">compartilhando a tela</span>
-            </span>
-          ) : null}
-          {handRaised ? (
-            <span className="absolute -top-1 -left-1 grid size-6 place-items-center rounded-full bg-warning text-canvas ring-2 ring-canvas">
-              <Hand className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">{name} está com a mão levantada</span>
-            </span>
-          ) : null}
-          <ParticipantAudioMenu participant={participant} className="absolute -bottom-1 -left-1" />
-        </div>
-        <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
-          {label}
-          <HostBadge identity={participant.identity} />
-        </span>
-        {isSpeaking ? <span className="sr-only">{name} está falando</span> : null}
-      </div>
+        }
+      />
     );
   }
 
@@ -257,7 +217,7 @@ export function ParticipantTile({
       key="tile"
       ref={scope}
       data-flip-id={`tile-${participant.identity}`}
-      className="relative isolate aspect-video w-full shrink-0 rounded-3xl"
+      className="group/tile relative isolate aspect-video w-full shrink-0 rounded-3xl"
     >
       {/* Glow and ring for whoever is speaking. */}
       <div
@@ -265,7 +225,7 @@ export function ParticipantTile({
         aria-hidden="true"
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
-      <div className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-tile-line bg-tile shadow-soft">
+      <div className={cn(TILE_SURFACE, "[container-type:size]")}>
         <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3" />
         {handRaised ? (
           <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
@@ -273,7 +233,9 @@ export function ParticipantTile({
             <span aria-hidden="true">Mão levantada</span>
             <span className="sr-only">{name} está com a mão levantada</span>
           </span>
-        ) : null}
+        ) : (
+          <ProfileHint participant={participant} roomCode={roomCode} />
+        )}
         <div
           data-ring
           aria-hidden="true"

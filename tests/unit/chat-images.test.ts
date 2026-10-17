@@ -7,6 +7,7 @@ import {
   chatImageProblem,
   imageTypeOf,
   receivedImageType,
+  sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
 
 const PNG = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0);
@@ -54,4 +55,11 @@ test("a person sends at most ten images a minute, and more fit as the minute pas
   assert.equal(admitImage(ten, 2_000), undefined);
   // A minute after the first one, it no longer counts.
   assert.deepEqual(admitImage(ten, 61_000), [...ten.slice(1), 61_000]);
+});
+
+test("the sender holds back the image the others would drop, and says why", () => {
+  const ten = Array.from({ length: CHAT_IMAGES_PER_MINUTE }, (_, index) => 1_000 + index);
+  assert.equal(sendingPaceProblem(ten.slice(1), 2_000), undefined);
+  assert.equal(sendingPaceProblem(ten, 2_000), "Espere um pouco para mandar mais imagens.");
+  assert.equal(sendingPaceProblem(ten, 61_000), undefined);
 });

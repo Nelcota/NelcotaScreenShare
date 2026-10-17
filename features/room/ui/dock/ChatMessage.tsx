@@ -13,6 +13,7 @@ import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { ChatImageBubble } from "./ChatImageBubble";
 
 const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -65,37 +66,15 @@ export function ChatMessage({
           <span className="sr-only">{name}:</span>
         )}
         <div className={cn("flex max-w-full items-center gap-1", mine && "flex-row-reverse")}>
-          {message.deleted ? (
+          {message.image ? (
+            <ChatImageBubble image={message.image} mine={mine} senderName={name} />
+          ) : message.deleted ? (
             <p className="flex items-center gap-1.5 rounded-2xl border border-dashed border-line-strong px-3.5 py-2 text-sm text-ink-subtle italic">
               {mine ? "Você apagou esta mensagem" : "Mensagem apagada"}
             </p>
           ) : (
             <>
-              <p
-                className={cn(
-                  "min-w-0 rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-snug break-words whitespace-pre-wrap transition-shadow",
-                  mine
-                    ? "rounded-br-md bg-brand text-brand-ink"
-                    : "rounded-bl-md bg-surface-3 text-ink",
-                  editing && "ring-2 ring-brand-soft ring-offset-2 ring-offset-surface",
-                )}
-              >
-                {chatParts(message.text).map((part, index) =>
-                  part.type === "link" ? (
-                    <a
-                      key={index}
-                      href={part.value}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium break-all underline underline-offset-2"
-                    >
-                      {part.value}
-                    </a>
-                  ) : (
-                    <Fragment key={index}>{part.value}</Fragment>
-                  ),
-                )}
-              </p>
+              <MessageText text={message.text} mine={mine} editing={editing} />
               <MessageMenu mine={mine} onEdit={onEdit} onDelete={onDelete} onCopy={onCopy} />
             </>
           )}
@@ -105,6 +84,35 @@ export function ChatMessage({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/** The message's text, with its links clickable; yours in green. */
+function MessageText({ text, mine, editing }: { text: string; mine: boolean; editing: boolean }) {
+  return (
+    <p
+      className={cn(
+        "min-w-0 rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-snug break-words whitespace-pre-wrap transition-shadow",
+        mine ? "rounded-br-md bg-brand text-brand-ink" : "rounded-bl-md bg-surface-3 text-ink",
+        editing && "ring-2 ring-brand-soft ring-offset-2 ring-offset-surface",
+      )}
+    >
+      {chatParts(text).map((part, index) =>
+        part.type === "link" ? (
+          <a
+            key={index}
+            href={part.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium break-all underline underline-offset-2"
+          >
+            {part.value}
+          </a>
+        ) : (
+          <Fragment key={index}>{part.value}</Fragment>
+        ),
+      )}
+    </p>
   );
 }
 

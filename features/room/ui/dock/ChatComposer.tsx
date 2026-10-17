@@ -2,6 +2,7 @@ import { Check, Pencil, SendHorizontal, X } from "lucide-react";
 import { useId, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
+import { ChatImageButton } from "./ChatImageButton";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,6 +19,8 @@ export function ChatComposer({
   onCancelEdit,
   onEditLast,
   onClose,
+  sendingImage,
+  onImage,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
   draft: string;
@@ -29,6 +32,9 @@ export function ChatComposer({
   /** Returns `true` if there was a message to edit. */
   onEditLast: () => boolean;
   onClose: () => void;
+  sendingImage: boolean;
+  /** A picked or pasted image (#412); the chat checks it before sending. */
+  onImage: (file: File) => void;
 }) {
   const inputId = useId();
   const remaining = CHAT_MAX_LENGTH - draft.length;
@@ -59,7 +65,12 @@ export function ChatComposer({
           </Button>
         </div>
       ) : null}
-      <div className="flex items-end gap-2 rounded-3xl border border-line bg-surface-2 p-1.5 pl-4 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+      <div className="flex items-end gap-1 rounded-3xl border border-line bg-surface-2 p-1.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+        {editing ? (
+          <span className="w-2.5 shrink-0" />
+        ) : (
+          <ChatImageButton busy={sendingImage} onImage={onImage} />
+        )}
         <label htmlFor={inputId} className="sr-only">
           {editing ? "Editar mensagem" : "Mensagem"}
         </label>
@@ -72,6 +83,15 @@ export function ChatComposer({
           maxLength={CHAT_MAX_LENGTH}
           placeholder="Escreva para a sala"
           onChange={(event) => onDraftChange(event.target.value)}
+          onPaste={(event) => {
+            // A pasted print goes as an image; pasted text stays text.
+            const image = [...event.clipboardData.files].find((file) =>
+              file.type.startsWith("image/"),
+            );
+            if (!image || editing) return;
+            event.preventDefault();
+            onImage(image);
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault();

@@ -128,7 +128,10 @@ export function useChatEditing(chat: ChatState, inputRef: RefObject<HTMLTextArea
 
   /** Up arrow with an empty field: edits your last message. */
   function editLast() {
-    const last = chat.messages.findLast((message) => message.mine && !message.deleted);
+    // Images are never edited: the last text of yours is.
+    const last = chat.messages.findLast(
+      (message) => message.mine && !message.deleted && message.image === undefined,
+    );
     if (last) startEditing(last);
     return last !== undefined;
   }

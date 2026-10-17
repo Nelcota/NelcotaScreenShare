@@ -3,6 +3,12 @@ import { z } from "zod";
 import { getDb, type Database, type DbExecutor } from "@/server/db/index.server";
 import { appSettings } from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
+import {
+  MAIL_SENDER_DEFAULTS,
+  MAIL_SENDER_SETTING_KEY,
+  mailSenderSchema,
+  type MailSenderSettings,
+} from "@/features/admin/mail/domain/sender";
 
 /**
  * App settings edited in /admin. Each group is one row in
@@ -35,6 +41,13 @@ export const mascotSettings = {
   schema: mascotSchema,
   defaults: { saturationDark: 1, saturationLight: 1 },
 } satisfies SettingGroup<MascotSettings>;
+
+/** Sender of the e-mails, typed in E-mails (owner only); null falls back to MAIL_FROM. */
+export const mailSenderSettings = {
+  key: MAIL_SENDER_SETTING_KEY,
+  schema: mailSenderSchema,
+  defaults: MAIL_SENDER_DEFAULTS,
+} satisfies SettingGroup<MailSenderSettings>;
 
 /**
  * In-memory cache, per process: the layout reads the mascot on every page and the

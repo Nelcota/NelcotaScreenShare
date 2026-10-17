@@ -78,7 +78,7 @@ Open two tabs (or a private window), join the same room and share your screen.
 | `APP_URL`                    | production | Public origin of the app (e-mail links; required with the panel enabled)                                                                                          |
 | `RESEND_API_KEY`             | no         | Enables Resend delivery over HTTPS with `MAIL_FROM`. Use a sending-only key scoped to the verified sender domain; leave `SMTP_URL` unset                          |
 | `SMTP_URL`                   | no         | Alternative to Resend. Set with `MAIL_FROM` and leave `RESEND_API_KEY` unset                                                                                      |
-| `MAIL_FROM`                  | with mail  | Sender, e.g. `Nelcota <no-reply@yourdomain.com>`. Production requires a provider and sender when verification is enabled; without delivery, dev logs the content  |
+| `MAIL_FROM`                  | no         | Sender, e.g. `Nelcota <no-reply@yourdomain.com>`, used when none is saved in the panel (E-mails, owner only). Requires a provider                                 |
 | `SENTRY_DSN`                 | no         | Enables Sentry on the server (no personal data)                                                                                                                   |
 | `PUBLIC_SENTRY_DSN`          | no         | Enables browser error capture; loaded at runtime, no rebuild needed                                                                                               |
 | `SENTRY_ISSUES_URL`          | no         | Sentry issues page (e.g. `https://org.sentry.io/issues/?project=123`); the panel links each recent error there by its request id                                  |

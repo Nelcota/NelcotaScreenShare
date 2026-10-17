@@ -9,6 +9,8 @@ const mail = vi.hoisted(() => ({
   createTransport: vi.fn(),
   fetch: vi.fn(),
   record: vi.fn(),
+  /** The sender saved in the panel; null leaves MAIL_FROM. */
+  panelSender: null as string | null,
 }));
 
 vi.mock("@/server/logger.server", () => ({
@@ -17,12 +19,21 @@ vi.mock("@/server/logger.server", () => ({
 vi.mock("nodemailer", () => ({ createTransport: mail.createTransport }));
 vi.mock("@/server/mail-deliveries.server", () => ({ recordMailDelivery: mail.record }));
 vi.mock("node:timers/promises", () => ({ setTimeout: mail.sleep }));
+// The panel's sender lives in the database; here it is a variable, MAIL_FROM otherwise.
+vi.mock("@/server/mail-sender.server", () => ({
+  currentMailSender: async () => {
+    const { effectiveSender } = await import("@/features/admin/mail/domain/sender");
+    const { getEnv } = await import("@/server/env.server");
+    return effectiveSender({ sender: mail.panelSender }, getEnv().MAIL_FROM);
+  },
+}));
 
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   mail.sleep.mockResolvedValue(undefined);
   mail.record.mockResolvedValue(undefined);
+  mail.panelSender = null;
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("DATABASE_URL", "postgres://app:password@localhost/nelcota");
   vi.stubEnv("LIVEKIT_API_KEY", "test-key");
@@ -51,17 +62,20 @@ describe("production mail configuration", () => {
   test("rejects required e-mail verification without delivery", async () => {
     vi.stubEnv("REQUIRE_EMAIL_VERIFICATION", "true");
     const { getEnv } = await import("@/server/env.server");
-    expect(getEnv).toThrow("MAIL_FROM and an e-mail provider");
+    expect(getEnv).toThrow("An e-mail provider (RESEND_API_KEY or SMTP_URL) is required");
   });
 
-  test.each(["SMTP_URL", "MAIL_FROM"])(
-    "rejects an incomplete mail setup with only %s",
-    async (key) => {
-      vi.stubEnv(key, key === "SMTP_URL" ? "smtps://localhost:465" : "Nelcota <mail@example.com>");
-      const { getEnv } = await import("@/server/env.server");
-      expect(getEnv).toThrow("MAIL_FROM and an e-mail provider");
-    },
-  );
+  test("rejects a sender without a provider", async () => {
+    vi.stubEnv("MAIL_FROM", "Nelcota <mail@example.com>");
+    const { getEnv } = await import("@/server/env.server");
+    expect(getEnv).toThrow("An e-mail provider (RESEND_API_KEY or SMTP_URL) is required");
+  });
+
+  test("starts with SMTP and no MAIL_FROM: the sender can be set in the panel", async () => {
+    vi.stubEnv("SMTP_URL", "smtps://localhost:465");
+    const { getEnv } = await import("@/server/env.server");
+    expect(getEnv().MAIL_FROM).toBeUndefined();
+  });
 
   test("accepts SMTP with a sender and required verification", async () => {
     vi.stubEnv("SMTP_URL", "smtps://localhost:465");
@@ -92,10 +106,11 @@ describe("production mail configuration", () => {
     expect(getEnv().MAIL_FROM).toBe(sender);
   });
 
-  test("rejects Resend without a sender", async () => {
+  test("starts with Resend and no MAIL_FROM: the sender can be set in the panel", async () => {
     vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    vi.stubEnv("REQUIRE_EMAIL_VERIFICATION", "true");
     const { getEnv } = await import("@/server/env.server");
-    expect(getEnv).toThrow("MAIL_FROM and an e-mail provider");
+    expect(getEnv().RESEND_API_KEY).toBe("re_test_key");
   });
 
   test("rejects multiple delivery providers", async () => {
@@ -178,6 +193,25 @@ describe("mail delivery", () => {
     await sendMail(message);
     expect(mail.createTransport).toHaveBeenCalledWith("smtps://localhost:465");
     expect(mail.send).toHaveBeenCalledWith({ from: "Nelcota <mail@example.com>", ...message });
+  });
+
+  test("sends from the panel's sender over MAIL_FROM", async () => {
+    vi.stubEnv("SMTP_URL", "smtps://localhost:465");
+    vi.stubEnv("MAIL_FROM", "Hospedagem <hosting@example.com>");
+    mail.panelSender = "Nelcota <panel@example.com>";
+    const { sendMail } = await import("@/server/mail.server");
+    await sendMail(message);
+    expect(mail.send).toHaveBeenCalledWith({ from: "Nelcota <panel@example.com>", ...message });
+  });
+
+  test("sends through Resend with only the panel's sender", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    mail.panelSender = "Nelcota <panel@example.com>";
+    mail.fetch.mockResolvedValue(new Response('{"id":"email-id"}', { status: 200 }));
+    const { sendMail } = await import("@/server/mail.server");
+    await sendMail(message);
+    const [, request] = mail.fetch.mock.calls[0] as [string, { body: string }];
+    expect(JSON.parse(request.body)).toMatchObject({ from: "Nelcota <panel@example.com>" });
   });
 
   test("delivers text and HTML through the Resend API", async () => {

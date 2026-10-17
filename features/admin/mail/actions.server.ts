@@ -1,5 +1,13 @@
 import { z } from "zod";
 import { defineAdminOperation } from "@/features/auth/server/operation-policies.server";
+import { mailSenderSchema } from "@/features/admin/mail/domain/sender";
+import {
+  getSetting,
+  invalidateSetting,
+  mailSenderSettings,
+  saveSetting,
+} from "@/features/admin/settings/server/settings.server";
+import { diffChanges } from "@/server/audit.server";
 import { ActionError } from "@/server/operations/action-error";
 import { getDb } from "@/server/db/index.server";
 import { appUrl } from "@/server/env.server";
@@ -41,5 +49,29 @@ export const sendTestMailAction = defineAdminOperation(
       throw new ActionError("O e-mail de teste não saiu. Veja o motivo na lista.");
     }
     return { sentTo: ctx.admin.user.email };
+  },
+);
+
+/**
+ * The sender of the e-mails (owner only: settings.update). Blank goes back to MAIL_FROM.
+ * Keys and the SMTP URL never come through here: they stay in the hosting.
+ */
+export const saveMailSenderAction = defineAdminOperation(
+  { name: "mail.saveSender", permission: { settings: ["update"] }, audit: "required" },
+  mailSenderSchema,
+  async ({ parsedInput, ctx }) => {
+    const db = getDb();
+    const before = await getSetting(mailSenderSettings, db);
+    await db.transaction(async (tx) => {
+      const after = await saveSetting(mailSenderSettings, parsedInput, tx, ctx.admin.user.id);
+      await ctx.audit.record(tx, {
+        action: "settings.update",
+        resourceType: "app_settings",
+        resourceId: mailSenderSettings.key,
+        changes: diffChanges(before, after),
+      });
+    });
+    invalidateSetting(mailSenderSettings.key);
+    return { saved: true };
   },
 );

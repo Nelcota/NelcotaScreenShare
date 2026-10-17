@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useOperation } from "@/lib/operations/use-operation";
-import { fieldErrorOf } from "@/lib/operations/field-error";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { RoomCollection } from "@/components/workspace/RoomCollection";
 import { roomWorkspaceAction } from "../actions";
+import { roomAddressProblem, roomFormErrors } from "../client/room-form";
 import type { loader } from "@/app/routes/workspace/rooms";
 import { useLoaderData } from "react-router";
 
@@ -25,9 +25,9 @@ export function MyRoomsPage() {
         canCreate
         enabled={data.enabled}
         pending={mutation.isPending}
-        error={mutation.result.serverError}
         saved={saved}
-        nameError={fieldErrorOf(mutation.result, "name")}
+        {...roomFormErrors(mutation.result)}
+        checkAddress={roomAddressProblem}
         onCommand={mutation.execute}
       />
     </WorkspaceShell>

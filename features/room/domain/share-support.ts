@@ -142,13 +142,34 @@ export function echoesRoomAudio(
 }
 
 /**
- * Does the browser send sound from this surface? A window never does. A whole screen
- * only where the room can be stripped from it: elsewhere the computer audio is not asked for.
+ * Does the browser send sound from this surface? A tab always does. A whole screen or a
+ * window only where the room can be stripped from the computer audio: elsewhere it is not
+ * asked for. Chromium 141 brought `restrictOwnAudio` and `windowAudio` together.
  */
 export function surfaceHasAudio(surface: ShareSurface, ownAudioRestrictable: boolean): boolean {
-  if (surface === "window") return false;
-  if (surface === "monitor") return ownAudioRestrictable;
-  return true;
+  if (surface === "browser") return true;
+  return ownAudioRestrictable;
+}
+
+/** What the picker offers as sound for a window (`getDisplayMedia`'s `windowAudio`). */
+export type WindowAudioPreference = "exclude" | "system" | "window";
+
+export interface ComputerAudioOptions {
+  systemAudio: "include" | "exclude";
+  windowAudio: WindowAudioPreference;
+}
+
+/**
+ * Which computer audio the picker offers. A window (a game, a player) goes with the system
+ * audio, the same one a whole screen sends: `restrictOwnAudio` strips the room from it, so
+ * nobody hears their own voice. Without that, neither is offered.
+ */
+export function computerAudioOptions(
+  audio: boolean,
+  ownAudioRestrictable: boolean,
+): ComputerAudioOptions {
+  if (!audio || !ownAudioRestrictable) return { systemAudio: "exclude", windowAudio: "exclude" };
+  return { systemAudio: "include", windowAudio: "system" };
 }
 
 /** Does this browser strip the page's own playback from the computer audio? (client only) */

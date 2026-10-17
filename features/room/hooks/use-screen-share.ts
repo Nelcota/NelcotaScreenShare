@@ -1,11 +1,19 @@
-import { useLocalParticipant } from "@livekit/components-react";
-import { ScreenSharePresets, Track, type LocalTrack, type VideoEncoding } from "livekit-client";
+import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
+import {
+  ScreenSharePresets,
+  Track,
+  type LocalTrack,
+  type Room,
+  type VideoEncoding,
+} from "livekit-client";
 import { useEffect, useState } from "react";
 import { useRoomHost } from "@/features/room/ui/call/RoomHostProvider";
 import { callToast as toast } from "@/features/room/client/call-notices";
+import { captureScreenTracks } from "@/features/room/client/screen-capture";
 import {
   canRestrictOwnAudio,
   capturesCall,
+  computerAudioOptions,
   echoesRoomAudio,
   shareSupportMessage,
   showsCaptureBar,
@@ -14,7 +22,7 @@ import {
   type ShareSurface,
 } from "@/features/room/domain/share-support";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
-import { reportBrowserError } from "@/lib/telemetry.client";
+import { logBrowserWarning, reportBrowserError } from "@/lib/telemetry.client";
 import { resolveShareProfile, type ShareProfile } from "@/features/room/domain/share-profile";
 import { savedShareProfile, saveShareProfile } from "@/features/room/client/saved-share-profile";
 
@@ -66,6 +74,20 @@ function warnIfAudioLeftOut(tracks: LocalTrack[], audioRequested: boolean) {
   );
 }
 
+/**
+ * LiveKit's own capture unlocks the room's playback once it gets sound
+ * (`AudioStreamAcquired` → `room.startAudio`); ours does the same. If the browser still
+ * blocks it, the room's "Ativar som" stays as the way out, so it only warns.
+ */
+async function unlockRoomPlayback(room: Room, tracks: LocalTrack[]) {
+  if (!tracks.some((track) => track.source === Track.Source.ScreenShareAudio)) return;
+  try {
+    await room.startAudio();
+  } catch (error) {
+    logBrowserWarning("Could not start the room audio after the screen capture", error);
+  }
+}
+
 function isShareSurface(surface: string | undefined): surface is ShareSurface {
   return surface === "monitor" || surface === "window" || surface === "browser";
 }
@@ -76,6 +98,7 @@ function isShareSurface(surface: string | undefined): surface is ShareSurface {
  * alone: that way there is a single `busy` and two pickers cannot be opened.
  */
 export function useScreenShare() {
+  const room = useRoomContext();
   const { localParticipant, isScreenShareEnabled } = useLocalParticipant();
   const [busy, setBusy] = useState(false);
   // Sound preference shared by the dock menu and the alone screen.
@@ -135,7 +158,7 @@ export function useScreenShare() {
     const preset = ScreenSharePresets[options.preset];
     setBusy(true);
     try {
-      const tracks = await localParticipant.createScreenTracks({
+      const tracks = await captureScreenTracks({
         // Opens the browser picker directly on the tab chosen in our menu.
         video: { displaySurface: surface },
         audio: audio
@@ -149,12 +172,13 @@ export function useScreenShare() {
             }
           : false,
         // Only where the browser can strip the room from it (see `withoutEchoingAudio`).
-        systemAudio: audio && canRestrictOwnAudio() ? "include" : "exclude",
+        ...computerAudioOptions(audio, canRestrictOwnAudio()),
         selfBrowserSurface: "exclude",
         surfaceSwitching: "include",
         contentHint: options.contentHint,
         resolution: preset.resolution,
       });
+      void unlockRoomPlayback(room, tracks);
       warnIfAudioLeftOut(tracks, audio);
       const published = withoutEchoingAudio(tracks);
       await publishScreen(published, preset.encoding);

@@ -6,6 +6,8 @@ import { notFound } from "@/server/http.server";
 import { z } from "zod";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ParticipantActions } from "@/features/admin/participants/ui/ParticipantActions";
+import { ParticipantAdminLink } from "@/features/admin/participants/ui/ParticipantAdminLink";
+import { hasAdminLink } from "@/features/admin/settings/server/admin-link.server";
 import { STATUS_LABELS } from "@/features/admin/participants/domain/labels";
 import {
   ParticipantAccount,
@@ -32,6 +34,8 @@ export const loader = routeLoader(async ({ params }) => {
   const social = await socialCounts(db, id);
   const role = admin.user.role;
   const status = STATUS_LABELS[account.status];
+  // Only the owner sees and changes the panel link (settings.update).
+  const adminLink = can(role, { settings: ["update"] }) ? await hasAdminLink(id, db) : null;
 
   return {
     account,
@@ -40,6 +44,7 @@ export const loader = routeLoader(async ({ params }) => {
     history,
     social,
     status,
+    adminLink,
     permissions: {
       update: can(role, { participant: ["update"] }),
       delete: can(role, { participant: ["delete"] }),
@@ -50,7 +55,7 @@ export const loader = routeLoader(async ({ params }) => {
 });
 
 export default function ParticipantPage() {
-  const { account, sessions, timeline, history, social, status, permissions } =
+  const { account, sessions, timeline, history, social, status, adminLink, permissions } =
     useLoaderData<typeof loader>();
   return (
     <>
@@ -84,6 +89,8 @@ export default function ParticipantPage() {
         <ParticipantAccount account={account} social={social} />
         <ParticipantSessions sessions={sessions} />
       </div>
+
+      {adminLink === null ? null : <ParticipantAdminLink id={account.id} initial={adminLink} />}
 
       <ParticipantTimeline timeline={timeline} />
 

@@ -23,10 +23,12 @@ function Heading({ title, description }: { title: string; description: string })
 function WorkspacePanel({
   title,
   description,
+  bare,
   children,
 }: {
   title: string;
   description: string;
+  bare: boolean;
   children: ReactNode;
 }) {
   return (
@@ -43,7 +45,7 @@ function WorkspacePanel({
           </Link>
         </Button>
       </Hint>
-      <Heading title={title} description={description} />
+      {bare ? null : <Heading title={title} description={description} />}
       {children}
     </div>
   );
@@ -53,17 +55,20 @@ export function WorkspaceShell({
   account,
   title,
   description,
+  bare = false,
   children,
 }: {
   account: { name: string; image: string | null };
   title: string;
   description: string;
+  /** The page draws its own heading (its h1), as a message in the middle. */
+  bare?: boolean;
   children: ReactNode;
 }) {
   const inApp = useMatches().some((match) => match.id === APP_LAYOUT_ID);
   if (inApp) {
     return (
-      <WorkspacePanel title={title} description={description}>
+      <WorkspacePanel title={title} description={description} bare={bare}>
         {children}
       </WorkspacePanel>
     );
@@ -80,7 +85,7 @@ export function WorkspaceShell({
             Times
           </NavLink>
         </nav>
-        <Heading title={title} description={description} />
+        {bare ? null : <Heading title={title} description={description} />}
         {children}
       </main>
       <SiteFooter />

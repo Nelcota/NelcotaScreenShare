@@ -1,15 +1,4 @@
-import {
-  ArrowRight,
-  CircleAlert,
-  ClipboardPaste,
-  Link2,
-  Loader2,
-  Plus,
-  Ticket,
-  UserPlus,
-  UserRound,
-  Video,
-} from "lucide-react";
+import { ArrowRight, Link2, Loader2, Plus, Undo2, UserPlus } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -27,6 +16,7 @@ import {
 } from "@/features/mascot/client/events";
 import { roomLink } from "@/features/room/domain/room-code";
 import { parseBarInput, type BarInput } from "@/features/home/domain/bar-input";
+import { ErrorHint, hintFor } from "./SmartBarHints";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { subscribeNothing } from "@/lib/hooks/subscribe-nothing";
 import { cn } from "@/lib/utils";
@@ -37,6 +27,8 @@ interface SmartBarProps {
   onNavigate: (href: string) => void;
   /** An empty bar's "Criar sala". */
   onCreateRoom: () => void;
+  /** During a call: an empty bar goes back to it instead of creating a room. */
+  onBackToCall?: () => void;
   /** Mascot "peeking" over the bar. */
   mascot: ReactNode;
   /** Whether "/" focuses this bar; only one bar on the page should answer it. */
@@ -47,103 +39,28 @@ interface SmartBarProps {
   onAddFriend?: (code: string) => void;
 }
 
-/** Key drawn like a real key (thicker bottom border). */
-function Keycap({ children }: { children: ReactNode }) {
-  return (
-    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-b-2 border-line-strong bg-surface-2 px-1.5 font-sans text-xs font-medium text-ink">
-      {children}
-    </kbd>
-  );
-}
-
-/** Bar error notice: icon + sentence, aligned even when the line wraps. */
-function ErrorHint({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-start gap-1.5 text-left">
-      <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <span>{children}</span>
-    </span>
-  );
-}
-
-/** Empty bar hint: two short shortcuts, side by side. */
-const EMPTY_HINT = (
-  <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-    <span className="inline-flex items-center gap-1.5 max-sm:hidden">
-      <Keycap>Enter</Keycap>
-      cria uma sala
-    </span>
-    <span aria-hidden="true" className="size-1 rounded-full bg-line-strong max-sm:hidden" />
-    <span className="inline-flex items-center gap-1.5 max-sm:hidden">
-      <ClipboardPaste className="size-4 text-ink-subtle" aria-hidden="true" />
-      ou cole o link que recebeu
-    </span>
-    <span className="inline-flex items-center gap-1.5 sm:hidden">
-      <ClipboardPaste className="size-4 text-ink-subtle" aria-hidden="true" />
-      Toque em Criar sala ou cole o link que recebeu
-    </span>
-  </span>
-);
-
-/** Hint below the bar: shortcuts when the bar is empty; recognized room; or the error. */
-function hintFor(input: BarInput): { text: ReactNode; tone: "muted" | "ok" | "error" } {
-  switch (input.kind) {
-    case "empty":
-      return { text: EMPTY_HINT, tone: "muted" };
-    case "friend":
-      return {
-        text: (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 py-0.5 pr-2.5 pl-2">
-            <span className="sr-only">Código de amigo:</span>
-            <UserRound className="size-3.5 text-brand-soft" aria-hidden="true" />
-            <span className="font-sans font-medium text-ink tabular-nums">{input.code}</span>
-          </span>
-        ),
-        tone: "ok",
-      };
-    case "room":
-      return {
-        text: (
-          <span className="inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5">
-            <span className="sr-only">Sala encontrada:</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 py-0.5 pr-2.5 pl-2">
-              <Video className="size-3.5 text-brand-soft" aria-hidden="true" />
-              <span className="font-sans font-medium text-ink tabular-nums">{input.code}</span>
-            </span>
-            {input.invite ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 py-0.5 pr-2.5 pl-2 text-xs font-medium">
-                <Ticket className="size-3.5 text-ink-subtle" aria-hidden="true" />
-                convite
-              </span>
-            ) : null}
-            <span className="inline-flex items-center gap-1.5 text-ink-muted max-sm:hidden">
-              <Keycap>Enter</Keycap>
-              para entrar
-            </span>
-          </span>
-        ),
-        tone: "ok",
-      };
-    case "invalid":
-      return {
-        text: (
-          <ErrorHint>
-            {input.reason === "not-a-room"
-              ? "Esse link não é de uma sala do Nelcota."
-              : "Confira o código: letras, números e hífens, como kfa-mtrx-q2p."}
-          </ErrorHint>
-        ),
-        tone: "error",
-      };
-  }
-}
-
-function SubmitLabel({ pending, input }: { pending: boolean; input: BarInput }) {
+function SubmitLabel({
+  pending,
+  input,
+  inCall,
+}: {
+  pending: boolean;
+  input: BarInput;
+  inCall: boolean;
+}) {
   if (pending) {
     return (
       <>
         <Loader2 className="size-4 animate-spin" aria-hidden="true" />
         Abrindo…
+      </>
+    );
+  }
+  if (input.kind === "empty" && inCall) {
+    return (
+      <>
+        <Undo2 className="size-4" aria-hidden="true" />
+        Voltar à chamada
       </>
     );
   }
@@ -180,6 +97,7 @@ export function SmartBar({
   pending,
   onNavigate,
   onCreateRoom,
+  onBackToCall,
   mascot,
   focusShortcut = true,
   compact = false,
@@ -200,12 +118,13 @@ export function SmartBar({
   const linkError = invalidCode && !errorDismissed;
   const readInput = (value: string) => parseBarInput(value, { friends: onAddFriend !== undefined });
   const input = readInput(text);
+  const inCall = onBackToCall !== undefined;
   const hint = linkError
     ? {
         text: <ErrorHint>Esse código de sala não existe. Confira o link.</ErrorHint>,
         tone: "error" as const,
       }
-    : hintFor(input);
+    : hintFor(input, inCall);
 
   useEffect(() => {
     if (!invalidCode) return;
@@ -242,6 +161,10 @@ export function SmartBar({
     if (input.kind === "friend") {
       onAddFriend?.(input.code);
       setText("");
+      return;
+    }
+    if (input.kind !== "room" && onBackToCall) {
+      onBackToCall();
       return;
     }
     if (input.kind !== "room") {
@@ -299,7 +222,7 @@ export function SmartBar({
               compact ? "h-10 px-4 text-sm" : "h-12 px-5 text-base",
             )}
           >
-            <SubmitLabel pending={pending} input={input} />
+            <SubmitLabel pending={pending} input={input} inCall={inCall} />
           </button>
         </div>
       </div>

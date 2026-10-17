@@ -48,7 +48,7 @@ export const roles = {
     report: ["read", "resolve"],
     audit: ["read"],
     settings: ["read"],
-    beta: ["read", "update"],
+    // Pro beta allowances are owner only (decided 17/10/2026).
     lgpd: ["read"],
     system: ["status"],
   }),

@@ -57,9 +57,10 @@ terminal. Only the personal room owner starts a personal call; guests enter an a
 call when its explicit link policy allows it. Archive requires closing the active call
 first, rejects new admission and preserves authorized history.
 
-The beta has a default allowance of three active rooms per entitled subject. Platform
-admins can set 1–50 rooms and an optional expiration at `/admin/pro`. An audited operation
-requires `beta:update`; a participant account or viewer admin cannot grant access. Personal
+The beta has a default allowance of three active rooms per entitled subject. Panel
+owners can set 1–50 rooms and an optional expiration at `/admin/pro`. An audited operation
+requires `beta:update`, which only the owner role has; a participant account, an admin or a
+viewer cannot grant access. Personal
 and team entitlements are independent. Capacity counts and creation/restoration serialize
 on a subject advisory lock. Admission and signaling acquire that lock before the room
 lock, then reread canonical permissions. A credential reserved before deactivation cannot

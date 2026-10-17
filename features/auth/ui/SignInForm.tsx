@@ -16,6 +16,7 @@ import type { AccessContext } from "@/features/auth/domain/access-context";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
+import { twoFactorStep } from "@/features/auth/domain/participant-sign-in-next";
 import { formText } from "@/lib/utils";
 
 /** Errors the person caused (credentials) make the mascot angry; the rest, worried. */
@@ -71,9 +72,11 @@ export function SignInForm({
       return;
     }
     forgetTypedEmail();
-    // With 2FA, Better Auth goes to /entrar/2fa (the client's onTwoFactorRedirect).
-    if (result && "twoFactorRedirect" in result && result.twoFactorRedirect) {
+    // With 2FA the code comes next; an in-app navigation keeps a call going.
+    const codePage = twoFactorStep(result, returnTo);
+    if (codePage) {
       nodMascot();
+      void navigate(codePage, { replace: true, viewTransition: true });
       return;
     }
     celebrateMascot();

@@ -108,3 +108,33 @@ test("someone else coming in stays silent when Sons da chamada is off", async ()
   await playPeerSound("peer-joined", 50_000);
   expect(frequencies).toHaveLength(0);
 });
+
+test("a screen coming on rises in three notes, going off falls", async () => {
+  await playCallSound("screen-on");
+  const rising = [...frequencies];
+  expect(rising).toHaveLength(3);
+  expect(rising).toEqual([...rising].toSorted((a, b) => a - b));
+  frequencies.length = 0;
+  await playCallSound("screen-off");
+  expect(frequencies).toEqual(rising.toReversed());
+});
+
+test("starting to watch rises and stopping falls, for the one who clicked", async () => {
+  await playCallSound("watch-on");
+  const [low, high] = frequencies;
+  expect(high).toBeGreaterThan(low ?? 0);
+  frequencies.length = 0;
+  await playCallSound("watch-off");
+  expect(frequencies).toEqual([high, low]);
+});
+
+test("screens and viewers are grouped apart from people coming and going", async () => {
+  await playPeerSound("peer-joined", 60_000);
+  await playPeerSound("screen-on", 60_001);
+  await playPeerSound("viewer-joined", 60_002);
+  // Three kinds at once: one sound each, the screen one with its three notes.
+  expect(frequencies).toHaveLength(5);
+  // A second viewer right away joins the first one's sound.
+  await playPeerSound("viewer-left", 60_500);
+  expect(frequencies).toHaveLength(5);
+});

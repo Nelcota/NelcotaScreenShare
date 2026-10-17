@@ -85,7 +85,7 @@ const NOWHERE = "/nao-encontrado";
  */
 export function hiddenPanelUrl(url: URL): URL {
   const target = new URL(url);
-  target.pathname = url.pathname.endsWith(".data") ? `${NOWHERE}.data` : NOWHERE;
+  target.pathname = url.pathname.toLowerCase().endsWith(".data") ? `${NOWHERE}.data` : NOWHERE;
   target.search = "";
   return target;
 }

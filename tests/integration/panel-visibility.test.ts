@@ -59,6 +59,19 @@ describe("the hidden admin panel", () => {
     }
   });
 
+  /** React Router matches these to the panel's routes: they must be hidden too. */
+  test("case, encoded letters and broken encoding do not get around the check", async () => {
+    for (const path of [
+      "/ADMIN",
+      "/Admin/entrar.data",
+      "/%61dmin/entrar",
+      "/API/ADMIN/auth/sign-in/email",
+      "/admin%E0%A4%A",
+    ]) {
+      assert.deepEqual(await verdict(path), { kind: "hidden" }, path);
+    }
+  });
+
   test("a valid invitation opens and grants the pass; a wrong or expired one is hidden", async () => {
     const valid = await invitation(60 * 60 * 1000);
     const granted = await verdict(`/admin/convite/${valid}`);

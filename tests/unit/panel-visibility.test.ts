@@ -25,6 +25,30 @@ describe("which requests belong to the panel", () => {
     }
   });
 
+  /** React Router matches routes ignoring case and after decoding: so must the panel check. */
+  test("case, encoded letters and repeated slashes still reach the panel", () => {
+    for (const path of [
+      "/ADMIN",
+      "/Admin/entrar.data",
+      "/%61dmin/entrar",
+      "/API/ADMIN/auth/sign-in/email",
+      "//admin//entrar",
+      "/Admin/usuarios/1",
+    ]) {
+      expect(classify(path).kind, path).toBe("panel");
+    }
+  });
+
+  test("a path that cannot be decoded counts as the panel", () => {
+    expect(classify("/admin%E0%A4%A").kind).toBe("panel");
+    expect(classify("/%E0%A4%A").kind).toBe("panel");
+  });
+
+  test("the invitation token keeps its case when the path is normalized", () => {
+    expect(classify("/ADMIN/Convite/AbC")).toEqual({ kind: "invitation", token: "AbC" });
+    expect(classify("/Admin/Redefinir-Senha", "token=Xy").kind).toBe("reset");
+  });
+
   test("the rest of the site is outside", () => {
     for (const path of ["/", "/inicio", "/administrar", "/api/auth/sign-in/email", "/conta"]) {
       expect(classify(path).kind).toBe("outside");

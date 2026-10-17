@@ -1,8 +1,9 @@
 import type { RoomTitle } from "@/features/room/domain/room-title";
 import { StreamerModeProvider } from "@/features/room/hooks/use-streamer-mode";
 import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-address";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
+import { setActiveCallCode } from "@/features/room/hooks/use-active-call";
 import { useRoomSwitchGuard } from "@/features/room/hooks/use-room-switch-guard";
 import { RoomSession } from "./RoomSession";
 import { RoomSwitchDialog } from "./RoomSwitchDialog";
@@ -46,6 +47,12 @@ export function ActiveRoom({
 }) {
   const [call, setCall] = useState<RoomEntry>();
   const pendingSwitch = useRoomSwitchGuard(call?.code, () => setCall(undefined));
+  // Pages outside the room (the start's bar) offer the way back while the call goes on.
+  const activeCode = call?.code;
+  useEffect(() => {
+    setActiveCallCode(activeCode);
+    return () => setActiveCallCode(undefined);
+  }, [activeCode]);
   // The room page's latest data (a new owner's name, who is inside) replaces the one saved at
   // joining, so the minimized call does not show it stale.
   if (room && call && room !== call && room.code === call.code) setCall(room);

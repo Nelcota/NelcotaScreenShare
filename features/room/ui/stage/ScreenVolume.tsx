@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { useParticipantAudio } from "@/features/room/hooks/use-participant-audio";
 import { useMediaVolumeSettable } from "@/features/room/hooks/use-media-volume-settable";
 import { GlassPopoverContent } from "@/components/GlassPopover";
+import { screenSoundAudible } from "@/features/room/domain/screen-sound";
 
 const STEP = 5;
 
@@ -17,16 +18,17 @@ function VolumeIcon({ volume }: { volume: number }) {
   return <Volume2 className="size-4" aria-hidden="true" />;
 }
 
-/** Whether this person's screen is sending sound right now. */
+/** Whether this person's screen is sending sound right now (its sharer can turn it off). */
 function useSharesSound(identity: string): boolean {
   return useTracks([Track.Source.ScreenShareAudio], { onlySubscribed: false }).some(
-    (trackRef) => trackRef.participant.identity === identity,
+    (trackRef) =>
+      trackRef.participant.identity === identity && screenSoundAudible(trackRef.publication),
   );
 }
 
 /**
- * A screen without sound says so: Firefox, Safari and a shared window never send it, and
- * the viewer would otherwise look for the problem on their side.
+ * A screen without sound says so: Firefox and Safari never send it, the sharer may have
+ * turned it off, and the viewer would otherwise look for the problem on their side.
  */
 function SilentScreen() {
   return (

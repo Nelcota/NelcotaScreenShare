@@ -4,6 +4,7 @@ import {
   canShare,
   capturesCall,
   classifyShareSupport,
+  computerAudioOptions,
   echoesRoomAudio,
   sharesAudio,
   showsCaptureBar,
@@ -98,9 +99,25 @@ test("only the call's own capture handle marks a tab as in a call", () => {
   assert.equal(capturesCall(undefined), false);
 });
 
-test("a whole screen has sound only where the room can be stripped from it", () => {
+test("a whole screen or a window has sound only where the room can be stripped from it", () => {
   assert.equal(surfaceHasAudio("monitor", true), true);
   assert.equal(surfaceHasAudio("monitor", false), false);
-  assert.equal(surfaceHasAudio("window", true), false);
+  assert.equal(surfaceHasAudio("window", true), true);
+  assert.equal(surfaceHasAudio("window", false), false);
   assert.equal(surfaceHasAudio("browser", false), true);
+});
+
+test("the picker offers the computer audio for a screen and a window only when it is echo-safe", () => {
+  assert.deepEqual(computerAudioOptions(true, true), {
+    systemAudio: "include",
+    windowAudio: "system",
+  });
+  assert.deepEqual(computerAudioOptions(true, false), {
+    systemAudio: "exclude",
+    windowAudio: "exclude",
+  });
+  assert.deepEqual(computerAudioOptions(false, true), {
+    systemAudio: "exclude",
+    windowAudio: "exclude",
+  });
 });

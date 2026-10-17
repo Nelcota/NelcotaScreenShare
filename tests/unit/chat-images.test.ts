@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
+  admitImage,
   CHAT_IMAGE_MAX_BYTES,
+  CHAT_IMAGES_PER_MINUTE,
   chatImageProblem,
   imageTypeOf,
   receivedImageType,
@@ -44,4 +46,12 @@ test("a received image is shown only when it is really an image within the size"
   const tooBig = new Uint8Array(CHAT_IMAGE_MAX_BYTES + 1);
   tooBig.set(PNG);
   assert.equal(receivedImageType(tooBig), undefined);
+});
+
+test("a person sends at most ten images a minute, and more fit as the minute passes", () => {
+  const ten = Array.from({ length: CHAT_IMAGES_PER_MINUTE }, (_, index) => 1_000 + index);
+  assert.deepEqual(admitImage([], 5_000), [5_000]);
+  assert.equal(admitImage(ten, 2_000), undefined);
+  // A minute after the first one, it no longer counts.
+  assert.deepEqual(admitImage(ten, 61_000), [...ten.slice(1), 61_000]);
 });

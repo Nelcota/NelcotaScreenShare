@@ -54,3 +54,18 @@ export function receivedImageType(bytes: Uint8Array): ChatImageType | undefined 
   if (bytes.byteLength === 0 || bytes.byteLength > CHAT_IMAGE_MAX_BYTES) return undefined;
   return imageTypeOf(bytes);
 }
+
+/** Images one person can send in a minute: plenty for prints, too few to flood the call. */
+export const CHAT_IMAGES_PER_MINUTE = 10;
+const MINUTE_MS = 60_000;
+
+/**
+ * When a person's images arrived in the last minute, with this one added, or undefined when
+ * this one goes over the limit and is dropped unread: each image stays in memory while the
+ * call lasts, so someone sending hundreds would fill the others' browsers.
+ */
+export function admitImage(recent: readonly number[], now: number): readonly number[] | undefined {
+  const lastMinute = recent.filter((time) => now - time < MINUTE_MS);
+  if (lastMinute.length >= CHAT_IMAGES_PER_MINUTE) return undefined;
+  return [...lastMinute, now];
+}

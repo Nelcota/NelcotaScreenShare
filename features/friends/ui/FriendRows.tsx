@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { answerFriendRequest, cancelFriendRequest, unblockUser } from "@/features/friends/actions";
+import { answerFriendRequest, cancelFriendRequest } from "@/features/friends/actions";
 import { friendPhotoPath, type FriendPerson } from "@/features/friends/domain/friend-lists";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { useOperation } from "@/lib/operations/use-operation";
@@ -69,22 +69,6 @@ export function SentRow({ person }: { person: FriendPerson }) {
         onClick={() => cancel.execute({ userId: person.id })}
       >
         Cancelar
-      </Button>
-    </PersonRow>
-  );
-}
-
-export function BlockedRow({ person }: { person: FriendPerson }) {
-  const unblock = useOperation(unblockUser, { onError: showError });
-  return (
-    <PersonRow person={person}>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={unblock.isPending}
-        onClick={() => unblock.execute({ userId: person.id })}
-      >
-        Desbloquear
       </Button>
     </PersonRow>
   );

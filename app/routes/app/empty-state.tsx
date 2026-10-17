@@ -1,10 +1,13 @@
 import { HomeStart } from "@/features/home/ui/HomeStart";
 import { cn } from "@/lib/utils";
 
+/** The one line that tells a first visit what to do here. */
+const START_LINE = "Crie uma sala e chame seus amigos";
+
 /**
  * The middle of the app when nothing is picked in the column (any tab): the landing's pair
- * of mascots and the "Link ou código da sala" bar. Picking a friend or a conversation
- * replaces it with their page.
+ * of mascots and the "Link ou código da sala" bar, under one line saying what to do. Picking
+ * a friend or a conversation replaces it with their page.
  */
 export function AppEmptyState({
   title,
@@ -24,6 +27,9 @@ export function AppEmptyState({
       )}
     >
       <h1 className="sr-only">{title}</h1>
+      <p className="mb-8 text-center text-2xl font-semibold tracking-tight text-balance text-ink">
+        {START_LINE}
+      </p>
       <div className="w-full max-w-md">
         <HomeStart invalidCode={invalidCode} compact />
       </div>

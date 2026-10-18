@@ -76,7 +76,8 @@ export function WorkspaceShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
       <AppHeader account={account} />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
+      {/* The app's width (app/routes/app/layout.tsx): the bar and this page share both edges. */}
+      <main className="mx-auto flex w-full max-w-[93rem] flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
         <nav aria-label="Meu espaço" className="flex flex-wrap gap-2">
           <NavLink to="/salas" className={navItemClass}>
             Minhas salas

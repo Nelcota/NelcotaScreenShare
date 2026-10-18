@@ -65,7 +65,7 @@ export default function FriendLinkPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
       <header className="px-4 pt-4 sm:px-6">
-        <NavBar aria-label="Principal" className="mx-auto max-w-5xl">
+        <NavBar aria-label="Principal" className="mx-auto max-w-[90rem]">
           <NavBrand href="/" />
           <ThemeToggle className="ml-auto" />
         </NavBar>

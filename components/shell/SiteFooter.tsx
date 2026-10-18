@@ -8,7 +8,7 @@ export function SiteFooter({ className }: { className?: string }) {
   return (
     <footer
       className={cn(
-        "page-column flex flex-col items-center gap-4 border-t border-line py-6 sm:flex-row sm:justify-between",
+        "site-column flex flex-col items-center gap-4 border-t border-line py-6 sm:flex-row sm:justify-between",
         className,
       )}
     >

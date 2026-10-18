@@ -91,8 +91,6 @@ describe("permission matrix (docs/archive/admin-plan.md §5.2)", () => {
       "report.resolve",
       "audit.read",
       "settings.read",
-      "beta.read",
-      "beta.update",
       "lgpd.read",
       "system.status",
     ],

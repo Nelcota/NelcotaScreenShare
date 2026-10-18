@@ -180,7 +180,7 @@ its flag-off path once production runs with the flag on
 
 Apply migrations 0013–0015 and enable `ROOM_HOST_CONTROLS_ENABLED=true` only with the private
 LiveKit signaling boundary from [host controls](host-controls.md). Account and team Pro
-allowances are independent and manually provisioned by a platform admin at `/admin/pro`.
+allowances are independent and manually provisioned by a panel owner at `/admin/pro`.
 The pilot keeps the existing participant limit. See [collaboration workspaces](collaboration-workspaces.md).
 
 ```bash

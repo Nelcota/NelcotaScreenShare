@@ -48,7 +48,7 @@ Joining a room (and creating one) requires an **account** (and a confirmed e-mai
 
 The panel uses its **own [Better Auth](https://www.better-auth.com) instance** at `/api/admin/auth` (`admin_*` tables, `nelcota-admin.*` cookie), separate from any participant account.
 
-- **Invitation only:** there is no public sign-up and no default password. The first owner is created with the script below; other admins are invited from the panel.
+- **Invitation only:** there is no public sign-up and no default password. Owners (up to three) are created with the script below; other admins are invited from the panel.
 - **Password:** argon2id (OWASP: 19 MiB, 2 iterations), 12 to 128 characters.
 - **Mandatory TOTP 2FA** for every panel role, `viewer` included: it changes nothing but sees participants' e-mails, IPs and browsers (authenticator app + 10 single-use backup codes). Without 2FA, the session can only reach the screen to set it up.
 - **Database-backed session** (no cookie cache): expires after 12 h of inactivity, absolute maximum of 7 days, `HttpOnly` + `Secure` + `SameSite=Strict` cookie. Critical actions require a login within the last 10 min.
@@ -76,7 +76,7 @@ The panel uses its **own [Better Auth](https://www.better-auth.com) instance** a
 - **Reports (`/admin/denuncias`, `report.read`/`report.resolve`, `owner` and `admin`):** people with an account report a person (from their card in the call), a message or a group (`reports-reportAction`, at most 10 per hour, one open report per target; the reported person never learns who). The queue opens each report with the minimum context: the reported message and the 5 before it in that conversation only. Actions, all audited: resolve without action, delete the message, block the account. A message report keeps a copy of that message only while open. Reports go into the reporter's data export; anonymization clears the text they wrote and the copies of their messages.
 - **Security tests:** one test imports every panel operation and checks that none runs without a session; another checks that every protected page loader calls `requireAdmin`.
 
-**Create the first owner:**
+**Create an owner (up to three):**
 
 ```bash
 # Dev
@@ -85,6 +85,6 @@ pnpm admin:create-owner owner@example.com
 docker exec -it <app-container> node create-owner.mjs owner@example.com
 ```
 
-The command prints a single-use link, valid for 30 minutes. If the only owner loses their 2FA and backup codes, run it again with `--force` and the **same e-mail**: that account is locked, its sessions end and its 2FA is removed (audited as `admin.recovery_start`, actor `system`), and the link brings the same account back, with its history, a new password and 2FA to set up again. With `--force` and an e-mail that has no panel account, it issues a new owner invitation as usual.
+The command prints a single-use link, valid for 30 minutes. The panel has at most three owners, counting owner invitations still pending: a fourth is refused. If an owner loses their 2FA and backup codes, run it again with `--force` and the **same e-mail**: that account is locked, its sessions end and its 2FA is removed (audited as `admin.recovery_start`, actor `system`), and the link brings the same account back, with its history, a new password and 2FA to set up again. `--force` only recovers an existing owner: the e-mail of an admin or reader is refused, so nobody is promoted to owner from here.
 
 Friend requests sent by email remain private to their recipient until accepted. They do not expose recipient names in the sender's outgoing list, relation endpoint, photo endpoint, or data export. Email and explicit code/card requests have separate pending quotas, so a blind lookup cannot be detected through a later public request limit.

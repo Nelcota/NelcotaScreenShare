@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { recordAudit } from "@/server/audit.server";
-import type { Database, DbExecutor } from "@/server/db/index.server";
+import type { DbExecutor } from "@/server/db/index.server";
 import { adminSessions, adminTwoFactors, adminUsers } from "@/server/db/schema";
 import { OWNER_RECOVERY_REASON } from "@/features/auth/domain/owner-recovery";
 import { createAdminInvitation, OWNER_BOOTSTRAP_TTL_MS } from "./admin-invitations.server";
@@ -20,7 +20,7 @@ async function adminByEmail(db: DbExecutor, email: string) {
  * same account back with a new password, and the panel asks to set 2FA up again.
  * `null` when the e-mail has no panel account (a regular invitation is enough).
  */
-export async function startOwnerRecovery(db: Database, email: string) {
+export async function startOwnerRecovery(db: DbExecutor, email: string) {
   const admin = await adminByEmail(db, email);
   if (!admin) return null;
   await db.transaction(async (tx) => {

@@ -10,6 +10,7 @@
  * locked (sessions ended, 2FA removed, audited) and the invitation brings it back with a new
  * password and 2FA again. An admin or reader is never promoted here.
  */
+import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { decideOwnerCommand } from "@/features/auth/domain/owner-seats";
 import {
@@ -31,32 +32,43 @@ if (!email.success) {
 
 const db = openDb();
 
-const command = decideOwnerCommand({
-  roleOfEmail: await panelRoleOfEmail(db, email.data),
-  seatsTaken: await ownerSeatsTaken(db),
-  force,
+// Reserve the seat in the same transaction as the check. Concurrent CLI processes
+// must not both observe the last free seat. Nested transactions use savepoints.
+const result = await db.transaction(async (tx) => {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext('admin-owner-seats'))`);
+  const command = decideOwnerCommand({
+    roleOfEmail: await panelRoleOfEmail(tx, email.data),
+    seatsTaken: await ownerSeatsTaken(tx),
+    force,
+  });
+  if (command.kind === "refuse") return command;
+  if (command.kind === "recover") {
+    const recovery = await startOwnerRecovery(tx, email.data);
+    if (!recovery) throw new Error("Owner disappeared during recovery");
+    return { kind: "recover" as const, ...recovery };
+  }
+  const invitation = await createAdminInvitation(tx, {
+    email: email.data,
+    role: "owner",
+    invitedBy: null,
+    ttlMs: OWNER_BOOTSTRAP_TTL_MS,
+  });
+  return { kind: "invite" as const, ...invitation };
 });
 
-if (command.kind === "refuse") {
-  console.error(command.message);
+if (result.kind === "refuse") {
+  console.error(result.message);
   process.exit(1);
 }
-
-const recovery = command.kind === "recover" ? await startOwnerRecovery(db, email.data) : null;
-if (recovery) {
+if (result.kind === "recover") {
   console.info(
-    `\nAccess recovery for ${recovery.invitation.email}: the account is locked, its sessions ended and its 2FA removed.\nSingle-use link, valid for ${OWNER_BOOTSTRAP_TTL_MS / 60_000} minutes:\n\n  ${recovery.url}\n`,
+    `\nAccess recovery for ${result.invitation.email}: the account is locked, its sessions ended and its 2FA removed.\nSingle-use link, valid for ${OWNER_BOOTSTRAP_TTL_MS / 60_000} minutes:\n\n  ${result.url}\n`,
   );
   console.info("Open the link, set a new password, and set up two-factor verification again.\n");
   process.exit(0);
 }
 
-const { url, invitation } = await createAdminInvitation(db, {
-  email: email.data,
-  role: "owner",
-  invitedBy: null,
-  ttlMs: OWNER_BOOTSTRAP_TTL_MS,
-});
+const { url, invitation } = result;
 
 console.info(
   `\nOwner invitation for ${invitation.email} (valid for ${OWNER_BOOTSTRAP_TTL_MS / 60_000} minutes, single use):\n\n  ${url}\n`,

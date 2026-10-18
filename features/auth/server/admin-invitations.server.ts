@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, sql } from "drizzle-orm";
-import type { Database } from "@/server/db/index.server";
+import type { Database, DbExecutor } from "@/server/db/index.server";
 import { adminAccounts, adminInvitations, adminUsers } from "@/server/db/schema";
 import { OWNER_RECOVERY_REASON } from "@/features/auth/domain/owner-recovery";
 import { appUrl } from "@/server/env.server";
@@ -25,7 +25,7 @@ function invitationUrl(token: string): string {
  * A previous pending invitation for the same e-mail is revoked.
  */
 export async function createAdminInvitation(
-  db: Database,
+  db: DbExecutor,
   {
     email,
     role,

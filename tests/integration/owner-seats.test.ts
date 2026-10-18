@@ -52,4 +52,20 @@ describe("owner seats", () => {
     assert.equal(await panelRoleOfEmail(db, " admin@exemplo.COM "), "admin");
     assert.equal(await panelRoleOfEmail(db, "ninguem@exemplo.com"), null);
   });
+
+  test("an invitation keeps its seat while acceptance is creating the owner", async () => {
+    await db.insert(schema.adminInvitations).values({
+      email: "accepting@example.com",
+      role: "owner",
+      tokenHash: crypto.randomUUID(),
+      status: "accepted",
+      acceptedAt: new Date(Date.now() - HOUR - 1),
+      createdAt: new Date(Date.now() - 2 * HOUR),
+      // Acceptance can finish after expiry: the claimed seat must stay reserved.
+      expiresAt: new Date(Date.now() - HOUR),
+    });
+    assert.equal(await ownerSeatsTaken(db), 1);
+    await admin("accepting@example.com", "owner");
+    assert.equal(await ownerSeatsTaken(db), 1);
+  });
 });

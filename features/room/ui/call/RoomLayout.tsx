@@ -208,8 +208,8 @@ export function RoomLayout({
   const alone = view === "alone";
   const hadCompany = useHadCompany({ connectedOnce, others });
 
-  const layoutKey = `${hasStage ? "stage" : view}|${participants.map((participant) => participant.identity).join(",")}|chat:${chat.open}`;
-  useRoomAnimations(scope, layoutKey);
+  const layoutKey = `${hasStage ? "stage" : view}|${participants.map((participant) => participant.identity).join(",")}`;
+  useRoomAnimations(scope, layoutKey, `chat:${chat.open}`);
 
   return (
     <div

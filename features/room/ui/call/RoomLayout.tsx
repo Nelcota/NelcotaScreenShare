@@ -191,6 +191,9 @@ export function RoomLayout({
 
   const stage = useStageFocus(screenShares);
   const focused = stage.focused;
+  // Someone else's screen on the stage: the dock offers to stop watching it.
+  const watchedScreen =
+    focused && !focused.participant.isLocal ? focused.publication.trackSid : undefined;
   const enlarged = useEnlargedCamera();
   const hasStage = focused !== undefined || enlarged.camera !== undefined;
   const sharingIds = new Set(
@@ -249,6 +252,8 @@ export function RoomLayout({
           hasStage ? "flex-col lg:flex-row" : "flex-col items-center justify-center",
           // Chat open on a wide screen: the content makes room instead of sitting underneath.
           chat.open && "lg:pr-[26.5rem]",
+          // Phones: "Parar de assistir" sits above the dock, so the content ends higher.
+          watchedScreen && "max-sm:pb-44",
         )}
       >
         {/* Alone, the welcome's title is the page's heading; with company, this one. */}
@@ -293,7 +298,7 @@ export function RoomLayout({
 
       <CornerMascot connection={connection} hasStage={hasStage} alone={alone} welcome={welcome} />
       <ChatPanel chat={chat} />
-      <ControlDock chat={chat} share={share} onLeave={onLeave} />
+      <ControlDock chat={chat} share={share} watchedScreen={watchedScreen} onLeave={onLeave} />
     </div>
   );
 }

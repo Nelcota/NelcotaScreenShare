@@ -95,7 +95,7 @@ function AccountSide({
   inApp,
   showAuthLinks,
 }: Pick<AppHeaderProps, "account" | "accountHref" | "inApp" | "showAuthLinks">) {
-  if (!account) return <VisitorLinks showAuthLinks={showAuthLinks ?? true} />;
+  if (account == null) return <VisitorLinks showAuthLinks={showAuthLinks ?? true} />;
   if (inApp) {
     return (
       <>

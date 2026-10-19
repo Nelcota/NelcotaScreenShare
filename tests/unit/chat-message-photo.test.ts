@@ -28,8 +28,8 @@ test("someone else's chat message shows their photo, not only their initials", (
     }),
   );
   const source = /src="([^"]+)"/.exec(html)?.[1]?.replaceAll("&amp;", "&");
-  expect(source).toBeDefined();
-  const url = new URL(source!, "http://localhost");
+  if (source === undefined) throw new Error("The message has no photo.");
+  const url = new URL(source, "http://localhost");
   expect(url.pathname).toBe("/api/sala/foto");
   expect(url.searchParams.get("sala")).toBe("abc-defg-hij");
   expect(url.searchParams.get("pessoa")).toBe(identity);

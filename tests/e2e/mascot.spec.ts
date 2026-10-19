@@ -57,7 +57,7 @@ test("the original mascot and headphone companion meet and return to rest", asyn
     const companion = pair.locator('[data-temperament="calm"]');
     await expect(pair).toHaveAttribute("data-positioned", "true");
     await expect(curious.locator("[data-mascot-accessory]")).toHaveCount(0);
-    await expect(companion.locator('[data-mascot-accessory="headphones"]')).toHaveCount(2);
+    await expect(companion.locator('[data-mascot-accessory="headphones"]')).toHaveCount(1);
     await page.mouse.move(20, 200);
     await page.evaluate(() => {
       if (document.activeElement instanceof HTMLElement) document.activeElement.blur();

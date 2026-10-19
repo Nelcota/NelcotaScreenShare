@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { chatParts } from "@/features/room/domain/chat-format";
 import { participantLabel } from "@/features/room/domain/participant-label";
+import { participantPhotoPath } from "@/features/room/domain/participant-photo";
 import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "
 /** A message: yours on the right in green; others' on the left, with an avatar. */
 export function ChatMessage({
   message,
+  roomCode,
   groupStart,
   editing,
   onEdit,
@@ -27,6 +29,8 @@ export function ChatMessage({
   onCopy,
 }: {
   message: ChatEntry;
+  /** The public room code: the photo is asked for with it. */
+  roomCode: string;
   groupStart: boolean;
   editing: boolean;
   onEdit: () => void;
@@ -47,7 +51,7 @@ export function ChatMessage({
       {mine ? null : (
         <InitialsAvatar
           name={name}
-          source={null}
+          source={message.from ? participantPhotoPath(roomCode, message.from.identity) : null}
           className={cn(
             "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
             !groupStart && "invisible",

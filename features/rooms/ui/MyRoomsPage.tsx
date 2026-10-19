@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useOperation } from "@/lib/operations/use-operation";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
-import { RoomCollection } from "@/components/workspace/RoomCollection";
+import { RoomCollection, showsProNotice } from "@/components/workspace/RoomCollection";
 import { roomWorkspaceAction } from "../actions";
 import { roomAddressProblem, roomFormErrors } from "../client/room-form";
 import type { loader } from "@/app/routes/workspace/rooms";
@@ -18,6 +18,7 @@ export function MyRoomsPage() {
       account={data.account}
       title="Minhas salas"
       description="Salas com o mesmo link sempre."
+      bare={showsProNotice(data.pro, data.rooms)}
     >
       <RoomCollection
         rooms={data.rooms}

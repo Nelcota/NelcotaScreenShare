@@ -1,5 +1,6 @@
+import { Video } from "lucide-react";
 import { useState } from "react";
-import { Link, useMatches, useSearchParams } from "react-router";
+import { useMatches, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/FormError";
 import {
@@ -9,33 +10,43 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ProOnlyNotice } from "./ProOnlyNotice";
 import { RoomEditor } from "./RoomEditor";
 import { RoomCard, type WorkspaceRoom } from "./RoomCard";
 import { isRoomFilter, roomFilterFrom, withRoomFilter } from "./room-filter";
 import type { RoomWorkspaceCommand } from "@/features/rooms/domain/commands";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-/** No Pro and no rooms: one short explanation and where to go instead, no dead controls. */
+/** No Pro and no rooms: only the Pro notice, as on Times, with no dead controls. */
+export function showsProNotice(pro: { active: boolean }, rooms: readonly unknown[]): boolean {
+  return !pro.active && rooms.length === 0;
+}
+
+/**
+ * The Pro notice for rooms. Your rooms: the whole page, like Times. A team's rooms: one part
+ * of the team page, under its title.
+ */
 function WithoutPro({ team }: { team: boolean }) {
+  if (team) {
+    return (
+      <ProOnlyNotice
+        icon={Video}
+        title="Salas do time"
+        description="Salas que ficam sempre no mesmo link, com o histórico das chamadas do time."
+        note="Por enquanto, crie uma sala pelo Início."
+        heading="h2"
+        className="panel rounded-2xl px-6 py-10"
+      />
+    );
+  }
   return (
-    <div className="panel flex flex-col gap-4 rounded-2xl p-6">
-      <p className="text-ink-muted">
-        {team ? "Salas fixas do time" : "Salas fixas"} fazem parte do Pro. Por enquanto, crie uma
-        sala pelo Início.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button asChild>
-          <Link viewTransition to="/inicio">
-            Ir para o Início
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link viewTransition to="/#precos">
-            Entrar na lista do Pro
-          </Link>
-        </Button>
-      </div>
-    </div>
+    <ProOnlyNotice
+      icon={Video}
+      title="Minhas salas"
+      description="Salas que ficam sempre no mesmo link, com o histórico das chamadas."
+      note="Por enquanto, crie uma sala pelo Início."
+      className="min-h-[calc(100dvh-12rem)] py-12"
+    />
   );
 }
 
@@ -110,13 +121,7 @@ export function RoomCollection({
   const used = rooms.filter(
     (room) => !room.archivedAt && Boolean(room.teamId) === Boolean(teamId),
   ).length;
-  if (!pro.active && rooms.length === 0) {
-    return (
-      <section className="flex flex-col gap-4" aria-label="Salas permanentes">
-        <WithoutPro team={Boolean(teamId)} />
-      </section>
-    );
-  }
+  if (showsProNotice(pro, rooms)) return <WithoutPro team={Boolean(teamId)} />;
   return (
     <section className="flex flex-col gap-4" aria-label="Salas permanentes">
       <div className="flex flex-wrap items-center justify-between gap-3">

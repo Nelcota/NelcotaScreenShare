@@ -2,9 +2,11 @@ import { beforeEach, expect, test, vi } from "vitest";
 import { encodeMessage } from "@/features/room/domain/data-channel";
 import { useViewerSounds } from "@/features/room/hooks/use-viewer-sounds";
 
+type Receive = (message: { from?: { identity: string }; payload: Uint8Array }) => void;
+
 const capture = vi.hoisted(() => ({
   screen: undefined as { trackSid: string } | undefined,
-  receive: undefined as ((message: { payload: Uint8Array }) => void) | undefined,
+  receive: undefined as Receive | undefined,
   play: vi.fn(async () => {}),
 }));
 
@@ -12,7 +14,7 @@ vi.mock("@livekit/components-react", () => ({
   useLocalParticipant: () => ({
     localParticipant: { getTrackPublication: () => capture.screen },
   }),
-  useDataChannel: (_topic: string, receive: (message: { payload: Uint8Array }) => void) => {
+  useDataChannel: (_topic: string, receive: Receive) => {
     capture.receive = receive;
     return {};
   },
@@ -26,9 +28,9 @@ beforeEach(() => {
   capture.play.mockClear();
 });
 
-function deliver(notice: { trackSid: string; watching: boolean }) {
+function deliver(notice: { trackSid: string; watching: boolean }, from = { identity: "bia" }) {
   if (!capture.receive) throw new Error("The data channel was not set up.");
-  capture.receive({ payload: encodeMessage(notice) });
+  capture.receive({ from, payload: encodeMessage(notice) });
 }
 
 test("the sharer hears a viewer even when the screen started after the call drew", () => {
@@ -38,4 +40,12 @@ test("the sharer hears a viewer even when the screen started after the call drew
   deliver({ trackSid: "TR_screen", watching: true });
   deliver({ trackSid: "TR_other", watching: false });
   expect(capture.play.mock.calls).toEqual([["viewer-joined"]]);
+});
+
+test("a notice with no sender makes no sound", () => {
+  useViewerSounds();
+  capture.screen = { trackSid: "TR_screen" };
+  if (!capture.receive) throw new Error("The data channel was not set up.");
+  capture.receive({ payload: encodeMessage({ trackSid: "TR_screen", watching: true }) });
+  expect(capture.play).not.toHaveBeenCalled();
 });

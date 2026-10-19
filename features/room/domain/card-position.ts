@@ -113,7 +113,8 @@ function rightAgainst(side: "left" | "right", card: Size, viewport: Size): numbe
 
 /**
  * The card against the top (below the top bar) or the bottom, as far from it as from the
- * sides: no page outside the call has a message box there, and a gap made it float up.
+ * sides: a fixed gap made it float up. A page with a box down there (a conversation's
+ * message box) marks it to keep clear instead.
  */
 function bottomAgainst(side: "top" | "bottom", card: Size, viewport: Size): number {
   return side === "top" ? viewport.height - card.height - TOP_CLEARANCE : CORNER_MARGIN;

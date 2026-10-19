@@ -5,7 +5,7 @@ import { joinRoom, newParticipant, newRoomCode, setJoinMicrophone } from "./supp
 /** Leaves the full-screen call for the home page; the call goes on minimized. */
 async function goHomeDuringCall(page: Page) {
   await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-  await page.getByRole("link", { name: "Configurações" }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Configurações" }).click();
   await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
   await page
     .getByRole("navigation", { name: "Principal", exact: true })

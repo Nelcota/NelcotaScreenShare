@@ -139,7 +139,7 @@ function SignOutItem() {
       <DropdownMenuItem asChild className="w-full py-2">
         <button type="submit">
           <LogOut className="text-ink-muted" aria-hidden="true" />
-          Sair
+          Sair da conta
         </button>
       </DropdownMenuItem>
     </form>

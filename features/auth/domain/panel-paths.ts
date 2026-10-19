@@ -7,6 +7,8 @@ export type PanelPath =
 
 const INVITATION = /^\/admin\/convite\/([^/]+)$/i;
 const RESET_PATH = "/admin/redefinir-senha";
+/** The link in the new-password e-mail: Better Auth checks the token, then opens RESET_PATH. */
+const RESET_LINK = /^\/api\/admin\/auth\/reset-password\/([^/]+)$/i;
 
 /** The panel's pages, their data requests (`.data`) and its own API, including sign-in. */
 function isPanel(path: string): boolean {
@@ -29,7 +31,8 @@ function decodedPath(pathname: string): string | null {
 
 /**
  * Sorts a request: outside the panel, a link that carries its own token (an invitation,
- * which also covers the owner's recovery, or a new-password link), or the rest of the panel.
+ * which also covers the owner's recovery, or a new-password link, from the e-mail or on its
+ * page), or the rest of the panel.
  * Routes match ignoring case and after decoding, so the check does the same; a path that
  * cannot be decoded counts as the panel, so it is hidden from anyone outside the team.
  */
@@ -41,6 +44,8 @@ export function classifyPanelPath(pathname: string, search: URLSearchParams): Pa
   // The token keeps its case: it is compared by its hash.
   const invitation = INVITATION.exec(decoded)?.[1];
   if (invitation !== undefined) return { kind: "invitation", token: invitation };
+  const resetLink = RESET_LINK.exec(decoded)?.[1];
+  if (resetLink !== undefined) return { kind: "reset", token: resetLink };
   if (path !== RESET_PATH) return { kind: "panel" };
   const reset = search.get("token") ?? "";
   if (reset.length > 0) return { kind: "reset", token: reset };

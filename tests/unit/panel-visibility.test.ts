@@ -64,6 +64,14 @@ describe("which requests belong to the panel", () => {
     });
     expect(classify("/admin/redefinir-senha").kind).toBe("panel");
   });
+
+  /** The e-mail goes through the panel API first; hiding it locked a team member out. */
+  test("the e-mailed new-password link opens like the page it leads to", () => {
+    expect(
+      classify("/api/admin/auth/reset-password/Tok3n", "callbackURL=%2Fadmin%2Fredefinir-senha"),
+    ).toEqual({ kind: "reset", token: "Tok3n" });
+    expect(classify("/api/admin/auth/reset-password").kind).toBe("panel");
+  });
 });
 
 describe("the 30-minute pass", () => {

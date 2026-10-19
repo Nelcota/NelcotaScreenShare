@@ -49,13 +49,11 @@ export function ChatMessage({
       )}
     >
       {mine ? null : (
-        <InitialsAvatar
+        <SenderAvatar
           name={name}
-          source={message.from ? participantPhotoPath(roomCode, message.from.identity) : null}
-          className={cn(
-            "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
-            !groupStart && "invisible",
-          )}
+          identity={message.from?.identity}
+          roomCode={roomCode}
+          shown={groupStart}
         />
       )}
       <div className={cn("flex max-w-[80%] min-w-0 flex-col gap-1", mine && "items-end")}>
@@ -88,6 +86,35 @@ export function ChatMessage({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/**
+ * The sender's face next to their messages. Only the group's first one shows: the hidden
+ * ones keep their place and load no photo.
+ */
+function SenderAvatar({
+  name,
+  identity,
+  roomCode,
+  shown,
+}: {
+  name: string;
+  /** Whoever sent it, when they are known in the call. */
+  identity: string | undefined;
+  roomCode: string;
+  shown: boolean;
+}) {
+  const source = shown && identity !== undefined ? participantPhotoPath(roomCode, identity) : null;
+  return (
+    <InitialsAvatar
+      name={name}
+      source={source}
+      className={cn(
+        "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
+        !shown && "invisible",
+      )}
+    />
   );
 }
 

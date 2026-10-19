@@ -85,3 +85,27 @@ test("the minimized call card dropped by an edge sticks to it at the same height
     await context.close();
   }
 });
+
+test("the minimized call card never rests on the sidebar's account and settings", async ({
+  browser,
+}) => {
+  const { page, context } = await newParticipant(browser, "Cartao Rodape");
+  try {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await joinRoom(page, await newRoomCode(), { micOn: false });
+    await page.getByRole("button", { name: "Mais opções", exact: true }).click();
+    await page.getByRole("link", { name: "Configurações", exact: true }).click();
+    const card = page.getByRole("complementary", { name: "Chamada em andamento" });
+    await expect(card).toBeVisible();
+    const footer = page.locator("aside[aria-label='Amigos'] [data-call-card-clear]");
+    await expect(footer).toBeVisible();
+
+    // Dropped against the bottom, right over the account and the settings gear.
+    const footerBox = await box(footer);
+    await dragCardTo(page, card, { x: footerBox.x + 40, y: 795 });
+    await expect.poll(async () => overlaps(await box(card), await box(footer))).toBe(false);
+  } finally {
+    await context.close();
+  }
+});

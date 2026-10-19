@@ -68,7 +68,10 @@ export function FriendsRail({
           <RailFriend key={friend.id} friend={friend} unread={unreadByFriend[friend.id] ?? 0} />
         ))}
       </ul>
-      <StatusStrip account={account} status={ownStatus} compact />
+      {/* The minimized call card never rests on the account and settings at the bottom. */}
+      <div data-call-card-clear="">
+        <StatusStrip account={account} status={ownStatus} compact />
+      </div>
     </div>
   );
 }

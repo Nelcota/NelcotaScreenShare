@@ -17,6 +17,8 @@ function render(element: () => React.ReactElement, path = "/") {
 }
 
 const strip = () => createElement(StatusStrip, { account: ACCOUNT, status: "online" });
+const rail = () =>
+  createElement(StatusStrip, { account: ACCOUNT, status: "online", compact: true });
 
 /** The photo's menu trigger: the bar's only popover button. */
 function accountTrigger(html: string) {
@@ -47,4 +49,9 @@ test("the column's gear leads back to the room it was opened from", () => {
     `href="/conta?voltar=${encodeURIComponent("/sala/abc-defg-hij")}"`,
   );
   expect(render(strip, "/inicio")).toContain('href="/conta"');
+});
+
+/** The collapsed column had no gear, and the app bar no longer has the account menu. */
+test("the collapsed column still leads to the settings", () => {
+  expect(render(rail, "/inicio")).toContain('href="/conta"');
 });

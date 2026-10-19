@@ -71,7 +71,7 @@ export function StatusStrip({
     <div
       className={cn(
         "flex items-center gap-1 border-t border-line px-2 py-2",
-        compact && "justify-center",
+        compact && "flex-col justify-center",
       )}
     >
       <DropdownMenu>
@@ -126,7 +126,8 @@ export function StatusStrip({
           <SignOutItem />
         </DropdownMenuContent>
       </DropdownMenu>
-      {compact ? null : <SettingsLink />}
+      {/* The collapsed column too: the app bar has no account menu (only phones do). */}
+      <SettingsLink />
     </div>
   );
 }

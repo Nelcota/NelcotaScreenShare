@@ -40,8 +40,9 @@ export function classifyPanelPath(pathname: string, search: URLSearchParams): Pa
   if (!isPanel(path)) return { kind: "outside" };
   // The token keeps its case: it is compared by its hash.
   const invitation = INVITATION.exec(decoded)?.[1];
-  if (invitation) return { kind: "invitation", token: invitation };
-  const reset = path === RESET_PATH ? search.get("token") : null;
-  if (reset) return { kind: "reset", token: reset };
+  if (invitation !== undefined) return { kind: "invitation", token: invitation };
+  if (path !== RESET_PATH) return { kind: "panel" };
+  const reset = search.get("token") ?? "";
+  if (reset.length > 0) return { kind: "reset", token: reset };
   return { kind: "panel" };
 }

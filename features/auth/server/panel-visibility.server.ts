@@ -64,7 +64,7 @@ export async function panelVerdict(request: Request): Promise<PanelVerdict> {
   const path = classifyPanelPath(url.pathname, url.searchParams);
   if (path.kind === "outside") return { kind: "through" };
   const secret = getEnv().ADMIN_AUTH_SECRET;
-  if (!secret) return { kind: "hidden" };
+  if (secret === undefined) return { kind: "hidden" };
   return withRequest(request, new RouterContextProvider(), async () => {
     if (path.kind === "invitation" || path.kind === "reset") {
       if (!(await tokenIsValid(path))) return { kind: "hidden" };

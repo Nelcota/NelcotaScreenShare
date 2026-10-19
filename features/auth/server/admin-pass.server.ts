@@ -23,10 +23,11 @@ export function verifyAdminPass(
   secret: string,
   now: number = Date.now(),
 ): boolean {
-  if (!value) return false;
+  if (value === undefined || value.length === 0) return false;
   const [expires, given] = value.split(".");
   const expiresAt = Number(expires);
-  if (!given || !Number.isSafeInteger(expiresAt) || expiresAt <= now) return false;
+  if (given === undefined || given.length === 0) return false;
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= now) return false;
   const expected = Buffer.from(signature(secret, expiresAt));
   const received = Buffer.from(given);
   if (expected.length !== received.length) return false;
@@ -44,7 +45,7 @@ export function adminPassCookie(value: string, secure: boolean): string {
 /** One cookie's value from a request's Cookie header. */
 export function readCookie(headers: Headers, name: string): string | undefined {
   const header = headers.get("cookie");
-  if (!header) return undefined;
+  if (header === null || header.length === 0) return undefined;
   for (const part of header.split(";")) {
     const [key, ...rest] = part.trim().split("=");
     if (key === name) return rest.join("=");

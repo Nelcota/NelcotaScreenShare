@@ -17,7 +17,7 @@ export async function isPanelMember(
   account: AppAccountForPanel | null | undefined,
   db: DbExecutor = getDb(),
 ): Promise<boolean> {
-  if (!account) return false;
+  if (account == null) return false;
   if (!account.emailVerified) return false;
   const [admin] = await db
     .select({ id: adminUsers.id })

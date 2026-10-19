@@ -193,7 +193,9 @@ export function RoomLayout({
   const focused = stage.focused;
   // Someone else's screen on the stage: the dock offers to stop watching it.
   const watchedScreen =
-    focused && !focused.participant.isLocal ? focused.publication.trackSid : undefined;
+    focused !== undefined && !focused.participant.isLocal
+      ? focused.publication.trackSid
+      : undefined;
   const enlarged = useEnlargedCamera();
   const hasStage = focused !== undefined || enlarged.camera !== undefined;
   const sharingIds = new Set(

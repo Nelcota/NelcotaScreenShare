@@ -84,8 +84,9 @@ export function useRoomAnimations(
 
       if (onlyReflow) {
         gsap.set(targets, { clearProps: "transform" });
+        // Positions are final already: a change during the fade starts from them.
         running.current = gsap
-          .timeline({ onComplete: capture })
+          .timeline({ onUpdate: remember, onComplete: capture })
           .fromTo(
             targets,
             { opacity: 0 },

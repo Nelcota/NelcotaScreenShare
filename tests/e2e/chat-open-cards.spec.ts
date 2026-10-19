@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { joinRoom, newParticipant, newRoomCode } from "./support/session";
+import { fakeScreenCapture } from "./support/screen-capture";
 
 interface Frame {
   overlap: number;
@@ -58,5 +59,45 @@ test("opening the chat moves the cards aside without stacking them or leaving th
   } finally {
     await first.context.close();
     await second.context.close();
+  }
+});
+
+/** The lowest opacity the stage shows while the chat opens: it resizes, never blinks. */
+async function lowestStageOpacity(page: Page, milliseconds: number): Promise<number> {
+  return page.evaluate(async (duration) => {
+    const stage = document.querySelector("[data-flip-id='stage']");
+    if (!stage) return 0;
+    let lowest = 1;
+    const end = performance.now() + duration;
+    while (performance.now() < end) {
+      await new Promise(requestAnimationFrame);
+      lowest = Math.min(lowest, Number(getComputedStyle(stage).opacity));
+    }
+    return lowest;
+  }, milliseconds);
+}
+
+test("with a screen on the stage, opening the chat never makes the screen blink", async ({
+  browser,
+}) => {
+  const sharer = await newParticipant(browser, "Mostra Palco");
+  const viewer = await newParticipant(browser, "Ve Palco");
+  try {
+    await fakeScreenCapture(sharer.page);
+    await viewer.page.setViewportSize({ width: 1440, height: 900 });
+    const code = await newRoomCode();
+    await joinRoom(sharer.page, code, { micOn: false });
+    await joinRoom(viewer.page, code, { micOn: false });
+    await sharer.page.getByRole("button", { name: "Compartilhar tela", exact: true }).click();
+    await sharer.page.getByRole("button", { name: /^Tela inteira/ }).click();
+    await viewer.page.getByRole("button", { name: "Assistir à tela de Mostra Palco" }).click();
+    await expect(viewer.page.getByLabel("Tela de Mostra Palco")).toBeVisible();
+    await viewer.page.waitForTimeout(1500);
+
+    await viewer.page.getByRole("button", { name: /^Chat/ }).click();
+    expect(await lowestStageOpacity(viewer.page, 900)).toBeGreaterThan(0.99);
+  } finally {
+    await sharer.context.close();
+    await viewer.context.close();
   }
 });

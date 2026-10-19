@@ -208,8 +208,11 @@ export function RoomLayout({
   const alone = view === "alone";
   const hadCompany = useHadCompany({ connectedOnce, others });
 
-  const layoutKey = `${hasStage ? "stage" : view}|${participants.map((participant) => participant.identity).join(",")}`;
-  useRoomAnimations(scope, layoutKey, `chat:${chat.open}`);
+  // Without a stage, the chat can turn a row of cards into a column: they fade in at their
+  // place (reflow). With a stage, the screen and the strip only resize and keep moving.
+  const chatKey = `chat:${chat.open}`;
+  const layoutKey = `${hasStage ? `stage|${chatKey}` : view}|${participants.map((participant) => participant.identity).join(",")}`;
+  useRoomAnimations(scope, layoutKey, hasStage ? "" : chatKey);
 
   return (
     <div

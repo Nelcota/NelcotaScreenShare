@@ -1,5 +1,5 @@
-import { ChevronUp, Settings } from "lucide-react";
-import { Link } from "react-router";
+import { ChevronUp, LogOut, Settings } from "lucide-react";
+import { Link, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -7,9 +7,11 @@ import { navItemClass } from "@/components/shell/nav-item-class";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { setPresenceStatus } from "@/features/friends/actions";
@@ -47,7 +49,8 @@ function Dot({ status, className }: { status: PresenceStatus; className?: string
 
 /**
  * Foot of the friends column: your photo with your status, your name and the status under
- * it. Clicking it picks the status (saved on the account); the gear opens the settings.
+ * it. Clicking it picks the status (saved on the account) or signs out; the gear opens the
+ * settings.
  */
 export function StatusStrip({
   account,
@@ -119,6 +122,8 @@ export function StatusStrip({
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <SignOutItem />
         </DropdownMenuContent>
       </DropdownMenu>
       {compact ? null : <SettingsLink />}
@@ -126,12 +131,33 @@ export function StatusStrip({
   );
 }
 
+/** Signing out is a POST (app/routes/sign-out.ts); the app bar has no account menu. */
+function SignOutItem() {
+  return (
+    <form method="post" action="/sair">
+      <DropdownMenuItem asChild className="w-full py-2">
+        <button type="submit">
+          <LogOut className="text-ink-muted" aria-hidden="true" />
+          Sair
+        </button>
+      </DropdownMenuItem>
+    </form>
+  );
+}
+
+/** From the room, the settings lead back to it (the app pages need no way back). */
+function settingsHref(pathname: string, search: string): string {
+  if (!pathname.startsWith("/sala/")) return "/conta";
+  return `/conta?voltar=${encodeURIComponent(pathname + search)}`;
+}
+
 function SettingsLink() {
+  const { pathname, search } = useLocation();
   return (
     <Hint text="Configurações">
       <Link
         viewTransition
-        to="/conta"
+        to={settingsHref(pathname, search)}
         aria-label="Configurações"
         className={cn(navItemClass, "w-9 shrink-0 justify-center px-0")}
       >

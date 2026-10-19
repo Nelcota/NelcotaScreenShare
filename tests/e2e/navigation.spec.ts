@@ -43,12 +43,9 @@ test("pre-join keeps the return from the account page and the call uses only the
   const code = await newRoomCode();
   await page.goto(`/sala/${code}`);
   const navbar = page.getByRole("navigation", { name: "Principal", exact: true });
-  // The account lives in the avatar's menu.
-  const menu = navbar.getByRole("button", { name: "Navegacao Teste", exact: true });
-  const account = page
-    .getByRole("navigation", { name: "Sua conta", exact: true })
-    .getByRole("link", { name: "Configurações", exact: true });
-  await menu.click();
+  // Inside the app the bar has only "Novidades"; the account lives in the column's foot.
+  await expect(navbar.getByRole("link", { name: "Novidades", exact: true })).toBeVisible();
+  const account = page.getByRole("link", { name: "Configurações", exact: true });
   await expect(account).toHaveAttribute(
     "href",
     `/conta?voltar=${encodeURIComponent(`/sala/${code}`)}`,
@@ -65,6 +62,8 @@ test("pre-join keeps the return from the account page and the call uses only the
   await page.getByRole("link", { name: "Voltar para a sala", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/sala/${code}$`));
   await page.setViewportSize({ width: 375, height: 812 });
+  // Phones have no column: the photo's menu keeps the account.
+  const menu = navbar.getByRole("button", { name: "Navegacao Teste", exact: true });
   await expect(menu).toBeVisible();
   await expectNoHorizontalScroll(page);
   await page.screenshot({ path: test.info().outputPath("prejoin-mobile.png"), fullPage: true });

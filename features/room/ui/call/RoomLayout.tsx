@@ -30,6 +30,7 @@ import { useAnnounceCallConnected } from "@/features/ringing/client/call-connect
 import { othersInCall, peopleView } from "@/features/room/domain/room-company";
 import { ChatPanel } from "@/features/room/ui/dock/Chat";
 import { ControlDock } from "@/features/room/ui/dock/ControlDock";
+import { watchedRemoteScreen } from "@/features/room/domain/watched-screen";
 import { CameraStage } from "@/features/room/ui/stage/CameraStage";
 import { ScreenStage } from "@/features/room/ui/stage/ScreenStage";
 import { cn } from "@/lib/utils";
@@ -191,11 +192,8 @@ export function RoomLayout({
 
   const stage = useStageFocus(screenShares);
   const focused = stage.focused;
-  // Someone else's screen on the stage: the dock offers to stop watching it.
-  const watchedScreen =
-    focused !== undefined && !focused.participant.isLocal
-      ? focused.publication.trackSid
-      : undefined;
+  // Someone else's screen you watch: the dock offers to stop watching it.
+  const watchedScreen = watchedRemoteScreen(focused, screenShares);
   const enlarged = useEnlargedCamera();
   const hasStage = focused !== undefined || enlarged.camera !== undefined;
   const sharingIds = new Set(

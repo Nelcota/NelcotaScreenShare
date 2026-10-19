@@ -65,7 +65,7 @@ describe("a dropped card", () => {
     // Near the bottom right.
     expect(snapToEdge({ right: 40, bottom: 30 }, callCard, screen)).toEqual({
       right: 16,
-      bottom: 96,
+      bottom: 16,
     });
   });
 
@@ -85,11 +85,17 @@ describe("a dropped card", () => {
       right: 1280 - 300 - 16,
       bottom: 300,
     });
-    // Near the bottom, in the middle across: above the message box, same place across.
+    // Near the bottom, in the middle across: against the bottom, same place across.
     expect(snapToEdge({ right: 490, bottom: 20 }, callCard, screen)).toEqual({
       right: 490,
-      bottom: 96,
+      bottom: 16,
     });
+  });
+
+  it("dropped against the bottom, it stays there instead of floating up", () => {
+    // Outside the start it rose 96 px, toward the middle of the screen.
+    const dropped = snapToEdge({ right: 490, bottom: 8 }, callCard, screen);
+    expect(dropped.bottom).toBe(16);
   });
 
   it("stays where it was dropped in the middle of the screen", () => {

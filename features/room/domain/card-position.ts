@@ -111,9 +111,12 @@ function rightAgainst(side: "left" | "right", card: Size, viewport: Size): numbe
   return side === "left" ? viewport.width - card.width - CORNER_MARGIN : CORNER_MARGIN;
 }
 
-/** The card against the top (below the top bar) or the bottom (above a message box). */
+/**
+ * The card against the top (below the top bar) or the bottom, as far from it as from the
+ * sides: no page outside the call has a message box there, and a gap made it float up.
+ */
 function bottomAgainst(side: "top" | "bottom", card: Size, viewport: Size): number {
-  return side === "top" ? viewport.height - card.height - TOP_CLEARANCE : BOTTOM_CORNER_CLEARANCE;
+  return side === "top" ? viewport.height - card.height - TOP_CLEARANCE : CORNER_MARGIN;
 }
 
 /**

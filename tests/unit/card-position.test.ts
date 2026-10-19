@@ -114,6 +114,12 @@ describe("a dropped card", () => {
     });
   });
 
+  it("against the bottom, it keeps off a conversation's message box", () => {
+    const messageBox = { left: 340, top: 720, width: 900, height: 72 };
+    const dropped = snapToEdge({ right: 490, bottom: 8 }, callCard, screen, [messageBox]);
+    expect(coversAny(dropped, callCard, screen, [messageBox])).toBe(false);
+  });
+
   it("stays in the middle when the field is elsewhere", () => {
     const middle = { right: 490, bottom: 360 };
     const farField = { left: 400, top: 100, width: 480, height: 64 };

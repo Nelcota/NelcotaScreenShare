@@ -143,7 +143,8 @@ function nearestEdge(offset: CardOffset, card: Size, viewport: Size): CardOffset
 /**
  * Where a dropped card settles: against the nearest edge (see `nearestEdge`), or right
  * where it was when dropped in the middle of the screen. A card dropped on an area it must
- * keep clear (the start's room field) goes to the nearest corner instead.
+ * keep clear (the start's room field, a conversation's message box), or that would cover
+ * one against the edge, goes to the nearest corner instead.
  */
 export function snapToEdge(
   offset: CardOffset,
@@ -157,7 +158,11 @@ export function snapToEdge(
   if (inCenter(centerX, viewport.width) && inCenter(centerY, viewport.height)) {
     return clampOffset(offset, card, viewport);
   }
-  return nearestEdge(offset, card, viewport);
+  const againstEdge = nearestEdge(offset, card, viewport);
+  if (coversAny(againstEdge, card, viewport, keepClear)) {
+    return nearestCorner(offset, card, viewport);
+  }
+  return againstEdge;
 }
 
 /**

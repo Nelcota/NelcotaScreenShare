@@ -8,13 +8,20 @@ import { reportBrowserError } from "@/lib/telemetry.client";
 import { ChatComposer } from "./ChatComposer";
 import { ChatSoundSettings } from "./ChatSoundSettings";
 import { ChatEmptyState, ChatHeader, ChatMessageList } from "./ChatPanelParts";
-import { useChatAttachment, useImageDrop } from "./use-chat-attachment";
+import { useChatAttachment, useImageDrop, type ChatAttachment } from "./use-chat-attachment";
 import { useChatEditing, useChatPanelMotion, useChatScroll } from "./use-chat-panel";
 
-/** Sends the image waiting in the box with the text; `false`, and why, when it cannot go. */
-async function sendChatImage(chat: ChatState, file: File, text: string): Promise<boolean> {
+/** Sends what waits in the box with the text; `false`, and why, when it cannot go. */
+async function sendAttachment(
+  chat: ChatState,
+  attached: ChatAttachment,
+  typed: string,
+): Promise<boolean> {
   try {
-    const refused = await chat.sendImage(file, text);
+    const refused =
+      attached.kind === "image"
+        ? await chat.sendImage(attached.file, typed)
+        : await chat.sendTextFile(attached.file, attached.text, typed);
     if (!refused) return true;
     toast.error(refused);
     return false;
@@ -46,7 +53,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
       await editor.submit();
       return;
     }
-    if (!(await sendChatImage(chat, attached.file, editor.draft))) return;
+    if (!(await sendAttachment(chat, attached, editor.draft))) return;
     attachment.clear();
     editor.setDraft("");
     inputRef.current?.focus();

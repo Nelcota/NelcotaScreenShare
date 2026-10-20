@@ -5,14 +5,22 @@ import {
   ChatImageTooHeavyError,
   prepareChatImage,
 } from "@/features/room/client/prepare-chat-image";
+import {
+  isTextFileName,
+  notPlainTextMessage,
+  plainText,
+  textFileProblem,
+} from "@/features/room/domain/chat-files";
 import { chatImageProblem } from "@/features/room/domain/chat-images";
 import { reportBrowserError } from "@/lib/telemetry.client";
 
-/** The image waiting in the box, with the preview shown there until it goes. */
-export interface ChatAttachment {
-  file: File;
-  preview: string;
-}
+/**
+ * What waits in the box until it goes: an image with its preview, or a text file (#495)
+ * whose plain text was already read and checked.
+ */
+export type ChatAttachment =
+  | { kind: "image"; file: File; preview: string }
+  | { kind: "text"; file: File; text: string };
 
 /**
  * The image picked, pasted or dropped into the chat: it waits in the box with a
@@ -25,15 +33,34 @@ export function useChatAttachment() {
 
   // Each preview is freed when another image replaces it or the box empties.
   useEffect(() => {
-    if (!attached) return;
+    if (attached?.kind !== "image") return;
     return () => URL.revokeObjectURL(attached.preview);
   }, [attached]);
+
+  /** A .txt waits in the box only when it is plain text within 1 MB. */
+  async function attachText(picked: File) {
+    const problem = textFileProblem(picked);
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
+    const text = plainText(new Uint8Array(await picked.arrayBuffer()));
+    if (text === undefined) {
+      toast.error(notPlainTextMessage());
+      return;
+    }
+    setAttached({ kind: "text", file: picked, text });
+  }
 
   /**
    * Checks the image (type and size), reduces it when it is too big to go, and lets it
    * wait in the box; says why when it cannot.
    */
   async function attach(picked: File) {
+    if (isTextFileName(picked.name)) {
+      await attachText(picked);
+      return;
+    }
     const problem = chatImageProblem(picked);
     if (problem) {
       toast.error(problem);
@@ -42,7 +69,7 @@ export function useChatAttachment() {
     setPreparing(true);
     try {
       const file = await prepareChatImage(picked);
-      setAttached({ file, preview: URL.createObjectURL(file) });
+      setAttached({ kind: "image", file, preview: URL.createObjectURL(file) });
     } catch (error) {
       // Too heavy even reduced is the person's file, not a fault to report.
       if (!(error instanceof ChatImageTooHeavyError)) reportBrowserError(error);

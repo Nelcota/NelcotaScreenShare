@@ -11,6 +11,7 @@ import { playChatNotification, unlockChatAudio } from "@/features/room/audio/cha
 import { useRoomShortcut } from "@/lib/hooks/use-shortcut-keys";
 import { useChatToasts } from "@/features/room/hooks/use-chat-toasts";
 import { useChatImages, type ChatImage } from "@/features/room/hooks/use-chat-images";
+import { useChatFiles, type ChatFile } from "@/features/room/hooks/use-chat-files";
 import { participantLabel } from "@/features/room/domain/participant-label";
 import {
   CHAT_EDIT_TOPIC,
@@ -31,8 +32,10 @@ export interface ChatEntry {
   text: string;
   edited: boolean;
   deleted: boolean;
-  /** An image sent in the call (#412): shown instead of the text. */
+  /** An image sent in the call (#412), below the text sent with it. */
   image?: { url: string; name: string };
+  /** A text file sent in the call (#495), below the text sent with it. */
+  file?: { name: string; text: string };
 }
 
 export interface ChatState {
@@ -43,6 +46,9 @@ export interface ChatState {
    * why it did not go out, when it did not.
    */
   sendImage: (file: File, text?: string) => Promise<string | undefined>;
+  /** Sends a text file already checked (name, size, plain `text`), with the typed text. */
+  sendTextFile: (file: File, text: string, typed?: string) => Promise<string | undefined>;
+  /** An image or a text file is on its way. */
   sendingImage: boolean;
   /** Own messages only: others apply it by the sender's identity. */
   edit: (id: string, text: string) => Promise<void>;
@@ -67,9 +73,46 @@ function imageEntry(image: ChatImage): ChatEntry {
   };
 }
 
+/** A text file as a chat entry, with the text sent with it above: never edited or deleted. */
+function fileEntry(file: ChatFile): ChatEntry {
+  return {
+    id: file.id,
+    from: file.from,
+    mine: file.mine,
+    timestamp: file.timestamp,
+    text: file.caption,
+    edited: false,
+    deleted: false,
+    file: { name: file.name, text: file.text },
+  };
+}
+
 /** New message toast: disappears if the message is edited or deleted. */
 function chatToastId(id: string): string {
   return `chat-${id}`;
+}
+
+/** Panel closed: a notice, with the sound, when someone else shares an image or a file. */
+function useSharedNotices(
+  shared: readonly { id: string; mine: boolean; from: Participant | undefined }[],
+  open: boolean,
+  showChatToast: ReturnType<typeof useChatToasts>,
+  action: string,
+) {
+  const announced = useRef(0);
+  useEffect(() => {
+    const fresh = shared.slice(announced.current);
+    announced.current = shared.length;
+    if (open) return;
+    const last = fresh.findLast((item) => !item.mine);
+    if (!last) return;
+    void playChatNotification();
+    showChatToast({
+      id: chatToastId(last.id),
+      author: last.from,
+      text: `${participantLabel(last.from)} ${action}`,
+    });
+  }, [open, shared, showChatToast, action]);
 }
 
 /**
@@ -82,12 +125,12 @@ export function useChatState(): ChatState {
   const [open, setOpenState] = useState(false);
   // Messages already seen: when opening or closing the panel, everything up to then counts as read.
   // Texts and images each only grow at the end: how many of each were on screen.
-  const [seen, setSeen] = useState({ texts: 0, images: 0 });
+  const [seen, setSeen] = useState({ texts: 0, images: 0, files: 0 });
   const announced = useRef(0);
   const [edits, setEdits] = useState<ChatEdits>(() => new Map());
   const showChatToast = useChatToasts();
   const { images, sendImage, sending: sendingImage } = useChatImages();
-  const announcedImages = useRef(0);
+  const { files, sendFile: sendTextFile, sending: sendingFile } = useChatFiles();
 
   const { send: publishEdit } = useDataChannel(CHAT_EDIT_TOPIC, (message) => {
     const sender = message.from?.identity;
@@ -105,7 +148,7 @@ export function useChatState(): ChatState {
   }
 
   function setOpen(next: boolean) {
-    setSeen({ texts: chatMessages.length, images: images.length });
+    setSeen({ texts: chatMessages.length, images: images.length, files: files.length });
     setOpenState(next);
   }
 
@@ -125,7 +168,8 @@ export function useChatState(): ChatState {
   });
 
   const pictures = images.map(imageEntry);
-  const messages = [...texts, ...pictures].toSorted(
+  const documents = files.map(fileEntry);
+  const messages = [...texts, ...pictures, ...documents].toSorted(
     (first, second) => first.timestamp - second.timestamp,
   );
 
@@ -156,24 +200,17 @@ export function useChatState(): ChatState {
     }
   }, [open, chatMessages, showChatToast]);
 
-  // The same for an image someone else sent.
-  useEffect(() => {
-    const fresh = images.slice(announcedImages.current);
-    announcedImages.current = images.length;
-    if (open) return;
-    const last = fresh.findLast((image) => !image.mine);
-    if (!last) return;
-    void playChatNotification();
-    showChatToast({
-      id: chatToastId(last.id),
-      author: last.from,
-      text: `${participantLabel(last.from)} enviou uma imagem`,
-    });
-  }, [open, images, showChatToast]);
+  // The same for an image or a text file someone else sent.
+  useSharedNotices(images, open, showChatToast, "enviou uma imagem");
+  useSharedNotices(files, open, showChatToast, "enviou um arquivo");
 
   useRoomShortcut("chat", () => setOpen(!open));
 
-  const unreadEntries = [...texts.slice(seen.texts), ...pictures.slice(seen.images)];
+  const unreadEntries = [
+    ...texts.slice(seen.texts),
+    ...pictures.slice(seen.images),
+    ...documents.slice(seen.files),
+  ];
   const unread = open
     ? 0
     : unreadEntries.filter((message) => !message.mine && !message.deleted).length;
@@ -182,7 +219,8 @@ export function useChatState(): ChatState {
     messages,
     send,
     sendImage,
-    sendingImage,
+    sendTextFile,
+    sendingImage: sendingImage || sendingFile,
     edit: (id, text) => change({ type: "edit", id, text }),
     remove: (id) => change({ type: "delete", id }),
     isSending,

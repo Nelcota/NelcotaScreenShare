@@ -41,24 +41,31 @@ test("five participants, two screens, three annotators and an empty newcomer sta
     for (const person of [firstWriter, secondWriter]) await watchScreen(person.page, host.name);
     for (const person of [host, firstWriter, secondWriter])
       await expect(person.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
-    // The newcomer waits on the pre-join: only the click and the connection fit in the marks'
-    // 10 s life, so the mark is still there when they arrive (under load, a whole join did
-    // not fit, and the mark expired before the count). Marks only travel when drawn, so
-    // once the newcomer is in, an empty stage for them is the state to check.
     await newcomer.page.goto(`/sala/${code}`);
     await setJoinMicrophone(newcomer.page, true);
     await newcomer.page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
-    await keyboardMark(firstWriter.page, "Seta");
-    await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
     const before = Date.now();
     await newcomer.page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
     await expect(newcomer.page.getByRole("button", { name: /Sair/ })).toBeVisible();
     joinsMs.push(Date.now() - before);
-    // Before "Assistir": under load, opening the screen took the mark past its 10 s.
+    // In the call but not watching yet, the newcomer gets nothing: marks arrive only in
+    // useAnnotations, which mounts with the screen on the stage (ScreenStage). A mark drawn
+    // now is one they must not see once they open the screen.
+    await keyboardMark(firstWriter.page, "Seta");
     await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
     await watchScreen(newcomer.page, host.name);
     await expect(newcomer.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
     await expect(newcomer.page.locator("[data-annotation]")).toHaveCount(0);
+    // Still alive for the others (10 s life): the newcomer's 0 is not just an expired mark.
+    // The window is 10 s; on an overloaded machine this fails on purpose rather than pass empty.
+    await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
+
+    // A fresh mark, seen, so "Limpar" is what takes it away and not its 10 s life. The second
+    // writer draws it: the first one's tool is still open, and a click there would close it.
+    await keyboardMark(secondWriter.page, "Seta");
+    await expect
+      .poll(() => firstWriter.page.locator("[data-annotation]").count())
+      .toBeGreaterThan(0);
     await host.page.getByRole("button", { name: "Anotar na tela" }).click();
     await host.page.getByRole("button", { name: "Limpar anotações de todos" }).click();
     await expect(firstWriter.page.locator("[data-annotation]")).toHaveCount(0);

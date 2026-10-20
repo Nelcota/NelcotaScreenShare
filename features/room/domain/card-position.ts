@@ -93,6 +93,38 @@ function nearestCorner(offset: CardOffset, card: Size, viewport: Size): CardOffs
   return clampOffset(corner, card, viewport);
 }
 
+/** The four corners: the top ones below the top bar, the bottom ones above a message box. */
+function corners(card: Size, viewport: Size): CardOffset[] {
+  const left = viewport.width - card.width - CORNER_MARGIN;
+  const top = viewport.height - card.height - TOP_CLEARANCE;
+  return [
+    { right: CORNER_MARGIN, bottom: BOTTOM_CORNER_CLEARANCE },
+    { right: left, bottom: BOTTOM_CORNER_CLEARANCE },
+    { right: CORNER_MARGIN, bottom: top },
+    { right: left, bottom: top },
+  ].map((corner) => clampOffset(corner, card, viewport));
+}
+
+function offsetDistance(from: CardOffset, to: CardOffset): number {
+  return Math.hypot(from.right - to.right, from.bottom - to.bottom);
+}
+
+/**
+ * The nearest corner that covers none of the areas to keep clear (a long message can make a
+ * conversation's box tall enough to reach the bottom corners); the nearest one when all do.
+ */
+function clearCorner(
+  offset: CardOffset,
+  card: Size,
+  viewport: Size,
+  keepClear: readonly Area[],
+): CardOffset {
+  const free = corners(card, viewport)
+    .filter((corner) => !coversAny(corner, card, viewport, keepClear))
+    .toSorted((first, second) => offsetDistance(first, offset) - offsetDistance(second, offset));
+  return free[0] ?? nearestCorner(offset, card, viewport);
+}
+
 /** Within this distance of a second edge, a card at one edge goes into that corner. */
 const CORNER_REACH = 120;
 
@@ -153,7 +185,9 @@ export function snapToEdge(
   viewport: Size,
   keepClear: readonly Area[] = [],
 ): CardOffset {
-  if (coversAny(offset, card, viewport, keepClear)) return nearestCorner(offset, card, viewport);
+  if (coversAny(offset, card, viewport, keepClear)) {
+    return clearCorner(offset, card, viewport, keepClear);
+  }
   const centerX = viewport.width - offset.right - card.width / 2;
   const centerY = viewport.height - offset.bottom - card.height / 2;
   if (inCenter(centerX, viewport.width) && inCenter(centerY, viewport.height)) {
@@ -161,7 +195,7 @@ export function snapToEdge(
   }
   const againstEdge = nearestEdge(offset, card, viewport);
   if (coversAny(againstEdge, card, viewport, keepClear)) {
-    return nearestCorner(offset, card, viewport);
+    return clearCorner(offset, card, viewport, keepClear);
   }
   return againstEdge;
 }
@@ -177,7 +211,7 @@ export function clearOfAreas(
   keepClear: readonly Area[],
 ): CardOffset {
   if (!coversAny(offset, card, viewport, keepClear)) return offset;
-  return nearestCorner(offset, card, viewport);
+  return clearCorner(offset, card, viewport, keepClear);
 }
 
 const STEP = 16;

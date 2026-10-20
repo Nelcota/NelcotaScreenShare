@@ -120,6 +120,13 @@ describe("a dropped card", () => {
     expect(coversAny(dropped, callCard, screen, [messageBox])).toBe(false);
   });
 
+  it("goes to a corner that is clear, not one on a tall message box", () => {
+    // A long message being typed: the box covers both bottom corners.
+    const tallBox = { left: 0, top: 560, width: 1280, height: 240 };
+    const dropped = snapToEdge({ right: 490, bottom: 8 }, callCard, screen, [tallBox]);
+    expect(coversAny(dropped, callCard, screen, [tallBox])).toBe(false);
+  });
+
   it("stays in the middle when the field is elsewhere", () => {
     const middle = { right: 490, bottom: 360 };
     const farField = { left: 400, top: 100, width: 480, height: 64 };

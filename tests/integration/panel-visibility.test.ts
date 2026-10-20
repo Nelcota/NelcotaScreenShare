@@ -92,6 +92,21 @@ describe("the hidden admin panel", () => {
     assert.deepEqual(await verdict("/admin/redefinir-senha?token=token-ruim"), { kind: "hidden" });
   });
 
+  /** The e-mail opens the panel API first; hiding it locked a team member out. */
+  test("the e-mailed new-password link opens only while its token is valid", async () => {
+    await db.insert(schema.adminVerifications).values({
+      identifier: "reset-password:token-do-email",
+      value: crypto.randomUUID(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+    const callback = "?callbackURL=%2Fadmin%2Fredefinir-senha";
+    const granted = await verdict(`/api/admin/auth/reset-password/token-do-email${callback}`);
+    assert.equal(granted.kind, "grant");
+    assert.deepEqual(await verdict(`/api/admin/auth/reset-password/token-ruim${callback}`), {
+      kind: "hidden",
+    });
+  });
+
   test("the pass opens the panel's sign-in and its API", async () => {
     const { signAdminPass } = await import("@/features/auth/server/admin-pass.server");
     const cookie = `nelcota-admin-pass=${signAdminPass(SECRET)}`;

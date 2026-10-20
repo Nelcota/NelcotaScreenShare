@@ -24,8 +24,15 @@ export function receivedCaption(attributes: Readonly<Record<string, string>> | u
   return capChatText(parsed.data.trim());
 }
 
-/** 5 MB: enough for a full-screen print, small enough for everyone in the call. */
+/**
+ * 5 MB: what goes out and what a receiver keeps, after the sender's browser reduces the
+ * image (#496). Enough for a full-screen print, small enough for everyone in the call.
+ */
 export const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+/** A picked or pasted image may be this big: the browser reduces it before it goes. */
+export const CHAT_IMAGE_PICK_MAX_BYTES = 25 * 1024 * 1024;
+/** The longest side of an image once reduced: a full-screen print stays sharp. */
+export const CHAT_IMAGE_MAX_SIDE = 2560;
 
 export type ChatImageType = "image/png" | "image/jpeg" | "image/webp" | "image/gif";
 
@@ -37,7 +44,8 @@ export const CHAT_IMAGE_TYPES: readonly ChatImageType[] = [
 ];
 
 const NOT_AN_IMAGE_MESSAGE = "Envie só imagens: PNG, JPG, WebP ou GIF.";
-const IMAGE_TOO_BIG_MESSAGE = "A imagem passa de 5 MB.";
+const IMAGE_TOO_BIG_MESSAGE = "A imagem passa de 25 MB.";
+const GIF_TOO_BIG_MESSAGE = "O GIF passa de 5 MB.";
 const TOO_MANY_IMAGES_MESSAGE = "Espere um pouco para mandar mais imagens.";
 
 function startsWith(bytes: Uint8Array, signature: readonly number[], offset = 0): boolean {
@@ -58,11 +66,36 @@ function isChatImageType(type: string): type is ChatImageType {
   return CHAT_IMAGE_TYPES.some((allowed) => allowed === type);
 }
 
-/** Why a file picked or pasted here cannot be sent, or undefined when it can. */
+/**
+ * Why a file picked or pasted here cannot be sent, or undefined when it can. A GIF goes as
+ * it is (reducing it would stop the animation), so it keeps the 5 MB that goes out.
+ */
 export function chatImageProblem(file: { type: string; size: number }): string | undefined {
   if (!isChatImageType(file.type)) return NOT_AN_IMAGE_MESSAGE;
-  if (file.size > CHAT_IMAGE_MAX_BYTES) return IMAGE_TOO_BIG_MESSAGE;
+  if (file.type === "image/gif" && file.size > CHAT_IMAGE_MAX_BYTES) return GIF_TOO_BIG_MESSAGE;
+  if (file.size > CHAT_IMAGE_PICK_MAX_BYTES) return IMAGE_TOO_BIG_MESSAGE;
   return undefined;
+}
+
+/** An image that already fits goes as picked: reducing it again would only lose detail. */
+export function goesAsPicked(image: {
+  type: string;
+  size: number;
+  width: number;
+  height: number;
+}): boolean {
+  if (image.type === "image/gif") return true;
+  if (image.size > CHAT_IMAGE_MAX_BYTES) return false;
+  return Math.max(image.width, image.height) <= CHAT_IMAGE_MAX_SIDE;
+}
+
+/** The reduced size: the longest side at most 2560 px, the shape kept, never enlarged. */
+export function reducedSize(width: number, height: number): { width: number; height: number } {
+  const scale = Math.min(1, CHAT_IMAGE_MAX_SIDE / Math.max(width, height));
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
 }
 
 /**

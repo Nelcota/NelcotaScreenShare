@@ -97,7 +97,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
         onCancelEdit={editor.cancelEditing}
         onEditLast={editor.editLast}
         onClose={() => chat.setOpen(false)}
-        sendingImage={chat.sendingImage}
+        sendingImage={chat.sendingImage || attachment.preparing}
         onImage={attachment.attach}
         attachment={attachment.attached}
         onRemoveAttachment={attachment.clear}

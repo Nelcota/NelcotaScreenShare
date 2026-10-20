@@ -1,6 +1,12 @@
 import { useEffect, useState, type DragEvent } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
+import {
+  chatImageErrorMessage,
+  ChatImageTooHeavyError,
+  prepareChatImage,
+} from "@/features/room/client/prepare-chat-image";
 import { chatImageProblem } from "@/features/room/domain/chat-images";
+import { reportBrowserError } from "@/lib/telemetry.client";
 
 /** The image waiting in the box, with the preview shown there until it goes. */
 export interface ChatAttachment {
@@ -14,6 +20,8 @@ export interface ChatAttachment {
  */
 export function useChatAttachment() {
   const [attached, setAttached] = useState<ChatAttachment>();
+  // Reducing a big photo takes a moment: Enter waits for it.
+  const [preparing, setPreparing] = useState(false);
 
   // Each preview is freed when another image replaces it or the box empties.
   useEffect(() => {
@@ -21,17 +29,35 @@ export function useChatAttachment() {
     return () => URL.revokeObjectURL(attached.preview);
   }, [attached]);
 
-  /** Checks the image (type and size) before it waits in the box; says why when it cannot. */
-  function attach(file: File) {
-    const problem = chatImageProblem(file);
+  /**
+   * Checks the image (type and size), reduces it when it is too big to go (#496), and lets it
+   * wait in the box; says why when it cannot.
+   */
+  async function attach(picked: File) {
+    const problem = chatImageProblem(picked);
     if (problem) {
       toast.error(problem);
       return;
     }
-    setAttached({ file, preview: URL.createObjectURL(file) });
+    setPreparing(true);
+    try {
+      const file = await prepareChatImage(picked);
+      setAttached({ file, preview: URL.createObjectURL(file) });
+    } catch (error) {
+      // Too heavy even reduced is the person's file, not a fault to report.
+      if (!(error instanceof ChatImageTooHeavyError)) reportBrowserError(error);
+      toast.error(chatImageErrorMessage(error));
+    } finally {
+      setPreparing(false);
+    }
   }
 
-  return { attached, attach, clear: () => setAttached(undefined) };
+  return {
+    attached,
+    preparing,
+    attach: (file: File) => void attach(file),
+    clear: () => setAttached(undefined),
+  };
 }
 
 function carriesFiles(event: DragEvent<HTMLElement>): boolean {

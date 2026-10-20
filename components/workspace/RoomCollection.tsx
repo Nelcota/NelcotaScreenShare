@@ -26,28 +26,24 @@ export function showsProNotice(pro: { active: boolean }, rooms: readonly unknown
  * The Pro notice for rooms. Your rooms: the whole page, like Times. A team's rooms: one part
  * of the team page, under its title.
  */
+const PRO_NOTICES = {
+  personal: {
+    title: "Minhas salas",
+    description: "Salas que ficam sempre no mesmo link, com o histórico das chamadas.",
+    heading: "h1",
+    className: "min-h-[calc(100dvh-12rem)] py-12",
+  },
+  team: {
+    title: "Salas do time",
+    description: "Salas que ficam sempre no mesmo link, com o histórico das chamadas do time.",
+    heading: "h2",
+    className: "panel rounded-2xl px-6 py-10",
+  },
+} as const;
+
 function WithoutPro({ team }: { team: boolean }) {
-  if (team) {
-    return (
-      <ProOnlyNotice
-        icon={Video}
-        title="Salas do time"
-        description="Salas que ficam sempre no mesmo link, com o histórico das chamadas do time."
-        note="Por enquanto, crie uma sala pelo Início."
-        heading="h2"
-        className="panel rounded-2xl px-6 py-10"
-      />
-    );
-  }
-  return (
-    <ProOnlyNotice
-      icon={Video}
-      title="Minhas salas"
-      description="Salas que ficam sempre no mesmo link, com o histórico das chamadas."
-      note="Por enquanto, crie uma sala pelo Início."
-      className="min-h-[calc(100dvh-12rem)] py-12"
-    />
-  );
+  const notice = PRO_NOTICES[team ? "team" : "personal"];
+  return <ProOnlyNotice icon={Video} note="Por enquanto, crie uma sala pelo Início." {...notice} />;
 }
 
 /** Why "Nova sala" is off, when it is. */

@@ -15,6 +15,7 @@
 *.tsbuildinfo
 
 # Local files
+/.data
 .DS_Store
 *.pem
 

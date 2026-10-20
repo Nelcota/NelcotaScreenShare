@@ -6,9 +6,11 @@ import {
   CHAT_IMAGES_PER_MINUTE,
   chatImageProblem,
   imageTypeOf,
+  receivedCaption,
   receivedImageType,
   sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
+import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
 
 const PNG = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0);
 const JPEG = Uint8Array.of(0xff, 0xd8, 0xff, 0xe0, 0, 0);
@@ -62,4 +64,14 @@ test("the sender holds back the image the others would drop, and says why", () =
   assert.equal(sendingPaceProblem(ten.slice(1), 2_000), undefined);
   assert.equal(sendingPaceProblem(ten, 2_000), "Espere um pouco para mandar mais imagens.");
   assert.equal(sendingPaceProblem(ten, 61_000), undefined);
+});
+
+test("the text sent with an image is held to the chat limit, and only text counts", () => {
+  assert.equal(receivedCaption({ caption: "  Olha isso  " }), "Olha isso");
+  assert.equal(
+    receivedCaption({ caption: "a".repeat(CHAT_MAX_LENGTH + 50) }).length,
+    CHAT_MAX_LENGTH,
+  );
+  assert.equal(receivedCaption({}), "");
+  assert.equal(receivedCaption(undefined), "");
 });

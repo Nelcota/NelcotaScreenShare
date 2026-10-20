@@ -67,7 +67,7 @@ export function ChatMessage({
         )}
         <div className={cn("flex max-w-full items-center gap-1", mine && "flex-row-reverse")}>
           {message.image ? (
-            <ChatImageBubble image={message.image} mine={mine} senderName={name} />
+            <ImageMessage image={message.image} text={message.text} mine={mine} senderName={name} />
           ) : message.deleted ? (
             <p className="flex items-center gap-1.5 rounded-2xl border border-dashed border-line-strong px-3.5 py-2 text-sm text-ink-subtle italic">
               {mine ? "Você apagou esta mensagem" : "Mensagem apagada"}
@@ -84,6 +84,26 @@ export function ChatMessage({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/** An image, with the text sent with it above, in one message. */
+function ImageMessage({
+  image,
+  text,
+  mine,
+  senderName,
+}: {
+  image: { url: string; name: string };
+  text: string;
+  mine: boolean;
+  senderName: string;
+}) {
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-1", mine && "items-end")}>
+      {text ? <MessageText text={text} mine={mine} editing={false} /> : null}
+      <ChatImageBubble image={image} mine={mine} senderName={senderName} />
+    </div>
   );
 }
 

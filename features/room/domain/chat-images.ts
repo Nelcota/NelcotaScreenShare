@@ -4,7 +4,25 @@
  * type (its first bytes, not the name or the declared type) are checked before showing.
  */
 
+import { z } from "zod";
+import { capChatText } from "./data-channel";
+
 export const CHAT_IMAGE_TOPIC = "nelcota.chat-image";
+
+/** The text sent with an image, as an attribute of the same stream: one message, one send. */
+export const CHAT_IMAGE_CAPTION_ATTRIBUTE = "caption";
+
+const captionSchema = z.string();
+
+/**
+ * The text that came with a received image. It comes from another browser, so it is held to
+ * the same limit as any chat text; anything that is not text is no caption at all.
+ */
+export function receivedCaption(attributes: Readonly<Record<string, string>> | undefined): string {
+  const parsed = captionSchema.safeParse(attributes?.[CHAT_IMAGE_CAPTION_ATTRIBUTE]);
+  if (!parsed.success) return "";
+  return capChatText(parsed.data.trim());
+}
 
 /** 5 MB: enough for a full-screen print, small enough for everyone in the call. */
 export const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;

@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import type * as React from "react";
 
-const state = vi.hoisted(() => ({ sendFile: vi.fn() }));
+const state = vi.hoisted(() => ({ streamBytes: vi.fn() }));
 vi.mock("react", async (original) => ({
   ...(await original<typeof React>()),
   useEffect: () => {},
@@ -11,36 +11,42 @@ vi.mock("react", async (original) => ({
 }));
 vi.mock("@livekit/components-react", () => ({
   useRoomContext: () => ({}),
-  useLocalParticipant: () => ({ localParticipant: { sendFile: state.sendFile } }),
+  useLocalParticipant: () => ({ localParticipant: { streamBytes: state.streamBytes } }),
 }));
 vi.mock("@/lib/telemetry.client", () => ({ logBrowserWarning: vi.fn() }));
 const { useChatImages } = await import("@/features/room/hooks/use-chat-images");
 const image = new File([Uint8Array.of(1)], "print.png", { type: "image/png" });
+/** The byte stream LiveKit hands back: the image and its text go out through it. */
+const writer = (id: string) => ({
+  info: { id },
+  write: vi.fn(async () => {}),
+  close: vi.fn(async () => {}),
+});
 beforeEach(() => vi.resetAllMocks());
 
 test("clipboard pastes cannot start concurrent transfers", async () => {
-  const { promise, resolve } = Promise.withResolvers<{ id: string }>();
-  state.sendFile.mockReturnValue(promise);
+  const { promise, resolve } = Promise.withResolvers<ReturnType<typeof writer>>();
+  state.streamBytes.mockReturnValue(promise);
   const chat = useChatImages();
   const first = chat.sendImage(image);
   expect(await chat.sendImage(image)).toBe("Wait for the current image to finish sending.");
-  expect(state.sendFile).toHaveBeenCalledOnce();
-  resolve({ id: "first" });
+  expect(state.streamBytes).toHaveBeenCalledOnce();
+  resolve(writer("first"));
   expect(await first).toBeUndefined();
 });
 
 test("the eleventh transfer is refused before publishing", async () => {
-  state.sendFile.mockResolvedValue({ id: "image" });
+  state.streamBytes.mockResolvedValue(writer("image"));
   const chat = useChatImages();
   for (let index = 0; index < 10; index += 1) expect(await chat.sendImage(image)).toBeUndefined();
   expect(await chat.sendImage(image)).toBeDefined();
-  expect(state.sendFile).toHaveBeenCalledTimes(10);
+  expect(state.streamBytes).toHaveBeenCalledTimes(10);
 });
 
 test("a failed transfer releases the concurrent-send guard", async () => {
-  state.sendFile
+  state.streamBytes
     .mockRejectedValueOnce(new Error("disconnected"))
-    .mockResolvedValue({ id: "retry" });
+    .mockResolvedValue(writer("retry"));
   const chat = useChatImages();
   await expect(chat.sendImage(image)).rejects.toThrow("disconnected");
   expect(await chat.sendImage(image)).toBeUndefined();

@@ -20,7 +20,6 @@ import {
   removeParticipantPhotoAction,
   resetParticipantNameAction,
 } from "@/features/admin/participants/actions.server";
-import { setAdminLinkAction } from "@/features/admin/participants/admin-link-actions.server";
 import {
   deleteRoomsAction,
   restoreRoomsAction,
@@ -106,7 +105,6 @@ export const operations: OperationHandlers = {
   "admin-account-revokeOtherOwnSessions": revokeOtherOwnSessions,
   "admin-live-closeGhostRoomAction": closeGhostRoomAction,
   "admin-participants-blockParticipantsAction": blockParticipantsAction,
-  "admin-participants-setAdminLinkAction": setAdminLinkAction,
   "admin-participants-unblockParticipantsAction": unblockParticipantsAction,
   "admin-participants-deleteParticipantsAction": deleteParticipantsAction,
   "admin-participants-restoreParticipantsAction": restoreParticipantsAction,

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, test } from "vitest";
@@ -105,6 +106,26 @@ describe("the hidden admin panel", () => {
     assert.deepEqual(await verdict(`/api/admin/auth/reset-password/token-ruim${callback}`), {
       kind: "hidden",
     });
+  });
+
+  /** The check runs before React Router: a renewal it causes must still reach the browser. */
+  test("a panel session renewed by the check sends its new cookie", async () => {
+    const { adminSession } = await import("./support/admin-session");
+    const { collectSessionCookies } = await import("@/server/response-cookies.server");
+    const { panelVerdict } = await import("@/features/auth/server/panel-visibility.server");
+    const admin = await adminSession(db, "viewer");
+    await db
+      .update(schema.adminSessions)
+      .set({ expiresAt: new Date(Date.now() + 10 * 60 * 60_000) })
+      .where(eq(schema.adminSessions.userId, admin.id));
+    const request = new Request("http://localhost:3000/admin", { headers: admin.headers });
+    const { result, cookies } = await collectSessionCookies(() => panelVerdict(request));
+    assert.deepEqual(result, { kind: "through" });
+    assert.ok(
+      cookies.some(
+        (value) => value.startsWith("nelcota-admin.session_token=") && /Max-Age=43200/i.test(value),
+      ),
+    );
   });
 
   test("the pass opens the panel's sign-in and its API", async () => {

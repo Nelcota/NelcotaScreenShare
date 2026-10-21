@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { newParticipant, joinRoom, newRoomCode, setJoinMicrophone } from "./support/session";
 import { E2E_ACCESS_PASSWORD } from "./support/env";
 import { fakeScreenCapture } from "./support/screen-capture";
+import { ANNOTATION_TTL } from "@/features/room/domain/annotations";
 import { keyboardMark } from "./support/annotations";
 
 test.skip(
@@ -11,6 +12,12 @@ test.skip(
 
 async function watchScreen(page: Page, sharer: string) {
   await page.getByRole("button", { name: `Assistir à tela de ${sharer}` }).click();
+}
+
+async function annotationIds(page: Page) {
+  return page
+    .locator("[data-annotation]")
+    .evaluateAll((marks) => marks.map((mark) => mark.getAttribute("data-annotation")));
 }
 
 test("five participants, two screens, three annotators and an empty newcomer state", async ({
@@ -62,13 +69,20 @@ test("five participants, two screens, three annotators and an empty newcomer sta
 
     // A fresh mark, seen, so "Limpar" is what takes it away and not its 10 s life. The second
     // writer draws it: the first one's tool is still open, and a click there would close it.
+    // Waiting for its own id keeps the first writer's older mark from standing in for it.
+    const seen = await annotationIds(firstWriter.page);
+    const drawnFrom = Date.now();
     await keyboardMark(secondWriter.page, "Seta");
     await expect
-      .poll(() => firstWriter.page.locator("[data-annotation]").count())
-      .toBeGreaterThan(0);
+      .poll(async () => (await annotationIds(firstWriter.page)).some((id) => !seen.includes(id)))
+      .toBe(true);
     await host.page.getByRole("button", { name: "Anotar na tela" }).click();
     await host.page.getByRole("button", { name: "Limpar anotações de todos" }).click();
     await expect(firstWriter.page.locator("[data-annotation]")).toHaveCount(0);
+    // The expect timeout (15 s) outlasts a mark's life: the stage must empty before it expires.
+    expect(Date.now() - drawnFrom, "Limpar emptied the stage, not the marks' life").toBeLessThan(
+      ANNOTATION_TTL,
+    );
     await host.page.keyboard.press("Escape");
     for (const person of [firstWriter, secondWriter, newcomer])
       await keyboardMark(person.page, "Círculo");

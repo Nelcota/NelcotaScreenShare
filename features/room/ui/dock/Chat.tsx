@@ -27,7 +27,8 @@ async function sendAttachment(
     return false;
   } catch (error) {
     reportBrowserError(error);
-    toast.error("Não foi possível enviar a imagem. Tente de novo.");
+    const what = attached.kind === "image" ? "a imagem" : "o arquivo";
+    toast.error(`Não foi possível enviar ${what}. Tente de novo.`);
     return false;
   }
 }

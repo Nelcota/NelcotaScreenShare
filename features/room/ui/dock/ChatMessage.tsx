@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { chatParts } from "@/features/room/domain/chat-format";
 import { participantLabel } from "@/features/room/domain/participant-label";
+import { participantPhotoPath } from "@/features/room/domain/participant-photo";
 import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "
 /** A message: yours on the right in green; others' on the left, with an avatar. */
 export function ChatMessage({
   message,
+  roomCode,
   groupStart,
   editing,
   onEdit,
@@ -28,6 +30,8 @@ export function ChatMessage({
   onCopy,
 }: {
   message: ChatEntry;
+  /** The public room code: the photo is asked for with it. */
+  roomCode: string;
   groupStart: boolean;
   editing: boolean;
   onEdit: () => void;
@@ -46,13 +50,11 @@ export function ChatMessage({
       )}
     >
       {mine ? null : (
-        <InitialsAvatar
+        <SenderAvatar
           name={name}
-          source={null}
-          className={cn(
-            "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
-            !groupStart && "invisible",
-          )}
+          identity={message.from?.identity}
+          roomCode={roomCode}
+          shown={groupStart}
         />
       )}
       <div className={cn("flex max-w-[80%] min-w-0 flex-col gap-1", mine && "items-end")}>
@@ -85,6 +87,35 @@ export function ChatMessage({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/**
+ * The sender's face next to their messages. Only the group's first one shows: the hidden
+ * ones keep their place and load no photo.
+ */
+function SenderAvatar({
+  name,
+  identity,
+  roomCode,
+  shown,
+}: {
+  name: string;
+  /** Whoever sent it, when they are known in the call. */
+  identity: string | undefined;
+  roomCode: string;
+  shown: boolean;
+}) {
+  const source = shown && identity !== undefined ? participantPhotoPath(roomCode, identity) : null;
+  return (
+    <InitialsAvatar
+      name={name}
+      source={source}
+      className={cn(
+        "size-7 shrink-0 self-end bg-brand/20 text-xs font-medium text-brand-soft",
+        !shown && "invisible",
+      )}
+    />
   );
 }
 

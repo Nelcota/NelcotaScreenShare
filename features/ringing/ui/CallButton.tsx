@@ -232,7 +232,8 @@ export function GroupCallButton({
       className={cn(CALL_TEXT, className)}
     >
       <Phone className="size-4" aria-hidden="true" />
-      Chamar o grupo
+      {/* Phones show only the icon (the header is narrow); the name stays for screen readers. */}
+      <span className="max-sm:sr-only">Chamar o grupo</span>
     </Button>
   );
 }

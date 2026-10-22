@@ -10,7 +10,7 @@ Prerequisites: Node 26.9+, pnpm 12.9.1 (`npm install -g pnpm@12.9.1`) and Docker
 # 1. LiveKit in dev mode (the key must be 32+ characters; the app validates this)
 docker run -d --name lk-dev \
   -p 7880:7880 -p 7881:7881 -p 7882:7882/udp \
-  livekit/livekit-server:v1.13.9 \
+  livekit/livekit-server:v1.13.10 \
   --dev --bind 0.0.0.0 --node-ip 127.0.0.1 \
   --keys "devkey: devsecret-0123456789abcdef0123456789abcdef"
 

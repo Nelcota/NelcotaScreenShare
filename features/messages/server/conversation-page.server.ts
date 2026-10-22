@@ -19,6 +19,12 @@ async function conversationName(db: DbExecutor, conversationId: string) {
   return row?.name ?? null;
 }
 
+/** The newest page of messages, with their GIFs and attachments resolved. */
+async function newestPage(db: DbExecutor, conversationId: string, userId: string) {
+  const page = await withGifs(await listMessages(db, conversationId, null, userId));
+  return withAttachments(db, attachmentStorage(), page);
+}
+
 /**
  * Everything the open conversation draws: who is in it, the newest page of messages,
  * whether it still takes messages and the GIF favourites. Null for a non-member.
@@ -29,9 +35,7 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
   const [name, others, page, gifFavorites] = await Promise.all([
     conversationName(db, conversationId),
     othersByConversation(db, userId, [conversationId]),
-    listMessages(db, conversationId, null, userId)
-      .then(withGifs)
-      .then((withGif) => withAttachments(db, attachmentStorage(), withGif)),
+    newestPage(db, conversationId, userId),
     gifFavoriteSlugs(db, userId),
   ]);
   const otherId = membership.otherId;

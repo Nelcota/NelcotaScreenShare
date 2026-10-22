@@ -26,7 +26,7 @@ export async function uploadAttachment(conversationId: string, file: File): Prom
     fileName: file.name,
     size: file.size,
   });
-  if (!started.data) return { ok: false, message: started.serverError ?? FAILED };
+  if (started.data === undefined) return { ok: false, message: started.serverError ?? FAILED };
 
   const { uploadUrl, uploadHeaders } = started.data;
   // Exactly the headers the server signed: the storage refuses the upload otherwise.
@@ -36,7 +36,7 @@ export async function uploadAttachment(conversationId: string, file: File): Prom
   if (sent === null || !sent.ok) return { ok: false, message: FAILED };
 
   const checked = await confirmAttachment({ attachmentId: started.data.attachmentId });
-  if (!checked.data) return { ok: false, message: checked.serverError ?? FAILED };
+  if (checked.data === undefined) return { ok: false, message: checked.serverError ?? FAILED };
   return { ok: true, attachment: checked.data };
 }
 

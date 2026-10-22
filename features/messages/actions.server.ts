@@ -236,7 +236,7 @@ export const deleteMessage = defineUserOperation(
       const conversationId = await deleteOwnMessage(tx, parsedInput.messageId, ctx.current.user.id);
       return conversationId ? { members: await memberIdsOf(tx, conversationId), files } : null;
     });
-    if (!deleted) throw new ActionError("Mensagem não encontrada.");
+    if (deleted === null) throw new ActionError("Mensagem não encontrada.");
     nudge(deleted.members);
     // The file goes with its message; if removing it fails, the maintenance sweep retries.
     const storage = attachmentStorage();

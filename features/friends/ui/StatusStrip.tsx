@@ -132,11 +132,19 @@ export function StatusStrip({
   );
 }
 
-/** Signing out is a POST (app/routes/sign-out.ts); the app bar has no account menu. */
+/**
+ * Signing out is a POST (app/routes/sign-out.ts); the app bar has no account menu. Picking
+ * the item keeps the menu open: closing it would unmount the form before the browser submits
+ * it (at once when there is no closing animation, as with reduced motion). The page leaves.
+ */
 function SignOutItem() {
   return (
     <form method="post" action="/sair">
-      <DropdownMenuItem asChild className="w-full py-2">
+      <DropdownMenuItem
+        asChild
+        className="w-full py-2"
+        onSelect={(event) => event.preventDefault()}
+      >
         <button type="submit">
           <LogOut className="text-ink-muted" aria-hidden="true" />
           Sair da conta

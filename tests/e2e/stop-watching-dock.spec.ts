@@ -26,6 +26,12 @@ test("whoever watches a screen stops from the dock and can watch it again", asyn
 
     await watch.click();
     await expect(viewer.page.getByLabel("Tela de Mostra Dock")).toBeVisible();
+    // Only the dock stops it: the screen's own controls have no second button.
+    await expect(
+      viewer.page
+        .getByRole("region", { name: "Tela compartilhada por Mostra Dock" })
+        .getByRole("button", { name: "Parar de assistir" }),
+    ).toHaveCount(0);
     await stop.click();
     await expect(watch).toBeVisible();
     await expect(stop).toHaveCount(0);

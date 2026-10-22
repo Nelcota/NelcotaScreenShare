@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import {
   attachmentLimit,
   cleanFileName,
@@ -12,6 +12,7 @@ import { membershipOf } from "@/features/messages/server/conversations.server";
 import { entitlement } from "@/features/rooms/server/entitlements.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { adminUsers, conversationMembers, messageAttachments, users } from "@/server/db/schema";
+import { logger } from "@/server/logger.server";
 import { ActionError } from "@/server/operations/action-error";
 import { newObjectKey, type ObjectStorage } from "@/server/storage/object-storage.server";
 
@@ -241,4 +242,76 @@ export async function withAttachments<Message extends { id: string }>(
     attachment: byMessage.get(message.id) ?? null,
   }));
   return { messages, hasMore: page.hasMore };
+}
+
+/** An upload never sent in a message is kept this long, then swept. */
+const ABANDONED_AFTER_MS = 24 * 60 * 60 * 1000;
+/** Rows handled per sweep; the next run takes the rest. */
+const SWEEP_BATCH = 500;
+
+type StoredRow = { id: string; objectKey: string };
+
+/** The files of one message, read before it is deleted. */
+export async function attachmentsOfMessage(
+  db: DbExecutor,
+  messageId: string,
+): Promise<StoredRow[]> {
+  return db
+    .select({ id: messageAttachments.id, objectKey: messageAttachments.objectKey })
+    .from(messageAttachments)
+    .where(eq(messageAttachments.messageId, messageId));
+}
+
+/**
+ * Deletes the stored files and then their rows. A file that fails to go keeps its row, so the
+ * next sweep tries again; one failure never stops the others.
+ */
+export async function discardAttachments(
+  { db, storage }: AttachmentDeps,
+  rows: readonly StoredRow[],
+): Promise<number> {
+  const removed = await Promise.allSettled(rows.map((row) => storage.remove(row.objectKey)));
+  const gone = rows.filter((_, index) => removed[index]?.status === "fulfilled");
+  for (const [index, outcome] of removed.entries()) {
+    if (outcome.status === "rejected") {
+      logger.warn({ err: outcome.reason, attachmentId: rows[index]?.id }, "attachment not removed");
+    }
+  }
+  if (gone.length === 0) return 0;
+  await db.delete(messageAttachments).where(
+    inArray(
+      messageAttachments.id,
+      gone.map((row) => row.id),
+    ),
+  );
+  return gone.length;
+}
+
+/**
+ * The files nobody can reach any more (LGPD): their conversation or their sender's account is
+ * gone, or the upload was never sent in a message for a day (a deleted message leaves its
+ * file this way too, when removing it at once failed). Runs with the maintenance.
+ */
+export async function sweepAttachments(
+  db: DbExecutor,
+  storage: ObjectStorage | null,
+  now = new Date(),
+): Promise<number> {
+  if (storage === null) return 0;
+  const abandonedBefore = new Date(now.getTime() - ABANDONED_AFTER_MS);
+  const rows = await db
+    .select({ id: messageAttachments.id, objectKey: messageAttachments.objectKey })
+    .from(messageAttachments)
+    .where(
+      or(
+        isNull(messageAttachments.conversationId),
+        isNull(messageAttachments.uploaderId),
+        and(
+          isNull(messageAttachments.messageId),
+          lt(messageAttachments.createdAt, abandonedBefore),
+        ),
+      ),
+    )
+    .limit(SWEEP_BATCH);
+  return discardAttachments({ db, storage }, rows);
 }

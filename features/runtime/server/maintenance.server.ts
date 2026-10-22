@@ -1,4 +1,6 @@
 import { purgeTeamInvitations } from "@/features/team/server/retention.server";
+import { sweepAttachments } from "@/features/messages/server/attachments.server";
+import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { closeGhostRooms } from "@/features/admin/live/server/close-ghost.server";
 import { liveKitRoomNames } from "@/features/admin/live/server/livekit-rooms.server";
 import { and, isNotNull, lt, sql } from "drizzle-orm";
@@ -66,6 +68,7 @@ export interface MaintenanceReport {
   joinRequests: number;
   roomBans: number;
   auditLogs: number;
+  attachments: number;
 }
 
 /**
@@ -128,6 +131,7 @@ export async function runMaintenance(db: Database, now = new Date()): Promise<Ma
     .returning({ id: roomBans.id });
 
   const auditLogs = await purgeExpiredAuditLogs(db);
+  const attachments = await sweepAttachments(db, attachmentStorage(), now);
 
   const failures = await purgeOldFailures(db, now);
 
@@ -159,6 +163,7 @@ export async function runMaintenance(db: Database, now = new Date()): Promise<Ma
     joinRequests: joins.length,
     roomBans: bans.length,
     auditLogs,
+    attachments,
   };
 }
 

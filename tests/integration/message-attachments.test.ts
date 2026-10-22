@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -16,11 +16,15 @@ import {
   users,
 } from "@/server/db/schema";
 import {
+  attachmentsOfMessage,
   attachToMessage,
   attachmentDownloadUrl,
   confirmAttachment,
+  discardAttachments,
   requestAttachmentUpload,
+  sweepAttachments,
 } from "@/features/messages/server/attachments.server";
+import { forgetMessages, messageData } from "@/features/messages/server/message-privacy.server";
 import { insertMessage } from "@/features/messages/server/messages.server";
 import { ATTACHMENT_LIMITS } from "@/features/messages/domain/attachments";
 import { createLocalDiskStorage } from "@/server/storage/local-disk-storage.server";
@@ -77,6 +81,31 @@ function ask(userId: string, conversationId: string, size: number) {
 async function upload(url: string, body: string | Uint8Array) {
   const token = new URL(url).pathname.split("/").at(-1) ?? "";
   expect(await storage().acceptUpload(token, Readable.from([Buffer.from(body)]))).toBe(true);
+}
+
+/** Sends a small text file in a message and returns its row's id and storage key. */
+async function sentFile(author: string, conversationId: string) {
+  const started = await requestAttachmentUpload(deps(), {
+    userId: author,
+    conversationId,
+    fileName: "nota.txt",
+    size: 2,
+  });
+  await upload(started.uploadUrl, "oi");
+  await confirmAttachment(deps(), { userId: author, attachmentId: started.attachmentId });
+  const message = await insertMessage(db, conversationId, author, { body: null, gifSlug: null });
+  await attachToMessage(db, {
+    attachmentId: started.attachmentId,
+    authorId: author,
+    conversationId,
+    messageId: message.id,
+  });
+  const [row] = await db
+    .select({ objectKey: messageAttachments.objectKey })
+    .from(messageAttachments)
+    .where(eq(messageAttachments.id, started.attachmentId));
+  if (row === undefined) throw new Error("the attachment was not recorded");
+  return { id: started.attachmentId, objectKey: row.objectKey, messageId: message.id };
 }
 
 describe("message attachments", () => {
@@ -231,5 +260,67 @@ describe("message attachments", () => {
     expect(
       await attachmentDownloadUrl(deps(), { userId: bia, attachmentId: started.attachmentId }),
     ).toMatch(/\/api\/arquivos\/baixar\//);
+  });
+
+  test("deleting the message removes its file at once", async () => {
+    const ana = await person("Ana");
+    const conversationId = await conversation(ana, await person("Bia"));
+    const file = await sentFile(ana, conversationId);
+
+    const removed = await discardAttachments(
+      deps(),
+      await attachmentsOfMessage(db, file.messageId),
+    );
+
+    expect(removed).toBe(1);
+    expect(await storage().head(file.objectKey)).toBeNull();
+  });
+
+  test("the sweep erases files whose conversation or sender is gone, and day-old uploads never sent", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const groupGone = await sentFile(ana, conversationId);
+    await db
+      .update(messageAttachments)
+      .set({ conversationId: null })
+      .where(eq(messageAttachments.id, groupGone.id));
+    const kept = await sentFile(bia, conversationId);
+    const abandoned = await requestAttachmentUpload(deps(), {
+      userId: bia,
+      conversationId,
+      fileName: "rascunho.txt",
+      size: 1,
+    });
+    await upload(abandoned.uploadUrl, "x");
+    const tomorrow = new Date(Date.now() + 25 * 60 * 60 * 1000);
+
+    await sweepAttachments(db, storage(), tomorrow);
+
+    const left = await db
+      .select({ id: messageAttachments.id })
+      .from(messageAttachments)
+      .where(inArray(messageAttachments.id, [groupGone.id, kept.id, abandoned.attachmentId]));
+    expect(left).toEqual([{ id: kept.id }]);
+    expect(await storage().head(groupGone.objectKey)).toBeNull();
+    expect(await storage().head(kept.objectKey)).not.toBeNull();
+  });
+
+  test("a deleted account's files become unreachable and are swept; the export lists what was sent", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const file = await sentFile(ana, conversationId);
+    expect((await messageData(db, ana)).arquivos_enviados).toEqual([
+      expect.objectContaining({ conversa: conversationId, nome: "nota.txt", tipo: "text" }),
+    ]);
+
+    await forgetMessages(db, ana);
+    await expect(
+      attachmentDownloadUrl(deps(), { userId: bia, attachmentId: file.id }),
+    ).rejects.toThrow("Arquivo não encontrado.");
+    await sweepAttachments(db, storage());
+
+    expect(await storage().head(file.objectKey)).toBeNull();
   });
 });

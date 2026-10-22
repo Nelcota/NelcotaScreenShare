@@ -121,6 +121,12 @@ function PurposeAndRetentionSections() {
           <PrivacyItem title="Registros de auditoria (IP)" aside={<Duration>5 anos</Duration>} />
           <PrivacyItem title="Mensagens" aside={<Duration>Até quem enviou apagar</Duration>} />
           <PrivacyItem
+            title="Arquivos nas conversas"
+            aside={<Duration>Até quem enviou apagar</Duration>}
+          >
+            Somem com a mensagem. Os de uma conta excluída, em até 6 horas.
+          </PrivacyItem>
+          <PrivacyItem
             title="Cópia da mensagem denunciada"
             aside={<Duration>Até a denúncia ser avaliada</Duration>}
           />

@@ -30,7 +30,12 @@ import {
   type MessageContent,
 } from "@/features/messages/server/messages.server";
 import { notifyUsers } from "@/features/live/server/live-bus.server";
-import { attachToMessage, withAttachments } from "@/features/messages/server/attachments.server";
+import {
+  attachmentsOfMessage,
+  attachToMessage,
+  discardAttachments,
+  withAttachments,
+} from "@/features/messages/server/attachments.server";
 import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
@@ -226,12 +231,16 @@ export const deleteMessage = defineUserOperation(
   { name: "messages.delete", audit: "none" },
   messageSchema,
   async ({ parsedInput, ctx }) => {
-    const members = await getDb().transaction(async (tx) => {
+    const deleted = await getDb().transaction(async (tx) => {
+      const files = await attachmentsOfMessage(tx, parsedInput.messageId);
       const conversationId = await deleteOwnMessage(tx, parsedInput.messageId, ctx.current.user.id);
-      return conversationId ? memberIdsOf(tx, conversationId) : null;
+      return conversationId ? { members: await memberIdsOf(tx, conversationId), files } : null;
     });
-    if (!members) throw new ActionError("Mensagem não encontrada.");
-    nudge(members);
+    if (!deleted) throw new ActionError("Mensagem não encontrada.");
+    nudge(deleted.members);
+    // The file goes with its message; if removing it fails, the maintenance sweep retries.
+    const storage = attachmentStorage();
+    if (storage !== null) await discardAttachments({ db: getDb(), storage }, deleted.files);
     return { deleted: true };
   },
 );

@@ -1,9 +1,10 @@
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, sql } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
 import {
   conversationMembers,
   conversations,
   gifFavorites,
+  messageAttachments,
   messages,
   users,
 } from "@/server/db/schema";
@@ -48,6 +49,23 @@ export async function messageData(db: DbExecutor, userId: string) {
     .from(messages)
     .where(eq(messages.authorId, userId))
     .orderBy(asc(messages.createdAt));
+  const files = await db
+    .select({
+      conversa: messageAttachments.conversationId,
+      nome: messageAttachments.fileName,
+      tipo: messageAttachments.kind,
+      tamanho_bytes: messageAttachments.sizeBytes,
+      enviado_em: messageAttachments.confirmedAt,
+    })
+    .from(messageAttachments)
+    .where(
+      and(
+        eq(messageAttachments.uploaderId, userId),
+        eq(messageAttachments.status, "ready"),
+        isNotNull(messageAttachments.messageId),
+      ),
+    )
+    .orderBy(asc(messageAttachments.confirmedAt));
   const favorites = await db
     .select({ gif: gifFavorites.slug, salvo_em: gifFavorites.createdAt })
     .from(gifFavorites)
@@ -59,6 +77,8 @@ export async function messageData(db: DbExecutor, userId: string) {
       tipo: CONVERSATION_KIND_IN_EXPORT[row.tipo],
     })),
     mensagens_enviadas: sent,
+    // The files themselves are downloaded from the conversation; here, what was sent.
+    arquivos_enviados: files,
     gifs_favoritos: favorites,
   };
 }
@@ -78,6 +98,11 @@ export async function forgetMessages(db: DbExecutor, userId: string) {
     .where(eq(conversationMembers.userId, userId))
     .returning({ conversationId: conversationMembers.conversationId });
   await db.delete(gifFavorites).where(eq(gifFavorites.userId, userId));
+  // Their files lose their sender: unreachable now, erased by the next maintenance sweep.
+  await db
+    .update(messageAttachments)
+    .set({ uploaderId: null })
+    .where(eq(messageAttachments.uploaderId, userId));
   const conversationIds = [
     ...new Set([...touched, ...memberships].map((row) => row.conversationId)),
   ];

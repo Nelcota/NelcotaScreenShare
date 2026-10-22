@@ -32,11 +32,25 @@ function renamed(name: string, extension: string): string {
   return `${base || "imagem"}.${extension}`;
 }
 
+/** JPEG has no transparency and the browser fills it with black: it goes on white instead. */
+function onWhite(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const flat = document.createElement("canvas");
+  flat.width = canvas.width;
+  flat.height = canvas.height;
+  const context = flat.getContext("2d");
+  if (!context) return canvas;
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, flat.width, flat.height);
+  context.drawImage(canvas, 0, 0);
+  return flat;
+}
+
 /** The first encoding, from the best, that the browser writes and that fits in 5 MB. */
 async function encodeWithin(canvas: HTMLCanvasElement, name: string): Promise<File> {
   for (const format of FORMATS) {
+    const source = format.type === "image/jpeg" ? onWhite(canvas) : canvas;
     for (const quality of QUALITIES) {
-      const blob = await canvasBlob(canvas, format.type, quality);
+      const blob = await canvasBlob(source, format.type, quality);
       // Measured on what goes out, after every transformation.
       if (blob?.type !== format.type) break;
       if (blob.size <= CHAT_IMAGE_MAX_BYTES) {

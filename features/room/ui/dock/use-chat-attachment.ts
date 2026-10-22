@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
 import {
   chatImageErrorMessage,
@@ -30,6 +30,8 @@ export function useChatAttachment() {
   const [attached, setAttached] = useState<ChatAttachment>();
   // Reducing a big photo takes a moment: Enter waits for it.
   const [preparing, setPreparing] = useState(false);
+  // Counts the images handed in: only the last one may land in the box.
+  const latest = useRef(0);
 
   // Each preview is freed when another image replaces it or the box empties.
   useEffect(() => {
@@ -66,16 +68,21 @@ export function useChatAttachment() {
       toast.error(problem);
       return;
     }
+    // A paste or drop while a big picture is reduced replaces it: the earlier one, when it
+    // finishes, neither lands in the box nor ends the wait of the newer one.
+    const turn = ++latest.current;
     setPreparing(true);
     try {
       const file = await prepareChatImage(picked);
+      if (turn !== latest.current) return;
       setAttached({ kind: "image", file, preview: URL.createObjectURL(file) });
     } catch (error) {
+      if (turn !== latest.current) return;
       // Too heavy even reduced is the person's file, not a fault to report.
       if (!(error instanceof ChatImageTooHeavyError)) reportBrowserError(error);
       toast.error(chatImageErrorMessage(error));
     } finally {
-      setPreparing(false);
+      if (turn === latest.current) setPreparing(false);
     }
   }
 

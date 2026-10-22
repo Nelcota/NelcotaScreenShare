@@ -89,7 +89,10 @@ export function FriendsSidebar({
       >
         {tabContent}
       </FriendsColumn>
-      <StatusStrip account={data.account} status={data.ownStatus} />
+      {/* The minimized call card never rests on the account and settings at the bottom. */}
+      <div data-call-card-clear="">
+        <StatusStrip account={data.account} status={data.ownStatus} />
+      </div>
     </>
   );
 

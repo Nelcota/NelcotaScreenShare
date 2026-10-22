@@ -103,6 +103,10 @@ const envSchema = z
     // GIFs in messages. The browser calls KLIPY with this key, so it is public by design;
     // without it, the GIF button does not show.
     KLIPY_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    // Where message attachments are stored (ADR 0011). "local" keeps them on this machine's
+    // disk (.data/attachments), for development and the E2E. Unset: local outside
+    // production, and attachments off in production until its storage is configured.
+    ATTACHMENTS_STORAGE: z.preprocess(emptyToUndefined, z.enum(["local"]).optional()),
     LOG_LEVEL: logLevelSchema,
     // Commit SHA, set by CI in the image (shows up in /api/ready and in Sentry).
     APP_VERSION: z.preprocess(emptyToUndefined, z.string().max(64).optional()),

@@ -79,6 +79,8 @@ export default [
   route("api/sala/moderar", "routes/api/room/moderate.ts"),
   route("api/sala/foto", "routes/api/room/photo.ts"),
   route("api/amigos/foto", "routes/api/friends/photo.ts"),
+  route("api/arquivos/envio/:token", "routes/api/files/upload.ts"),
+  route("api/arquivos/baixar/:token", "routes/api/files/download.ts"),
   route("api/sala/papel", "routes/api/room/role.ts"),
   route("api/amigos/presenca", "routes/api/friends/presence.ts"),
   route("api/chamadas/sala", "routes/api/ringing/call-room.ts"),

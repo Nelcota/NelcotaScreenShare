@@ -12,26 +12,10 @@ import {
   type TimelineMessage,
 } from "@/features/messages/domain/timeline";
 import { useNow } from "@/lib/hooks/use-now";
+import { AttachmentMessage } from "@/features/messages/ui/AttachmentMessage";
+import { BubbleTime } from "@/features/messages/ui/BubbleTime";
 import { useOperation } from "@/lib/operations/use-operation";
 import { cn } from "@/lib/utils";
-
-/** The time inside the bubble, at its end, like a phone chat. */
-function BubbleTime({ at, own, overlay }: { at: Date; own: boolean; overlay?: boolean }) {
-  return (
-    <time
-      dateTime={at.toISOString()}
-      className={cn(
-        "text-[0.6875rem] leading-none tabular-nums",
-        overlay
-          ? "absolute right-2.5 bottom-2.5 rounded-full bg-black/55 px-1.5 py-1 text-white"
-          : "float-right mt-2 ml-3 translate-y-0.5",
-        !overlay && (own ? "text-brand-ink/70" : "text-ink-subtle"),
-      )}
-    >
-      {messageTime(at)}
-    </time>
-  );
-}
 
 /** A GIF inside its bubble, keeping its proportions; a short note when it is gone. */
 function GifView({ gif, at, own }: { gif: Gif | null; at: Date; own: boolean }) {
@@ -102,7 +86,6 @@ function MessageItem({
   /** Groups name the other person above their first bubble. */
   showName: boolean;
 }) {
-  const gif = message.gifSlug !== null;
   return (
     <li
       className={cn(
@@ -112,34 +95,62 @@ function MessageItem({
       )}
     >
       {own ? <DeleteButton messageId={message.id} /> : null}
-      <div
-        className={cn(
-          "max-w-[min(80%,34rem)] rounded-2xl shadow-xs",
-          own ? "bg-brand text-brand-ink" : "border border-line bg-surface-2 text-ink",
-          first && (own ? "rounded-tr-md" : "rounded-tl-md"),
-          gif ? "p-1" : "px-3 py-2",
-        )}
-      >
-        {first && showName && !own ? (
-          <p
-            className={cn(
-              "text-xs font-semibold text-brand-soft",
-              gif ? "px-2 pt-1 pb-1.5" : "pb-0.5",
-            )}
-          >
-            {message.authorName}
-          </p>
-        ) : null}
-        {gif ? (
-          <GifView gif={message.gif} at={message.createdAt} own={own} />
-        ) : (
-          <p className="text-[0.9375rem] leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
-            {message.body}
-            <BubbleTime at={message.createdAt} own={own} />
-          </p>
-        )}
-      </div>
+      {message.attachment ? (
+        <AttachmentMessage
+          message={message}
+          attachment={message.attachment}
+          own={own}
+          showName={showName}
+          first={first}
+        />
+      ) : (
+        <TextBubble message={message} first={first} own={own} showName={showName} />
+      )}
     </li>
+  );
+}
+
+/** A text or a GIF in its bubble, with the author's name over the first one in groups. */
+function TextBubble({
+  message,
+  first,
+  own,
+  showName,
+}: {
+  message: TimelineMessage;
+  first: boolean;
+  own: boolean;
+  showName: boolean;
+}) {
+  const gif = message.gifSlug !== null;
+  return (
+    <div
+      className={cn(
+        "max-w-[min(80%,34rem)] rounded-2xl shadow-xs",
+        own ? "bg-brand text-brand-ink" : "border border-line bg-surface-2 text-ink",
+        first && (own ? "rounded-tr-md" : "rounded-tl-md"),
+        gif ? "p-1" : "px-3 py-2",
+      )}
+    >
+      {first && showName && !own ? (
+        <p
+          className={cn(
+            "text-xs font-semibold text-brand-soft",
+            gif ? "px-2 pt-1 pb-1.5" : "pb-0.5",
+          )}
+        >
+          {message.authorName}
+        </p>
+      ) : null}
+      {gif ? (
+        <GifView gif={message.gif} at={message.createdAt} own={own} />
+      ) : (
+        <p className="text-[0.9375rem] leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
+          {message.body}
+          <BubbleTime at={message.createdAt} own={own} />
+        </p>
+      )}
+    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   attachmentLimit,
   cleanFileName,
@@ -6,6 +6,7 @@ import {
   hasBlockedExtension,
   SNIFF_BYTES,
   type AttachmentKind,
+  type MessageAttachment,
 } from "@/features/messages/domain/attachments";
 import { membershipOf } from "@/features/messages/server/conversations.server";
 import { entitlement } from "@/features/rooms/server/entitlements.server";
@@ -197,4 +198,47 @@ export async function attachToMessage(
     )
     .returning({ id: messageAttachments.id });
   if (attached.length === 0) throw new ActionError(NOT_FOUND);
+}
+
+/** How long an image preview link in the conversation lasts. */
+const PREVIEW_LINK_SECONDS = 30 * 60;
+
+/**
+ * The checked attachment of each message on the page, with a preview link for images. The
+ * page was already limited to what the viewer may see, so every attachment here is theirs to
+ * see. Without a storage (attachments off), files still show, without a preview.
+ */
+export async function withAttachments<Message extends { id: string }>(
+  db: DbExecutor,
+  storage: ObjectStorage | null,
+  page: { messages: Message[]; hasMore: boolean },
+): Promise<{ messages: (Message & { attachment: MessageAttachment | null })[]; hasMore: boolean }> {
+  const ids = page.messages.map((message) => message.id);
+  if (ids.length === 0) return { messages: [], hasMore: page.hasMore };
+  const rows = await db
+    .select()
+    .from(messageAttachments)
+    .where(and(inArray(messageAttachments.messageId, ids), eq(messageAttachments.status, "ready")));
+  const byMessage = new Map<string, MessageAttachment>();
+  await Promise.all(
+    rows.map(async (row) => {
+      if (row.messageId === null || row.kind === null || row.sizeBytes === null) return;
+      const previewUrl =
+        row.kind === "image" && storage !== null
+          ? await storage.downloadUrl(row.objectKey, PREVIEW_LINK_SECONDS)
+          : null;
+      byMessage.set(row.messageId, {
+        id: row.id,
+        fileName: row.fileName,
+        kind: row.kind,
+        size: row.sizeBytes,
+        previewUrl,
+      });
+    }),
+  );
+  const messages = page.messages.map((message) => ({
+    ...message,
+    attachment: byMessage.get(message.id) ?? null,
+  }));
+  return { messages, hasMore: page.hasMore };
 }

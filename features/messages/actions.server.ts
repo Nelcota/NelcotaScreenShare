@@ -30,7 +30,8 @@ import {
   type MessageContent,
 } from "@/features/messages/server/messages.server";
 import { notifyUsers } from "@/features/live/server/live-bus.server";
-import { attachToMessage } from "@/features/messages/server/attachments.server";
+import { attachToMessage, withAttachments } from "@/features/messages/server/attachments.server";
+import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
 import { ActionError } from "@/server/operations/action-error";
@@ -202,7 +203,7 @@ export const listMessages = defineUserOperation(
   async ({ parsedInput, ctx }) => {
     const db = getDb();
     await requireMembership(db, parsedInput.conversationId, ctx.current.user.id);
-    return withGifs(
+    const page = await withGifs(
       await listMessageRows(
         db,
         parsedInput.conversationId,
@@ -210,6 +211,7 @@ export const listMessages = defineUserOperation(
         ctx.current.user.id,
       ),
     );
+    return withAttachments(db, attachmentStorage(), page);
   },
 );
 

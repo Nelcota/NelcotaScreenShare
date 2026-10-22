@@ -5,6 +5,8 @@ import { othersByConversation } from "@/features/messages/server/conversation-li
 import { gifFavoriteSlugs } from "@/features/messages/server/gif-favorites.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { listMessages } from "@/features/messages/server/messages.server";
+import { withAttachments } from "@/features/messages/server/attachments.server";
+import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { groupCallLines, liveGroupCall } from "@/features/ringing/server/group-calls.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { conversations } from "@/server/db/schema";
@@ -27,7 +29,9 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
   const [name, others, page, gifFavorites] = await Promise.all([
     conversationName(db, conversationId),
     othersByConversation(db, userId, [conversationId]),
-    listMessages(db, conversationId, null, userId).then(withGifs),
+    listMessages(db, conversationId, null, userId)
+      .then(withGifs)
+      .then((withGif) => withAttachments(db, attachmentStorage(), withGif)),
     gifFavoriteSlugs(db, userId),
   ]);
   const otherId = membership.otherId;

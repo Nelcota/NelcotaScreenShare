@@ -1,3 +1,4 @@
+import type { MessageAttachment } from "@/features/messages/domain/attachments";
 import type { Gif } from "@/features/messages/domain/klipy";
 // Times in São Paulo, the same on the server and in the browser (no hydration jump).
 import { TIME_ZONE } from "@/lib/format";
@@ -43,6 +44,8 @@ export interface TimelineMessage {
   gifSlug: string | null;
   /** Resolved on the server; null when the GIF cannot be shown. */
   gif: Gif | null;
+  /** The file sent with the message, if any. */
+  attachment: MessageAttachment | null;
   createdAt: Date;
 }
 

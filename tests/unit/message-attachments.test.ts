@@ -5,6 +5,8 @@ import {
   cleanFileName,
   detectAttachmentKind,
   hasBlockedExtension,
+  kindLabel,
+  readableSize,
 } from "@/features/messages/domain/attachments";
 
 const bytes = (...values: number[]) => new Uint8Array(values);
@@ -74,5 +76,19 @@ describe("the type from the first bytes", () => {
     expect(detectAttachmentKind(text("ação").subarray(0, 3))).toBe("text");
     expect(detectAttachmentKind(bytes(0xc3, 0x28, 0x41))).toBeNull();
     expect(detectAttachmentKind(bytes())).toBeNull();
+  });
+});
+
+describe("how a file reads in the conversation", () => {
+  test("its size in KB, MB or GB, the Brazilian way", () => {
+    expect(readableSize(200)).toBe("0,2 KB");
+    expect(readableSize(2.4 * 1024 * 1024)).toBe("2,4 MB");
+    expect(readableSize(1024 * 1024 * 1024)).toBe("1 GB");
+    expect(readableSize(0)).toBe("0,1 KB");
+  });
+
+  test("its kind in a word", () => {
+    expect(kindLabel("pdf")).toBe("PDF");
+    expect(kindLabel("audio")).toBe("Áudio");
   });
 });

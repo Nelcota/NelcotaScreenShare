@@ -160,3 +160,37 @@ export function detectAttachmentKind(bytes: Uint8Array): AttachmentKind | null {
   if (isText(bytes)) return "text";
   return null;
 }
+
+/** An attachment as the conversation shows it; `previewUrl` only for images, short-lived. */
+export interface MessageAttachment {
+  id: string;
+  fileName: string;
+  kind: AttachmentKind;
+  size: number;
+  previewUrl: string | null;
+}
+
+const sizeFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
+/** "0,2 KB", "2,4 MB", "1 GB": how a file's size reads in the conversation. */
+export function readableSize(bytes: number): string {
+  const kilobytes = bytes / 1024;
+  if (kilobytes < 1024) return `${sizeFormat.format(Math.max(kilobytes, 0.1))} KB`;
+  const megabytes = kilobytes / 1024;
+  if (megabytes < 1024) return `${sizeFormat.format(megabytes)} MB`;
+  return `${sizeFormat.format(megabytes / 1024)} GB`;
+}
+
+const KIND_LABEL: Record<AttachmentKind, string> = {
+  image: "Imagem",
+  pdf: "PDF",
+  text: "Texto",
+  audio: "Áudio",
+  video: "Vídeo",
+  zip: "ZIP",
+};
+
+/** The short type shown next to the size on a file card. */
+export function kindLabel(kind: AttachmentKind): string {
+  return KIND_LABEL[kind];
+}

@@ -19,6 +19,7 @@ function message(id: string, authorId: string, iso: string) {
     body: id,
     gifSlug: null,
     gif: null,
+    attachment: null,
     createdAt: at(iso),
   };
 }
@@ -84,6 +85,7 @@ describe("conversation display", () => {
       body: "oi",
       gifSlug: null,
       gif: null,
+      attachment: null,
     };
     expect(messagePreview(text, "group", "me")).toBe("Felipe: oi");
     expect(messagePreview(text, "direct", "me")).toBe("oi");

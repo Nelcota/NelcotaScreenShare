@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { ownedRoom } from "./support/database";
 import { joinRoom, newParticipant } from "./support/session";
 
-test("the owner's card for someone holds the voice line and the actions as menu items", async ({
+test("the owner's card for someone holds their sound for me and the actions as menu items", async ({
   browser,
 }) => {
   const owner = await newParticipant(browser, "Dona Cartao");
@@ -18,7 +18,8 @@ test("the owner's card for someone holds the voice line and the actions as menu 
     await expect(card.getByText("Na chamada", { exact: false })).toHaveCount(0);
     await expect(card.getByText("Microfone desligado")).toHaveCount(0);
     for (const action of [
-      "Silenciar tudo",
+      "Silenciar só para mim",
+      "Restaurar volumes",
       "Adicionar amigo",
       "Tornar moderador",
       "Transferir a sala",
@@ -28,10 +29,15 @@ test("the owner's card for someone holds the voice line and the actions as menu 
       await expect(card.getByRole("button", { name: action, exact: true })).toBeVisible();
     }
 
-    // The icon silences only the voice, and brings it back.
-    await card.getByRole("button", { name: "Silenciar voz de Pessoa Cartao" }).click();
-    await expect(card.getByRole("button", { name: "Voltar a voz de Pessoa Cartao" })).toBeVisible();
-    await card.getByRole("button", { name: "Voltar a voz de Pessoa Cartao" }).click();
+    const sound = card.getByRole("region", { name: "Som para você" });
+    await expect(
+      sound.getByRole("slider", { name: "Voz de Pessoa Cartao para você" }),
+    ).toBeVisible();
+    await expect(
+      sound.getByRole("button", { name: "Silenciar só para mim" }),
+    ).toHaveAccessibleDescription(
+      "Você para de ouvir Pessoa Cartao. Os outros continuam ouvindo e ninguém é avisado.",
+    );
 
     await card.getByRole("button", { name: "Tornar moderador", exact: true }).click();
     await expect(card.getByText("Moderador", { exact: true })).toBeVisible();
@@ -48,7 +54,7 @@ test("the owner's card for someone holds the voice line and the actions as menu 
     await owner.page.getByRole("button", { name: "Ver Dona Cartao" }).first().click();
     const mine = owner.page.getByRole("dialog", { name: "Dona Cartao" });
     await expect(mine.getByText("Você · Dono", { exact: true })).toBeVisible();
-    await expect(mine.getByRole("button", { name: "Silenciar tudo" })).toHaveCount(0);
+    await expect(mine.getByText("Som para você")).toHaveCount(0);
   } finally {
     await Promise.all([owner.context.close(), guest.context.close()]);
   }

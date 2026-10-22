@@ -1,6 +1,7 @@
 import { UsersRound } from "lucide-react";
 import { useId, useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
+import { ProOnlyNotice } from "@/components/workspace/ProOnlyNotice";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { FormError } from "@/components/FormError";
 import { Button } from "@/components/ui/button";
@@ -21,25 +22,13 @@ type TeamSummary = { id: string; name: string; role: keyof typeof roleLabels };
 /** No Pro and no team: what a team is, that it is Pro only, and the way to the Pro list. */
 function TeamsWithoutPro() {
   return (
-    <section className="flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center gap-3 py-12 text-center">
-      <span className="grid size-13 place-items-center rounded-2xl bg-brand/15 text-brand-soft">
-        <UsersRound className="size-6" aria-hidden="true" />
-      </span>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight">Times</h1>
-      <p className="max-w-sm text-ink-muted">
-        Um time é um grupo fixo de pessoas, com salas que ficam sempre no mesmo link e o histórico
-        das chamadas.
-      </p>
-      <p className="max-w-sm">
-        <span className="font-medium">Só no Pro.</span>{" "}
-        <span className="text-ink-muted">Recebeu um convite? Abra o link que te mandaram.</span>
-      </p>
-      <Button asChild className="mt-2">
-        <Link viewTransition to="/#precos">
-          Entrar na lista do Pro
-        </Link>
-      </Button>
-    </section>
+    <ProOnlyNotice
+      icon={UsersRound}
+      title="Times"
+      description="Um time é um grupo fixo de pessoas, com salas que ficam sempre no mesmo link e o histórico das chamadas."
+      note="Recebeu um convite? Abra o link que te mandaram."
+      className="min-h-[calc(100dvh-12rem)] py-12"
+    />
   );
 }
 

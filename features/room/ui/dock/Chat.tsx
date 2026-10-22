@@ -39,6 +39,8 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
 
   /** Enter: the image waiting in the box goes with the text, as one message. */
   async function submit() {
+    // A big picture is still being reduced: the text waits to go with it, not alone.
+    if (attachment.preparing) return;
     const attached = attachment.attached;
     if (!attached || editing) {
       await editor.submit();

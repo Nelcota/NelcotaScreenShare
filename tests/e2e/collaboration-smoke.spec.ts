@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { newParticipant, joinRoom, newRoomCode, setJoinMicrophone } from "./support/session";
 import { E2E_ACCESS_PASSWORD } from "./support/env";
 import { fakeScreenCapture } from "./support/screen-capture";
+import { ANNOTATION_TTL } from "@/features/room/domain/annotations";
 import { keyboardMark } from "./support/annotations";
 
 test.skip(
@@ -11,6 +12,12 @@ test.skip(
 
 async function watchScreen(page: Page, sharer: string) {
   await page.getByRole("button", { name: `Assistir à tela de ${sharer}` }).click();
+}
+
+async function annotationIds(page: Page) {
+  return page
+    .locator("[data-annotation]")
+    .evaluateAll((marks) => marks.map((mark) => mark.getAttribute("data-annotation")));
 }
 
 test("five participants, two screens, three annotators and an empty newcomer state", async ({
@@ -41,25 +48,41 @@ test("five participants, two screens, three annotators and an empty newcomer sta
     for (const person of [firstWriter, secondWriter]) await watchScreen(person.page, host.name);
     for (const person of [host, firstWriter, secondWriter])
       await expect(person.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
-    // The newcomer waits on the pre-join: only the click and the connection fit in the marks'
-    // 10 s life, so the mark is still there to not be shown to them (under load, a whole
-    // join did not fit, and the mark expired before the count).
     await newcomer.page.goto(`/sala/${code}`);
     await setJoinMicrophone(newcomer.page, true);
     await newcomer.page.getByLabel("Senha da sala").fill(E2E_ACCESS_PASSWORD);
-    await keyboardMark(firstWriter.page, "Seta");
-    await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
     const before = Date.now();
     await newcomer.page.getByRole("button", { name: /Entrar na sala|Entrar só ouvindo/ }).click();
     await expect(newcomer.page.getByRole("button", { name: /Sair/ })).toBeVisible();
     joinsMs.push(Date.now() - before);
+    // In the call but not watching yet, the newcomer gets nothing: marks arrive only in
+    // useAnnotations, which mounts with the screen on the stage (ScreenStage). A mark drawn
+    // now is one they must not see once they open the screen.
+    await keyboardMark(firstWriter.page, "Seta");
+    await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
     await watchScreen(newcomer.page, host.name);
     await expect(newcomer.page.getByRole("button", { name: "Anotar na tela" })).toBeVisible();
     await expect(newcomer.page.locator("[data-annotation]")).toHaveCount(0);
+    // Still alive for the others (10 s life): the newcomer's 0 is not just an expired mark.
+    // The window is 10 s; on an overloaded machine this fails on purpose rather than pass empty.
     await expect(host.page.locator("[data-annotation]")).toHaveCount(1);
+
+    // A fresh mark, seen, so "Limpar" is what takes it away and not its 10 s life. The second
+    // writer draws it: the first one's tool is still open, and a click there would close it.
+    // Waiting for its own id keeps the first writer's older mark from standing in for it.
+    const seen = await annotationIds(firstWriter.page);
+    const drawnFrom = Date.now();
+    await keyboardMark(secondWriter.page, "Seta");
+    await expect
+      .poll(async () => (await annotationIds(firstWriter.page)).some((id) => !seen.includes(id)))
+      .toBe(true);
     await host.page.getByRole("button", { name: "Anotar na tela" }).click();
     await host.page.getByRole("button", { name: "Limpar anotações de todos" }).click();
     await expect(firstWriter.page.locator("[data-annotation]")).toHaveCount(0);
+    // The expect timeout (15 s) outlasts a mark's life: the stage must empty before it expires.
+    expect(Date.now() - drawnFrom, "Limpar emptied the stage, not the marks' life").toBeLessThan(
+      ANNOTATION_TTL,
+    );
     await host.page.keyboard.press("Escape");
     for (const person of [firstWriter, secondWriter, newcomer])
       await keyboardMark(person.page, "Círculo");

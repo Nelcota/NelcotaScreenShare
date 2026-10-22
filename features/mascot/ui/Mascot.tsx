@@ -119,7 +119,6 @@ export function Mascot({
                   "translate(calc(var(--sprite-column) * -33.333333%), calc(var(--sprite-row) * -50%))",
               }}
             >
-              <MascotAccessories accessory={accessory} layer="back" />
               <img
                 src={atlas}
                 alt=""
@@ -129,7 +128,7 @@ export function Mascot({
                 className="absolute inset-0 size-full"
               />
               <SpriteEyes />
-              <MascotAccessories accessory={accessory} layer="front" />
+              <MascotAccessories accessory={accessory} />
             </div>
             <svg viewBox="0 0 512 512" className={styles.foot}>
               <path d="M184 472 Q179 486 207 486 L235 486 Q241 480 235 474" fill="#78bd90" />

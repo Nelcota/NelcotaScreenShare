@@ -35,6 +35,23 @@ test("signed in, the friends column stays on the room's screens, as the rail in 
   }
 });
 
+test("the column's status menu signs out, also with reduced motion", async ({ browser }) => {
+  const { page, context } = await newParticipant(browser, "Coluna Saida");
+  try {
+    // Without the closing animation the menu unmounts at once: the form must still submit.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/inicio");
+    const column = page.getByRole("complementary", { name: "Amigos" });
+    await column.getByRole("button", { name: /^Seu status:/ }).click();
+    await page.getByRole("menuitem", { name: "Sair da conta", exact: true }).click();
+    await expect(page).toHaveURL(/\/entrar\?aviso=saiu$/);
+    await page.goto("/inicio");
+    await expect(page).toHaveURL(/\/entrar/);
+  } finally {
+    await context.close();
+  }
+});
+
 test("a guest's pre-join keeps the plain header, without the column", async ({ browser }) => {
   const context = await browser.newContext({ locale: "pt-BR" });
   const page = await context.newPage();

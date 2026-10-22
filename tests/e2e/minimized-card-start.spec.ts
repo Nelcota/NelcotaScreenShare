@@ -29,7 +29,10 @@ test("the minimized call card never rests on the start's room field", async ({ b
     await page.emulateMedia({ reducedMotion: "reduce" });
     await joinRoom(page, await newRoomCode(), { micOn: false });
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await page.getByRole("link", { name: "Configurações", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Configurações", exact: true })
+      .click();
     const card = page.getByRole("complementary", { name: "Chamada em andamento" });
     await expect(card).toBeVisible();
 
@@ -66,7 +69,10 @@ test("the minimized call card dropped by an edge sticks to it at the same height
     await page.emulateMedia({ reducedMotion: "reduce" });
     await joinRoom(page, await newRoomCode(), { micOn: false });
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await page.getByRole("link", { name: "Configurações", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Configurações", exact: true })
+      .click();
     const card = page.getByRole("complementary", { name: "Chamada em andamento" });
     await expect(card).toBeVisible();
 
@@ -95,7 +101,10 @@ test("the minimized call card never rests on the sidebar's account and settings"
     await page.emulateMedia({ reducedMotion: "reduce" });
     await joinRoom(page, await newRoomCode(), { micOn: false });
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await page.getByRole("link", { name: "Configurações", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Configurações", exact: true })
+      .click();
     const card = page.getByRole("complementary", { name: "Chamada em andamento" });
     await expect(card).toBeVisible();
     const footer = page.locator("aside[aria-label='Amigos'] [data-call-card-clear]");

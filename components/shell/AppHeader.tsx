@@ -84,6 +84,29 @@ function MobileMenu({ showSignUp }: { showSignUp: boolean }) {
   );
 }
 
+/**
+ * The right end of the bar. Inside the app only "Novidades": the account lives in the
+ * column's foot (the photo, the gear and "Sair"). Phones have no column, not even in the
+ * room, so there the photo's menu stays.
+ */
+function AccountSide({
+  account,
+  accountHref,
+  inApp,
+  showAuthLinks,
+}: Pick<AppHeaderProps, "account" | "accountHref" | "inApp" | "showAuthLinks">) {
+  if (account == null) return <VisitorLinks showAuthLinks={showAuthLinks ?? true} />;
+  if (inApp) {
+    return (
+      <>
+        <SiteLink to="/novidades" label="Novidades" className={cn(navItemClass, "max-sm:hidden")} />
+        <AccountMenu account={account} accountHref={accountHref} className="sm:hidden" />
+      </>
+    );
+  }
+  return <AccountMenu account={account} accountHref={accountHref} />;
+}
+
 /** The sign-in links for visitors (when the page shows them). */
 function VisitorLinks({ showAuthLinks }: { showAuthLinks: boolean }) {
   if (!showAuthLinks) return null;
@@ -140,11 +163,12 @@ export function AppHeader({
             </Link>
           </Button>
         ) : null}
-        {account ? (
-          <AccountMenu account={account} accountHref={accountHref} />
-        ) : (
-          <VisitorLinks showAuthLinks={showAuthLinks} />
-        )}
+        <AccountSide
+          account={account}
+          accountHref={accountHref}
+          inApp={inApp}
+          showAuthLinks={showAuthLinks}
+        />
         {actions ? (
           <>
             <NavDivider />

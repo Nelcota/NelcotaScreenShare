@@ -16,7 +16,7 @@ test("the minimized call mutes, stops hearing and goes back without showing the 
   const code = await newRoomCode();
   await joinRoom(page, code);
   await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-  await page.getByRole("link", { name: "Configurações", exact: true }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Configurações", exact: true }).click();
 
   const card = page.getByRole("complementary", { name: "Chamada em andamento" });
   await expect(card).toBeVisible();
@@ -48,7 +48,7 @@ test("the minimized call drags, stops sharing and leaves after confirming", asyn
   await page.getByRole("button", { name: /^Tela inteira/ }).click();
   await expect(page.getByLabel("Prévia da sua tela")).toBeVisible();
   await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-  await page.getByRole("link", { name: "Configurações", exact: true }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Configurações", exact: true }).click();
 
   const card = page.getByRole("complementary", { name: "Chamada em andamento" });
   const before = await card.boundingBox();
@@ -100,7 +100,10 @@ test("clicking the faces on the minimized call goes back to it", async ({ browse
   try {
     await joinRoom(page, await newRoomCode(), { micOn: false });
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await page.getByRole("link", { name: "Configurações", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Configurações", exact: true })
+      .click();
     const card = page.getByRole("complementary", { name: "Chamada em andamento" });
     await expect(card).toBeVisible();
     await card.getByRole("list", { name: "Na chamada" }).click();
@@ -159,7 +162,10 @@ test("before anyone speaks, the minimized call shows how many people are in it",
     await joinRoom(first.page, code, { micOn: false });
     await joinRoom(second.page, code, { micOn: false });
     await first.page.getByRole("button", { name: "Mais opções", exact: true }).click();
-    await first.page.getByRole("link", { name: "Configurações", exact: true }).click();
+    await first.page
+      .getByRole("dialog")
+      .getByRole("link", { name: "Configurações", exact: true })
+      .click();
     const card = first.page.getByRole("complementary", { name: "Chamada em andamento" });
     await expect(card.getByText("2 pessoas", { exact: true })).toBeVisible();
     await expect(card.getByRole("list", { name: "Na chamada" })).toHaveCount(0);

@@ -163,7 +163,7 @@ test("a masked call stays connected across profile navigation and browser histor
     await page.getByRole("button", { name: "Mais opções", exact: true }).click();
     await page.getByRole("switch", { name: "Modo streamer" }).click();
     await expect(page).toHaveURL(/\/sala$/);
-    await page.getByRole("link", { name: "Configurações" }).click();
+    await page.getByRole("dialog").getByRole("link", { name: "Configurações" }).click();
     await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();
     await page.getByRole("link", { name: "Voltar à chamada", exact: true }).click();
     await expect(page).toHaveURL(/\/sala$/);

@@ -12,15 +12,17 @@ const ITEM =
 export function AccountMenu({
   account,
   accountHref = "/conta",
+  className,
 }: {
   account: { name: string; image: string | null };
   accountHref?: string;
+  className?: string;
 }) {
   return (
     <NavPopover
       label="Sua conta"
       align="end"
-      className="max-w-44 pl-0.5 max-sm:pr-1"
+      className={cn("max-w-44 pl-0.5 max-sm:pr-1", className)}
       trigger={
         <>
           <UserAvatar image={account.image} className="size-8" />

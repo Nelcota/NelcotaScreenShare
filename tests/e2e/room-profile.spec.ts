@@ -16,7 +16,7 @@ test("edit the profile during a call and return without joining again", async ({
   await page.getByLabel("Seu nome na sala", { exact: true }).fill("Nome Durante Chamada");
   await page.getByRole("button", { name: "Salvar", exact: true }).click();
   await expect(page.getByText("Nome atualizado na sala.", { exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Configurações" }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Configurações" }).click();
   await expect(page).toHaveURL(new RegExp(`/conta\\?voltar=%2Fsala%2F${code}$`));
   await expect(page.getByLabel("Seu nome na sala", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("complementary", { name: "Chamada em andamento" })).toBeVisible();

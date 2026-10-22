@@ -80,7 +80,10 @@ test.describe("room access", () => {
     await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Senha", { exact: true }).press("Enter");
     await expect(page).toHaveURL(`${E2E_URL}/inicio`);
-    await expect(page.getByRole("button", { name: "Rafa Nova" }).first()).toBeVisible();
+    // Signed in: the name shows in the friends column's foot (the app bar has no account menu).
+    await expect(
+      page.getByText("Rafa Nova", { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
 
     const creating = page.waitForRequest(/\/api\/operations\/room-createRoomAction/);
     await page.getByRole("button", { name: "Criar sala", exact: true }).first().click();

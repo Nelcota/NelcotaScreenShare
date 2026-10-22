@@ -1,8 +1,9 @@
-import { Check, Pencil, SendHorizontal, X } from "lucide-react";
+import { Check, FileText, Pencil, SendHorizontal, X } from "lucide-react";
 import { useId, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
 import { ChatImageButton } from "./ChatImageButton";
+import type { ChatAttachment } from "./use-chat-attachment";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,6 +22,8 @@ export function ChatComposer({
   onClose,
   sendingImage,
   onImage,
+  attachment,
+  onRemoveAttachment,
 }: {
   inputRef: RefObject<HTMLTextAreaElement | null>;
   draft: string;
@@ -33,12 +36,15 @@ export function ChatComposer({
   onEditLast: () => boolean;
   onClose: () => void;
   sendingImage: boolean;
-  /** A picked or pasted image (#412); the chat checks it before sending. */
+  /** A picked, pasted or dropped image: it waits in the box until Enter. */
   onImage: (file: File) => void;
+  attachment: ChatAttachment | undefined;
+  onRemoveAttachment: () => void;
 }) {
   const inputId = useId();
   const remaining = CHAT_MAX_LENGTH - draft.length;
-  const canSend = draft.trim().length > 0 && !busy;
+  const waitingImage = attachment !== undefined && !editing;
+  const canSend = (draft.trim().length > 0 || waitingImage) && !busy && !sendingImage;
 
   return (
     <form
@@ -64,6 +70,9 @@ export function ChatComposer({
             <X aria-hidden="true" />
           </Button>
         </div>
+      ) : null}
+      {waitingImage ? (
+        <AttachmentPreview attachment={attachment} onRemove={onRemoveAttachment} />
       ) : null}
       <div className="flex items-end gap-1 rounded-3xl border border-line bg-surface-2 p-1.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
         {editing ? (
@@ -115,7 +124,7 @@ export function ChatComposer({
         <Button
           type="submit"
           size="icon"
-          loading={busy}
+          loading={busy || sendingImage}
           disabled={!canSend}
           aria-label={editing ? "Salvar edição" : "Enviar mensagem"}
           className="size-9 shrink-0 rounded-full transition-transform active:scale-90"
@@ -136,5 +145,41 @@ export function ChatComposer({
         ) : null}
       </p>
     </form>
+  );
+}
+
+/** The image waiting to go with the next Enter, with a way to take it out. */
+function AttachmentPreview({
+  attachment,
+  onRemove,
+}: {
+  attachment: ChatAttachment;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2 rounded-2xl bg-surface-2 p-1.5 pr-2">
+      {attachment.kind === "image" ? (
+        <img
+          src={attachment.preview}
+          alt={`Imagem anexada: ${attachment.file.name}`}
+          className="size-14 shrink-0 rounded-xl object-cover"
+        />
+      ) : (
+        <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand-soft">
+          <FileText className="size-6" aria-label={`Arquivo anexado: ${attachment.file.name}`} />
+        </span>
+      )}
+      <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">{attachment.file.name}</span>
+      <Button
+        type="button"
+        variant="quiet"
+        size="icon-sm"
+        onClick={onRemove}
+        aria-label={attachment.kind === "image" ? "Tirar a imagem" : "Tirar o arquivo"}
+        className="rounded-lg"
+      >
+        <X aria-hidden="true" />
+      </Button>
+    </div>
   );
 }

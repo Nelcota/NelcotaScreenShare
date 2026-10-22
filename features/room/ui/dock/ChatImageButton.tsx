@@ -4,7 +4,7 @@ import { Hint } from "@/components/Hint";
 import { Button } from "@/components/ui/button";
 import { CHAT_IMAGE_TYPES } from "@/features/room/domain/chat-images";
 
-/** Picks an image to send in the call chat; the chat checks its type and size. */
+/** Picks an image or a .txt to send in the call chat; the chat checks its type and size. */
 export function ChatImageButton({
   busy,
   onImage,
@@ -15,13 +15,13 @@ export function ChatImageButton({
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <>
-      <Hint text="Anexar imagem (até 5 MB)">
+      <Hint text="Anexar imagem (até 25 MB) ou .txt (até 1 MB)">
         <Button
           type="button"
           variant="quiet"
           size="icon"
           loading={busy}
-          aria-label="Anexar imagem"
+          aria-label="Anexar imagem ou arquivo de texto"
           onClick={() => inputRef.current?.click()}
           className="size-9 shrink-0 rounded-full text-ink-muted"
         >
@@ -31,7 +31,7 @@ export function ChatImageButton({
       <input
         ref={inputRef}
         type="file"
-        accept={CHAT_IMAGE_TYPES.join(",")}
+        accept={[...CHAT_IMAGE_TYPES, ".txt", "text/plain"].join(",")}
         hidden
         tabIndex={-1}
         onChange={(event) => {

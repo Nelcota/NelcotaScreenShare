@@ -48,13 +48,13 @@ export function MascotAccessories({ accessory }: { accessory?: MascotAccessory }
             strokeLinecap="round"
           />
           {/* The left cup mirrors the right one around its own center (123, 246). */}
-          <g transform="rotate(16 123 246)">
+          <g data-headphone-cup="left" transform="rotate(16 123 246)">
             <rect x="109" y="193" width="43" height="108" rx="21" fill={`url(#${cushion})`} />
             <rect x="89" y="196" width="48" height="102" rx="23" fill={`url(#${shell})`} />
             <rect x="98" y="211" width="29" height="71" rx="14" fill="#95d8a9" />
             <rect x="101" y="220" width="20" height="54" rx="10" fill="#46554b" />
           </g>
-          <g transform="rotate(-14 414 278)">
+          <g data-headphone-cup="right" transform="rotate(-14 414 278)">
             <rect x="385" y="225" width="43" height="108" rx="21" fill={`url(#${cushion})`} />
             <rect x="400" y="228" width="48" height="102" rx="23" fill={`url(#${shell})`} />
             <rect x="410" y="243" width="29" height="71" rx="14" fill="#95d8a9" />

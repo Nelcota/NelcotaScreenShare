@@ -20,13 +20,16 @@ test("the headband is drawn over the mascot artwork, not behind it", () => {
   expect(html.indexOf(HEADBAND)).toBeGreaterThan(artwork);
 });
 
-/** Width and height of each rect in one cup, in drawing order. */
-function cupSizes(html: string, rotation: string): string[] {
-  const start = html.indexOf(`rotate(${rotation}`);
+/** Width and height of each rect in one cup, whatever the attribute order. */
+function cupSizes(html: string, side: "left" | "right"): string[] {
+  const start = html.indexOf(`data-headphone-cup="${side}"`);
+  if (start === -1) return [];
   const cup = html.slice(start, html.indexOf("</g>", start));
-  return [...cup.matchAll(/width="(\d+)" height="(\d+)"/g)].map(
-    ([, width, height]) => `${width}x${height}`,
-  );
+  return [...cup.matchAll(/<rect\b[^>]*>/g)].map(([rect]) => {
+    const width = /\bwidth="(\d+)"/.exec(rect)?.[1];
+    const height = /\bheight="(\d+)"/.exec(rect)?.[1];
+    return `${width}x${height}`;
+  });
 }
 
 /** Each side was drawn differently: a thin cup on the left, a wide one with the pad on the right. */
@@ -34,7 +37,7 @@ test("both headphone cups have the same parts and sizes", () => {
   const html = renderToString(
     createElement(TooltipProvider, null, createElement(Mascot, { accessory: "headphones" })),
   );
-  const left = cupSizes(html, "16 ");
+  const left = cupSizes(html, "left");
   expect(left).toHaveLength(4);
-  expect(left.toSorted()).toEqual(cupSizes(html, "-14 ").toSorted());
+  expect(left.toSorted()).toEqual(cupSizes(html, "right").toSorted());
 });

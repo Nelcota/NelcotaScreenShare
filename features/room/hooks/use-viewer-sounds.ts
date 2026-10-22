@@ -11,9 +11,12 @@ import { useDeafen } from "@/features/room/ui/dock/Deafen";
 export function useViewerSounds() {
   const { localParticipant } = useLocalParticipant();
   const { deafened } = useDeafen();
-  const ownScreen = localParticipant.getTrackPublication(Track.Source.ScreenShare)?.trackSid;
 
   useDataChannel(TOPICS.screenWatch, (message) => {
+    // Only a person in the call watches: a packet with no sender is not a viewer.
+    if (message.from === undefined) return;
+    // Read when the notice arrives: publishing a screen does not redraw the call.
+    const ownScreen = localParticipant.getTrackPublication(Track.Source.ScreenShare)?.trackSid;
     if (deafened || !ownScreen) return;
     const notice = decodeMessage(message.payload, screenWatchSchema);
     if (notice?.trackSid !== ownScreen) return;

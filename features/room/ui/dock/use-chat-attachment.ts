@@ -9,7 +9,7 @@ export interface ChatAttachment {
 }
 
 /**
- * The image picked, pasted or dropped into the chat (#494): it waits in the box with a
+ * The image picked, pasted or dropped into the chat: it waits in the box with a
  * preview, and goes with the next Enter, together with the text typed next to it.
  */
 export function useChatAttachment() {

@@ -36,7 +36,7 @@ export function ChatComposer({
   onEditLast: () => boolean;
   onClose: () => void;
   sendingImage: boolean;
-  /** A picked or pasted image (#412); it waits in the box until Enter (#494). */
+  /** A picked, pasted or dropped image: it waits in the box until Enter. */
   onImage: (file: File) => void;
   attachment: ChatAttachment | undefined;
   onRemoveAttachment: () => void;

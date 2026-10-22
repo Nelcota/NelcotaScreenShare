@@ -122,7 +122,8 @@ function CardPopover({ children, ...props }: CardProps & { children: ReactNode }
           // The dock stays clear: without room below, the card opens upward.
           collisionPadding={{ top: 16, right: 16, left: 16, bottom: 128 }}
           aria-label={plain}
-          className="z-50 w-72 rounded-2xl border border-line-strong bg-surface-3 p-1.5 shadow-soft outline-none"
+          // A short window scrolls the card instead of cutting its last actions off.
+          className="z-50 max-h-(--radix-popover-content-available-height) w-72 overflow-y-auto overscroll-contain rounded-2xl border border-line-strong bg-surface-3 p-1.5 shadow-soft outline-none"
         >
           <CardBody
             {...props}
@@ -165,7 +166,7 @@ function CardSheet({ children, ...props }: CardProps & { children: ReactNode }) 
         aria-describedby={undefined}
         style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
         className={cn(
-          "gap-0 rounded-t-3xl border-line bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink outline-none",
+          "max-h-[90dvh] gap-0 overflow-y-auto overscroll-contain rounded-t-3xl border-line bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink outline-none",
           // While the finger drags, the sheet follows it without easing.
           drag > 0 && "transition-none",
         )}

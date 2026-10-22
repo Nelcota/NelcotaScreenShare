@@ -9,6 +9,8 @@ test("the owner's card for someone holds their sound for me and the actions as m
   const guest = await newParticipant(browser, "Pessoa Cartao");
   try {
     const code = await ownedRoom(`e2e-${Date.now().toString(36)}-cartao`, owner.email);
+    // A short window: the owner's card, with the sound and the moderation, is taller than it.
+    await owner.page.setViewportSize({ width: 1280, height: 420 });
     await joinRoom(owner.page, code, { micOn: false });
     await joinRoom(guest.page, code, { micOn: false });
 
@@ -38,6 +40,15 @@ test("the owner's card for someone holds their sound for me and the actions as m
     ).toHaveAccessibleDescription(
       "Você para de ouvir Pessoa Cartao. Os outros continuam ouvindo e ninguém é avisado.",
     );
+
+    const expel = card.getByRole("button", { name: "Expulsar", exact: true });
+    await expel.scrollIntoViewIfNeeded();
+    await expect(expel).toBeInViewport();
+    await expect
+      .poll(() =>
+        card.evaluate((panel) => panel.getBoundingClientRect().bottom <= window.innerHeight),
+      )
+      .toBe(true);
 
     await card.getByRole("button", { name: "Tornar moderador", exact: true }).click();
     await expect(card.getByText("Moderador", { exact: true })).toBeVisible();

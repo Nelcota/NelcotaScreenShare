@@ -93,6 +93,38 @@ function nearestCorner(offset: CardOffset, card: Size, viewport: Size): CardOffs
   return clampOffset(corner, card, viewport);
 }
 
+/** The four corners: the top ones below the top bar, the bottom ones above a message box. */
+function corners(card: Size, viewport: Size): CardOffset[] {
+  const left = viewport.width - card.width - CORNER_MARGIN;
+  const top = viewport.height - card.height - TOP_CLEARANCE;
+  return [
+    { right: CORNER_MARGIN, bottom: BOTTOM_CORNER_CLEARANCE },
+    { right: left, bottom: BOTTOM_CORNER_CLEARANCE },
+    { right: CORNER_MARGIN, bottom: top },
+    { right: left, bottom: top },
+  ].map((corner) => clampOffset(corner, card, viewport));
+}
+
+function offsetDistance(from: CardOffset, to: CardOffset): number {
+  return Math.hypot(from.right - to.right, from.bottom - to.bottom);
+}
+
+/**
+ * The nearest corner that covers none of the areas to keep clear (a long message can make a
+ * conversation's box tall enough to reach the bottom corners); the nearest one when all do.
+ */
+function clearCorner(
+  offset: CardOffset,
+  card: Size,
+  viewport: Size,
+  keepClear: readonly Area[],
+): CardOffset {
+  const free = corners(card, viewport)
+    .filter((corner) => !coversAny(corner, card, viewport, keepClear))
+    .toSorted((first, second) => offsetDistance(first, offset) - offsetDistance(second, offset));
+  return free[0] ?? nearestCorner(offset, card, viewport);
+}
+
 /** Within this distance of a second edge, a card at one edge goes into that corner. */
 const CORNER_REACH = 120;
 
@@ -111,9 +143,13 @@ function rightAgainst(side: "left" | "right", card: Size, viewport: Size): numbe
   return side === "left" ? viewport.width - card.width - CORNER_MARGIN : CORNER_MARGIN;
 }
 
-/** The card against the top (below the top bar) or the bottom (above a message box). */
+/**
+ * The card against the top (below the top bar) or the bottom, as far from it as from the
+ * sides: a fixed gap made it float up. A page with a box down there (a conversation's
+ * message box) marks it to keep clear instead.
+ */
 function bottomAgainst(side: "top" | "bottom", card: Size, viewport: Size): number {
-  return side === "top" ? viewport.height - card.height - TOP_CLEARANCE : BOTTOM_CORNER_CLEARANCE;
+  return side === "top" ? viewport.height - card.height - TOP_CLEARANCE : CORNER_MARGIN;
 }
 
 /**
@@ -140,7 +176,8 @@ function nearestEdge(offset: CardOffset, card: Size, viewport: Size): CardOffset
 /**
  * Where a dropped card settles: against the nearest edge (see `nearestEdge`), or right
  * where it was when dropped in the middle of the screen. A card dropped on an area it must
- * keep clear (the start's room field) goes to the nearest corner instead.
+ * keep clear (the start's room field, a conversation's message box), or that would cover
+ * one against the edge, goes to the nearest corner instead.
  */
 export function snapToEdge(
   offset: CardOffset,
@@ -148,13 +185,19 @@ export function snapToEdge(
   viewport: Size,
   keepClear: readonly Area[] = [],
 ): CardOffset {
-  if (coversAny(offset, card, viewport, keepClear)) return nearestCorner(offset, card, viewport);
+  if (coversAny(offset, card, viewport, keepClear)) {
+    return clearCorner(offset, card, viewport, keepClear);
+  }
   const centerX = viewport.width - offset.right - card.width / 2;
   const centerY = viewport.height - offset.bottom - card.height / 2;
   if (inCenter(centerX, viewport.width) && inCenter(centerY, viewport.height)) {
     return clampOffset(offset, card, viewport);
   }
-  return nearestEdge(offset, card, viewport);
+  const againstEdge = nearestEdge(offset, card, viewport);
+  if (coversAny(againstEdge, card, viewport, keepClear)) {
+    return clearCorner(offset, card, viewport, keepClear);
+  }
+  return againstEdge;
 }
 
 /**
@@ -168,7 +211,7 @@ export function clearOfAreas(
   keepClear: readonly Area[],
 ): CardOffset {
   if (!coversAny(offset, card, viewport, keepClear)) return offset;
-  return nearestCorner(offset, card, viewport);
+  return clearCorner(offset, card, viewport, keepClear);
 }
 
 const STEP = 16;

@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { createRoutesStub } from "react-router";
 import { expect, test } from "vitest";
-import { RoomCollection } from "@/components/workspace/RoomCollection";
+import { RoomCollection, showsProNotice } from "@/components/workspace/RoomCollection";
 
 /** Renders the rooms without Pro and without rooms, yours or a team's. */
 function renderWithoutPro(teamId?: string) {
@@ -10,7 +10,7 @@ function renderWithoutPro(teamId?: string) {
     {
       path: "/",
       Component: () =>
-        RoomCollection({
+        createElement(RoomCollection, {
           rooms: [],
           teamId,
           pro: { active: false, roomLimit: 0 },
@@ -35,6 +35,13 @@ test("your rooms without Pro say it like Times: title, Só no Pro and the Pro li
 test("a team's rooms without Pro use the same notice under the team's title", () => {
   const html = renderWithoutPro("team-1");
   expect(html).toMatch(/<h2[^>]*>Salas do time<\/h2>/);
+  expect(html).not.toMatch(/<h1/);
   expect(html).toContain("Só no Pro.");
   expect(html).not.toContain("Ir para o Início");
+});
+
+test("the notice shows only without Pro and without rooms", () => {
+  expect(showsProNotice({ active: false }, [])).toBe(true);
+  expect(showsProNotice({ active: true }, [])).toBe(false);
+  expect(showsProNotice({ active: false }, [{ id: "kept-after-pro" }])).toBe(false);
 });

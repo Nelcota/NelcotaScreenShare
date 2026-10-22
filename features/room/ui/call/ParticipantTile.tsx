@@ -18,7 +18,7 @@ import { SwitchCameraButton } from "./SwitchCameraButton";
 import { cn } from "@/lib/utils";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
-import { ProfileHint, TILE_SURFACE } from "./tile-surface";
+import { TILE_SURFACE } from "./tile-surface";
 import { TileNamePill } from "./TileNamePill";
 import { CameraVideo, EnlargeButton } from "./camera-face";
 import { StripAvatarTile } from "./StripAvatarTile";
@@ -233,9 +233,7 @@ export function ParticipantTile({
             <span aria-hidden="true">Mão levantada</span>
             <span className="sr-only">{name} está com a mão levantada</span>
           </span>
-        ) : (
-          <ProfileHint participant={participant} roomCode={roomCode} />
-        )}
+        ) : null}
         <div
           data-ring
           aria-hidden="true"

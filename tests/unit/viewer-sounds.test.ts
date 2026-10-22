@@ -8,6 +8,7 @@ const capture = vi.hoisted(() => ({
   screen: undefined as { trackSid: string } | undefined,
   receive: undefined as Receive | undefined,
   play: vi.fn(async () => {}),
+  deafened: false,
 }));
 
 vi.mock("@livekit/components-react", () => ({
@@ -20,11 +21,14 @@ vi.mock("@livekit/components-react", () => ({
   },
 }));
 vi.mock("@/features/room/audio/call-sounds", () => ({ playPeerSound: capture.play }));
-vi.mock("@/features/room/ui/dock/Deafen", () => ({ useDeafen: () => ({ deafened: false }) }));
+vi.mock("@/features/room/ui/dock/Deafen", () => ({
+  useDeafen: () => ({ deafened: capture.deafened }),
+}));
 
 beforeEach(() => {
   capture.screen = undefined;
   capture.receive = undefined;
+  capture.deafened = false;
   capture.play.mockClear();
 });
 
@@ -47,5 +51,20 @@ test("a notice with no sender makes no sound", () => {
   capture.screen = { trackSid: "TR_screen" };
   if (!capture.receive) throw new Error("The data channel was not set up.");
   capture.receive({ payload: encodeMessage({ trackSid: "TR_screen", watching: true }) });
+  expect(capture.play).not.toHaveBeenCalled();
+});
+
+test("the sharer hears a viewer stop watching", () => {
+  useViewerSounds();
+  capture.screen = { trackSid: "TR_screen" };
+  deliver({ trackSid: "TR_screen", watching: false });
+  expect(capture.play.mock.calls).toEqual([["viewer-left"]]);
+});
+
+test("a sharer who does not hear the room hears no viewer", () => {
+  capture.deafened = true;
+  useViewerSounds();
+  capture.screen = { trackSid: "TR_screen" };
+  deliver({ trackSid: "TR_screen", watching: true });
   expect(capture.play).not.toHaveBeenCalled();
 });

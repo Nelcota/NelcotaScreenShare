@@ -15,7 +15,7 @@ import { chatImageProblem } from "@/features/room/domain/chat-images";
 import { reportBrowserError } from "@/lib/telemetry.client";
 
 /**
- * What waits in the box until it goes: an image with its preview, or a text file (#495)
+ * What waits in the box until it goes: an image with its preview, or a text file
  * whose plain text was already read and checked.
  */
 export type ChatAttachment =

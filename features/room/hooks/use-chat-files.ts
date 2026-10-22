@@ -31,7 +31,7 @@ export interface ChatFile {
 }
 
 /**
- * Text files sent in the call chat (#495): straight to the people connected, like the
+ * Text files sent in the call chat: straight to the people connected, like the
  * images, never to the server, with the same limit of ten a minute per person. Whoever
  * receives one keeps it only when it is plain text within 1 MB.
  */

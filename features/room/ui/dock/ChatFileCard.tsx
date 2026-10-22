@@ -22,7 +22,7 @@ function readableSize(text: string): string {
 }
 
 /**
- * A text file sent in the call chat (#495): its name and size, the first lines as plain text
+ * A text file sent in the call chat: its name and size, the first lines as plain text
  * (links included, never clickable) and "Baixar". It lives only in this browser's memory.
  */
 export function ChatFileCard({

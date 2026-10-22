@@ -1,5 +1,5 @@
 /**
- * Text files in the call chat (#495): sent straight to the people in the call, like the
+ * Text files in the call chat: sent straight to the people in the call, like the
  * images, never stored. They come from another browser, so whoever receives one checks the
  * size, that it really is plain text, and cleans its name before showing anything.
  */

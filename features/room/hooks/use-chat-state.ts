@@ -32,9 +32,9 @@ export interface ChatEntry {
   text: string;
   edited: boolean;
   deleted: boolean;
-  /** An image sent in the call (#412), below the text sent with it. */
+  /** An image sent in the call, below the text sent with it. */
   image?: { url: string; name: string };
-  /** A text file sent in the call (#495), below the text sent with it. */
+  /** A text file sent in the call, below the text sent with it. */
   file?: { name: string; text: string };
 }
 

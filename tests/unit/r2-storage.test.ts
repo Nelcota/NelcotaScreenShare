@@ -6,7 +6,7 @@ const ACCOUNT = "0123456789abcdef0123456789abcdef";
 const BUCKET = "nelcota-anexos";
 
 /** A fake R2: records each signed call and answers from a small table of objects. */
-function fakeR2(objects: Record<string, string>) {
+function fakeR2(objects: Record<string, string>, { honorRange = true } = {}) {
   const calls: Request[] = [];
   const fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = new Request(input, init);
@@ -15,7 +15,7 @@ function fakeR2(objects: Record<string, string>) {
     const body = objects[key];
     if (body === undefined) return new Response(null, { status: 404 });
     if (request.method === "DELETE") return new Response(null, { status: 204 });
-    const range = /bytes=0-(\d+)/.exec(request.headers.get("range") ?? "");
+    const range = honorRange ? /bytes=0-(\d+)/.exec(request.headers.get("range") ?? "") : null;
     const sent = range ? body.slice(0, Number(range[1]) + 1) : body;
     return new Response(request.method === "HEAD" ? null : sent, {
       status: range ? 206 : 200,
@@ -40,6 +40,7 @@ describe("the R2 adapter", () => {
     const key = newObjectKey();
     const upload = await storageWith(fakeR2({})).uploadLink(key, {
       fileName: "relatório.pdf",
+      size: 2048,
       expiresInSeconds: 900,
     });
 
@@ -48,7 +49,10 @@ describe("the R2 adapter", () => {
     expect(url.pathname).toBe(`/${BUCKET}/${key}`);
     expect(url.searchParams.get("X-Amz-Expires")).toBe("900");
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
-    expect(url.searchParams.get("X-Amz-SignedHeaders")).toContain("content-disposition");
+    // The size is signed too: R2 refuses an upload bigger than what the server accepted.
+    expect(url.searchParams.get("X-Amz-SignedHeaders")?.split(";")).toEqual(
+      expect.arrayContaining(["content-disposition", "content-length", "content-type"]),
+    );
     expect(upload.headers).toEqual({
       "Content-Type": "application/octet-stream",
       "Content-Disposition": attachmentDisposition("relatório.pdf"),
@@ -90,5 +94,12 @@ describe("the R2 adapter", () => {
     const fake = fakeR2({});
     await expect(storageWith(fake).head("../outro-bucket/x")).rejects.toThrow(TypeError);
     expect(fake.calls).toHaveLength(0);
+  });
+
+  test("keeps only the first bytes even if R2 ignored the range", async () => {
+    const key = newObjectKey();
+    const storage = storageWith(fakeR2({ [key]: "%PDF-1.7 ".repeat(1000) }, { honorRange: false }));
+
+    expect(Buffer.from(await storage.readStart(key, 4)).toString()).toBe("%PDF");
   });
 });

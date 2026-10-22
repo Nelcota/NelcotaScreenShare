@@ -39,6 +39,8 @@ export function uploadHeaders(fileName: string): Record<string, string> {
 /** How the upload link names the file: it always downloads as an attachment. */
 export interface UploadOptions {
   fileName: string;
+  /** The size the server accepted: a storage that can bind it refuses any other. */
+  size: number;
   expiresInSeconds: number;
 }
 

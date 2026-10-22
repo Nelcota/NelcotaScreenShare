@@ -48,6 +48,7 @@
 
 - That `Content-Disposition` signed into the `PUT` comes back on the signed `GET`, for every type.
 - The CORS preflight for a large `PUT` from the browser.
+- That the `Content-Length` signed into the `PUT` makes R2 refuse an upload of another size.
 
 ## Consequences
 

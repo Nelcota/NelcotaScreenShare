@@ -101,6 +101,7 @@ export async function requestAttachmentUpload(
   if (row === undefined) throw new ActionError(NOT_SENT);
   const upload = await storage.uploadLink(objectKey, {
     fileName,
+    size: input.size,
     expiresInSeconds: UPLOAD_LINK_SECONDS,
   });
   return { attachmentId: row.id, uploadUrl: upload.url, uploadHeaders: upload.headers };

@@ -28,11 +28,16 @@ export interface UploadLink {
   headers: Record<string, string>;
 }
 
-/** The headers every upload carries: never a page of the site, always a named attachment. */
+/**
+ * The headers every upload carries: never a page of the site, always a named attachment, and
+ * written only once. Without `If-None-Match`, the still valid link could swap the file after
+ * the server checked it.
+ */
 export function uploadHeaders(fileName: string): Record<string, string> {
   return {
     "Content-Type": "application/octet-stream",
     "Content-Disposition": attachmentDisposition(fileName),
+    "If-None-Match": "*",
   };
 }
 

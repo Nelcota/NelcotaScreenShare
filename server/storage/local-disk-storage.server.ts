@@ -36,14 +36,32 @@ interface LocalDownload {
 }
 
 export interface LocalDiskStorage extends ObjectStorage {
-  /** Writes the body a signed upload link sends; `false` when the link is not valid. */
+  /**
+   * Writes the body a signed upload link sends, once; `false` when the link is not valid or
+   * the file was already sent.
+   */
   acceptUpload(token: string, body: Readable): Promise<boolean>;
   /** Opens the file a signed download link names; `null` when the link or file is not valid. */
   openDownload(token: string): Promise<LocalDownload | null>;
 }
 
+function hasCode(error: unknown, code: string): boolean {
+  return error instanceof Error && "code" in error && error.code === code;
+}
+
 function missing(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ENOENT";
+  return hasCode(error, "ENOENT");
+}
+
+/** Writes a new file; `false` when it already exists, as R2 refuses with `If-None-Match`. */
+async function writeOnce(path: string, body: Readable): Promise<boolean> {
+  try {
+    await pipeline(body, createWriteStream(path, { flags: "wx" }));
+    return true;
+  } catch (error) {
+    if (hasCode(error, "EEXIST")) return false;
+    throw error;
+  }
 }
 
 /** The saved Content-Disposition; an attachment named "arquivo" when it is missing. */
@@ -124,7 +142,7 @@ export function createLocalDiskStorage(options: LocalDiskStorageOptions): LocalD
       if (grant === null || !isObjectKey(grant.key)) return false;
       const path = pathOf(grant.key);
       await mkdir(dirname(path), { recursive: true });
-      await pipeline(body, createWriteStream(path));
+      if (!(await writeOnce(path, body))) return false;
       // Stands in for the Content-Disposition R2 keeps with the object.
       await writeFile(`${path}.disposition`, attachmentDisposition(grant.fileName ?? "arquivo"));
       return true;

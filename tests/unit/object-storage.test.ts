@@ -116,6 +116,24 @@ describe("the local disk storage", () => {
     expect(download === null ? "" : await text(download.stream)).toBe("<svg/>");
   });
 
+  test("an upload link writes once: it cannot swap the file after the server checked it", async () => {
+    const key = newObjectKey();
+    const upload = await storage().uploadLink(key, {
+      fileName: "nota.pdf",
+      size: 10,
+      expiresInSeconds: 60,
+    });
+    await storage().acceptUpload(tokenOf(upload.url), Readable.from(["%PDF-1.7"]));
+
+    const replaced = await storage().acceptUpload(
+      tokenOf(upload.url),
+      Readable.from([Buffer.from([0x4d, 0x5a, 0x90, 0x00])]),
+    );
+
+    expect(replaced).toBe(false);
+    expect(Buffer.from(await storage().readStart(key, 8)).toString()).toBe("%PDF-1.7");
+  });
+
   test("an expired upload link writes nothing", async () => {
     const key = newObjectKey();
     const upload = await storage().uploadLink(key, {

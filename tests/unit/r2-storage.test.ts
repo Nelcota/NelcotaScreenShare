@@ -50,12 +50,19 @@ describe("the R2 adapter", () => {
     expect(url.searchParams.get("X-Amz-Expires")).toBe("900");
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
     // The size is signed too: R2 refuses an upload bigger than what the server accepted.
+    // If-None-Match makes the link write once: it cannot swap the file after the check.
     expect(url.searchParams.get("X-Amz-SignedHeaders")?.split(";")).toEqual(
-      expect.arrayContaining(["content-disposition", "content-length", "content-type"]),
+      expect.arrayContaining([
+        "content-disposition",
+        "content-length",
+        "content-type",
+        "if-none-match",
+      ]),
     );
     expect(upload.headers).toEqual({
       "Content-Type": "application/octet-stream",
       "Content-Disposition": attachmentDisposition("relatório.pdf"),
+      "If-None-Match": "*",
     });
   });
 

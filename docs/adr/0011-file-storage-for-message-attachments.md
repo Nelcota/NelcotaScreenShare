@@ -18,6 +18,8 @@
 
   If either fails, the object is deleted and the message is refused. The size the browser claims is never trusted.
 
+  The link writes once: `If-None-Match: *` is signed into it, so it cannot replace the file after these checks, while it is still valid.
+
 - **Downloads are always attachments.** The object is written with `Content-Disposition: attachment` and `Content-Type: application/octet-stream`, signed into the upload link. The server checks membership, then hands out a short signed `GET` link. The file never opens as a page of the site. An SVG travels as a file.
 - **Keys carry no personal data.** Keys are random (`attachments/<uuid>`); the original file name lives only in the database.
 - **Development keeps the files on the local disk** (`createLocalDiskStorage` in `server/storage/local-disk-storage.server.ts`, under `.data/attachments`, which git ignores). Its signed links point to the app itself and are HMAC-signed with `AUTH_SECRET`, so the whole flow runs without a cloud account.
@@ -37,7 +39,7 @@
 
 ## What the hosting needs (production, by Haniel)
 
-- An R2 bucket, private, with a CORS rule allowing `PUT` and `GET` from `APP_URL` only.
+- An R2 bucket, private, with a CORS rule allowing `PUT` and `GET` from `APP_URL` only, with the headers `Content-Type`, `Content-Disposition` and `If-None-Match`.
 - `ATTACHMENTS_STORAGE=r2`, plus four variables, checked at boot:
   - `R2_ACCOUNT_ID`;
   - `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`, from a token scoped to that bucket;
@@ -49,6 +51,7 @@
 - That `Content-Disposition` signed into the `PUT` comes back on the signed `GET`, for every type.
 - The CORS preflight for a large `PUT` from the browser.
 - That the `Content-Length` signed into the `PUT` makes R2 refuse an upload of another size.
+- That a second `PUT` on the same link gets `412` (`If-None-Match: *`).
 
 ## Consequences
 

@@ -58,7 +58,6 @@ export function CardSound({ participant }: { participant: Participant }) {
       {settable ? <SoundLevels participant={participant} name={name} /> : null}
       <CardMenuItem
         icon={settings.muted ? <Volume2 /> : <VolumeX />}
-        aria-pressed={settings.muted}
         aria-describedby={settings.muted ? undefined : hintId}
         onClick={toggleMute}
       >

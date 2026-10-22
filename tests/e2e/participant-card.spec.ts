@@ -35,6 +35,10 @@ test("the owner's card for someone holds their sound for me and the actions as m
     await expect(
       sound.getByRole("slider", { name: "Voz de Pessoa Cartao para você" }),
     ).toBeVisible();
+    // The label already says what a click does, so the item is no pressed toggle.
+    await expect(sound.getByRole("button", { name: "Silenciar só para mim" })).not.toHaveAttribute(
+      "aria-pressed",
+    );
     await expect(
       sound.getByRole("button", { name: "Silenciar só para mim" }),
     ).toHaveAccessibleDescription(

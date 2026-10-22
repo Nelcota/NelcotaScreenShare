@@ -82,3 +82,22 @@ test("Enter keeps waiting while the newest picture is still being reduced", asyn
   expect(setAttached).toHaveBeenLastCalledWith(expect.objectContaining({ file: slowFile }));
   expect(setPreparing).toHaveBeenLastCalledWith(false);
 });
+
+test("a .txt handed in while a picture is reduced stays in the box", async () => {
+  const big = Promise.withResolvers<File>();
+  vi.mocked(prepareChatImage).mockReturnValueOnce(big.promise);
+  const { attach, setAttached, setPreparing } = useWatchedAttachment();
+
+  attach(png("big.png"));
+  attach(new File(["notas da chamada"], "notas.txt", { type: "text/plain" }));
+  await settled();
+  expect(setAttached).toHaveBeenCalledOnce();
+  expect(setAttached).toHaveBeenLastCalledWith(
+    expect.objectContaining({ kind: "text", text: "notas da chamada" }),
+  );
+  expect(setPreparing).toHaveBeenLastCalledWith(false);
+
+  big.resolve(png("big.webp"));
+  await settled();
+  expect(setAttached).toHaveBeenCalledOnce();
+});

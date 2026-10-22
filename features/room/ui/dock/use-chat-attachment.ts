@@ -30,7 +30,7 @@ export function useChatAttachment() {
   const [attached, setAttached] = useState<ChatAttachment>();
   // Reducing a big photo takes a moment: Enter waits for it.
   const [preparing, setPreparing] = useState(false);
-  // Counts the images handed in: only the last one may land in the box.
+  // Counts the files handed in: only the last one may land in the box.
   const latest = useRef(0);
 
   // Each preview is freed when another image replaces it or the box empties.
@@ -46,12 +46,20 @@ export function useChatAttachment() {
       toast.error(problem);
       return;
     }
-    const text = plainText(new Uint8Array(await picked.arrayBuffer()));
-    if (text === undefined) {
-      toast.error(notPlainTextMessage());
-      return;
+    // Like a picture, it replaces one still being reduced, which then never lands.
+    const turn = ++latest.current;
+    setPreparing(true);
+    try {
+      const text = plainText(new Uint8Array(await picked.arrayBuffer()));
+      if (turn !== latest.current) return;
+      if (text === undefined) {
+        toast.error(notPlainTextMessage());
+        return;
+      }
+      setAttached({ kind: "text", file: picked, text });
+    } finally {
+      if (turn === latest.current) setPreparing(false);
     }
-    setAttached({ kind: "text", file: picked, text });
   }
 
   /**

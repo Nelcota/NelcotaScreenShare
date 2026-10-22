@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   check,
   index,
   pgEnum,
@@ -9,6 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { ATTACHMENT_KINDS } from "@/features/messages/domain/attachments";
 import { createdAt, id, timestamptz } from "./columns";
 import { users } from "./user-auth";
 
@@ -67,7 +69,10 @@ export const conversationMembers = pgTable(
   ],
 );
 
-/** A text or a GIF. Only the GIF's slug is kept, never a copy of the media. */
+/**
+ * A text, a GIF or an attachment (with an optional text). Only the GIF's slug is kept, never a
+ * copy of the media; an attachment lives in the file storage (message_attachments).
+ */
 export const messages = pgTable(
   "messages",
   {
@@ -85,7 +90,8 @@ export const messages = pgTable(
   (table) => [
     index("messages_conversation_idx").on(table.conversationId, table.id),
     index("messages_author_idx").on(table.authorId),
-    check("messages_content_check", sql`(${table.body} is null) <> (${table.gifSlug} is null)`),
+    // At most one of text and GIF; a message with neither carries an attachment (the server checks).
+    check("messages_content_check", sql`${table.body} is null or ${table.gifSlug} is null`),
     check(
       "messages_body_check",
       sql`${table.body} is null or char_length(${table.body}) between 1 and 2000`,
@@ -93,6 +99,50 @@ export const messages = pgTable(
     check(
       "messages_gif_slug_check",
       sql`${table.gifSlug} is null or char_length(${table.gifSlug}) between 1 and 200`,
+    ),
+  ],
+);
+
+export const ATTACHMENT_STATUSES = ["pending", "ready"] as const;
+export const attachmentStatus = pgEnum("attachment_status", ATTACHMENT_STATUSES);
+
+export const attachmentKind = pgEnum("attachment_kind", ATTACHMENT_KINDS);
+
+/**
+ * A file sent in a conversation (ADR 0011). The file itself is in the storage under
+ * `object_key`; this row says whose it is and what it is. `pending` until the server has
+ * checked the real size and type after the upload; `message_id` is set when the message goes.
+ * The links are set to null instead of cascading, so the cleanup still knows which object to
+ * delete after the message, the conversation or the account is gone.
+ */
+export const messageAttachments = pgTable(
+  "message_attachments",
+  {
+    id: id(),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
+    messageId: uuid("message_id").references(() => messages.id, { onDelete: "set null" }),
+    uploaderId: uuid("uploader_id").references(() => users.id, { onDelete: "set null" }),
+    objectKey: text("object_key").notNull(),
+    fileName: text("file_name").notNull(),
+    status: attachmentStatus("status").notNull().default("pending"),
+    kind: attachmentKind("kind"),
+    sizeBytes: bigint("size_bytes", { mode: "number" }),
+    createdAt: createdAt(),
+    confirmedAt: timestamptz("confirmed_at"),
+  },
+  (table) => [
+    uniqueIndex("message_attachments_object_key_idx").on(table.objectKey),
+    index("message_attachments_message_idx").on(table.messageId),
+    index("message_attachments_uploader_idx").on(table.uploaderId),
+    check(
+      "message_attachments_file_name_check",
+      sql`char_length(${table.fileName}) between 1 and 200`,
+    ),
+    check(
+      "message_attachments_ready_check",
+      sql`${table.status} = 'pending' or (${table.kind} is not null and ${table.sizeBytes} is not null)`,
     ),
   ],
 );

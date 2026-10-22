@@ -33,13 +33,19 @@ export function conversationTitle(conversation: ConversationLike): string {
   return joinNames(conversation.others.map((person) => firstName(person.name)));
 }
 
+/** What a message holds, in a word when it has no text: "GIF", or "Arquivo" for a file alone. */
+export function messageContentLabel(message: Pick<MessageLike, "body" | "gifSlug">): string {
+  if (message.body !== null) return message.body;
+  return message.gifSlug === null ? "Arquivo" : "GIF";
+}
+
 /** The line under the name: "Você: GIF", "Felipe: alguém tem o mapa?" or just the text. */
 export function messagePreview(
   message: MessageLike,
   kind: ConversationLike["kind"],
   selfId: string,
 ): string {
-  const content = message.body ?? "GIF";
+  const content = messageContentLabel(message);
   if (message.authorId === selfId) return `Você: ${content}`;
   if (kind === "group") return `${firstName(message.authorName)}: ${content}`;
   return content;

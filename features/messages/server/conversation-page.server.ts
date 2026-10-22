@@ -5,6 +5,8 @@ import { othersByConversation } from "@/features/messages/server/conversation-li
 import { gifFavoriteSlugs } from "@/features/messages/server/gif-favorites.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { listMessages } from "@/features/messages/server/messages.server";
+import { withAttachments } from "@/features/messages/server/attachments.server";
+import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { groupCallLines, liveGroupCall } from "@/features/ringing/server/group-calls.server";
 import type { DbExecutor } from "@/server/db/index.server";
 import { conversations } from "@/server/db/schema";
@@ -17,6 +19,12 @@ async function conversationName(db: DbExecutor, conversationId: string) {
   return row?.name ?? null;
 }
 
+/** The newest page of messages, with their GIFs and attachments resolved. */
+async function newestPage(db: DbExecutor, conversationId: string, userId: string) {
+  const page = await withGifs(await listMessages(db, conversationId, null, userId));
+  return withAttachments(db, attachmentStorage(), page);
+}
+
 /**
  * Everything the open conversation draws: who is in it, the newest page of messages,
  * whether it still takes messages and the GIF favourites. Null for a non-member.
@@ -27,7 +35,7 @@ export async function conversationPage(db: DbExecutor, userId: string, conversat
   const [name, others, page, gifFavorites] = await Promise.all([
     conversationName(db, conversationId),
     othersByConversation(db, userId, [conversationId]),
-    listMessages(db, conversationId, null, userId).then(withGifs),
+    newestPage(db, conversationId, userId),
     gifFavoriteSlugs(db, userId),
   ]);
   const otherId = membership.otherId;

@@ -19,6 +19,7 @@ function message(id: string, authorId: string, iso: string) {
     body: id,
     gifSlug: null,
     gif: null,
+    attachment: null,
     createdAt: at(iso),
   };
 }
@@ -84,8 +85,12 @@ describe("conversation display", () => {
       body: "oi",
       gifSlug: null,
       gif: null,
+      attachment: null,
     };
     expect(messagePreview(text, "group", "me")).toBe("Felipe: oi");
     expect(messagePreview(text, "direct", "me")).toBe("oi");
+    // A file alone has neither text nor GIF: it previewed as "GIF".
+    const file = { ...text, body: null, gifSlug: null, authorId: "me" };
+    expect(messagePreview(file, "group", "me")).toBe("Você: Arquivo");
   });
 });

@@ -30,6 +30,13 @@ import {
   type MessageContent,
 } from "@/features/messages/server/messages.server";
 import { notifyUsers } from "@/features/live/server/live-bus.server";
+import {
+  attachmentsOfMessage,
+  attachToMessage,
+  discardAttachments,
+  withAttachments,
+} from "@/features/messages/server/attachments.server";
+import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
 import { ActionError } from "@/server/operations/action-error";
@@ -45,6 +52,14 @@ const groupSchema = z.object({
   name: z.string().max(MAX_GROUP_NAME_LENGTH).nullish(),
 });
 const sendSchema = z.union([
+  z.object({
+    conversationId: z.uuid(),
+    attachmentId: z.uuid(),
+    body: z
+      .string()
+      .max(MAX_MESSAGE_LENGTH * 2)
+      .nullish(),
+  }),
   z.object({ conversationId: z.uuid(), body: z.string().max(MAX_MESSAGE_LENGTH * 2) }),
   z.object({ conversationId: z.uuid(), gifSlug: z.string().regex(GIF_SLUG_PATTERN) }),
 ]);
@@ -76,8 +91,18 @@ async function requireCanSend(db: DbExecutor, membership: Membership, userId: st
   if (!(await canMessage(db, userId, membership.otherId))) throw new ActionError(FRIENDS_ONLY);
 }
 
+/** The text over an attachment is optional: blank means the file goes alone. */
+function attachmentContent(body: string | null | undefined): MessageContent {
+  const text = normalizeMessageBody(body);
+  if (text !== null && text.length > MAX_MESSAGE_LENGTH) {
+    throw new ActionError(`A mensagem passa de ${MAX_MESSAGE_LENGTH} caracteres.`);
+  }
+  return { body: text, gifSlug: null };
+}
+
 function contentOf(input: z.output<typeof sendSchema>): MessageContent {
   if ("gifSlug" in input) return { body: null, gifSlug: input.gifSlug };
+  if ("attachmentId" in input) return attachmentContent(input.body);
   const body = normalizeMessageBody(input.body);
   if (!body) throw new ActionError("Escreva uma mensagem.");
   if (body.length > MAX_MESSAGE_LENGTH) {
@@ -161,6 +186,14 @@ export const sendMessage = defineUserOperation(
       const membership = await requireMembership(tx, parsedInput.conversationId, authorId);
       await requireCanSend(tx, membership, authorId);
       const message = await insertMessage(tx, parsedInput.conversationId, authorId, content);
+      if ("attachmentId" in parsedInput) {
+        await attachToMessage(tx, {
+          attachmentId: parsedInput.attachmentId,
+          authorId,
+          conversationId: parsedInput.conversationId,
+          messageId: message.id,
+        });
+      }
       const members = await memberIdsOf(tx, parsedInput.conversationId);
       return { messageId: message.id, createdAt: message.createdAt, members };
     });
@@ -175,7 +208,7 @@ export const listMessages = defineUserOperation(
   async ({ parsedInput, ctx }) => {
     const db = getDb();
     await requireMembership(db, parsedInput.conversationId, ctx.current.user.id);
-    return withGifs(
+    const page = await withGifs(
       await listMessageRows(
         db,
         parsedInput.conversationId,
@@ -183,6 +216,7 @@ export const listMessages = defineUserOperation(
         ctx.current.user.id,
       ),
     );
+    return withAttachments(db, attachmentStorage(), page);
   },
 );
 
@@ -197,12 +231,16 @@ export const deleteMessage = defineUserOperation(
   { name: "messages.delete", audit: "none" },
   messageSchema,
   async ({ parsedInput, ctx }) => {
-    const members = await getDb().transaction(async (tx) => {
+    const deleted = await getDb().transaction(async (tx) => {
+      const files = await attachmentsOfMessage(tx, parsedInput.messageId);
       const conversationId = await deleteOwnMessage(tx, parsedInput.messageId, ctx.current.user.id);
-      return conversationId ? memberIdsOf(tx, conversationId) : null;
+      return conversationId ? { members: await memberIdsOf(tx, conversationId), files } : null;
     });
-    if (!members) throw new ActionError("Mensagem não encontrada.");
-    nudge(members);
+    if (deleted === null) throw new ActionError("Mensagem não encontrada.");
+    nudge(deleted.members);
+    // The file goes with its message; if removing it fails, the maintenance sweep retries.
+    const storage = attachmentStorage();
+    if (storage !== null) await discardAttachments({ db: getDb(), storage }, deleted.files);
     return { deleted: true };
   },
 );

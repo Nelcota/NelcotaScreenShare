@@ -5,6 +5,9 @@ import { sendMessage } from "@/features/messages/actions";
 import { messageLengthNote } from "@/features/messages/domain/conversation";
 import type { Gif } from "@/features/messages/domain/klipy";
 import { useKlipy } from "@/features/messages/hooks/use-gif";
+import { useAttachmentDraft } from "@/features/messages/hooks/use-attachment-draft";
+import { sendWithAttachment } from "@/features/messages/client/send-with-attachment";
+import { AttachButton, AttachmentTray } from "@/features/messages/ui/AttachmentTray";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { GifPicker } from "@/features/messages/ui/GifPicker";
@@ -20,7 +23,10 @@ async function deliver(input: Outgoing): Promise<boolean> {
   return false;
 }
 
-/** The message field: Enter sends, Shift+Enter breaks the line; GIF opens KLIPY's picker. */
+/**
+ * The message field: Enter sends, Shift+Enter breaks the line; GIF opens KLIPY's picker and
+ * the clip picks a file, which waits above the box and goes with the text.
+ */
 export function Composer({
   conversationId,
   placeholder,
@@ -35,15 +41,32 @@ export function Composer({
   const [gifOpen, setGifOpen] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
   const picked = useRef(false);
+  const attachment = useAttachmentDraft(conversationId);
   const body = text.trim();
   const note = messageLengthNote(body.length);
-  const sendable = body.length > 0 && !note?.over;
+  const { ready } = attachment;
+  const hasContent = body.length > 0 || ready !== null;
+  const sendable = !attachment.uploading && hasContent && !note?.over;
 
   // The field clears at once, so the next message can be typed; the text comes back on failure.
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
     if (!sendable) return;
     setText("");
+    if (ready !== null) {
+      void sendWithAttachment({
+        conversationId,
+        body,
+        attachment: ready,
+        deliver,
+        clear: attachment.clear,
+        restore: (lostBody, file) => {
+          setText((current) => current || lostBody);
+          attachment.restore(file);
+        },
+      });
+      return;
+    }
     void deliver({ conversationId, body }).then((sent) => {
       if (!sent) setText((current) => current || body);
     });
@@ -74,7 +97,16 @@ export function Composer({
       data-call-card-clear=""
       className="relative px-4 pt-1 pb-4"
     >
-      <div className="flex items-end gap-1 rounded-2xl border border-line-strong bg-surface-2 p-1.5 pl-4 focus-within:border-brand-soft">
+      {attachment.draft ? (
+        <AttachmentTray draft={attachment.draft} onClear={attachment.clear} />
+      ) : null}
+      <div className="flex items-end gap-1 rounded-2xl border border-line-strong bg-surface-2 p-1.5 focus-within:border-brand-soft">
+        <AttachButton
+          onPick={(file) => {
+            void attachment.pick(file);
+            field.current?.focus();
+          }}
+        />
         <label className="sr-only" htmlFor={`mensagem-${conversationId}`}>
           {placeholder}
         </label>

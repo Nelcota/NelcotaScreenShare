@@ -84,6 +84,8 @@ export default defineConfig({
       PUBLIC_SENTRY_DSN: "",
       SMTP_URL: "smtp://127.0.0.1:9",
       MAIL_FROM: "Nelcota Teste <teste@exemplo.dev>",
+      // Message attachments on the local disk: the production build has them off otherwise.
+      ATTACHMENTS_STORAGE: "local",
     },
   },
 });

@@ -32,3 +32,17 @@ test("a second file while one is sending is refused in Portuguese, the person re
   resolve(writer("first"));
   expect(await first).toBeUndefined();
 });
+
+test("the text checked when the file was picked is what goes out", async () => {
+  const out = writer("sent");
+  state.streamBytes.mockResolvedValue(out);
+  const chat = useChatFiles();
+  // The file changed on disk after it was picked: what was checked still goes.
+  const changed = new File(["outra coisa, bem maior"], "notas.txt", { type: "text/plain" });
+  expect(await chat.sendFile(changed, "ação")).toBeUndefined();
+  const sent = new TextEncoder().encode("ação");
+  expect(state.streamBytes).toHaveBeenCalledWith(
+    expect.objectContaining({ totalSize: sent.byteLength }),
+  );
+  expect(out.write).toHaveBeenCalledWith(sent);
+});

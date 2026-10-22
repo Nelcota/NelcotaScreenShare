@@ -94,14 +94,16 @@ export function useChatFiles() {
     try {
       const caption = capChatText(typed.trim());
       const name = cleanTextFileName(file.name);
+      // The text checked when it was picked goes out, not the file read again from disk.
+      const bytes = new TextEncoder().encode(text);
       const writer = await localParticipant.streamBytes({
         topic: CHAT_FILE_TOPIC,
         mimeType: "text/plain",
         name,
-        totalSize: file.size,
+        totalSize: bytes.byteLength,
         attributes: caption ? { [CHAT_IMAGE_CAPTION_ATTRIBUTE]: caption } : undefined,
       });
-      await writer.write(new Uint8Array(await file.arrayBuffer()));
+      await writer.write(bytes);
       await writer.close();
       remember({
         id: writer.info.id,

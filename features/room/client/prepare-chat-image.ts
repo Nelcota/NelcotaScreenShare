@@ -19,7 +19,11 @@ const FORMATS = [
 ] as const;
 const QUALITIES = [0.85, 0.7, 0.5];
 
-function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+function canvasBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number,
+): Promise<Blob | null> {
   return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
@@ -44,7 +48,7 @@ async function encodeWithin(canvas: HTMLCanvasElement, name: string): Promise<Fi
 }
 
 /**
- * The image as it goes out (#496): as picked when it already fits; otherwise reduced in this
+ * The image as it goes out: as picked when it already fits; otherwise reduced in this
  * browser, the longest side at 2560 px, until it is within 5 MB. A GIF is never reduced.
  */
 export async function prepareChatImage(file: File): Promise<File> {

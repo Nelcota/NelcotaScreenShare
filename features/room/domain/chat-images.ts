@@ -26,7 +26,7 @@ export function receivedCaption(attributes: Readonly<Record<string, string>> | u
 
 /**
  * 5 MB: what goes out and what a receiver keeps, after the sender's browser reduces the
- * image (#496). Enough for a full-screen print, small enough for everyone in the call.
+ * image. Enough for a full-screen print, small enough for everyone in the call.
  */
 export const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 /** A picked or pasted image may be this big: the browser reduces it before it goes. */

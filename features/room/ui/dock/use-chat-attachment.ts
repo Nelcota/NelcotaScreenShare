@@ -30,7 +30,7 @@ export function useChatAttachment() {
   }, [attached]);
 
   /**
-   * Checks the image (type and size), reduces it when it is too big to go (#496), and lets it
+   * Checks the image (type and size), reduces it when it is too big to go, and lets it
    * wait in the box; says why when it cannot.
    */
   async function attach(picked: File) {

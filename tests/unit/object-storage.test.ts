@@ -83,9 +83,12 @@ describe("the local disk storage", () => {
 
   test("stores what a signed upload sends, measures it and reads its first bytes", async () => {
     const key = newObjectKey();
-    const upload = await storage().uploadUrl(key, { fileName: "nota.txt", expiresInSeconds: 60 });
+    const upload = await storage().uploadLink(key, { fileName: "nota.txt", expiresInSeconds: 60 });
 
-    const accepted = await storage().acceptUpload(tokenOf(upload), Readable.from(["olá, mundo"]));
+    const accepted = await storage().acceptUpload(
+      tokenOf(upload.url),
+      Readable.from(["olá, mundo"]),
+    );
 
     expect(accepted).toBe(true);
     expect(await storage().head(key)).toEqual({ size: Buffer.byteLength("olá, mundo") });
@@ -96,8 +99,8 @@ describe("the local disk storage", () => {
 
   test("serves a signed download as an attachment, with the name given at upload", async () => {
     const key = newObjectKey();
-    const upload = await storage().uploadUrl(key, { fileName: "foto.svg", expiresInSeconds: 60 });
-    await storage().acceptUpload(tokenOf(upload), Readable.from(["<svg/>"]));
+    const upload = await storage().uploadLink(key, { fileName: "foto.svg", expiresInSeconds: 60 });
+    await storage().acceptUpload(tokenOf(upload.url), Readable.from(["<svg/>"]));
 
     const download = await storage().openDownload(tokenOf(await storage().downloadUrl(key, 60)));
 
@@ -107,10 +110,10 @@ describe("the local disk storage", () => {
 
   test("an expired upload link writes nothing", async () => {
     const key = newObjectKey();
-    const upload = await storage().uploadUrl(key, { fileName: "a.txt", expiresInSeconds: 60 });
+    const upload = await storage().uploadLink(key, { fileName: "a.txt", expiresInSeconds: 60 });
 
     const accepted = await storage(NOW + 61_000).acceptUpload(
-      tokenOf(upload),
+      tokenOf(upload.url),
       Readable.from(["x"]),
     );
 
@@ -120,8 +123,8 @@ describe("the local disk storage", () => {
 
   test("removing deletes the file, and removing again is not an error", async () => {
     const key = newObjectKey();
-    const upload = await storage().uploadUrl(key, { fileName: "a.txt", expiresInSeconds: 60 });
-    await storage().acceptUpload(tokenOf(upload), Readable.from(["x"]));
+    const upload = await storage().uploadLink(key, { fileName: "a.txt", expiresInSeconds: 60 });
+    await storage().acceptUpload(tokenOf(upload.url), Readable.from(["x"]));
 
     await storage().remove(key);
     await storage().remove(key);
@@ -132,7 +135,7 @@ describe("the local disk storage", () => {
 
   test("a key the app did not make never reaches the disk", async () => {
     await expect(
-      storage().uploadUrl("../../fora", { fileName: "a", expiresInSeconds: 60 }),
+      storage().uploadLink("../../fora", { fileName: "a", expiresInSeconds: 60 }),
     ).rejects.toThrow(TypeError);
     await expect(storage().remove("attachments/../../fora")).rejects.toThrow(TypeError);
   });

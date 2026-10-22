@@ -28,7 +28,11 @@ export async function uploadAttachment(conversationId: string, file: File): Prom
   });
   if (!started.data) return { ok: false, message: started.serverError ?? FAILED };
 
-  const sent = await fetch(started.data.uploadUrl, { method: "PUT", body: file }).catch(() => null);
+  const { uploadUrl, uploadHeaders } = started.data;
+  // Exactly the headers the server signed: the storage refuses the upload otherwise.
+  const sent = await fetch(uploadUrl, { method: "PUT", body: file, headers: uploadHeaders }).catch(
+    () => null,
+  );
   if (sent === null || !sent.ok) return { ok: false, message: FAILED };
 
   const checked = await confirmAttachment({ attachmentId: started.data.attachmentId });

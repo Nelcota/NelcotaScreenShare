@@ -6,8 +6,10 @@ import type { Readable } from "node:stream";
 import {
   attachmentDisposition,
   isObjectKey,
+  uploadHeaders,
   type ObjectStorage,
   type StoredObject,
+  type UploadLink,
   type UploadOptions,
 } from "./object-storage.server";
 import { signStorageGrant, verifyStorageGrant } from "./storage-links.server";
@@ -81,11 +83,12 @@ export function createLocalDiskStorage(options: LocalDiskStorageOptions): LocalD
   }
 
   return {
-    async uploadUrl(key: string, upload: UploadOptions): Promise<string> {
+    async uploadLink(key: string, upload: UploadOptions): Promise<UploadLink> {
       pathOf(key);
       const expiresAt = now() + upload.expiresInSeconds * 1000;
       const grant = { action: "upload", key, fileName: upload.fileName, expiresAt } as const;
-      return link(UPLOAD_PATH, signStorageGrant(options.secret, grant));
+      const url = link(UPLOAD_PATH, signStorageGrant(options.secret, grant));
+      return { url, headers: uploadHeaders(upload.fileName) };
     },
 
     async downloadUrl(key: string, expiresInSeconds: number): Promise<string> {

@@ -80,7 +80,7 @@ async function requireMember(db: DbExecutor, conversationId: string, userId: str
 export async function requestAttachmentUpload(
   { db, storage }: AttachmentDeps,
   input: { userId: string; conversationId: string; fileName: string; size: number },
-): Promise<{ attachmentId: string; uploadUrl: string }> {
+): Promise<{ attachmentId: string; uploadUrl: string; uploadHeaders: Record<string, string> }> {
   await requireMember(db, input.conversationId, input.userId);
   const fileName = cleanFileName(input.fileName);
   if (fileName === null) throw new ActionError(BAD_NAME);
@@ -99,11 +99,11 @@ export async function requestAttachmentUpload(
     })
     .returning({ id: messageAttachments.id });
   if (row === undefined) throw new ActionError(NOT_SENT);
-  const uploadUrl = await storage.uploadUrl(objectKey, {
+  const upload = await storage.uploadLink(objectKey, {
     fileName,
     expiresInSeconds: UPLOAD_LINK_SECONDS,
   });
-  return { attachmentId: row.id, uploadUrl };
+  return { attachmentId: row.id, uploadUrl: upload.url, uploadHeaders: upload.headers };
 }
 
 async function pendingOf(db: DbExecutor, attachmentId: string, userId: string) {

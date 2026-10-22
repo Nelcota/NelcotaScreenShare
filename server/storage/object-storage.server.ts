@@ -19,6 +19,23 @@ export interface StoredObject {
   size: number;
 }
 
+/**
+ * The signed upload: the browser sends the file with exactly these headers, which the
+ * signature covers, so the stored object always downloads as an attachment.
+ */
+export interface UploadLink {
+  url: string;
+  headers: Record<string, string>;
+}
+
+/** The headers every upload carries: never a page of the site, always a named attachment. */
+export function uploadHeaders(fileName: string): Record<string, string> {
+  return {
+    "Content-Type": "application/octet-stream",
+    "Content-Disposition": attachmentDisposition(fileName),
+  };
+}
+
 /** How the upload link names the file: it always downloads as an attachment. */
 export interface UploadOptions {
   fileName: string;
@@ -31,8 +48,8 @@ export interface UploadOptions {
  * and fetches files straight from the storage.
  */
 export interface ObjectStorage {
-  /** A signed link the browser uses to send this one object. */
-  uploadUrl(key: string, options: UploadOptions): Promise<string>;
+  /** A signed link the browser uses to send this one object, with the headers it must send. */
+  uploadLink(key: string, options: UploadOptions): Promise<UploadLink>;
   /** A signed link to fetch the object; the server checks who may ask for it. */
   downloadUrl(key: string, expiresInSeconds: number): Promise<string>;
   /** The object's real size, or `null` when nothing arrived. */

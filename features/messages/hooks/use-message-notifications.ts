@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { notify } from "@/features/notifications/client/notify";
-import { firstName } from "@/features/messages/domain/conversation-display";
+import { firstName, messageContentLabel } from "@/features/messages/domain/conversation-display";
 import { isNewerMessage } from "@/features/messages/domain/newer-message";
 
 export interface LatestUnread {
@@ -9,6 +9,7 @@ export interface LatestUnread {
   conversationId: string;
   authorName: string;
   body: string | null;
+  gifSlug: string | null;
 }
 
 /**
@@ -29,7 +30,7 @@ export function useMessageNotifications(latest: LatestUnread | null) {
     notify({
       kind: "message",
       title: `Nova mensagem de ${firstName(latest.authorName)}`,
-      body: latest.body ?? "GIF",
+      body: messageContentLabel(latest),
       tag: `mensagem-${latest.conversationId}`,
       onAction: () => void navigate(path, { viewTransition: true }),
     });

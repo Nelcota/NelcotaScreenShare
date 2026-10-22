@@ -89,5 +89,8 @@ describe("conversation display", () => {
     };
     expect(messagePreview(text, "group", "me")).toBe("Felipe: oi");
     expect(messagePreview(text, "direct", "me")).toBe("oi");
+    // A file alone has neither text nor GIF: it previewed as "GIF".
+    const file = { ...text, body: null, gifSlug: null, authorId: "me" };
+    expect(messagePreview(file, "group", "me")).toBe("Você: Arquivo");
   });
 });

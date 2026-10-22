@@ -15,7 +15,7 @@ export const ATTACHMENT_LIMITS = {
 export const SNIFF_BYTES = 512;
 
 /** File names longer than this are refused; the name only labels the download. */
-export const MAX_FILE_NAME = 200;
+const MAX_FILE_NAME = 200;
 
 /**
  * Programs and scripts, refused by name whatever their content: a `.bat` or `.ps1` is plain

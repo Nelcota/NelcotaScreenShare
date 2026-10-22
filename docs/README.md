@@ -48,6 +48,7 @@ The operations mechanism has one place per role: descriptor and hook in `lib/ope
 - [ADR 0007: room ownership and the session host](adr/0007-room-ownership-and-host.md).
 - [ADR 0008: settings in the panel, secrets in the hosting](adr/0008-settings-in-the-panel-secrets-in-the-hosting.md).
 - [ADR 0009: our own screen capture for window sound](adr/0009-own-screen-capture.md).
+- [ADR 0010: the admin panel exists only for its team](adr/0010-panel-only-for-its-team.md).
 
 The [historical plans](archive/README.md) preserve the diagnosis and decisions of earlier stages. This guide, the main README and the ADRs describe the current structure.
 

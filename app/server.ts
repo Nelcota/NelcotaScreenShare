@@ -2,6 +2,8 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { compress } from "hono/compress";
 import { createHonoServer } from "react-router-hono-server/node";
 import { logger } from "@/server/logger.server";
+import { appendSessionCookies, collectSessionCookies } from "@/server/response-cookies.server";
+import { hiddenPanelUrl, panelVerdict } from "@/features/auth/server/panel-visibility.server";
 import { openSignal, validateSignal } from "@/features/room/server/signal-admission.server";
 
 /** `pnpm start` preloads scripts/production-env.ts; the Docker image sets it in its env. */
@@ -73,6 +75,28 @@ export default await createHonoServer({
         duplex: "half",
       });
       await next();
+    });
+    // The admin panel exists only for its team: anyone else gets the site's own 404, as if
+    // the address were wrong (features/auth/server/panel-visibility.server.ts). Reading the
+    // sessions here may renew them; the renewed cookies go on this response, as in loaders.
+    app.use(async (c, next) => {
+      const { result: verdict, cookies } = await collectSessionCookies(() =>
+        panelVerdict(c.req.raw),
+      );
+      if (verdict.kind === "hidden") {
+        const original = c.req.raw;
+        c.req.raw = new Request(hiddenPanelUrl(new URL(original.url)), {
+          method: original.method,
+          headers: original.headers,
+          body: original.body,
+          signal: original.signal,
+          // @ts-expect-error -- Node requires duplex for a streamed body; DOM types lack it.
+          duplex: "half",
+        });
+      }
+      await next();
+      if (verdict.kind === "grant") c.res.headers.append("Set-Cookie", verdict.cookie);
+      appendSessionCookies(c.res, cookies);
     });
     if (production)
       app.use(async (c, next) => {

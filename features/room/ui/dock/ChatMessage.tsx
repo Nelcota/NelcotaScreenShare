@@ -13,6 +13,7 @@ import type { ChatEntry } from "@/features/room/hooks/use-chat-state";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { ChatFileCard } from "./ChatFileCard";
 import { ChatImageBubble } from "./ChatImageBubble";
 
 const timeFormat = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -66,8 +67,8 @@ export function ChatMessage({
           <span className="sr-only">{name}:</span>
         )}
         <div className={cn("flex max-w-full items-center gap-1", mine && "flex-row-reverse")}>
-          {message.image ? (
-            <ChatImageBubble image={message.image} mine={mine} senderName={name} />
+          {message.image || message.file ? (
+            <SharedMessage message={message} senderName={name} />
           ) : message.deleted ? (
             <p className="flex items-center gap-1.5 rounded-2xl border border-dashed border-line-strong px-3.5 py-2 text-sm text-ink-subtle italic">
               {mine ? "Você apagou esta mensagem" : "Mensagem apagada"}
@@ -84,6 +85,18 @@ export function ChatMessage({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/** An image or a text file, with the text sent with it above, in one message. */
+function SharedMessage({ message, senderName }: { message: ChatEntry; senderName: string }) {
+  const { mine, text, image, file } = message;
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-1", mine && "items-end")}>
+      {text ? <MessageText text={text} mine={mine} editing={false} /> : null}
+      {image ? <ChatImageBubble image={image} mine={mine} senderName={senderName} /> : null}
+      {file ? <ChatFileCard file={file} mine={mine} /> : null}
+    </div>
   );
 }
 

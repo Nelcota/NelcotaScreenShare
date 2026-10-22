@@ -3,7 +3,7 @@
 #   docker run -d --name lk-dev -p 7880:7880 -p 7881:7881 -p 7882:7882/udp \
 #     --add-host=host.docker.internal:host-gateway \
 #     -v "$PWD/deploy/livekit/livekit.dev.yaml:/etc/livekit.yaml:ro" \
-#     livekit/livekit-server:v1.13.9 --dev --config /etc/livekit.yaml --bind 0.0.0.0 --node-ip 127.0.0.1
+#     livekit/livekit-server:v1.13.10 --dev --config /etc/livekit.yaml --bind 0.0.0.0 --node-ip 127.0.0.1
 #
 # Keys match the sample .env.local (LIVEKIT_API_KEY=devkey).
 keys:

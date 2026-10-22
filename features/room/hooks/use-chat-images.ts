@@ -3,10 +3,13 @@ import type { ByteStreamReader, Participant, Room } from "livekit-client";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   admitImage,
+  CHAT_IMAGE_CAPTION_ATTRIBUTE,
   CHAT_IMAGE_TOPIC,
+  receivedCaption,
   receivedImageType,
   sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
+import { capChatText } from "@/features/room/domain/data-channel";
 import { readChatImage } from "@/features/room/client/read-chat-image";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
@@ -18,6 +21,8 @@ export interface ChatImage {
   timestamp: number;
   url: string;
   name: string;
+  /** The text sent with it, shown above the image; empty when it came alone. */
+  caption: string;
 }
 
 function senderOf(room: Room, identity: string): Participant | undefined {
@@ -66,6 +71,7 @@ export function useChatImages() {
           timestamp: reader.info.timestamp,
           url: URL.createObjectURL(new Blob([bytes], { type })),
           name: reader.info.name,
+          caption: receivedCaption(reader.info.attributes),
         });
       } catch (error) {
         logBrowserWarning("Could not receive a chat image", error);
@@ -85,11 +91,12 @@ export function useChatImages() {
   }, []);
 
   /**
-   * Sends an image already checked by the form (type and size). Returns why it did not go
-   * out when this person already sent as many as the others accept in a minute.
+   * Sends an image already checked by the form (type and size), with the text typed next to
+   * it, as one message. Returns why it did not go out when this person already sent as many
+   * as the others accept in a minute.
    */
-  async function sendImage(file: File): Promise<string | undefined> {
-    if (sendInFlight.current) return "Wait for the current image to finish sending.";
+  async function sendImage(file: File, text = ""): Promise<string | undefined> {
+    if (sendInFlight.current) return "Espere a imagem anterior terminar de enviar.";
     const now = Date.now();
     const paceProblem = sendingPaceProblem(sent.current, now);
     if (paceProblem) return paceProblem;
@@ -98,17 +105,25 @@ export function useChatImages() {
     sendInFlight.current = true;
     setSending(true);
     try {
-      const { id } = await localParticipant.sendFile(file, {
+      const caption = capChatText(text.trim());
+      // A byte stream, not sendFile: only it carries attributes, where the text travels.
+      const writer = await localParticipant.streamBytes({
         topic: CHAT_IMAGE_TOPIC,
         mimeType: file.type,
+        name: file.name,
+        totalSize: file.size,
+        attributes: caption ? { [CHAT_IMAGE_CAPTION_ATTRIBUTE]: caption } : undefined,
       });
+      await writer.write(new Uint8Array(await file.arrayBuffer()));
+      await writer.close();
       remember({
-        id,
+        id: writer.info.id,
         from: localParticipant,
         mine: true,
         timestamp: Date.now(),
         url: URL.createObjectURL(file),
         name: file.name,
+        caption,
       });
       return undefined;
     } finally {

@@ -11,7 +11,7 @@
 
 - The app uses React Router 8 Framework Mode with Vite and SSR. Routes are explicit in `app/routes.ts`.
 - Data and permissions live in loaders; mutations live in actions. Use `.server.ts` modules for private code and preserve the boundary validated by the build.
-- Run `pnpm typecheck`, `pnpm lint`, tests and build when changing the application. The runtime and the container use Node 26.11.1.
+- Run `pnpm typecheck`, `pnpm lint`, tests and build when changing the application. The runtime and the container use Node 26.12.0.
 
 ---
 

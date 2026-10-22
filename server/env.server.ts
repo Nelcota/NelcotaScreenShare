@@ -17,6 +17,31 @@ const appUrlSchema = z.preprocess(emptyToUndefined, z.url().optional());
  * sender: one pair wrapping the whole value is removed. The format is checked when
  * sending (`mail.server`), so a bad sender never takes the site down.
  */
+/** The R2 variables are all required when R2 stores the attachments (ADR 0011). */
+const R2_SETTINGS = [
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET",
+] as const;
+
+function requireR2Settings(
+  env: { ATTACHMENTS_STORAGE?: "local" | "r2" | undefined } & Partial<
+    Record<(typeof R2_SETTINGS)[number], string | undefined>
+  >,
+  ctx: z.RefinementCtx,
+) {
+  if (env.ATTACHMENTS_STORAGE !== "r2") return;
+  for (const name of R2_SETTINGS) {
+    if (env[name] !== undefined) continue;
+    ctx.addIssue({
+      code: "custom",
+      path: [name],
+      message: `${name} is required with ATTACHMENTS_STORAGE=r2`,
+    });
+  }
+}
+
 function unquoteMailFrom(value: unknown): unknown {
   if (typeof value !== "string") return value;
   const trimmed = value.trim();
@@ -103,15 +128,27 @@ const envSchema = z
     // GIFs in messages. The browser calls KLIPY with this key, so it is public by design;
     // without it, the GIF button does not show.
     KLIPY_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
-    // Where message attachments are stored (ADR 0011). "local" keeps them on this machine's
-    // disk (.data/attachments), for development and the E2E. Unset: local outside
-    // production, and attachments off in production until its storage is configured.
-    ATTACHMENTS_STORAGE: z.preprocess(emptyToUndefined, z.enum(["local"]).optional()),
+    // Where message attachments are stored (ADR 0011). "r2" is Cloudflare R2 (the R2_*
+    // variables below); "local" keeps them on this machine's disk (.data/attachments), for
+    // development and the E2E. Unset: local outside production, off in production.
+    ATTACHMENTS_STORAGE: z.preprocess(emptyToUndefined, z.enum(["local", "r2"]).optional()),
+    // The R2 bucket for attachments and a token scoped to it. Secrets: hosting only (ADR 0008).
+    R2_ACCOUNT_ID: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .regex(/^[0-9a-f]{32}$/)
+        .optional(),
+    ),
+    R2_ACCESS_KEY_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    R2_SECRET_ACCESS_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    R2_BUCKET: z.preprocess(emptyToUndefined, z.string().min(3).max(63).optional()),
     LOG_LEVEL: logLevelSchema,
     // Commit SHA, set by CI in the image (shows up in /api/ready and in Sentry).
     APP_VERSION: z.preprocess(emptyToUndefined, z.string().max(64).optional()),
   })
   .superRefine((env, ctx) => {
+    requireR2Settings(env, ctx);
     if (env.ROOM_HOST_CONTROLS_ENABLED && !isPrivateSignalHost(new URL(env.LIVEKIT_URL).hostname)) {
       ctx.addIssue({
         code: "custom",

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { attachmentStorageOrigin } from "@/server/storage/attachment-storage.server";
 import type { MiddlewareFunction } from "react-router";
 import { buildCsp } from "./csp.server";
 import { CLIENT_IP_HEADER, getClientIp } from "./client-ip.server";
@@ -51,6 +52,7 @@ export const requestMiddleware: MiddlewareFunction<Response> = async ({ request 
         dev: process.env.NODE_ENV !== "production",
         sentryDsn: env.PUBLIC_SENTRY_DSN,
         gifs: env.KLIPY_API_KEY !== undefined,
+        fileStorageOrigin: attachmentStorageOrigin(),
         devWebSocketOrigin: new URL(request.url).origin.replace(/^http/, "ws"),
       }),
     );

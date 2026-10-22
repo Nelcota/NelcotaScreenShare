@@ -38,7 +38,7 @@
 ## What the hosting needs (production, by Haniel)
 
 - An R2 bucket, private, with a CORS rule allowing `PUT` and `GET` from `APP_URL` only.
-- `STORAGE_DRIVER=r2`, plus four variables:
+- `ATTACHMENTS_STORAGE=r2`, plus four variables, checked at boot:
   - `R2_ACCOUNT_ID`;
   - `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`, from a token scoped to that bucket;
   - `R2_BUCKET`.
@@ -51,6 +51,13 @@
 
 ## Consequences
 
-- **A new dependency for the R2 adapter**, a small S3 signer (to be justified in that PR).
-- **Files outside the database need their own cleanup.** Deleting a message, an account or a group removes the rows by cascade, and a job removes the objects. Uploads started and never confirmed are swept after a day.
-- **"Baixar meus dados" lists the attachments the person sent**, each with a fresh download link.
+- **A new dependency for the R2 adapter: `aws4fetch`** (1.0.20, pinned).
+  - It signs S3 requests and presigned links (AWS Signature V4) on top of `fetch`.
+  - It is MIT-licensed, has no dependencies of its own, and Cloudflare's R2 documentation uses it in its presigned-link examples.
+  - Discarded: the AWS SDK (`@aws-sdk/client-s3` with `@aws-sdk/s3-request-presigner`), dozens of packages for the four calls we make; and a signer written by hand, which is security code we would have to maintain.
+- **The bucket's origin joins the Content-Security-Policy** (`connect-src` for uploads, `img-src` for photo previews), only when R2 is the storage.
+- **Files outside the database need their own cleanup.**
+  - Deleting a message removes its file at once.
+  - A deleted account's files lose their sender, and a finished group's files lose their conversation: they are unreachable at once, and the maintenance sweep (every 6 hours) erases them.
+  - Uploads never sent in a message are swept after a day.
+- **"Baixar meus dados" lists the attachments the person sent** (name, kind, size, when); the files themselves are downloaded from the conversation.

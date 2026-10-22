@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
-import { attachmentStorage } from "@/server/storage/attachment-storage.server";
+import { localAttachmentStorage } from "@/server/storage/attachment-storage.server";
 
 const NOT_FOUND = () => new Response(null, { status: 404 });
 
@@ -9,7 +9,7 @@ const NOT_FOUND = () => new Response(null, { status: 404 });
  * checked afterwards by the server, never here.
  */
 export async function localUpload(request: Request, token: string | undefined): Promise<Response> {
-  const storage = attachmentStorage();
+  const storage = localAttachmentStorage();
   if (storage === null) return NOT_FOUND();
   if (request.method !== "PUT") {
     return new Response(null, { status: 405, headers: { Allow: "PUT" } });
@@ -25,7 +25,7 @@ export async function localUpload(request: Request, token: string | undefined): 
  * cached: the link itself expires in minutes.
  */
 export async function localDownload(token: string | undefined): Promise<Response> {
-  const storage = attachmentStorage();
+  const storage = localAttachmentStorage();
   if (storage === null || token === undefined) return NOT_FOUND();
   const download = await storage.openDownload(token);
   if (download === null) return NOT_FOUND();

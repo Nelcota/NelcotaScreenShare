@@ -22,6 +22,7 @@ export function buildCsp({
   sentryDsn,
   devWebSocketOrigin,
   gifs = false,
+  fileStorageOrigin,
 }: {
   livekitUrl: string;
   dev: boolean;
@@ -31,6 +32,8 @@ export function buildCsp({
   devWebSocketOrigin?: string;
   /** With KLIPY on, the browser searches GIFs and loads them straight from KLIPY. */
   gifs?: boolean;
+  /** The attachments bucket (R2): the browser sends files there and shows photo previews. */
+  fileStorageOrigin?: string | undefined;
 }): string {
   const livekit = new URL(livekitUrl);
   const secure = livekit.protocol === "wss:";
@@ -48,7 +51,13 @@ export function buildCsp({
       ...(dev ? ["'unsafe-eval'"] : []),
     ],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "blob:", "data:", ...(gifs ? KLIPY_MEDIA : [])],
+    "img-src": [
+      "'self'",
+      "blob:",
+      "data:",
+      ...(gifs ? KLIPY_MEDIA : []),
+      ...(fileStorageOrigin ? [fileStorageOrigin] : []),
+    ],
     "font-src": ["'self'"],
     "media-src": ["'self'", "blob:", "mediastream:", ...(gifs ? KLIPY_MEDIA : [])],
     "connect-src": [
@@ -57,6 +66,7 @@ export function buildCsp({
       livekitHttp,
       ...(sentryDsn ? [new URL(sentryDsn).origin] : []),
       ...(gifs ? [KLIPY_API] : []),
+      ...(fileStorageOrigin ? [fileStorageOrigin] : []),
       ...(dev && devWebSocketOrigin ? [devWebSocketOrigin] : []),
     ],
     "worker-src": ["'self'", "blob:"],

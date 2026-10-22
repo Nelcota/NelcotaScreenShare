@@ -68,7 +68,12 @@ export function Composer({
   };
 
   return (
-    <form onSubmit={submit} className="relative px-4 pt-1 pb-4">
+    <form
+      onSubmit={submit}
+      // The minimized call card never rests on the message box.
+      data-call-card-clear=""
+      className="relative px-4 pt-1 pb-4"
+    >
       <div className="flex items-end gap-1 rounded-2xl border border-line-strong bg-surface-2 p-1.5 pl-4 focus-within:border-brand-soft">
         <label className="sr-only" htmlFor={`mensagem-${conversationId}`}>
           {placeholder}

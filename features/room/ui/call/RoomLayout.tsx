@@ -30,6 +30,7 @@ import { useAnnounceCallConnected } from "@/features/ringing/client/call-connect
 import { othersInCall, peopleView } from "@/features/room/domain/room-company";
 import { ChatPanel } from "@/features/room/ui/dock/Chat";
 import { ControlDock } from "@/features/room/ui/dock/ControlDock";
+import { watchedRemoteScreen } from "@/features/room/domain/watched-screen";
 import { CameraStage } from "@/features/room/ui/stage/CameraStage";
 import { ScreenStage } from "@/features/room/ui/stage/ScreenStage";
 import { cn } from "@/lib/utils";
@@ -191,6 +192,8 @@ export function RoomLayout({
 
   const stage = useStageFocus(screenShares);
   const focused = stage.focused;
+  // Someone else's screen you watch: the dock offers to stop watching it.
+  const watchedScreen = watchedRemoteScreen(focused, screenShares);
   const enlarged = useEnlargedCamera();
   const hasStage = focused !== undefined || enlarged.camera !== undefined;
   const sharingIds = new Set(
@@ -249,6 +252,8 @@ export function RoomLayout({
           hasStage ? "flex-col lg:flex-row" : "flex-col items-center justify-center",
           // Chat open on a wide screen: the content makes room instead of sitting underneath.
           chat.open && "lg:pr-[26.5rem]",
+          // Phones: "Parar de assistir" sits above the dock, so the content ends higher.
+          watchedScreen && "max-sm:pb-44",
         )}
       >
         {/* Alone, the welcome's title is the page's heading; with company, this one. */}
@@ -292,8 +297,8 @@ export function RoomLayout({
       </main>
 
       <CornerMascot connection={connection} hasStage={hasStage} alone={alone} welcome={welcome} />
-      <ChatPanel chat={chat} />
-      <ControlDock chat={chat} share={share} onLeave={onLeave} />
+      <ChatPanel chat={chat} roomCode={code} />
+      <ControlDock chat={chat} share={share} watchedScreen={watchedScreen} onLeave={onLeave} />
     </div>
   );
 }

@@ -18,12 +18,20 @@ function flipState(root: HTMLElement) {
  * - smooth rearrangement with Flip when the layout changes (someone starts/stops
  *   sharing, joins or leaves). The "before" state is captured whenever a
  *   frame is rendered and when the container resizes. An interrupted transition
- *   continues from the visible positions instead of jumping to its old target.
+ *   continues from the visible positions instead of jumping to its old target;
+ * - when only the room around the cards changes (`reflowKey`: the chat opening), the
+ *   cards fade in at their new place: flying there, two cards side by side crossed each
+ *   other on the way to one above the other, and one passed under the chat.
  */
-export function useRoomAnimations(scope: RefObject<HTMLElement | null>, layoutKey: string) {
+export function useRoomAnimations(
+  scope: RefObject<HTMLElement | null>,
+  layoutKey: string,
+  reflowKey: string,
+) {
   const reducedMotion = useReducedMotion();
   const lastState = useRef<Flip.FlipState | null>(null);
   const running = useRef<gsap.core.Timeline | null>(null);
+  const lastLayoutKey = useRef(layoutKey);
 
   // Entrance of the fixed UI (top bar and dock).
   useGSAP(
@@ -54,6 +62,8 @@ export function useRoomAnimations(scope: RefObject<HTMLElement | null>, layoutKe
       if (!root) return;
       const targets = gsap.utils.toArray<HTMLElement>(FLIP_TARGETS, root);
       const previous = lastState.current;
+      const onlyReflow = previous !== null && lastLayoutKey.current === layoutKey;
+      lastLayoutKey.current = layoutKey;
       Flip.killFlipsOf(previous?.targets ?? targets, false);
       running.current?.kill();
       running.current = null;
@@ -69,6 +79,19 @@ export function useRoomAnimations(scope: RefObject<HTMLElement | null>, layoutKe
       if (reducedMotion) {
         gsap.set(targets, { opacity: 1, clearProps: "transform" });
         capture();
+        return;
+      }
+
+      if (onlyReflow) {
+        gsap.set(targets, { clearProps: "transform" });
+        // Positions are final already: a change during the fade starts from them.
+        running.current = gsap
+          .timeline({ onUpdate: remember, onComplete: capture })
+          .fromTo(
+            targets,
+            { opacity: 0 },
+            { opacity: 1, duration: MOTION_DURATION.surface, clearProps: "opacity" },
+          );
         return;
       }
 
@@ -107,7 +130,7 @@ export function useRoomAnimations(scope: RefObject<HTMLElement | null>, layoutKe
         onComplete: capture,
       });
     },
-    { scope, dependencies: [layoutKey, reducedMotion] },
+    { scope, dependencies: [layoutKey, reflowKey, reducedMotion] },
   );
 
   // Resizing changes positions without changing layoutKey: update the base state.

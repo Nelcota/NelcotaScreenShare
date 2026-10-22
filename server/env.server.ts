@@ -12,11 +12,6 @@ const databaseUrlSchema = z.url({
 
 const appUrlSchema = z.preprocess(emptyToUndefined, z.url().optional());
 
-/**
- * Some hosts keep the quotes around a value pasted from a .env file, which breaks the
- * sender: one pair wrapping the whole value is removed. The format is checked when
- * sending (`mail.server`), so a bad sender never takes the site down.
- */
 /** The R2 variables are all required when R2 stores the attachments (ADR 0011). */
 const R2_SETTINGS = [
   "R2_ACCOUNT_ID",
@@ -42,6 +37,11 @@ function requireR2Settings(
   }
 }
 
+/**
+ * Some hosts keep the quotes around a value pasted from a .env file, which breaks the
+ * sender: one pair wrapping the whole value is removed. The format is checked when
+ * sending (`mail.server`), so a bad sender never takes the site down.
+ */
 function unquoteMailFrom(value: unknown): unknown {
   if (typeof value !== "string") return value;
   const trimmed = value.trim();

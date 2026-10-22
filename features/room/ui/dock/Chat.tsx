@@ -1,32 +1,39 @@
 import { useRef } from "react";
+import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import type { ChatState } from "@/features/room/hooks/use-chat-state";
 import { callToast as toast } from "@/features/room/client/call-notices";
-import { chatImageProblem } from "@/features/room/domain/chat-images";
 import { reportBrowserError } from "@/lib/telemetry.client";
 import { ChatComposer } from "./ChatComposer";
 import { ChatSoundSettings } from "./ChatSoundSettings";
 import { ChatEmptyState, ChatHeader, ChatMessageList } from "./ChatPanelParts";
+import { useChatAttachment, useImageDrop, type ChatAttachment } from "./use-chat-attachment";
 import { useChatEditing, useChatPanelMotion, useChatScroll } from "./use-chat-panel";
 
-/** Checks a picked or pasted image and sends it, saying why when it cannot go. */
-async function sendChatImage(chat: ChatState, file: File) {
-  const problem = chatImageProblem(file);
-  if (problem) {
-    toast.error(problem);
-    return;
-  }
+/** Sends what waits in the box with the text; `false`, and why, when it cannot go. */
+async function sendAttachment(
+  chat: ChatState,
+  attached: ChatAttachment,
+  typed: string,
+): Promise<boolean> {
   try {
-    const refused = await chat.sendImage(file);
-    if (refused) toast.error(refused);
+    const refused =
+      attached.kind === "image"
+        ? await chat.sendImage(attached.file, typed)
+        : await chat.sendTextFile(attached.file, attached.text, typed);
+    if (!refused) return true;
+    toast.error(refused);
+    return false;
   } catch (error) {
     reportBrowserError(error);
-    toast.error("Não foi possível enviar a imagem. Tente de novo.");
+    const what = attached.kind === "image" ? "a imagem" : "o arquivo";
+    toast.error(`Não foi possível enviar ${what}. Tente de novo.`);
+    return false;
   }
 }
 
-export function ChatPanel({ chat }: { chat: ChatState }) {
+export function ChatPanel({ chat, roomCode }: { chat: ChatState; roomCode: string }) {
   const reducedMotion = useReducedMotion();
   const scope = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLOListElement>(null);
@@ -34,6 +41,24 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
   const editor = useChatEditing(chat, inputRef);
   useChatPanelMotion(scope, chat.open, reducedMotion);
   const { missed, scrollToEnd, handleScroll } = useChatScroll(chat, listRef, inputRef);
+  const attachment = useChatAttachment();
+  const editing = editor.editing !== undefined;
+  const drop = useImageDrop(attachment.attach, !editing);
+
+  /** Enter: the image waiting in the box goes with the text, as one message. */
+  async function submit() {
+    // A big picture is still being reduced: the text waits to go with it, not alone.
+    if (attachment.preparing) return;
+    const attached = attachment.attached;
+    if (!attached || editing) {
+      await editor.submit();
+      return;
+    }
+    if (!(await sendAttachment(chat, attached, editor.draft))) return;
+    attachment.clear();
+    editor.setDraft("");
+    inputRef.current?.focus();
+  }
 
   return (
     <aside
@@ -42,9 +67,18 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
       inert={!chat.open}
       aria-label="Chat da sala"
       data-chat-open={chat.open || undefined}
+      {...drop.handlers}
       // Wide screen: a column as tall as the room, aligned with the top of the bar and the bottom of the dock.
-      className="glass invisible fixed top-20 right-3 bottom-32 z-40 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl group-data-capture-bar/room:max-lg:bottom-42 sm:right-6 lg:top-4 lg:bottom-4"
+      className={cn(
+        "glass invisible fixed top-20 right-3 bottom-32 z-40 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl group-data-capture-bar/room:max-lg:bottom-42 sm:right-6 lg:top-4 lg:bottom-4",
+        drop.dropping && "ring-2 ring-brand-soft",
+      )}
     >
+      {drop.dropping ? (
+        <p className="pointer-events-none absolute inset-x-3 top-24 z-10 rounded-2xl bg-surface/95 px-4 py-3 text-center text-sm font-medium text-ink shadow-soft">
+          Solte para anexar a imagem
+        </p>
+      ) : null}
       <ChatHeader onClose={() => chat.setOpen(false)} />
       <ChatSoundSettings />
 
@@ -56,6 +90,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
           messages={chat.messages}
           editingId={editor.editingId}
           missed={missed}
+          roomCode={roomCode}
           onScroll={handleScroll}
           onJumpToEnd={() => scrollToEnd(reducedMotion ? "auto" : "smooth")}
           onEdit={editor.startEditing}
@@ -67,14 +102,16 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
         inputRef={inputRef}
         draft={editor.draft}
         onDraftChange={editor.setDraft}
-        editing={editor.editing !== undefined}
+        editing={editing}
         busy={editor.busy || chat.isSending}
-        onSubmit={() => void editor.submit()}
+        onSubmit={() => void submit()}
         onCancelEdit={editor.cancelEditing}
         onEditLast={editor.editLast}
         onClose={() => chat.setOpen(false)}
-        sendingImage={chat.sendingImage}
-        onImage={(file) => void sendChatImage(chat, file)}
+        sendingImage={chat.sendingImage || attachment.preparing}
+        onImage={attachment.attach}
+        attachment={attachment.attached}
+        onRemoveAttachment={attachment.clear}
       />
 
       <ConfirmDialog

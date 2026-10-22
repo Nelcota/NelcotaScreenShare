@@ -10,6 +10,7 @@ import { LeaveMenu } from "./LeaveMenu";
 import { MicControl } from "./MicControl";
 import { ReactionsMenu } from "./Reactions";
 import { ShareMenu } from "./ShareMenu";
+import { StopWatchingDockButton, StopWatchingPill } from "./StopWatchingDockButton";
 import type { ScreenShareControl } from "@/features/room/hooks/use-screen-share";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
 import { UnreadCount } from "@/components/UnreadCount";
@@ -17,6 +18,8 @@ import { UnreadCount } from "@/components/UnreadCount";
 interface ControlDockProps {
   chat: ChatState;
   share: ScreenShareControl;
+  /** Someone else's screen you are watching, on the stage. */
+  watchedScreen?: string;
   onLeave: () => void;
 }
 
@@ -40,19 +43,20 @@ function CameraAndShare({ share }: { share: ScreenShareControl }) {
  * Controls grouped by function: audio/screen, interaction and leave.
  * The device picker is part of the microphone control, on phones too.
  */
-export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
+export function ControlDock({ chat, share, watchedScreen, onLeave }: ControlDockProps) {
   const chatKey = useShortcutLabel("chat");
 
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(1rem,env(safe-area-inset-bottom))]",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 px-3 pb-[max(1rem,env(safe-area-inset-bottom))]",
         // Clears the browser's "sharing your screen" bar (about 2.5rem tall).
         "group-data-capture-bar/room:pb-14",
         // Chat open on a wide screen: the dock centers in the remaining space, like the content.
         chat.open && "lg:pr-[26.5rem]",
       )}
     >
+      {watchedScreen ? <StopWatchingPill trackSid={watchedScreen} /> : null}
       <nav
         data-anim="dock"
         aria-label="Controles da chamada"
@@ -63,6 +67,11 @@ export function ControlDock({ chat, share, onLeave }: ControlDockProps) {
 
           <DeafenButton />
           <CameraAndShare share={share} />
+          {watchedScreen ? (
+            <div className="max-sm:hidden">
+              <StopWatchingDockButton trackSid={watchedScreen} />
+            </div>
+          ) : null}
         </fieldset>
 
         <Separator

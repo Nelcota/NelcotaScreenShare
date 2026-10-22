@@ -1,6 +1,7 @@
 import { operation } from "@/lib/operations/operation";
 import type * as server from "./actions.server";
 import type * as gifs from "./gif-actions.server";
+import type * as attachments from "./attachment-actions.server";
 export const openDirectConversation = operation<
   Parameters<typeof server.openDirectConversation>[0],
   NonNullable<Awaited<ReturnType<typeof server.openDirectConversation>>["data"]>
@@ -33,6 +34,18 @@ export const unfavoriteGif = operation<
   Parameters<typeof gifs.unfavoriteGif>[0],
   NonNullable<Awaited<ReturnType<typeof gifs.unfavoriteGif>>["data"]>
 >("messages-unfavoriteGif");
+export const requestAttachmentUpload = operation<
+  Parameters<typeof attachments.requestAttachmentUpload>[0],
+  NonNullable<Awaited<ReturnType<typeof attachments.requestAttachmentUpload>>["data"]>
+>("messages-requestAttachmentUpload");
+export const confirmAttachment = operation<
+  Parameters<typeof attachments.confirmAttachment>[0],
+  NonNullable<Awaited<ReturnType<typeof attachments.confirmAttachment>>["data"]>
+>("messages-confirmAttachment");
+export const attachmentDownload = operation<
+  Parameters<typeof attachments.attachmentDownload>[0],
+  NonNullable<Awaited<ReturnType<typeof attachments.attachmentDownload>>["data"]>
+>("messages-attachmentDownload");
 export const listMessages = operation<
   Parameters<typeof server.listMessages>[0],
   NonNullable<Awaited<ReturnType<typeof server.listMessages>>["data"]>

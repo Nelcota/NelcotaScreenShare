@@ -16,10 +16,12 @@ import {
   users,
 } from "@/server/db/schema";
 import {
+  attachToMessage,
   attachmentDownloadUrl,
   confirmAttachment,
   requestAttachmentUpload,
 } from "@/features/messages/server/attachments.server";
+import { insertMessage } from "@/features/messages/server/messages.server";
 import { ATTACHMENT_LIMITS } from "@/features/messages/domain/attachments";
 import { createLocalDiskStorage } from "@/server/storage/local-disk-storage.server";
 
@@ -199,5 +201,35 @@ describe("message attachments", () => {
 
     if (row === undefined) throw new Error("the pending attachment was not recorded");
     expect(await storage().head(row.objectKey)).toBeNull();
+  });
+
+  test("a sent file reaches the other member; only the uploader's ready file goes in a message", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const started = await requestAttachmentUpload(deps(), {
+      userId: ana,
+      conversationId,
+      fileName: "nota.txt",
+      size: 2,
+    });
+    await upload(started.uploadUrl, "oi");
+    await confirmAttachment(deps(), { userId: ana, attachmentId: started.attachmentId });
+    const message = await insertMessage(db, conversationId, ana, { body: null, gifSlug: null });
+    const attach = (authorId: string) =>
+      attachToMessage(db, {
+        attachmentId: started.attachmentId,
+        authorId,
+        conversationId,
+        messageId: message.id,
+      });
+
+    await expect(attach(bia)).rejects.toThrow("Arquivo não encontrado.");
+    await attach(ana);
+    await expect(attach(ana)).rejects.toThrow("Arquivo não encontrado.");
+
+    expect(
+      await attachmentDownloadUrl(deps(), { userId: bia, attachmentId: started.attachmentId }),
+    ).toMatch(/\/api\/arquivos\/baixar\//);
   });
 });

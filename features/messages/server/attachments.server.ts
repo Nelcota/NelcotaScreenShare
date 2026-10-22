@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   attachmentLimit,
   cleanFileName,
@@ -173,4 +173,28 @@ export async function attachmentDownloadUrl(
   if (membership === null) throw new ActionError(NOT_FOUND);
   if (row.messageId === null && row.uploaderId !== input.userId) throw new ActionError(NOT_FOUND);
   return storage.downloadUrl(row.objectKey, DOWNLOAD_LINK_SECONDS);
+}
+
+/**
+ * Puts a checked attachment in the message being sent, inside the same transaction: only the
+ * uploader's own file, ready, in this conversation and not in another message yet.
+ */
+export async function attachToMessage(
+  db: DbExecutor,
+  input: { attachmentId: string; authorId: string; conversationId: string; messageId: string },
+): Promise<void> {
+  const attached = await db
+    .update(messageAttachments)
+    .set({ messageId: input.messageId })
+    .where(
+      and(
+        eq(messageAttachments.id, input.attachmentId),
+        eq(messageAttachments.uploaderId, input.authorId),
+        eq(messageAttachments.conversationId, input.conversationId),
+        eq(messageAttachments.status, "ready"),
+        isNull(messageAttachments.messageId),
+      ),
+    )
+    .returning({ id: messageAttachments.id });
+  if (attached.length === 0) throw new ActionError(NOT_FOUND);
 }

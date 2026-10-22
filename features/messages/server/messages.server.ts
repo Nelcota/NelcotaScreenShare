@@ -3,7 +3,11 @@ import { MESSAGE_PAGE_SIZE } from "@/features/messages/domain/conversation";
 import type { DbExecutor } from "@/server/db/index.server";
 import { conversations, messages, userBlocks, users } from "@/server/db/schema";
 
-export type MessageContent = { body: string; gifSlug: null } | { body: null; gifSlug: string };
+/** A text, a GIF, or the optional text over an attachment (linked after the insert). */
+export type MessageContent =
+  | { body: string; gifSlug: null }
+  | { body: null; gifSlug: string }
+  | { body: string | null; gifSlug: null };
 
 export interface StoredMessage {
   id: string;

@@ -79,6 +79,11 @@ import {
   unfavoriteGif,
   listGifFavorites,
 } from "@/features/messages/gif-actions.server";
+import {
+  attachmentDownload,
+  confirmAttachment,
+  requestAttachmentUpload,
+} from "@/features/messages/attachment-actions.server";
 import { addFriend, newFriendCode } from "@/features/friends/code-actions.server";
 import { setPresenceStatus } from "@/features/friends/status-actions.server";
 import {
@@ -157,6 +162,9 @@ export const operations: OperationHandlers = {
   "messages-leaveGroup": leaveGroup,
   "messages-favoriteGif": favoriteGif,
   "messages-unfavoriteGif": unfavoriteGif,
+  "messages-requestAttachmentUpload": requestAttachmentUpload,
+  "messages-confirmAttachment": confirmAttachment,
+  "messages-attachmentDownload": attachmentDownload,
   "messages-listGifFavorites": listGifFavorites,
   "friends-addFriend": addFriend,
   "friends-newFriendCode": newFriendCode,

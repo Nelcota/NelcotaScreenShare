@@ -297,7 +297,7 @@ export function RoomLayout({
       </main>
 
       <CornerMascot connection={connection} hasStage={hasStage} alone={alone} welcome={welcome} />
-      <ChatPanel chat={chat} />
+      <ChatPanel chat={chat} roomCode={code} />
       <ControlDock chat={chat} share={share} watchedScreen={watchedScreen} onLeave={onLeave} />
     </div>
   );

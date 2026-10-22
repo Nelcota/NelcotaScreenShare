@@ -43,9 +43,10 @@ export function useImageDrop(onImage: (file: File) => void, enabled: boolean) {
   const [dropping, setDropping] = useState(false);
   const handlers = {
     onDragOver: (event: DragEvent<HTMLElement>) => {
-      if (!enabled || !carriesFiles(event)) return;
+      if (!carriesFiles(event)) return;
+      // Always taken here: left to the browser, a dropped file opens and the call is gone.
       event.preventDefault();
-      setDropping(true);
+      if (enabled) setDropping(true);
     },
     onDragLeave: (event: DragEvent<HTMLElement>) => {
       // Moving over a child also leaves the parent: only leaving the panel counts.
@@ -55,10 +56,12 @@ export function useImageDrop(onImage: (file: File) => void, enabled: boolean) {
     },
     onDrop: (event: DragEvent<HTMLElement>) => {
       setDropping(false);
-      if (!enabled || !carriesFiles(event)) return;
+      if (!carriesFiles(event)) return;
       event.preventDefault();
+      // Editing a message: the file is ignored, never opened.
+      if (!enabled) return;
       const file = event.dataTransfer.files[0];
-      if (file) onImage(file);
+      if (file !== undefined) onImage(file);
     },
   };
   return { dropping, handlers };

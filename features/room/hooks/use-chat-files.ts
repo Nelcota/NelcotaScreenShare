@@ -84,7 +84,7 @@ export function useChatFiles() {
    * typed next to it, as one message. Returns why it did not go out, when it did not.
    */
   async function sendFile(file: File, text: string, typed = ""): Promise<string | undefined> {
-    if (sendInFlight.current) return "Wait for the current file to finish sending.";
+    if (sendInFlight.current) return "Espere o arquivo anterior terminar de enviar.";
     const now = Date.now();
     const paceProblem = sendingPaceProblem(sent.current, now);
     if (paceProblem) return paceProblem;

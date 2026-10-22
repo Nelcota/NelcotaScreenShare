@@ -47,6 +47,12 @@ export function useAttachmentDraft(conversationId: string) {
     setDraft(null);
   };
 
+  // Back after a failed send; its local preview was already freed, so the icon shows.
+  const restore = (attachment: ReadyAttachment) => {
+    latest.current += 1;
+    setDraft({ status: "ready", previewUrl: null, ...attachment });
+  };
+
   const ready = draft?.status === "ready" ? draft : null;
-  return { draft, ready, uploading: draft?.status === "uploading", pick, clear };
+  return { draft, ready, uploading: draft?.status === "uploading", pick, clear, restore };
 }

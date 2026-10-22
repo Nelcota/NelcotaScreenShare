@@ -6,6 +6,7 @@ import { messageLengthNote } from "@/features/messages/domain/conversation";
 import type { Gif } from "@/features/messages/domain/klipy";
 import { useKlipy } from "@/features/messages/hooks/use-gif";
 import { useAttachmentDraft } from "@/features/messages/hooks/use-attachment-draft";
+import { sendWithAttachment } from "@/features/messages/client/send-with-attachment";
 import { AttachButton, AttachmentTray } from "@/features/messages/ui/AttachmentTray";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -53,8 +54,17 @@ export function Composer({
     if (!sendable) return;
     setText("");
     if (ready !== null) {
-      attachment.clear();
-      void deliver({ conversationId, attachmentId: ready.attachmentId, body });
+      void sendWithAttachment({
+        conversationId,
+        body,
+        attachment: ready,
+        deliver,
+        clear: attachment.clear,
+        restore: (lostBody, file) => {
+          setText((current) => current || lostBody);
+          attachment.restore(file);
+        },
+      });
       return;
     }
     void deliver({ conversationId, body }).then((sent) => {

@@ -15,7 +15,7 @@ export function ChatImageButton({
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <>
-      <Hint text="Anexar imagem (até 5 MB)">
+      <Hint text="Anexar imagem (até 25 MB)">
         <Button
           type="button"
           variant="quiet"

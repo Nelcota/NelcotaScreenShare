@@ -3,10 +3,14 @@ import { test } from "vitest";
 import {
   admitImage,
   CHAT_IMAGE_MAX_BYTES,
+  CHAT_IMAGE_MAX_SIDE,
+  CHAT_IMAGE_PICK_MAX_BYTES,
   CHAT_IMAGES_PER_MINUTE,
   chatImageProblem,
+  goesAsPicked,
   imageTypeOf,
   receivedCaption,
+  reducedSize,
   receivedImageType,
   sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
@@ -26,7 +30,7 @@ test("the real type comes from the first bytes", () => {
   assert.equal(imageTypeOf(new TextEncoder().encode("<svg onload=alert(1)>")), undefined);
 });
 
-test("a picked or pasted file must be an image of up to 5 MB", () => {
+test("a picked or pasted file must be an image of up to 25 MB, a GIF of up to 5 MB", () => {
   assert.equal(chatImageProblem({ type: "image/png", size: 1024 }), undefined);
   assert.equal(
     chatImageProblem({ type: "image/svg+xml", size: 1024 }),
@@ -36,10 +40,28 @@ test("a picked or pasted file must be an image of up to 5 MB", () => {
     chatImageProblem({ type: "application/pdf", size: 10 }),
     "Envie só imagens: PNG, JPG, WebP ou GIF.",
   );
+  // Bigger than what goes out is fine: the browser reduces it before sending.
+  assert.equal(chatImageProblem({ type: "image/jpeg", size: CHAT_IMAGE_MAX_BYTES + 1 }), undefined);
   assert.equal(
-    chatImageProblem({ type: "image/jpeg", size: CHAT_IMAGE_MAX_BYTES + 1 }),
-    "A imagem passa de 5 MB.",
+    chatImageProblem({ type: "image/jpeg", size: CHAT_IMAGE_PICK_MAX_BYTES + 1 }),
+    "A imagem passa de 25 MB.",
   );
+  // A GIF is not reduced (it would stop moving), so it keeps the 5 MB that goes out.
+  assert.equal(
+    chatImageProblem({ type: "image/gif", size: CHAT_IMAGE_MAX_BYTES + 1 }),
+    "O GIF passa de 5 MB.",
+  );
+});
+
+test("only an image too heavy or too big is reduced, never enlarged", () => {
+  const print = { type: "image/png", size: 800_000, width: 1920, height: 1080 };
+  assert.equal(goesAsPicked(print), true);
+  assert.equal(goesAsPicked({ ...print, size: CHAT_IMAGE_MAX_BYTES + 1 }), false);
+  assert.equal(goesAsPicked({ ...print, width: 4000, height: 3000 }), false);
+  assert.equal(goesAsPicked({ ...print, type: "image/gif", size: CHAT_IMAGE_MAX_BYTES }), true);
+  assert.deepEqual(reducedSize(4000, 3000), { width: CHAT_IMAGE_MAX_SIDE, height: 1920 });
+  assert.deepEqual(reducedSize(1000, 3000), { width: 853, height: CHAT_IMAGE_MAX_SIDE });
+  assert.deepEqual(reducedSize(800, 600), { width: 800, height: 600 });
 });
 
 test("a received image is shown only when it is really an image within the size", () => {

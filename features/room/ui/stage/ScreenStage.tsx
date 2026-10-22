@@ -173,9 +173,9 @@ export function ScreenStage({ shares, invites, focused, onFocus }: ScreenStagePr
             />
           </div>
           <div className="flex max-w-sm flex-col gap-1.5">
-            <p className="font-medium tracking-tight">Quem clicar em Assistir vê sua tela</p>
+            <p className="font-medium tracking-tight">Sua tela está na chamada.</p>
             <p className="text-sm text-ink-subtle">
-              A prévia fica pequena para evitar o efeito espelho. Os pontos aparecem aqui.
+              Os pontos e as marcas de quem assiste aparecem aqui.
             </p>
           </div>
         </div>

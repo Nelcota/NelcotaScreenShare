@@ -1,4 +1,4 @@
-import { Check, Pencil, SendHorizontal, X } from "lucide-react";
+import { Check, FileText, Pencil, SendHorizontal, X } from "lucide-react";
 import { useId, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { CHAT_MAX_LENGTH } from "@/features/room/domain/data-channel";
@@ -158,18 +158,24 @@ function AttachmentPreview({
 }) {
   return (
     <div className="mb-2 flex items-center gap-2 rounded-2xl bg-surface-2 p-1.5 pr-2">
-      <img
-        src={attachment.preview}
-        alt={`Imagem anexada: ${attachment.file.name}`}
-        className="size-14 shrink-0 rounded-xl object-cover"
-      />
+      {attachment.kind === "image" ? (
+        <img
+          src={attachment.preview}
+          alt={`Imagem anexada: ${attachment.file.name}`}
+          className="size-14 shrink-0 rounded-xl object-cover"
+        />
+      ) : (
+        <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand-soft">
+          <FileText className="size-6" aria-label={`Arquivo anexado: ${attachment.file.name}`} />
+        </span>
+      )}
       <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">{attachment.file.name}</span>
       <Button
         type="button"
         variant="quiet"
         size="icon-sm"
         onClick={onRemove}
-        aria-label="Tirar a imagem"
+        aria-label={attachment.kind === "image" ? "Tirar a imagem" : "Tirar o arquivo"}
         className="rounded-lg"
       >
         <X aria-hidden="true" />

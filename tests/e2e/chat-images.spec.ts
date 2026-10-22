@@ -1,44 +1,11 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { joinRoom, newParticipant, newRoomCode } from "./support/session";
+import { chatPair } from "./support/chat";
 
 /** A tiny real PNG (1×1, green), as a print would be. */
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
   "base64",
 );
-
-/** Two people in one call with the chat open on both sides. */
-async function chatPair(
-  browser: Parameters<typeof newParticipant>[0],
-  names: [string, string],
-  { recordBlobs = false } = {},
-) {
-  const sender = await newParticipant(browser, names[0]);
-  const receiver = await newParticipant(browser, names[1]);
-  // What the receiver builds from the bytes that arrived (the page's CSP blocks fetching blobs).
-  if (recordBlobs) {
-    await receiver.page.addInitScript(() => {
-      const made: { size: number; type: string }[] = [];
-      Object.assign(window, { madeBlobs: made });
-      const original = URL.createObjectURL.bind(URL);
-      URL.createObjectURL = (object: Blob | MediaSource) => {
-        if (object instanceof Blob) made.push({ size: object.size, type: object.type });
-        return original(object);
-      };
-    });
-  }
-  const code = await newRoomCode();
-  await joinRoom(sender.page, code, { micOn: false });
-  await joinRoom(receiver.page, code, { micOn: false });
-  await sender.page.getByRole("button", { name: /^Chat/ }).click();
-  await receiver.page.getByRole("button", { name: /^Chat/ }).click();
-  return {
-    sender,
-    receiver,
-    senderChat: sender.page.getByRole("complementary", { name: "Chat da sala" }),
-    receiverChat: receiver.page.getByRole("complementary", { name: "Chat da sala" }),
-  };
-}
 
 /** A file dropped on the chat from the computer, as a drag from the desktop sends it. */
 async function dropImage(page: Page, target: Locator, name: string) {
@@ -118,10 +85,14 @@ test("an image waits in the box and goes with the text as one message; a non-ima
     await expect(senderChat.getByRole("img", { name: "Imagem anexada: print.png" })).toHaveCount(0);
     await expect(sender.page.getByPlaceholder("Escreva para a sala")).toHaveValue("");
 
-    await senderChat
-      .locator('input[type="file"]')
-      .setInputFiles({ name: "notas.txt", mimeType: "text/plain", buffer: Buffer.from("oi") });
-    await expect(sender.page.getByText("Envie só imagens: PNG, JPG, WebP ou GIF.")).toBeVisible();
+    await senderChat.locator('input[type="file"]').setInputFiles({
+      name: "contrato.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.7"),
+    });
+    await expect(
+      sender.page.getByText("Envie imagens (PNG, JPG, WebP ou GIF) ou arquivos .txt."),
+    ).toBeVisible();
     await expect(senderChat.getByRole("img", { name: /Imagem anexada/ })).toHaveCount(0);
   } finally {
     await sender.context.close();

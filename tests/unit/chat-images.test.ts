@@ -34,11 +34,11 @@ test("a picked or pasted file must be an image of up to 25 MB, a GIF of up to 5 
   assert.equal(chatImageProblem({ type: "image/png", size: 1024 }), undefined);
   assert.equal(
     chatImageProblem({ type: "image/svg+xml", size: 1024 }),
-    "Envie só imagens: PNG, JPG, WebP ou GIF.",
+    "Envie imagens (PNG, JPG, WebP ou GIF) ou arquivos .txt.",
   );
   assert.equal(
     chatImageProblem({ type: "application/pdf", size: 10 }),
-    "Envie só imagens: PNG, JPG, WebP ou GIF.",
+    "Envie imagens (PNG, JPG, WebP ou GIF) ou arquivos .txt.",
   );
   // Bigger than what goes out is fine: the browser reduces it before sending.
   assert.equal(chatImageProblem({ type: "image/jpeg", size: CHAT_IMAGE_MAX_BYTES + 1 }), undefined);

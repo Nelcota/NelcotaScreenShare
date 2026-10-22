@@ -43,7 +43,7 @@ export const CHAT_IMAGE_TYPES: readonly ChatImageType[] = [
   "image/gif",
 ];
 
-const NOT_AN_IMAGE_MESSAGE = "Envie só imagens: PNG, JPG, WebP ou GIF.";
+const NOT_AN_IMAGE_MESSAGE = "Envie imagens (PNG, JPG, WebP ou GIF) ou arquivos .txt.";
 const IMAGE_TOO_BIG_MESSAGE = "A imagem passa de 25 MB.";
 const GIF_TOO_BIG_MESSAGE = "O GIF passa de 5 MB.";
 const TOO_MANY_IMAGES_MESSAGE = "Espere um pouco para mandar mais imagens.";

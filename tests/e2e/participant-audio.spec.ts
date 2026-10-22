@@ -85,7 +85,8 @@ test("individual playback survives track replacement, deafening and navigation",
 
     await listener.page.getByRole("button", { name: "Parar de ouvir a sala" }).click();
     await expect(voice).toHaveJSProperty("volume", 0);
-    await expect(sound).toHaveJSProperty("volume", 0);
+    // The screen being watched keeps its sound, at the chosen level.
+    await expect(sound).toHaveJSProperty("volume", 0.25);
     await listener.page.getByRole("button", { name: "Voltar a ouvir a sala" }).click();
     await expect(voice).toHaveJSProperty("volume", 0.4);
     await expect(sound).toHaveJSProperty("volume", 0.25);

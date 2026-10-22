@@ -5,6 +5,7 @@ import {
   DEFAULT_PARTICIPANT_AUDIO,
   normalizeAudioLevel,
   playbackVolume,
+  silencedByDeafen,
   type AudioSource,
   type ParticipantAudio,
 } from "@/features/room/domain/participant-audio";
@@ -34,7 +35,7 @@ function RoomAudioPlayback({
             key={`${identity}:${trackRef.publication.trackSid}`}
             trackRef={trackRef}
             volume={playbackVolume(settings, source, deafened)}
-            muted={deafened}
+            muted={silencedByDeafen(source, deafened)}
             data-participant={identity}
             data-source={source}
           />

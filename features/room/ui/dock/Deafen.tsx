@@ -41,9 +41,9 @@ function useSharedDeafened() {
 }
 
 /**
- * Plays the room's audio (voices and shared computer sound) unless the person deafened
- * themselves. Deafening also turns the microphone off, so nobody talks to someone who
- * cannot hear; undeafening turns it back on only if it was on before.
+ * Plays the room's voices unless the person deafened themselves; the screen they watch keeps
+ * its sound. Deafening also turns the microphone off, so nobody talks to someone who cannot
+ * hear; undeafening turns it back on only if it was on before.
  */
 export function DeafenProvider({ children }: { children: ReactNode }) {
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();

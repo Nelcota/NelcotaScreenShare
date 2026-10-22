@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { sessionWithCookies, withResponseCookies } from "@/server/response-cookies.server";
+import {
+  appendSessionCookies,
+  collectSessionCookies,
+  sessionWithCookies,
+  withResponseCookies,
+} from "@/server/response-cookies.server";
 
 function readSession(name: string, value: string) {
   return sessionWithCookies(
@@ -53,4 +58,19 @@ test("session reads outside HTTP response handling do not leak into later reques
   expect(await readSession("session", "outside")).toEqual({ user: "session" });
   const response = await withResponseCookies(async () => new Response());
   expect(response.headers.getSetCookie()).toEqual([]);
+});
+
+test("refreshes read before the response exists are handed back and added to it later", async () => {
+  const { result, cookies } = await collectSessionCookies(async () => {
+    await readSession("nelcota-admin.session_token", "admin");
+    await readSession("session", "old");
+    return "verdict";
+  });
+  expect(result).toBe("verdict");
+  const response = new Response(null, { headers: { "Set-Cookie": "session=; Max-Age=0; Path=/" } });
+  appendSessionCookies(response, cookies);
+  expect(response.headers.getSetCookie()).toEqual([
+    "session=; Max-Age=0; Path=/",
+    "nelcota-admin.session_token=admin; Path=/; HttpOnly",
+  ]);
 });

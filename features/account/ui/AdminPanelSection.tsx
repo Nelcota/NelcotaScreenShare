@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { SettingsRow, SettingsSection } from "@/features/account/ui/settings/Settings";
 
 /**
- * Only for accounts the panel's owner picked. A link inside the app, so a call going on
- * survives; the panel still asks for its own sign-in and the 2FA code.
+ * Only for someone active on the panel's team, with the same verified e-mail. A link inside
+ * the app, so a call going on survives; the panel still asks for its own sign-in and the 2FA
+ * code.
  */
 export function AdminPanelSection() {
   return (

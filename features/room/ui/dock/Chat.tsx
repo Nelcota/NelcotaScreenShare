@@ -33,7 +33,7 @@ async function sendAttachment(
   }
 }
 
-export function ChatPanel({ chat }: { chat: ChatState }) {
+export function ChatPanel({ chat, roomCode }: { chat: ChatState; roomCode: string }) {
   const reducedMotion = useReducedMotion();
   const scope = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLOListElement>(null);
@@ -90,6 +90,7 @@ export function ChatPanel({ chat }: { chat: ChatState }) {
           messages={chat.messages}
           editingId={editor.editingId}
           missed={missed}
+          roomCode={roomCode}
           onScroll={handleScroll}
           onJumpToEnd={() => scrollToEnd(reducedMotion ? "auto" : "smooth")}
           onEdit={editor.startEditing}

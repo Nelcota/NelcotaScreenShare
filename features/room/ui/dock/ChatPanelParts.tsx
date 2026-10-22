@@ -57,6 +57,7 @@ interface ChatMessageListProps {
   messages: ChatEntry[];
   editingId: string | undefined;
   missed: number;
+  roomCode: string;
   onScroll: (list: HTMLOListElement) => void;
   onJumpToEnd: () => void;
   onEdit: (message: ChatEntry) => void;
@@ -68,6 +69,7 @@ export function ChatMessageList({
   messages,
   editingId,
   missed,
+  roomCode,
   onScroll,
   onJumpToEnd,
   onEdit,
@@ -92,6 +94,7 @@ export function ChatMessageList({
           <ChatMessage
             key={message.id}
             message={message}
+            roomCode={roomCode}
             groupStart={starts[index] ?? true}
             editing={message.id === editingId}
             onEdit={() => onEdit(message)}

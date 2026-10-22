@@ -29,7 +29,7 @@ test("clipboard pastes cannot start concurrent transfers", async () => {
   state.streamBytes.mockReturnValue(promise);
   const chat = useChatImages();
   const first = chat.sendImage(image);
-  expect(await chat.sendImage(image)).toBe("Wait for the current image to finish sending.");
+  expect(await chat.sendImage(image)).toBe("Espere a imagem anterior terminar de enviar.");
   expect(state.streamBytes).toHaveBeenCalledOnce();
   resolve(writer("first"));
   expect(await first).toBeUndefined();

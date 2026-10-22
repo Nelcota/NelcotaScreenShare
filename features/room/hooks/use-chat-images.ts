@@ -96,7 +96,7 @@ export function useChatImages() {
    * as the others accept in a minute.
    */
   async function sendImage(file: File, text = ""): Promise<string | undefined> {
-    if (sendInFlight.current) return "Wait for the current image to finish sending.";
+    if (sendInFlight.current) return "Espere a imagem anterior terminar de enviar.";
     const now = Date.now();
     const paceProblem = sendingPaceProblem(sent.current, now);
     if (paceProblem) return paceProblem;

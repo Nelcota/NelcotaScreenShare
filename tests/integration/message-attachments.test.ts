@@ -13,6 +13,7 @@ import {
   conversations,
   messageAttachments,
   proEntitlements,
+  reports,
   users,
 } from "@/server/db/schema";
 import {
@@ -27,6 +28,7 @@ import {
 import { forgetMessages, messageData } from "@/features/messages/server/message-privacy.server";
 import { insertMessage } from "@/features/messages/server/messages.server";
 import { ATTACHMENT_LIMITS } from "@/features/messages/domain/attachments";
+import { createReport } from "@/features/reports/server/create-report.server";
 import { createLocalDiskStorage } from "@/server/storage/local-disk-storage.server";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -322,5 +324,29 @@ describe("message attachments", () => {
     await sweepAttachments(db, storage());
 
     expect(await storage().head(file.objectKey)).toBeNull();
+  });
+});
+
+describe("reported files", () => {
+  test("reporting a message with only a file names it in the copy and holds the file", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const file = await sentFile(ana, conversationId);
+
+    await createReport(db, bia, {
+      target: { kind: "message", messageId: file.messageId },
+      reason: "spam",
+      details: null,
+    });
+
+    const [report] = await db
+      .select({
+        messageExcerpt: reports.messageExcerpt,
+        targetAttachmentId: reports.targetAttachmentId,
+      })
+      .from(reports)
+      .where(eq(reports.targetMessageId, file.messageId));
+    expect(report).toEqual({ messageExcerpt: "Arquivo: nota.txt", targetAttachmentId: file.id });
   });
 });

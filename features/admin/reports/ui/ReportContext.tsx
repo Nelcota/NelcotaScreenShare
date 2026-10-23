@@ -14,6 +14,7 @@ function heldFile(report: Report): ReportedFileInfo | null {
   return { fileName: file.fileName, kind: file.kind, size: file.size };
 }
 
+/** What the panel says above the copy, by what was kept. */
 function copyIntro(file: ReportedFileInfo | null, text: string | null): string {
   if (file === null) return "A mensagem foi apagada. Cópia guardada na denúncia:";
   if (text === null)
@@ -32,10 +33,10 @@ function DeletedMessageCopy({ report, file }: { report: Report; file: ReportedFi
   return (
     <div className="flex flex-col gap-1 text-sm">
       <p className="text-ink-muted">{copyIntro(file, text)}</p>
-      {text ? (
+      {text !== null ? (
         <p className="rounded-xl bg-surface-2 p-3 break-words whitespace-pre-wrap">{text}</p>
       ) : null}
-      {file ? <ReportedFile reportId={report.id} file={file} /> : null}
+      {file !== null ? <ReportedFile reportId={report.id} file={file} /> : null}
     </div>
   );
 }
@@ -57,7 +58,7 @@ function ContextContent({
   }
   return (
     <>
-      {message.body ? (
+      {message.body !== null ? (
         <span className="break-words whitespace-pre-wrap">{message.body}</span>
       ) : null}
       <ReportedFile reportId={reportId} file={file} />
@@ -69,7 +70,8 @@ function ContextContent({
 export function ReportContext({ detail }: { detail: Detail }) {
   const { report, context } = detail;
   const file = heldFile(report);
-  if (context.length === 0 && (report.messageExcerpt || file)) {
+  const hasCopy = report.messageExcerpt !== null || file !== null;
+  if (context.length === 0 && hasCopy) {
     return <DeletedMessageCopy report={report} file={file} />;
   }
   if (context.length === 0 && report.targetKind === "message") {

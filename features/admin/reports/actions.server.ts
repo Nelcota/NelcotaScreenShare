@@ -70,7 +70,7 @@ async function resolve(
  * Deletes the files the resolved reports no longer hold. A failure only waits for the
  * maintenance sweep, so it never undoes the resolution.
  */
-async function releaseFiles(attachmentIds: (string | null)[]) {
+async function releaseFiles(attachmentIds: readonly (string | null)[]) {
   const storage = attachmentStorage();
   if (storage === null) return;
   try {

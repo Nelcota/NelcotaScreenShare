@@ -54,6 +54,7 @@ const ACTION_LABELS: Record<string, string> = {
   "room.participant_ban": "Baniu pessoa da chamada",
   "room.participant_unban": "Deixou pessoa voltar à chamada",
   "report.resolve": "Resolveu denúncia",
+  "report.download_file": "Baixou arquivo denunciado",
   "message.delete": "Apagou mensagem",
   "friend.request": "Pediu amizade",
   "friend.accept": "Aceitou amizade",

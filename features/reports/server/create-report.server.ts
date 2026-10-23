@@ -1,9 +1,9 @@
 import { and, count, eq, gte, isNull } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
-import { conversations, messages, reports, users } from "@/server/db/schema";
+import { conversations, messageAttachments, messages, reports, users } from "@/server/db/schema";
 import { membershipOf } from "@/features/messages/server/conversations.server";
 import { ActionError } from "@/server/operations/action-error";
-import type { ReportReason } from "@/features/reports/domain/reports";
+import { reportedMessageText, type ReportReason } from "@/features/reports/domain/reports";
 
 /** Reports one person can send per hour: enough for real cases, not for flooding the queue. */
 const REPORTS_PER_HOUR = 10;
@@ -26,6 +26,7 @@ interface ResolvedTarget {
   targetMessageId: string | null;
   targetConversationId: string | null;
   messageExcerpt: string | null;
+  targetAttachmentId: string | null;
 }
 
 const NOT_FOUND = "Não encontramos o que você quer denunciar.";
@@ -47,10 +48,14 @@ async function userTarget(tx: DbExecutor, userId: string, reporterId: string) {
     targetMessageId: null,
     targetConversationId: null,
     messageExcerpt: null,
+    targetAttachmentId: null,
   } satisfies ResolvedTarget;
 }
 
-/** Only someone in the conversation can report one of its messages. */
+/**
+ * Only someone in the conversation can report one of its messages. The report keeps a copy
+ * of it and holds its file, so both outlast the author deleting the message.
+ */
 async function messageTarget(tx: DbExecutor, messageId: string, reporterId: string) {
   const [message] = await tx
     .select({
@@ -59,8 +64,11 @@ async function messageTarget(tx: DbExecutor, messageId: string, reporterId: stri
       conversationId: messages.conversationId,
       body: messages.body,
       gifSlug: messages.gifSlug,
+      attachmentId: messageAttachments.id,
+      fileName: messageAttachments.fileName,
     })
     .from(messages)
+    .leftJoin(messageAttachments, eq(messageAttachments.messageId, messages.id))
     .where(eq(messages.id, messageId));
   if (!message || !(await isMember(tx, message.conversationId, reporterId))) {
     throw new ActionError(NOT_FOUND);
@@ -73,7 +81,8 @@ async function messageTarget(tx: DbExecutor, messageId: string, reporterId: stri
     targetUserId: message.authorId,
     targetMessageId: message.id,
     targetConversationId: message.conversationId,
-    messageExcerpt: message.body ?? `GIF: ${message.gifSlug ?? ""}`,
+    messageExcerpt: reportedMessageText(message),
+    targetAttachmentId: message.attachmentId,
   } satisfies ResolvedTarget;
 }
 
@@ -91,6 +100,7 @@ async function conversationTarget(tx: DbExecutor, conversationId: string, report
     targetMessageId: null,
     targetConversationId: conversation.id,
     messageExcerpt: null,
+    targetAttachmentId: null,
   } satisfies ResolvedTarget;
 }
 

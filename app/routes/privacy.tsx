@@ -129,7 +129,9 @@ function PurposeAndRetentionSections() {
           <PrivacyItem
             title="Cópia da mensagem denunciada"
             aside={<Duration>Até a denúncia ser avaliada</Duration>}
-          />
+          >
+            Com o arquivo dela, se tiver. Os de uma conta excluída saem antes.
+          </PrivacyItem>
           <PrivacyItem title="Amigos e bloqueios" aside={<Duration>Até você desfazer</Duration>}>
             Ou até excluir a conta.
           </PrivacyItem>

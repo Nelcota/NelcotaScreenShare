@@ -8,6 +8,10 @@ import type { AuditRecorder } from "@/server/audit.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
 import { messages, reports } from "@/server/db/schema";
 import { refreshLastMessageAt } from "@/features/messages/server/messages.server";
+import { releaseReportedFiles } from "@/features/messages/server/attachment-cleanup.server";
+import { reportedFileDownloadUrl } from "@/features/messages/server/attachments.server";
+import { logger } from "@/server/logger.server";
+import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 
 const ALREADY_RESOLVED = "Essa denúncia já foi resolvida.";
 
@@ -26,7 +30,10 @@ async function openReport(tx: DbExecutor, id: string) {
   return report;
 }
 
-/** Closes reports and drops the message copy: it was only kept for the review. */
+/**
+ * Closes reports and drops the message copy: it was only kept for the review. Returns the
+ * files those reports held, to release once the transaction is done.
+ */
 async function resolve(
   tx: DbExecutor,
   audit: AuditRecorder,
@@ -44,7 +51,7 @@ async function resolve(
       messageExcerpt: null,
     })
     .where(and(where, eq(reports.status, "open")))
-    .returning({ id: reports.id });
+    .returning({ id: reports.id, attachmentId: reports.targetAttachmentId });
   await audit.recordMany(
     tx,
     closed.map((report) => ({
@@ -54,6 +61,21 @@ async function resolve(
       metadata: { resultado: resolution },
     })),
   );
+  return closed.map((report) => report.attachmentId);
+}
+
+/**
+ * Deletes the files the resolved reports no longer hold. A failure only waits for the
+ * maintenance sweep, so it never undoes the resolution.
+ */
+async function releaseFiles(attachmentIds: readonly (string | null)[]) {
+  const storage = attachmentStorage();
+  if (storage === null) return;
+  try {
+    await releaseReportedFiles({ db: getDb(), storage }, attachmentIds);
+  } catch (error) {
+    logger.warn({ err: error }, "reported files not released");
+  }
 }
 
 const idInput = z.object({ id: z.uuid() });
@@ -62,10 +84,11 @@ export const resolveReportAction = defineAdminOperation(
   { name: "report.resolve", permission: { report: ["resolve"] }, audit: "required" },
   idInput,
   async ({ parsedInput, ctx }) => {
-    await getDb().transaction(async (tx) => {
+    const held = await getDb().transaction(async (tx) => {
       const report = await openReport(tx, parsedInput.id);
-      await resolve(tx, ctx.audit, eq(reports.id, report.id), "no_action", ctx.admin.user.id);
+      return resolve(tx, ctx.audit, eq(reports.id, report.id), "no_action", ctx.admin.user.id);
     });
+    await releaseFiles(held);
     return { resolved: true };
   },
 );
@@ -75,11 +98,11 @@ export const deleteReportedMessageAction = defineAdminOperation(
   { name: "report.deleteMessage", permission: { report: ["resolve"] }, audit: "required" },
   idInput,
   async ({ parsedInput, ctx }) => {
-    await getDb().transaction(async (tx) => {
+    const held = await getDb().transaction(async (tx) => {
       const report = await openReport(tx, parsedInput.id);
       if (!report.targetMessageId) throw new ActionError("A mensagem já foi apagada.");
       const messageId = report.targetMessageId;
-      await resolve(
+      const files = await resolve(
         tx,
         ctx.audit,
         eq(reports.targetMessageId, messageId),
@@ -94,7 +117,9 @@ export const deleteReportedMessageAction = defineAdminOperation(
         resourceId: messageId,
         metadata: { denuncia: report.id },
       });
+      return files;
     });
+    await releaseFiles(held);
     return { deleted: true };
   },
 );
@@ -115,7 +140,7 @@ export const blockReportedAccountAction = defineAdminOperation(
       .max(300, "O motivo pode ter até 300 caracteres."),
   }),
   async ({ parsedInput, ctx }) => {
-    await getDb().transaction(async (tx) => {
+    const held = await getDb().transaction(async (tx) => {
       const report = await openReport(tx, parsedInput.id);
       if (!report.targetUserId)
         throw new ActionError("Essa denúncia não tem uma conta para bloquear.");
@@ -129,8 +154,33 @@ export const blockReportedAccountAction = defineAdminOperation(
           metadata: { motivo: parsedInput.reason, denuncia: report.id },
         })),
       );
-      await resolve(tx, ctx.audit, eq(reports.id, report.id), "account_blocked", ctx.admin.user.id);
+      return resolve(
+        tx,
+        ctx.audit,
+        eq(reports.id, report.id),
+        "account_blocked",
+        ctx.admin.user.id,
+      );
     });
+    await releaseFiles(held);
     return { blocked: true };
+  },
+);
+
+/** A short link to the reported file, to review it; every download goes to the audit log. */
+export const downloadReportedFileAction = defineAdminOperation(
+  { name: "report.downloadFile", permission: { report: ["read"] }, audit: "required" },
+  idInput,
+  async ({ parsedInput, ctx }) => {
+    const storage = attachmentStorage();
+    if (storage === null) throw new ActionError("Os anexos estão desligados.");
+    const db = getDb();
+    const url = await reportedFileDownloadUrl({ db, storage }, parsedInput.id);
+    await ctx.audit.record(db, {
+      action: "report.download_file",
+      resourceType: "report",
+      resourceId: parsedInput.id,
+    });
+    return { url };
   },
 );

@@ -32,10 +32,9 @@ import {
 import { notifyUsers } from "@/features/live/server/live-bus.server";
 import {
   attachmentsOfMessage,
-  attachToMessage,
   discardAttachments,
-  withAttachments,
-} from "@/features/messages/server/attachments.server";
+} from "@/features/messages/server/attachment-cleanup.server";
+import { attachToMessage, withAttachments } from "@/features/messages/server/attachments.server";
 import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { withGifs } from "@/features/messages/server/klipy.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";

@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -12,21 +12,28 @@ import {
   conversationMembers,
   conversations,
   messageAttachments,
+  messages,
   proEntitlements,
+  reports,
   users,
 } from "@/server/db/schema";
 import {
-  attachmentsOfMessage,
   attachToMessage,
   attachmentDownloadUrl,
   confirmAttachment,
-  discardAttachments,
   requestAttachmentUpload,
-  sweepAttachments,
 } from "@/features/messages/server/attachments.server";
+import {
+  attachmentsOfMessage,
+  discardAttachments,
+  releaseReportedFiles,
+  sweepAttachments,
+} from "@/features/messages/server/attachment-cleanup.server";
 import { forgetMessages, messageData } from "@/features/messages/server/message-privacy.server";
 import { insertMessage } from "@/features/messages/server/messages.server";
 import { ATTACHMENT_LIMITS } from "@/features/messages/domain/attachments";
+import { createReport } from "@/features/reports/server/create-report.server";
+import { forgetReports } from "@/features/reports/server/personal-data.server";
 import { createLocalDiskStorage } from "@/server/storage/local-disk-storage.server";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -319,6 +326,150 @@ describe("message attachments", () => {
     await expect(
       attachmentDownloadUrl(deps(), { userId: bia, attachmentId: file.id }),
     ).rejects.toThrow("Arquivo não encontrado.");
+    await sweepAttachments(db, storage());
+
+    expect(await storage().head(file.objectKey)).toBeNull();
+  });
+});
+
+/** Bia reports Ana's message with a file. */
+async function reportedFile() {
+  const ana = await person("Ana");
+  const bia = await person("Bia");
+  const conversationId = await conversation(ana, bia);
+  const file = await sentFile(ana, conversationId);
+  await createReport(db, bia, {
+    target: { kind: "message", messageId: file.messageId },
+    reason: "spam",
+    details: null,
+  });
+  return { ana, bia, conversationId, file };
+}
+
+function closeReportsOf(attachmentId: string) {
+  return db
+    .update(reports)
+    .set({ status: "resolved", resolution: "no_action", resolvedAt: new Date() })
+    .where(eq(reports.targetAttachmentId, attachmentId));
+}
+
+const tomorrow = () => new Date(Date.now() + 25 * 60 * 60 * 1000);
+
+describe("reported files", () => {
+  test("reporting a message with only a file names it in the copy and holds the file", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const file = await sentFile(ana, conversationId);
+
+    await createReport(db, bia, {
+      target: { kind: "message", messageId: file.messageId },
+      reason: "spam",
+      details: null,
+    });
+
+    const [report] = await db
+      .select({
+        messageExcerpt: reports.messageExcerpt,
+        targetAttachmentId: reports.targetAttachmentId,
+      })
+      .from(reports)
+      .where(eq(reports.targetMessageId, file.messageId));
+    expect(report).toEqual({ messageExcerpt: "Arquivo: nota.txt", targetAttachmentId: file.id });
+  });
+
+  test("the author deleting a reported message keeps its file, also from the sweep, until the report is resolved", async () => {
+    const { file } = await reportedFile();
+
+    const removed = await discardAttachments(
+      deps(),
+      await attachmentsOfMessage(db, file.messageId),
+    );
+    await db.delete(messages).where(eq(messages.id, file.messageId));
+    await sweepAttachments(db, storage(), tomorrow());
+    expect(removed).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+
+    await closeReportsOf(file.id);
+    expect(await releaseReportedFiles(deps(), [file.id])).toBe(1);
+    expect(await storage().head(file.objectKey)).toBeNull();
+  });
+
+  test("a report filed while the author deletes the message still holds its file", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const file = await sentFile(ana, conversationId);
+    const commit = Promise.withResolvers<void>();
+    const filed = Promise.withResolvers<void>();
+
+    const reporting = db.transaction(async (tx) => {
+      await createReport(tx, bia, {
+        target: { kind: "message", messageId: file.messageId },
+        reason: "spam",
+        details: null,
+      });
+      filed.resolve();
+      await commit.promise;
+    });
+    await filed.promise;
+    const deleting = db.transaction(async (tx) => {
+      const files = await attachmentsOfMessage(tx, file.messageId);
+      await tx.delete(messages).where(eq(messages.id, file.messageId));
+      return files;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    commit.resolve();
+    await reporting;
+
+    expect(await deleting).toEqual([]);
+  });
+
+  test("resolving one report keeps a file another open report still holds", async () => {
+    const { conversationId, file } = await reportedFile();
+    const cai = await person("Cai");
+    await db.insert(conversationMembers).values({ conversationId, userId: cai });
+    await createReport(db, cai, {
+      target: { kind: "message", messageId: file.messageId },
+      reason: "hate",
+      details: null,
+    });
+    await db.delete(messages).where(eq(messages.id, file.messageId));
+
+    await db
+      .update(reports)
+      .set({ status: "resolved", resolution: "no_action", resolvedAt: new Date() })
+      .where(and(eq(reports.targetAttachmentId, file.id), eq(reports.reporterId, cai)));
+    const released = await releaseReportedFiles(deps(), [file.id]);
+
+    expect(released).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+  });
+
+  test("resolving a report leaves the file of a message that still exists", async () => {
+    const { file } = await reportedFile();
+
+    await closeReportsOf(file.id);
+
+    expect(await releaseReportedFiles(deps(), [file.id])).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+  });
+
+  test("the reporter deleting their account keeps the reported file until the report is resolved", async () => {
+    const { bia, file } = await reportedFile();
+    await db.delete(messages).where(eq(messages.id, file.messageId));
+
+    await forgetReports(db, bia);
+    await sweepAttachments(db, storage(), tomorrow());
+
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+  });
+
+  test("deleting the author's account erases a reported file, as it erases the copy of the text", async () => {
+    const { ana, file } = await reportedFile();
+
+    await forgetMessages(db, ana);
+    await forgetReports(db, ana);
     await sweepAttachments(db, storage());
 
     expect(await storage().head(file.objectKey)).toBeNull();

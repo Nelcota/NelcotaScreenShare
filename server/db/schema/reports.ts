@@ -8,7 +8,7 @@ import {
 } from "@/features/reports/domain/reports";
 import { adminUsers } from "./admin-auth";
 import { createdAt, id, timestamptz } from "./columns";
-import { conversations, messages } from "./messages";
+import { conversations, messageAttachments, messages } from "./messages";
 import { users } from "./user-auth";
 
 export const reportTargetKind = pgEnum("report_target_kind", REPORT_TARGET_KINDS);
@@ -19,7 +19,7 @@ export const reportResolution = pgEnum("report_resolution", REPORT_RESOLUTIONS);
 /**
  * A report of a person, a message or a group. The reported person never learns who
  * reported. A message report keeps a copy of that one message (authors can delete
- * messages for good) only while the report is open.
+ * messages for good) only while the report is open, and holds its file the same way.
  */
 export const reports = pgTable(
   "reports",
@@ -37,6 +37,10 @@ export const reports = pgTable(
       onDelete: "set null",
     }),
     messageExcerpt: text("message_excerpt"),
+    // The reported message's file, kept for the review while the report is open.
+    targetAttachmentId: uuid("target_attachment_id").references(() => messageAttachments.id, {
+      onDelete: "set null",
+    }),
     reason: reportReason("reason").notNull(),
     details: text("details"),
     status: reportStatus("status").notNull().default("open"),
@@ -56,6 +60,7 @@ export const reports = pgTable(
     index("reports_queue_idx").on(table.status, table.createdAt.desc(), table.id.desc()),
     index("reports_reporter_idx").on(table.reporterId, table.createdAt.desc()),
     index("reports_target_user_idx").on(table.targetUserId),
+    index("reports_target_attachment_idx").on(table.targetAttachmentId),
     // Deduplicate by the reported target only; deletion must not fall back to its context.
     uniqueIndex("reports_open_unique_idx")
       .on(

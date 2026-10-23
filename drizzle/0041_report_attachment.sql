@@ -1,0 +1,3 @@
+ALTER TABLE "reports" ADD COLUMN "target_attachment_id" uuid;--> statement-breakpoint
+ALTER TABLE "reports" ADD CONSTRAINT "reports_target_attachment_id_message_attachments_id_fk" FOREIGN KEY ("target_attachment_id") REFERENCES "public"."message_attachments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "reports_target_attachment_idx" ON "reports" USING btree ("target_attachment_id");

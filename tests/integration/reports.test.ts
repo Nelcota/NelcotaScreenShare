@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, test, vi } from "vitest";
 import * as schema from "@/server/db/schema";
+import { newObjectKey } from "@/server/storage/object-storage.server";
 import { verifiedParticipant } from "./support/accounts";
 
 const requestHeaders = { current: new Headers() };
@@ -175,6 +176,43 @@ describe("moderation", () => {
 
     const again = await resolveReportAction({ id: report.id });
     assert.equal(again.serverError, "Essa denúncia já foi resolvida.");
+  });
+
+  test("deleting a reported message from the panel also deletes the file the report held", async () => {
+    const { conversationId, messageIds } = await conversationWithMessages(1);
+    const reported = messageIds[0]!;
+    const [file] = await db
+      .insert(schema.messageAttachments)
+      .values({
+        conversationId,
+        messageId: reported,
+        uploaderId: author.id,
+        objectKey: newObjectKey(),
+        fileName: "prova.pdf",
+        status: "ready",
+        kind: "pdf",
+        sizeBytes: 10,
+      })
+      .returning({ id: schema.messageAttachments.id });
+    assert.ok(file);
+    as(reporter);
+    await reportAction({ target: { kind: "message", messageId: reported }, reason: "sexual" });
+    const [report] = await db
+      .select()
+      .from(schema.reports)
+      .where(eq(schema.reports.targetMessageId, reported));
+    assert.equal(report?.targetAttachmentId, file.id);
+
+    requestHeaders.current = owner.headers;
+    assert.deepEqual((await deleteReportedMessageAction({ id: report.id })).data, {
+      deleted: true,
+    });
+
+    const left = await db
+      .select()
+      .from(schema.messageAttachments)
+      .where(eq(schema.messageAttachments.id, file.id));
+    assert.equal(left.length, 0);
   });
 
   test("blocking from a person report blocks the account and closes the report", async () => {

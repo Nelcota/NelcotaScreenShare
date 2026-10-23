@@ -11,7 +11,13 @@ import {
 import { membershipOf } from "@/features/messages/server/conversations.server";
 import { entitlement } from "@/features/rooms/server/entitlements.server";
 import type { DbExecutor } from "@/server/db/index.server";
-import { adminUsers, conversationMembers, messageAttachments, users } from "@/server/db/schema";
+import {
+  adminUsers,
+  conversationMembers,
+  messageAttachments,
+  reports,
+  users,
+} from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import { ActionError } from "@/server/operations/action-error";
 import { newObjectKey, type ObjectStorage } from "@/server/storage/object-storage.server";
@@ -252,7 +258,16 @@ const SWEEP_BATCH = 500;
 
 type StoredRow = { id: string; objectKey: string };
 
-/** The files of one message, read before it is deleted. */
+/** No open report holds the file: a report keeps it for the review until it is resolved. */
+const notHeldByOpenReport = sql`not exists (
+  select 1 from ${reports}
+  where ${reports.targetAttachmentId} = ${messageAttachments.id} and ${reports.status} = 'open'
+)`;
+
+/**
+ * The files of one message, read before it is deleted. A file an open report holds is left
+ * out: it stays for the review and goes when the report is resolved.
+ */
 export async function attachmentsOfMessage(
   db: DbExecutor,
   messageId: string,
@@ -260,7 +275,7 @@ export async function attachmentsOfMessage(
   return db
     .select({ id: messageAttachments.id, objectKey: messageAttachments.objectKey })
     .from(messageAttachments)
-    .where(eq(messageAttachments.messageId, messageId));
+    .where(and(eq(messageAttachments.messageId, messageId), notHeldByOpenReport));
 }
 
 /**
@@ -291,7 +306,8 @@ export async function discardAttachments(
 /**
  * The files nobody can reach any more (LGPD): their conversation or their sender's account is
  * gone, or the upload was never sent in a message for a day (a deleted message leaves its
- * file this way too, when removing it at once failed). Runs with the maintenance.
+ * file this way too, when removing it at once failed). A file an open report holds waits for
+ * the report. Runs with the maintenance.
  */
 export async function sweepAttachments(
   db: DbExecutor,
@@ -304,15 +320,42 @@ export async function sweepAttachments(
     .select({ id: messageAttachments.id, objectKey: messageAttachments.objectKey })
     .from(messageAttachments)
     .where(
-      or(
-        isNull(messageAttachments.conversationId),
-        isNull(messageAttachments.uploaderId),
-        and(
-          isNull(messageAttachments.messageId),
-          lt(messageAttachments.createdAt, abandonedBefore),
+      and(
+        or(
+          isNull(messageAttachments.conversationId),
+          isNull(messageAttachments.uploaderId),
+          and(
+            isNull(messageAttachments.messageId),
+            lt(messageAttachments.createdAt, abandonedBefore),
+          ),
         ),
+        notHeldByOpenReport,
       ),
     )
     .limit(SWEEP_BATCH);
   return discardAttachments({ db, storage }, rows);
+}
+
+/**
+ * After reports are resolved: deletes their files that nothing keeps any more, because the
+ * message is gone and no other open report holds them. A file whose message still exists
+ * stays with it.
+ */
+export async function releaseReportedFiles(
+  deps: AttachmentDeps,
+  attachmentIds: readonly (string | null)[],
+): Promise<number> {
+  const ids = attachmentIds.filter((id) => id !== null);
+  if (ids.length === 0) return 0;
+  const rows = await deps.db
+    .select({ id: messageAttachments.id, objectKey: messageAttachments.objectKey })
+    .from(messageAttachments)
+    .where(
+      and(
+        inArray(messageAttachments.id, ids),
+        isNull(messageAttachments.messageId),
+        notHeldByOpenReport,
+      ),
+    );
+  return discardAttachments(deps, rows);
 }

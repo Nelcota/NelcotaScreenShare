@@ -12,6 +12,7 @@ import {
   conversationMembers,
   conversations,
   messageAttachments,
+  messages,
   proEntitlements,
   reports,
   users,
@@ -22,6 +23,7 @@ import {
   attachmentDownloadUrl,
   confirmAttachment,
   discardAttachments,
+  releaseReportedFiles,
   requestAttachmentUpload,
   sweepAttachments,
 } from "@/features/messages/server/attachments.server";
@@ -29,6 +31,7 @@ import { forgetMessages, messageData } from "@/features/messages/server/message-
 import { insertMessage } from "@/features/messages/server/messages.server";
 import { ATTACHMENT_LIMITS } from "@/features/messages/domain/attachments";
 import { createReport } from "@/features/reports/server/create-report.server";
+import { forgetReports } from "@/features/reports/server/personal-data.server";
 import { createLocalDiskStorage } from "@/server/storage/local-disk-storage.server";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -327,6 +330,29 @@ describe("message attachments", () => {
   });
 });
 
+/** Bia reports Ana's message with a file. */
+async function reportedFile() {
+  const ana = await person("Ana");
+  const bia = await person("Bia");
+  const conversationId = await conversation(ana, bia);
+  const file = await sentFile(ana, conversationId);
+  await createReport(db, bia, {
+    target: { kind: "message", messageId: file.messageId },
+    reason: "spam",
+    details: null,
+  });
+  return { ana, file };
+}
+
+function closeReportsOf(attachmentId: string) {
+  return db
+    .update(reports)
+    .set({ status: "resolved", resolution: "no_action", resolvedAt: new Date() })
+    .where(eq(reports.targetAttachmentId, attachmentId));
+}
+
+const tomorrow = () => new Date(Date.now() + 25 * 60 * 60 * 1000);
+
 describe("reported files", () => {
   test("reporting a message with only a file names it in the copy and holds the file", async () => {
     const ana = await person("Ana");
@@ -348,5 +374,41 @@ describe("reported files", () => {
       .from(reports)
       .where(eq(reports.targetMessageId, file.messageId));
     expect(report).toEqual({ messageExcerpt: "Arquivo: nota.txt", targetAttachmentId: file.id });
+  });
+
+  test("the author deleting a reported message keeps its file, also from the sweep, until the report is resolved", async () => {
+    const { file } = await reportedFile();
+
+    const removed = await discardAttachments(
+      deps(),
+      await attachmentsOfMessage(db, file.messageId),
+    );
+    await db.delete(messages).where(eq(messages.id, file.messageId));
+    await sweepAttachments(db, storage(), tomorrow());
+    expect(removed).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+
+    await closeReportsOf(file.id);
+    expect(await releaseReportedFiles(deps(), [file.id])).toBe(1);
+    expect(await storage().head(file.objectKey)).toBeNull();
+  });
+
+  test("resolving a report leaves the file of a message that still exists", async () => {
+    const { file } = await reportedFile();
+
+    await closeReportsOf(file.id);
+
+    expect(await releaseReportedFiles(deps(), [file.id])).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+  });
+
+  test("deleting the author's account erases a reported file, as it erases the copy of the text", async () => {
+    const { ana, file } = await reportedFile();
+
+    await forgetMessages(db, ana);
+    await forgetReports(db, ana);
+    await sweepAttachments(db, storage());
+
+    expect(await storage().head(file.objectKey)).toBeNull();
   });
 });

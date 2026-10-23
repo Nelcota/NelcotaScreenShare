@@ -4,7 +4,7 @@ import { Hand, MonitorUp } from "lucide-react";
 import type { RefObject } from "react";
 import { CameraVideo, EnlargeButton } from "./camera-face";
 import { HostBadge } from "./HostBadge";
-import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
+import { SilencedBadge } from "./SilencedBadge";
 import { SoundBadge } from "./SoundBadge";
 
 interface StripCameraTileProps {
@@ -60,8 +60,9 @@ export function StripCameraTile({
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-10 rounded-2xl opacity-0 ring-3 ring-brand-soft ring-inset"
         />
-        <ParticipantAudioMenu
+        <SilencedBadge
           participant={participant}
+          name={name}
           className="absolute top-1.5 right-1.5 z-30"
         />
         {handRaised ? (

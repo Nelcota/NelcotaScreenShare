@@ -3,56 +3,19 @@ import { Track, type Participant } from "livekit-client";
 import { RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Popover } from "radix-ui";
 import { useId } from "react";
-import { Slider } from "@/components/ui/slider";
 import { useParticipantAudio } from "@/features/room/hooks/use-participant-audio";
 import { participantName } from "@/features/room/domain/participant-label";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { GlassPopoverContent } from "@/components/GlassPopover";
 import { Hint } from "@/components/Hint";
+import { AudioLevel } from "./AudioLevel";
 
-function AudioLevel({
-  label,
-  accessibleLabel,
-  level,
-  disabled = false,
-  onChange,
-}: {
-  label: string;
-  accessibleLabel: string;
-  level: number;
-  disabled?: boolean;
-  onChange: (level: number) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className={disabled ? "text-ink-subtle" : "text-ink"}>{label}</span>
-        <span className="text-ink-muted tabular-nums">{level}%</span>
-      </div>
-      <Slider
-        value={[level]}
-        min={0}
-        max={100}
-        step={5}
-        disabled={disabled}
-        onValueChange={([next]) => {
-          if (next !== undefined) onChange(next);
-        }}
-        thumbProps={{ "aria-label": accessibleLabel, "aria-valuetext": `${level}%` }}
-      />
-    </div>
-  );
-}
-
-/** Both menus for a person share the same local preferences, including while muted. */
-export function ParticipantAudioMenu({
-  participant,
-  className,
-}: {
-  participant: Participant;
-  className?: string;
-}) {
+/**
+ * The sound menu in the list of people. It shares the local preferences with the person's card,
+ * including while muted.
+ */
+export function ParticipantAudioMenu({ participant }: { participant: Participant }) {
   const name = participantName(participant);
   const audio = useParticipantAudio(participant.identity);
   const shares = useParticipantTracks([Track.Source.ScreenShareAudio], participant.identity);
@@ -70,7 +33,6 @@ export function ParticipantAudioMenu({
           className={cn(
             "glass relative z-10 grid size-8 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
             audio.settings.muted && "text-warning",
-            className,
           )}
         >
           {audio.settings.muted ? (

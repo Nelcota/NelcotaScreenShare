@@ -12,10 +12,10 @@ import { useRef, type RefObject } from "react";
 import { gsap, prefersReducedMotion, useGSAP } from "@/lib/animation/gsap";
 import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { ParticipantAvatar } from "./ParticipantAvatar";
-import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { ParticipantCard } from "./ParticipantCard";
 import { SwitchCameraButton } from "./SwitchCameraButton";
 import { cn } from "@/lib/utils";
+import { SilencedBadge } from "./SilencedBadge";
 import { SoundBadge, useIsDeafened } from "./SoundBadge";
 import { ShareTileCard } from "./ShareTileCard";
 import { TILE_SURFACE } from "./tile-surface";
@@ -226,7 +226,6 @@ export function ParticipantTile({
         className="pointer-events-none absolute -inset-1 -z-10 rounded-[1.65rem] bg-brand/30 opacity-0 blur-md"
       />
       <div className={cn(TILE_SURFACE, "[container-type:size]")}>
-        <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3" />
         {handRaised ? (
           <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-warning/15 px-3 py-2 text-sm font-semibold text-warning">
             <Hand className="size-5" aria-hidden="true" />
@@ -266,6 +265,7 @@ export function ParticipantTile({
                 <span className="sr-only">compartilhando a tela</span>
               </span>
             ) : null}
+            <SilencedBadge participant={participant} name={name} large />
             <SoundBadge deafened={isDeafened} muted={isMuted} variant="large" />
           </span>
         </div>

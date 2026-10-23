@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useScreenPreview } from "@/features/room/hooks/use-screen-preview";
 import { useScreenWatch } from "@/features/room/hooks/use-screen-watch";
 import { HostBadge } from "./HostBadge";
-import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
 import { ParticipantAvatar } from "./ParticipantAvatar";
 import { ParticipantCard } from "./ParticipantCard";
+import { SilencedBadge } from "./SilencedBadge";
 import { SoundBadge } from "./SoundBadge";
 import { TILE_SURFACE } from "./tile-surface";
 
@@ -87,8 +87,6 @@ export function ShareTileCard({
           className="pointer-events-none absolute inset-0 z-10 rounded-3xl opacity-0 ring-3 ring-brand-soft ring-inset"
         />
 
-        <ParticipantAudioMenu participant={participant} className="absolute top-3 right-3 z-20" />
-
         <div className="relative z-20 flex flex-col items-center">
           <Button
             size="lg"
@@ -121,6 +119,7 @@ export function ShareTileCard({
             <span className="grid size-8 place-items-center rounded-full bg-brand text-brand-ink">
               <MonitorUp className="size-4" aria-hidden="true" />
             </span>
+            <SilencedBadge participant={participant} name={name} large />
             <SoundBadge deafened={deafened} muted={muted} variant="large" />
           </span>
         </div>

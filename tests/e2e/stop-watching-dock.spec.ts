@@ -95,14 +95,16 @@ test("over a fullscreen screen, moving the mouse brings the dock back to stop wa
     await expect(stage).toHaveAttribute("data-fullscreen", "true");
     const dock = viewer.page.getByRole("navigation", { name: "Controles da chamada" });
     // Hidden, the dock leaves the accessibility tree: find it there too to read its state.
-    const dockArea = viewer.page
-      .getByRole("navigation", { name: "Controles da chamada", includeHidden: true })
-      .locator("..");
+    const hiddenDock = viewer.page.getByRole("navigation", {
+      name: "Controles da chamada",
+      includeHidden: true,
+    });
+    const dockArea = hiddenDock.locator("..");
     const stop = dock.getByRole("button", { name: "Parar de assistir" });
     // With the mouse still, the screen has the whole page and the hidden dock takes no clicks.
     await expect(dockArea).toHaveCSS("opacity", "0", { timeout: 6_000 });
     await expect(
-      dockArea.getByRole("button", { name: "Parar de assistir", includeHidden: true }),
+      hiddenDock.getByRole("button", { name: "Parar de assistir", includeHidden: true }),
     ).toBeHidden();
 
     await viewer.page.mouse.move(400, 300);

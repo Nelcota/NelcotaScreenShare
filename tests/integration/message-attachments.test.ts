@@ -18,15 +18,17 @@ import {
   users,
 } from "@/server/db/schema";
 import {
-  attachmentsOfMessage,
   attachToMessage,
   attachmentDownloadUrl,
   confirmAttachment,
+  requestAttachmentUpload,
+} from "@/features/messages/server/attachments.server";
+import {
+  attachmentsOfMessage,
   discardAttachments,
   releaseReportedFiles,
-  requestAttachmentUpload,
   sweepAttachments,
-} from "@/features/messages/server/attachments.server";
+} from "@/features/messages/server/attachment-cleanup.server";
 import { forgetMessages, messageData } from "@/features/messages/server/message-privacy.server";
 import { insertMessage } from "@/features/messages/server/messages.server";
 import { ATTACHMENT_LIMITS } from "@/features/messages/domain/attachments";

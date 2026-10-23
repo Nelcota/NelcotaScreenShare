@@ -1,5 +1,5 @@
 import { purgeTeamInvitations } from "@/features/team/server/retention.server";
-import { sweepAttachments } from "@/features/messages/server/attachments.server";
+import { sweepAttachments } from "@/features/messages/server/attachment-cleanup.server";
 import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 import { closeGhostRooms } from "@/features/admin/live/server/close-ghost.server";
 import { liveKitRoomNames } from "@/features/admin/live/server/livekit-rooms.server";

@@ -8,10 +8,8 @@ import type { AuditRecorder } from "@/server/audit.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
 import { messages, reports } from "@/server/db/schema";
 import { refreshLastMessageAt } from "@/features/messages/server/messages.server";
-import {
-  releaseReportedFiles,
-  reportedFileDownloadUrl,
-} from "@/features/messages/server/attachments.server";
+import { releaseReportedFiles } from "@/features/messages/server/attachment-cleanup.server";
+import { reportedFileDownloadUrl } from "@/features/messages/server/attachments.server";
 import { logger } from "@/server/logger.server";
 import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 

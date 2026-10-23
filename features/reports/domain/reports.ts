@@ -32,3 +32,17 @@ export const RESOLUTION_LABELS: Record<ReportResolution, string> = {
 };
 
 export const REPORT_DETAILS_MAX = 500;
+
+/**
+ * How a reported message reads in the report's copy and in the panel: its text, the GIF, or
+ * the name of the file it carries.
+ */
+export function reportedMessageText(message: {
+  body: string | null;
+  gifSlug: string | null;
+  fileName: string | null;
+}): string {
+  if (message.body !== null) return message.body;
+  if (message.gifSlug !== null) return `GIF: ${message.gifSlug}`;
+  return `Arquivo: ${message.fileName ?? ""}`;
+}

@@ -1,9 +1,9 @@
 import { and, count, eq, gte, isNull } from "drizzle-orm";
 import type { DbExecutor } from "@/server/db/index.server";
-import { conversations, messages, reports, users } from "@/server/db/schema";
+import { conversations, messageAttachments, messages, reports, users } from "@/server/db/schema";
 import { membershipOf } from "@/features/messages/server/conversations.server";
 import { ActionError } from "@/server/operations/action-error";
-import type { ReportReason } from "@/features/reports/domain/reports";
+import { reportedMessageText, type ReportReason } from "@/features/reports/domain/reports";
 
 /** Reports one person can send per hour: enough for real cases, not for flooding the queue. */
 const REPORTS_PER_HOUR = 10;
@@ -59,8 +59,10 @@ async function messageTarget(tx: DbExecutor, messageId: string, reporterId: stri
       conversationId: messages.conversationId,
       body: messages.body,
       gifSlug: messages.gifSlug,
+      fileName: messageAttachments.fileName,
     })
     .from(messages)
+    .leftJoin(messageAttachments, eq(messageAttachments.messageId, messages.id))
     .where(eq(messages.id, messageId));
   if (!message || !(await isMember(tx, message.conversationId, reporterId))) {
     throw new ActionError(NOT_FOUND);
@@ -73,7 +75,7 @@ async function messageTarget(tx: DbExecutor, messageId: string, reporterId: stri
     targetUserId: message.authorId,
     targetMessageId: message.id,
     targetConversationId: message.conversationId,
-    messageExcerpt: message.body ?? `GIF: ${message.gifSlug ?? ""}`,
+    messageExcerpt: reportedMessageText(message),
   } satisfies ResolvedTarget;
 }
 

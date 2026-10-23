@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { DbExecutor } from "@/server/db/index.server";
-import { conversations, messages, reports, users } from "@/server/db/schema";
+import { conversations, messageAttachments, messages, reports, users } from "@/server/db/schema";
 import type { ReportStatus } from "@/features/reports/domain/reports";
 
 const QUEUE_SHOWN = 100;
@@ -40,6 +40,7 @@ const messageColumns = {
   authorName: users.name,
   body: messages.body,
   gifSlug: messages.gifSlug,
+  fileName: messageAttachments.fileName,
   createdAt: messages.createdAt,
 };
 
@@ -65,13 +66,17 @@ async function contextFor(
     .select(messageColumns)
     .from(messages)
     .leftJoin(users, eq(users.id, messages.authorId))
+    .leftJoin(messageAttachments, eq(messageAttachments.messageId, messages.id))
     .where(and(eq(messages.conversationId, report.targetConversationId), before))
     .orderBy(desc(messages.id))
     .limit(CONTEXT_BEFORE + 1);
   return rows.toReversed();
 }
 
-/** One report with who filed it, its target and the conversation context. */
+/**
+ * One report with who filed it, its target, the file of the reported message (kept while
+ * the report is open) and the conversation context.
+ */
 export async function getReport(db: DbExecutor, id: string) {
   const [report] = await db
     .select({
@@ -92,11 +97,23 @@ export async function getReport(db: DbExecutor, id: string) {
       targetUserId: reports.targetUserId,
       targetName: target.name,
       targetBlocked: sql<boolean>`${target.blockedAt} is not null`,
+      file: {
+        fileName: messageAttachments.fileName,
+        kind: messageAttachments.kind,
+        size: messageAttachments.sizeBytes,
+      },
     })
     .from(reports)
     .leftJoin(reporter, eq(reporter.id, reports.reporterId))
     .leftJoin(target, eq(target.id, reports.targetUserId))
     .leftJoin(conversations, eq(conversations.id, reports.targetConversationId))
+    .leftJoin(
+      messageAttachments,
+      and(
+        eq(messageAttachments.id, reports.targetAttachmentId),
+        eq(messageAttachments.status, "ready"),
+      ),
+    )
     .where(eq(reports.id, id));
   if (!report) return null;
   return { report, context: await contextFor(db, report) };

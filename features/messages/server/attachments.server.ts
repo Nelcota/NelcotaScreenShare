@@ -185,6 +185,23 @@ export async function attachmentDownloadUrl(
 }
 
 /**
+ * A short download link to the file a report holds, for the moderation panel. The caller
+ * checks the moderator's permission and audits the download.
+ */
+export async function reportedFileDownloadUrl(
+  { db, storage }: AttachmentDeps,
+  reportId: string,
+): Promise<string> {
+  const [row] = await db
+    .select({ objectKey: messageAttachments.objectKey })
+    .from(reports)
+    .innerJoin(messageAttachments, eq(messageAttachments.id, reports.targetAttachmentId))
+    .where(and(eq(reports.id, reportId), eq(messageAttachments.status, "ready")));
+  if (row === undefined) throw new ActionError(NOT_FOUND);
+  return storage.downloadUrl(row.objectKey, DOWNLOAD_LINK_SECONDS);
+}
+
+/**
  * Puts a checked attachment in the message being sent, inside the same transaction: only the
  * uploader's own file, ready, in this conversation and not in another message yet.
  */

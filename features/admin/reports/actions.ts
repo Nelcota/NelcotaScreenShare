@@ -12,3 +12,7 @@ export const blockReportedAccountAction = operation<
   Parameters<typeof server.blockReportedAccountAction>[0],
   NonNullable<Awaited<ReturnType<typeof server.blockReportedAccountAction>>["data"]>
 >("admin-reports-blockReportedAccountAction");
+export const downloadReportedFileAction = operation<
+  Parameters<typeof server.downloadReportedFileAction>[0],
+  NonNullable<Awaited<ReturnType<typeof server.downloadReportedFileAction>>["data"]>
+>("admin-reports-downloadReportedFileAction");

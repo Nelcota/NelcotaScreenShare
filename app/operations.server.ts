@@ -34,6 +34,7 @@ import { saveMailSenderAction, sendTestMailAction } from "@/features/admin/mail/
 import {
   blockReportedAccountAction,
   deleteReportedMessageAction,
+  downloadReportedFileAction,
   resolveReportAction,
 } from "@/features/admin/reports/actions.server";
 import { searchPanelAction } from "@/features/admin/search/actions.server";
@@ -131,6 +132,7 @@ export const operations: OperationHandlers = {
   "admin-reports-resolveReportAction": resolveReportAction,
   "admin-reports-deleteReportedMessageAction": deleteReportedMessageAction,
   "admin-reports-blockReportedAccountAction": blockReportedAccountAction,
+  "admin-reports-downloadReportedFileAction": downloadReportedFileAction,
   "admin-search-searchPanelAction": searchPanelAction,
   "admin-team-inviteAdminAction": inviteAdminAction,
   "admin-team-revokeAdminInvitationAction": revokeAdminInvitationAction,

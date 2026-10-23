@@ -1,25 +1,76 @@
 import type { getReport } from "@/features/admin/reports/server/queries.server";
+import { ReportedFile, type ReportedFileInfo } from "@/features/admin/reports/ui/ReportedFile";
+import { reportedMessageText } from "@/features/reports/domain/reports";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Detail = NonNullable<Awaited<ReturnType<typeof getReport>>>;
+type Report = Detail["report"];
 
-function messageText(message: { body: string | null; gifSlug: string | null }): string {
-  return message.body ?? `GIF: ${message.gifSlug ?? ""}`;
+/** The file the report holds, once the server has checked it. */
+function heldFile(report: Report): ReportedFileInfo | null {
+  const file = report.file;
+  if (file === null || file.kind === null || file.size === null) return null;
+  return { fileName: file.fileName, kind: file.kind, size: file.size };
+}
+
+function copyIntro(file: ReportedFileInfo | null, text: string | null): string {
+  if (file === null) return "A mensagem foi apagada. Cópia guardada na denúncia:";
+  if (text === null)
+    return "A mensagem foi apagada. Arquivo guardado até a denúncia ser resolvida:";
+  return "A mensagem foi apagada. Cópia e arquivo guardados até a denúncia ser resolvida:";
+}
+
+/** The copy of a deleted message: its text, if it had any, and the file kept with it. */
+function DeletedMessageCopy({ report, file }: { report: Report; file: ReportedFileInfo | null }) {
+  // A message with only a file was copied as "Arquivo: <name>": the card already says it.
+  const fileOnly =
+    file !== null &&
+    report.messageExcerpt ===
+      reportedMessageText({ body: null, gifSlug: null, fileName: file.fileName });
+  const text = fileOnly ? null : report.messageExcerpt;
+  return (
+    <div className="flex flex-col gap-1 text-sm">
+      <p className="text-ink-muted">{copyIntro(file, text)}</p>
+      {text ? (
+        <p className="rounded-xl bg-surface-2 p-3 break-words whitespace-pre-wrap">{text}</p>
+      ) : null}
+      {file ? <ReportedFile reportId={report.id} file={file} /> : null}
+    </div>
+  );
+}
+
+type ContextMessage = Detail["context"][number];
+
+/** A message in the context; the reported one shows its file as a card. */
+function ContextContent({
+  message,
+  file,
+  reportId,
+}: {
+  message: ContextMessage;
+  file: ReportedFileInfo | null;
+  reportId: string;
+}) {
+  if (file === null) {
+    return <span className="break-words whitespace-pre-wrap">{reportedMessageText(message)}</span>;
+  }
+  return (
+    <>
+      {message.body ? (
+        <span className="break-words whitespace-pre-wrap">{message.body}</span>
+      ) : null}
+      <ReportedFile reportId={reportId} file={file} />
+    </>
+  );
 }
 
 /** The reported message among the ones right before it, from that conversation only. */
 export function ReportContext({ detail }: { detail: Detail }) {
   const { report, context } = detail;
-  if (context.length === 0 && report.messageExcerpt) {
-    return (
-      <div className="flex flex-col gap-1 text-sm">
-        <p className="text-ink-muted">A mensagem foi apagada. Cópia guardada na denúncia:</p>
-        <p className="rounded-xl bg-surface-2 p-3 break-words whitespace-pre-wrap">
-          {report.messageExcerpt}
-        </p>
-      </div>
-    );
+  const file = heldFile(report);
+  if (context.length === 0 && (report.messageExcerpt || file)) {
+    return <DeletedMessageCopy report={report} file={file} />;
   }
   if (context.length === 0 && report.targetKind === "message") {
     return <p className="text-sm text-ink-muted">A mensagem foi apagada.</p>;
@@ -41,7 +92,7 @@ export function ReportContext({ detail }: { detail: Detail }) {
               <span className="font-medium">{message.authorName ?? "Conta apagada"}</span>
               <span className="text-ink-muted">{formatDateTime(message.createdAt)}</span>
             </span>
-            <span className="break-words whitespace-pre-wrap">{messageText(message)}</span>
+            <ContextContent message={message} file={reported ? file : null} reportId={report.id} />
             {reported ? <span className="text-xs font-medium">Mensagem denunciada</span> : null}
           </li>
         );

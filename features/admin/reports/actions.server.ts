@@ -8,7 +8,10 @@ import type { AuditRecorder } from "@/server/audit.server";
 import { getDb, type DbExecutor } from "@/server/db/index.server";
 import { messages, reports } from "@/server/db/schema";
 import { refreshLastMessageAt } from "@/features/messages/server/messages.server";
-import { releaseReportedFiles } from "@/features/messages/server/attachments.server";
+import {
+  releaseReportedFiles,
+  reportedFileDownloadUrl,
+} from "@/features/messages/server/attachments.server";
 import { logger } from "@/server/logger.server";
 import { attachmentStorage } from "@/server/storage/attachment-storage.server";
 
@@ -163,5 +166,23 @@ export const blockReportedAccountAction = defineAdminOperation(
     });
     await releaseFiles(held);
     return { blocked: true };
+  },
+);
+
+/** A short link to the reported file, to review it; every download goes to the audit log. */
+export const downloadReportedFileAction = defineAdminOperation(
+  { name: "report.downloadFile", permission: { report: ["read"] }, audit: "required" },
+  idInput,
+  async ({ parsedInput, ctx }) => {
+    const storage = attachmentStorage();
+    if (storage === null) throw new ActionError("Os anexos estão desligados.");
+    const db = getDb();
+    const url = await reportedFileDownloadUrl({ db, storage }, parsedInput.id);
+    await ctx.audit.record(db, {
+      action: "report.download_file",
+      resourceType: "report",
+      resourceId: parsedInput.id,
+    });
+    return { url };
   },
 );

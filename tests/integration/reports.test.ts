@@ -16,8 +16,12 @@ process.env.ADMIN_AUTH_SECRET = "segredo-admin-de-teste-0123456789abcdef01234567
 const { adminSession } = await import("./support/admin-session");
 const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
 const { reportAction } = await import("@/features/reports/actions.server");
-const { blockReportedAccountAction, deleteReportedMessageAction, resolveReportAction } =
-  await import("@/features/admin/reports/actions.server");
+const {
+  blockReportedAccountAction,
+  deleteReportedMessageAction,
+  downloadReportedFileAction,
+  resolveReportAction,
+} = await import("@/features/admin/reports/actions.server");
 const { getReport, listReports } = await import("@/features/admin/reports/server/queries.server");
 const { personalData } = await import("@/features/account/server/personal-data.server");
 const { anonymizeParticipant } =
@@ -176,6 +180,44 @@ describe("moderation", () => {
 
     const again = await resolveReportAction({ id: report.id });
     assert.equal(again.serverError, "Essa denúncia já foi resolvida.");
+  });
+
+  test("the panel still opens a reported file after its author deleted the message", async () => {
+    const { conversationId, messageIds } = await conversationWithMessages(1);
+    const reported = messageIds[0]!;
+    const [file] = await db
+      .insert(schema.messageAttachments)
+      .values({
+        conversationId,
+        messageId: reported,
+        uploaderId: author.id,
+        objectKey: newObjectKey(),
+        fileName: "prova.pdf",
+        status: "ready",
+        kind: "pdf",
+        sizeBytes: 10,
+      })
+      .returning({ id: schema.messageAttachments.id });
+    assert.ok(file);
+    as(reporter);
+    await reportAction({ target: { kind: "message", messageId: reported }, reason: "sexual" });
+    const [report] = await db
+      .select()
+      .from(schema.reports)
+      .where(eq(schema.reports.targetMessageId, reported));
+    assert.ok(report);
+    await db.delete(schema.messages).where(eq(schema.messages.id, reported));
+
+    const detail = await getReport(db, report.id);
+    assert.deepEqual(detail?.report.file, { fileName: "prova.pdf", kind: "pdf", size: 10 });
+    requestHeaders.current = owner.headers;
+    const opened = await downloadReportedFileAction({ id: report.id });
+    assert.match(opened.data?.url ?? "", /\/api\/arquivos\/baixar\//);
+    const audits = await db
+      .select({ resourceId: schema.auditLogs.resourceId })
+      .from(schema.auditLogs)
+      .where(eq(schema.auditLogs.action, "report.download_file"));
+    assert.ok(audits.some((entry) => entry.resourceId === report.id));
   });
 
   test("deleting a reported message from the panel also deletes the file the report held", async () => {

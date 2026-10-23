@@ -77,9 +77,10 @@ function useLoopback(context: AudioContext | null, meterRef: RefObject<HTMLDivEl
 }
 
 /**
- * "Testar microfone" inside the call: nobody hears the person and the room goes quiet
- * (the same "stop hearing" as the headphones, which also turns the microphone off), while
- * they hear their own voice. Stopping puts the microphone and the sound back as they were.
+ * "Testar microfone" inside the call: nobody hears the person and the voices go quiet
+ * (the same "stop hearing" as the headphones, which also turns the microphone off; a watched
+ * screen keeps its sound), while they hear their own voice. Stopping puts the microphone and
+ * the sound back as they were.
  */
 export function MicTestProvider({ children }: { children: ReactNode }) {
   const deafen = useDeafen();

@@ -539,10 +539,15 @@ test.describe("in the room", () => {
     await edu.page.keyboard.press("j");
     await expect(edu.page.getByRole("button", { name: "Abrir em janela" })).toBeVisible();
 
-    // Stop watching from the screen's own controls (the dock has the same button, tested in
-    // stop-watching-dock): back to the call only, until "Assistir" again.
+    // Stopping lives only in the dock, not among the screen's own controls: back to the call
+    // only, until "Assistir" again.
+    await expect(
+      edu.page
+        .getByRole("region", { name: "Tela compartilhada por Dani Souza" })
+        .getByRole("button", { name: "Parar de assistir" }),
+    ).toHaveCount(0);
     await edu.page
-      .getByRole("region", { name: "Tela compartilhada por Dani Souza" })
+      .getByRole("navigation", { name: "Controles da chamada" })
       .getByRole("button", { name: "Parar de assistir" })
       .click();
     await expect(

@@ -18,7 +18,6 @@ import { PointerLayer, usePointers } from "./PointerLayer";
 import { OwnScreenSound } from "./OwnScreenSound";
 import { ScreenSoundControl } from "./ScreenVolume";
 import { StreamMetrics } from "./StreamMetrics";
-import { StopWatchingButton } from "./StopWatchingButton";
 import { SharePicker } from "./SharePicker";
 import { useBroadcastPresenterPing } from "@/features/room/hooks/use-presenter-ping";
 import { useStageFocusAfterWatch } from "@/features/room/hooks/use-screen-watch";
@@ -232,7 +231,6 @@ export function ScreenStage({ shares, invites, focused, onFocus }: ScreenStagePr
                 name={participantLabel(focused.participant)}
               />
               <PointingButton pointing={pointing} onToggle={togglePointing} />
-              <StopWatchingButton trackSid={trackSid} />
             </>
           )}
           {/* Your own screen in a window would bring back the mirror effect. */}

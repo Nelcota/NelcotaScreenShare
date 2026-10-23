@@ -11,6 +11,12 @@ function isOnDock(dock: HTMLElement | null, target: EventTarget | null): boolean
   return dock.contains(target);
 }
 
+/** A keyboard user on the dock keeps it up: hiding it would leave their focus on a hidden button. */
+function hasKeyboardFocus(dock: HTMLElement | null): boolean {
+  if (dock === null) return false;
+  return dock.querySelector(":focus-visible") !== null;
+}
+
 /**
  * Over a fullscreen screen the dock hides; moving the mouse, a tap or the keyboard focus brings
  * it back for a few seconds, like a video player, so "Parar de assistir" stays at hand.
@@ -26,6 +32,7 @@ export function useFullscreenDock(dock: RefObject<HTMLElement | null>) {
       window.clearTimeout(hideTimer);
       setShown(true);
       if (isOnDock(dock.current, event.target)) return;
+      if (hasKeyboardFocus(dock.current)) return;
       hideTimer = window.setTimeout(() => setShown(false), FULLSCREEN_DOCK_MS);
     }
     const events = ["pointermove", "pointerdown", "focusin"] as const;

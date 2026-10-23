@@ -59,10 +59,10 @@ export function ControlDock({ chat, share, watchedScreen, onLeave }: ControlDock
         "group-data-capture-bar/room:pb-14",
         // Chat open on a wide screen: the dock centers in the remaining space, like the content.
         chat.open && "lg:pr-[26.5rem]",
-        // Fullscreen screen: the dock comes over it while the mouse moves, then fades away.
-        fullscreen.isFullscreen && "transition-opacity duration-200",
-        fullscreen.isFullscreen && !fullscreen.shown && "opacity-0",
-        fullscreen.shown && "z-46",
+        // Fullscreen screen: the dock comes over it while the mouse moves, then fades away. It
+        // stays above the screen while it fades; once hidden, nothing on it can be clicked.
+        fullscreen.isFullscreen && "z-46 transition-[opacity,visibility] duration-200",
+        fullscreen.isFullscreen && !fullscreen.shown && "invisible opacity-0",
       )}
     >
       {watchedScreen ? <StopWatchingPill trackSid={watchedScreen} /> : null}

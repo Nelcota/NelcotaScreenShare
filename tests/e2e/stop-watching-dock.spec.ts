@@ -95,13 +95,25 @@ test("over a fullscreen screen, moving the mouse brings the dock back to stop wa
     await expect(stage).toHaveAttribute("data-fullscreen", "true");
     const dock = viewer.page.getByRole("navigation", { name: "Controles da chamada" });
     const dockArea = dock.locator("..");
-    // With the mouse still, the screen has the whole page.
+    const stop = dock.getByRole("button", { name: "Parar de assistir" });
+    // With the mouse still, the screen has the whole page and the hidden dock takes no clicks.
     await expect(dockArea).toHaveCSS("opacity", "0", { timeout: 6_000 });
+    await expect(stop).toBeHidden();
 
     await viewer.page.mouse.move(400, 300);
     await viewer.page.mouse.move(420, 320);
     await expect(dockArea).toHaveCSS("opacity", "1");
-    await dock.getByRole("button", { name: "Parar de assistir" }).click();
+
+    // Keyboard focus on the dock keeps it up, even when the mouse moves elsewhere and stops.
+    await stop.focus();
+    await viewer.page.keyboard.press("Shift+Tab");
+    await viewer.page.keyboard.press("Tab");
+    await expect(stop).toBeFocused();
+    await viewer.page.mouse.move(400, 300);
+    await viewer.page.waitForTimeout(3_500);
+    await expect(dockArea).toHaveCSS("opacity", "1");
+
+    await stop.click();
     await expect(watch).toBeVisible();
   } finally {
     await sharer.context.close();

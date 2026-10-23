@@ -68,5 +68,5 @@
     - deleting the message and the sweep skip it;
     - the moderation panel can still download it, and each download is audited;
     - resolving the report deletes it if the message is gone;
-    - deleting the sender's account drops the hold, as it drops the copy of the text.
+    - deleting the sender's account drops the hold, as it drops the copy of the text; deleting the reporter's account keeps it.
 - **"Baixar meus dados" lists the attachments the person sent** (name, kind, size, when); the files themselves are downloaded from the conversation.

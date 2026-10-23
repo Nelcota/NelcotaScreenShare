@@ -341,7 +341,7 @@ async function reportedFile() {
     reason: "spam",
     details: null,
   });
-  return { ana, conversationId, file };
+  return { ana, bia, conversationId, file };
 }
 
 function closeReportsOf(attachmentId: string) {
@@ -420,6 +420,16 @@ describe("reported files", () => {
     await closeReportsOf(file.id);
 
     expect(await releaseReportedFiles(deps(), [file.id])).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
+  });
+
+  test("the reporter deleting their account keeps the reported file until the report is resolved", async () => {
+    const { bia, file } = await reportedFile();
+    await db.delete(messages).where(eq(messages.id, file.messageId));
+
+    await forgetReports(db, bia);
+    await sweepAttachments(db, storage(), tomorrow());
+
     expect(await storage().head(file.objectKey)).not.toBeNull();
   });
 

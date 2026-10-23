@@ -22,14 +22,15 @@ export function reportsFiledBy(db: DbExecutor, userId: string) {
 
 /**
  * Anonymization (account deletion included): the details the person wrote and every copy
- * of a message kept in reports they filed or that are about them go, and those reports stop
- * holding the message's file, which the maintenance sweep then erases. The report records
- * stay, without that content, for moderation history.
+ * of a message kept in reports they filed or that are about them go; the report records
+ * stay, without that text, for moderation history. The file of a reported message is
+ * someone else's: the report keeps holding it when its reporter leaves, and lets it go only
+ * when its sender's account is deleted, which the maintenance sweep then erases.
  */
 export async function forgetReports(tx: DbExecutor, userId: string) {
   await tx
     .update(reports)
-    .set({ details: null, messageExcerpt: null, targetAttachmentId: null })
+    .set({ details: null, messageExcerpt: null })
     .where(eq(reports.reporterId, userId));
   await tx
     .update(reports)

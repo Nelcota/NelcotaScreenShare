@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -341,7 +341,7 @@ async function reportedFile() {
     reason: "spam",
     details: null,
   });
-  return { ana, file };
+  return { ana, conversationId, file };
 }
 
 function closeReportsOf(attachmentId: string) {
@@ -391,6 +391,27 @@ describe("reported files", () => {
     await closeReportsOf(file.id);
     expect(await releaseReportedFiles(deps(), [file.id])).toBe(1);
     expect(await storage().head(file.objectKey)).toBeNull();
+  });
+
+  test("resolving one report keeps a file another open report still holds", async () => {
+    const { conversationId, file } = await reportedFile();
+    const cai = await person("Cai");
+    await db.insert(conversationMembers).values({ conversationId, userId: cai });
+    await createReport(db, cai, {
+      target: { kind: "message", messageId: file.messageId },
+      reason: "hate",
+      details: null,
+    });
+    await db.delete(messages).where(eq(messages.id, file.messageId));
+
+    await db
+      .update(reports)
+      .set({ status: "resolved", resolution: "no_action", resolvedAt: new Date() })
+      .where(and(eq(reports.targetAttachmentId, file.id), eq(reports.reporterId, cai)));
+    const released = await releaseReportedFiles(deps(), [file.id]);
+
+    expect(released).toBe(0);
+    expect(await storage().head(file.objectKey)).not.toBeNull();
   });
 
   test("resolving a report leaves the file of a message that still exists", async () => {

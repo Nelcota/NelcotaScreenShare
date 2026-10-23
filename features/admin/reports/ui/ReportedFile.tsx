@@ -2,6 +2,7 @@ import { Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadReportedFileAction } from "@/features/admin/reports/actions";
 import { toastError } from "@/features/admin/shell/ui/toast-error";
+import { saveFromLink } from "@/features/messages/client/save-from-link";
 import {
   kindLabel,
   readableSize,
@@ -15,18 +16,10 @@ export interface ReportedFileInfo {
   size: number;
 }
 
-/** Lets the browser save the file from the short link; it always comes as an attachment. */
-function save(url: string) {
-  const link = document.createElement("a");
-  link.href = url;
-  link.rel = "noopener";
-  link.click();
-}
-
 /** The reported message's file: name, kind and size, and a download that is audited. */
 export function ReportedFile({ reportId, file }: { reportId: string; file: ReportedFileInfo }) {
   const download = useOperation(downloadReportedFileAction, {
-    onSuccess: ({ data }) => save(data.url),
+    onSuccess: ({ data }) => saveFromLink(data.url),
     onError: toastError("Não foi possível baixar o arquivo."),
   });
   return (

@@ -2,6 +2,7 @@ import { Download, FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { attachmentDownload } from "@/features/messages/actions";
+import { saveFromLink } from "@/features/messages/client/save-from-link";
 import {
   kindLabel,
   readableSize,
@@ -19,10 +20,7 @@ async function download(attachmentId: string) {
     toast.error(result.serverError ?? "Não foi possível baixar agora.");
     return;
   }
-  const link = document.createElement("a");
-  link.href = result.data.url;
-  link.rel = "noopener";
-  link.click();
+  saveFromLink(result.data.url);
 }
 
 /** A photo in the conversation: no button on it; a click opens it full screen. */

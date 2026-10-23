@@ -257,7 +257,24 @@ test.describe("in the room", () => {
     await expect.poll(async () => (await audioVolumes()).length).toBe(2);
     await listener.page.getByRole("button", { name: "Assistir à tela de Audio Falante" }).click();
     await expect.poll(async () => (await audioVolumes()).length).toBe(3);
-    await expect.poll(audioVolumes).toEqual([0, 0, 0]);
+    // "Sem som" silences the voices; the screen being watched keeps its sound.
+    await expect
+      .poll(() =>
+        listener.page
+          .locator('audio[data-source="voice"]')
+          .evaluateAll((elements) =>
+            elements.map((element) => (element as HTMLAudioElement).volume),
+          ),
+      )
+      .toEqual([0, 0]);
+    await expect(listener.page.locator('audio[data-source="sharedAudio"]')).toHaveJSProperty(
+      "volume",
+      1,
+    );
+    await expect(listener.page.locator('audio[data-source="sharedAudio"]')).toHaveJSProperty(
+      "muted",
+      false,
+    );
     await listener.page.getByRole("button", { name: "Voltar a ouvir a sala" }).click();
     await expect.poll(audioVolumes).toEqual([1, 1, 1]);
     await expect(listener.page.getByRole("button", { name: /Desligar microfone/ })).toBeVisible();

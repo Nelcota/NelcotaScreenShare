@@ -184,8 +184,9 @@ export async function attachmentDownloadUrl(
 }
 
 /**
- * A short download link to the file a report holds, for the moderation panel. The caller
- * checks the moderator's permission and audits the download.
+ * A short download link to the file an open report holds, for the moderation panel: once the
+ * report is resolved, the file is no longer kept for the review. The caller checks the
+ * moderator's permission and audits the download.
  */
 export async function reportedFileDownloadUrl(
   { db, storage }: AttachmentDeps,
@@ -195,7 +196,13 @@ export async function reportedFileDownloadUrl(
     .select({ objectKey: messageAttachments.objectKey })
     .from(reports)
     .innerJoin(messageAttachments, eq(messageAttachments.id, reports.targetAttachmentId))
-    .where(and(eq(reports.id, reportId), eq(messageAttachments.status, "ready")));
+    .where(
+      and(
+        eq(reports.id, reportId),
+        eq(reports.status, "open"),
+        eq(messageAttachments.status, "ready"),
+      ),
+    );
   if (row === undefined) throw new ActionError(NOT_FOUND);
   return storage.downloadUrl(row.objectKey, DOWNLOAD_LINK_SECONDS);
 }

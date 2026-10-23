@@ -111,6 +111,7 @@ export async function getReport(db: DbExecutor, id: string) {
       messageAttachments,
       and(
         eq(messageAttachments.id, reports.targetAttachmentId),
+        eq(reports.status, "open"),
         eq(messageAttachments.status, "ready"),
       ),
     )

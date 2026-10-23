@@ -220,6 +220,36 @@ describe("moderation", () => {
     assert.ok(audits.some((entry) => entry.resourceId === report.id));
   });
 
+  test("a resolved report no longer shows nor downloads the file of a message that stays", async () => {
+    const { conversationId, messageIds } = await conversationWithMessages(1);
+    const reported = messageIds[0]!;
+    await db.insert(schema.messageAttachments).values({
+      conversationId,
+      messageId: reported,
+      uploaderId: author.id,
+      objectKey: newObjectKey(),
+      fileName: "prova.pdf",
+      status: "ready",
+      kind: "pdf",
+      sizeBytes: 10,
+    });
+    as(reporter);
+    await reportAction({ target: { kind: "message", messageId: reported }, reason: "sexual" });
+    const [report] = await db
+      .select()
+      .from(schema.reports)
+      .where(eq(schema.reports.targetMessageId, reported));
+    assert.ok(report);
+    requestHeaders.current = owner.headers;
+    await resolveReportAction({ id: report.id });
+
+    const detail = await getReport(db, report.id);
+    assert.equal(detail?.report.file, null);
+    const opened = await downloadReportedFileAction({ id: report.id });
+    assert.equal(opened.data, undefined);
+    assert.equal(opened.serverError, "Arquivo não encontrado.");
+  });
+
   test("deleting a reported message from the panel also deletes the file the report held", async () => {
     const { conversationId, messageIds } = await conversationWithMessages(1);
     const reported = messageIds[0]!;

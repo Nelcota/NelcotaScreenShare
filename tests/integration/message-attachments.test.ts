@@ -395,6 +395,36 @@ describe("reported files", () => {
     expect(await storage().head(file.objectKey)).toBeNull();
   });
 
+  test("a report filed while the author deletes the message still holds its file", async () => {
+    const ana = await person("Ana");
+    const bia = await person("Bia");
+    const conversationId = await conversation(ana, bia);
+    const file = await sentFile(ana, conversationId);
+    const commit = Promise.withResolvers<void>();
+    const filed = Promise.withResolvers<void>();
+
+    const reporting = db.transaction(async (tx) => {
+      await createReport(tx, bia, {
+        target: { kind: "message", messageId: file.messageId },
+        reason: "spam",
+        details: null,
+      });
+      filed.resolve();
+      await commit.promise;
+    });
+    await filed.promise;
+    const deleting = db.transaction(async (tx) => {
+      const files = await attachmentsOfMessage(tx, file.messageId);
+      await tx.delete(messages).where(eq(messages.id, file.messageId));
+      return files;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    commit.resolve();
+    await reporting;
+
+    expect(await deleting).toEqual([]);
+  });
+
   test("resolving one report keeps a file another open report still holds", async () => {
     const { conversationId, file } = await reportedFile();
     const cai = await person("Cai");

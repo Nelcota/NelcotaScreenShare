@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { AttachmentDeps } from "@/features/messages/server/attachments.server";
 import type { DbExecutor } from "@/server/db/index.server";
-import { messageAttachments, reports } from "@/server/db/schema";
+import { messageAttachments, messages, reports } from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import type { ObjectStorage } from "@/server/storage/object-storage.server";
 
@@ -20,12 +20,18 @@ const notHeldByOpenReport = sql`not exists (
 
 /**
  * The files of one message, read before it is deleted. A file an open report holds is left
- * out: it stays for the review and goes when the report is resolved.
+ * out: it stays for the review and goes when the report is resolved. Locking the message
+ * first waits for a report being filed on it, so the file it holds is never missed.
  */
 export async function attachmentsOfMessage(
   db: DbExecutor,
   messageId: string,
 ): Promise<StoredRow[]> {
+  await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .for("update");
   return db
     .select({ id: messageAttachments.id, objectKey: messageAttachments.objectKey })
     .from(messageAttachments)

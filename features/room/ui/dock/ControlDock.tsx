@@ -1,8 +1,10 @@
 import { MessageSquare } from "lucide-react";
+import { useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useShortcutLabel } from "@/lib/hooks/use-shortcut-keys";
 import { cn } from "@/lib/utils";
 import type { ChatState } from "@/features/room/hooks/use-chat-state";
+import { useFullscreenDock } from "@/features/room/hooks/use-fullscreen-dock";
 import { CameraButton } from "./CameraButton";
 import { DeafenButton } from "./Deafen";
 import { DockButton } from "./DockButton";
@@ -45,15 +47,22 @@ function CameraAndShare({ share }: { share: ScreenShareControl }) {
  */
 export function ControlDock({ chat, share, watchedScreen, onLeave }: ControlDockProps) {
   const chatKey = useShortcutLabel("chat");
+  const dockRef = useRef<HTMLDivElement>(null);
+  const fullscreen = useFullscreenDock(dockRef);
 
   return (
     <div
+      ref={dockRef}
       className={cn(
         "pointer-events-none fixed inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 px-3 pb-[max(1rem,env(safe-area-inset-bottom))]",
         // Clears the browser's "sharing your screen" bar (about 2.5rem tall).
         "group-data-capture-bar/room:pb-14",
         // Chat open on a wide screen: the dock centers in the remaining space, like the content.
         chat.open && "lg:pr-[26.5rem]",
+        // Fullscreen screen: the dock comes over it while the mouse moves, then fades away.
+        fullscreen.isFullscreen && "transition-opacity duration-200",
+        fullscreen.isFullscreen && !fullscreen.shown && "opacity-0",
+        fullscreen.shown && "z-46",
       )}
     >
       {watchedScreen ? <StopWatchingPill trackSid={watchedScreen} /> : null}

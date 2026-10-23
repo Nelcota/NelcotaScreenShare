@@ -36,9 +36,14 @@ async function exitFullscreen() {
   }
 }
 
+/** Whether the page is in the stage's fullscreen, for whoever sits under it. */
+export function useIsPageFullscreen(): boolean {
+  return useSyncExternalStore(subscribeFullscreen, isPageFullscreen, () => false);
+}
+
 /** Page fullscreen tied to the stage's lifetime. */
 export function usePageFullscreen() {
-  const isFullscreen = useSyncExternalStore(subscribeFullscreen, isPageFullscreen, () => false);
+  const isFullscreen = useIsPageFullscreen();
 
   // The stage leaves (the share ended): the page must not stay in fullscreen without it.
   useEffect(

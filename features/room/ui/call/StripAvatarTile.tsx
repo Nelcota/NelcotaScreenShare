@@ -2,7 +2,7 @@ import type { Participant } from "livekit-client";
 import { Hand, MonitorUp } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 import { HostBadge } from "./HostBadge";
-import { ParticipantAudioMenu } from "./ParticipantAudioMenu";
+import { SilencedBadge } from "./SilencedBadge";
 import { SoundBadge } from "./SoundBadge";
 
 interface StripAvatarTileProps {
@@ -66,7 +66,11 @@ export function StripAvatarTile({
             <span className="sr-only">{name} está com a mão levantada</span>
           </span>
         ) : null}
-        <ParticipantAudioMenu participant={participant} className="absolute -bottom-1 -left-1" />
+        <SilencedBadge
+          participant={participant}
+          name={name}
+          className="absolute -bottom-1 -left-1 ring-2 ring-canvas"
+        />
       </div>
       <span className="w-full truncate text-center text-sm font-medium lg:text-left lg:text-base">
         {label}

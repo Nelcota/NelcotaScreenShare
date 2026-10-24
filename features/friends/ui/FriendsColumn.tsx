@@ -38,7 +38,7 @@ function TabLink({ tab, active }: { tab: ColumnTab; active: boolean }) {
       aria-label={label}
       aria-current={active ? "page" : undefined}
       data-opening={opening || undefined}
-      className="relative inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink aria-[current=page]:ring-1 aria-[current=page]:ring-line-strong data-opening:bg-surface-3/60 data-opening:text-ink"
+      className="relative inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-full px-2 text-sm font-semibold whitespace-nowrap text-ink-muted transition-colors hover:text-ink aria-[current=page]:bg-surface-3 aria-[current=page]:text-ink data-opening:bg-surface-3/60 data-opening:text-ink"
     >
       <span>{tab.label}</span>
       <UnreadCount count={badge} aria-hidden="true" className="static ring-0" />

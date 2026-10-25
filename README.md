@@ -1,8 +1,9 @@
 <div align="center">
 
-<img src="public/icon.png" alt="Nelcota" width="96" height="96" />
-
-# Nelcota
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg" />
+  <img src="docs/assets/logo-light.svg" alt="Nelcota" width="480" height="180" />
+</picture>
 
 **Compartilhe sua tela em segundos.** ("Share your screen in seconds.")
 

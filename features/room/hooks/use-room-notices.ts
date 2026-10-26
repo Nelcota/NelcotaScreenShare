@@ -9,7 +9,6 @@ import {
 } from "livekit-client";
 import { useEffect, useEffectEvent, useState } from "react";
 import { playCallSound, playPeerSound } from "@/features/room/audio/call-sounds";
-import { useDeafen } from "@/features/room/ui/dock/Deafen";
 import {
   addToNoticeGroup,
   noticeGroupMessage,
@@ -36,16 +35,15 @@ function showGroupedNotice(group: NoticeGroup) {
 export function useRoomNotices() {
   const room = useRoomContext();
   const [welcome, setWelcome] = useState(0);
-  const { deafened } = useDeafen();
-  // Not hearing the room: nobody's coming and going makes a sound either.
+  // "Sem som" silences only the voices: these sounds follow "Sons da chamada" alone.
   const playPeer = useEffectEvent(
     (sound: "peer-joined" | "peer-left" | "screen-on" | "screen-off") => {
-      if (!deafened) void playPeerSound(sound);
+      void playPeerSound(sound);
     },
   );
 
   const playOwnScreen = useEffectEvent((sound: "screen-on" | "screen-off") => {
-    if (!deafened) void playCallSound(sound, false);
+    void playCallSound(sound, false);
   });
 
   useEffect(() => {

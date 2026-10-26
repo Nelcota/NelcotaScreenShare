@@ -4,6 +4,7 @@ import { useHiddenRoomAddress } from "@/features/room/hooks/use-hidden-room-addr
 import { useEffect, useState, type ReactNode } from "react";
 import type { RoomPresence } from "@/features/room/domain/presence";
 import { setActiveCallCode } from "@/features/room/hooks/use-active-call";
+import { useLeaveCallWarning } from "@/features/room/hooks/use-leave-call-warning";
 import { useRoomSwitchGuard } from "@/features/room/hooks/use-room-switch-guard";
 import { RoomSession } from "./RoomSession";
 import { RoomSwitchDialog } from "./RoomSwitchDialog";
@@ -53,6 +54,7 @@ export function ActiveRoom({
     setActiveCallCode(activeCode);
     return () => setActiveCallCode(undefined);
   }, [activeCode]);
+  useLeaveCallWarning(activeCode !== undefined);
   // The room page's latest data (a new owner's name, who is inside) replaces the one saved at
   // joining, so the minimized call does not show it stale.
   if (room && call && room !== call && room.code === call.code) setCall(room);

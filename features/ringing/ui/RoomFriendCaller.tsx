@@ -27,7 +27,7 @@ const INVITE_SLOT_ID = "room-invite-actions";
 
 /**
  * Rings each chosen friend into the room; a friend who is offline gets a missed call in the
- * conversation instead. Says so, and how many could not be called.
+ * conversation instead. Says how many could not be called.
  */
 async function ringAll(room: string, friendIds: string[]) {
   if (friendIds.length === 0) {
@@ -37,9 +37,6 @@ async function ringAll(room: string, friendIds: string[]) {
   const results = await Promise.all(friendIds.map((friendId) => ringFriend({ room, friendId })));
   const reached = (result: (typeof results)[number]) =>
     result?.data?.ringId != null || result?.data?.missedCall === true;
-  if (results.some((result) => result?.data?.missedCall === true)) {
-    toast.success("Quem está offline vê a chamada quando abrir o Nelcota.");
-  }
   const failed = results.filter((result) => result !== null && !reached(result)).length;
   if (failed === 0) return;
   toast.error(

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { callFriend, cancelCall } from "@/features/ringing/actions";
+import { toast } from "sonner";
 import { cancelCalling, ringFriend } from "@/features/ringing/client/calling";
 
 vi.mock("@/features/ringing/actions", () => ({
@@ -7,6 +8,7 @@ vi.mock("@/features/ringing/actions", () => ({
   cancelCall: vi.fn(async () => ({ data: { cancelled: true } })),
 }));
 vi.mock("@/features/ringing/client/pending-call", () => ({ savePendingCall: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 type Result = Awaited<ReturnType<typeof callFriend>>;
 function deferred<T>() {
@@ -89,4 +91,16 @@ test("a late answer from a cancelled attempt cannot cancel a subsequent call", a
   expect(cancelCall).toHaveBeenCalledExactlyOnceWith({ ringId: "old-ring" });
   cancelCalling("friend", null);
   expect(cancelCall).toHaveBeenLastCalledWith({ ringId: "new-ring" });
+});
+
+test("a friend who turned out offline gets a missed call, and the caller is told", async () => {
+  vi.mocked(callFriend).mockResolvedValueOnce({
+    data: { ringId: null, needsRoom: false, missedCall: true },
+  });
+  await ringFriend({ friendId: "friend", room: "abc-defg-hij" });
+  // The other "Chamar" buttons used to end in silence: "Chamando…" just went away.
+  expect(toast.success).toHaveBeenCalledWith(
+    "Quem está offline vê a chamada quando abrir o Nelcota.",
+    { id: "missed-call" },
+  );
 });

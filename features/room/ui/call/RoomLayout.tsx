@@ -160,13 +160,13 @@ export function RoomLayout({
   code,
   maxParticipants,
   roomName,
-  isAdmin,
+  panelShortcut,
   onLeave,
 }: {
   code: string;
   maxParticipants: number;
   roomName: RoomTitle | null;
-  isAdmin: boolean;
+  panelShortcut: boolean;
   onLeave: () => void;
 }) {
   const scope = useRef<HTMLDivElement>(null);
@@ -236,7 +236,7 @@ export function RoomLayout({
           participants={participants}
           maxParticipants={maxParticipants}
           roomName={roomName}
-          isAdmin={isAdmin}
+          panelShortcut={panelShortcut}
           connection={connection}
         />
       </header>

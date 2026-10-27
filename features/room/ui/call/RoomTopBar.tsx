@@ -178,7 +178,7 @@ export function RoomTopBar({
   participants,
   maxParticipants,
   roomName,
-  isAdmin,
+  panelShortcut,
   connection,
 }: {
   code: string;
@@ -187,7 +187,7 @@ export function RoomTopBar({
   /** The name as the page loaded it; "Sala de Ana" follows a new owner live. */
   roomName: RoomTitle | null;
   /** Admins open the panel without leaving: the call goes on minimized. */
-  isAdmin: boolean;
+  panelShortcut: boolean;
   connection: Connection;
 }) {
   const streamer = useStreamerMode();
@@ -219,7 +219,7 @@ export function RoomTopBar({
       <span className="ml-auto" />
       <PeopleButton participants={participants} max={maxParticipants} roomCode={code} />
       <HostControlsMenu participants={participants} />
-      {isAdmin ? <PanelShortcut hint="Painel admin (a chamada continua)" /> : null}
+      {panelShortcut ? <PanelShortcut hint="Painel admin (a chamada continua)" /> : null}
       <ShortcutsHelp className="max-sm:hidden" />
       <ThemeToggle className="max-sm:hidden" />
       <NavPopover

@@ -92,7 +92,7 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
     roomName: roomTitle(definition, ownerName),
     presence,
     // Someone on the team: the call offers the panel without leaving the room.
-    isAdmin: panelShortcut,
+    panelShortcut,
   } satisfies RoomEntry;
   // Signed in, the friends column comes along, as on every page of the app.
   return { ...entry, column: user ? await roomColumn(user, request) : null };

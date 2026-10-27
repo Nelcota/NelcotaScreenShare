@@ -37,6 +37,8 @@ const { markOnline } = await import("@/features/friends/server/online-presence.s
 const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
 const { getDb } = await import("@/server/db/index.server");
 const { createGroup } = await import("@/features/messages/server/conversations.server");
+const { unreadSummary } = await import("@/features/messages/server/conversation-list.server");
+const { saveStatus } = await import("@/features/friends/server/presence-status.server");
 const { liveGroupCall, groupCallLines } =
   await import("@/features/ringing/server/group-calls.server");
 
@@ -115,6 +117,7 @@ describe("calling a friend", () => {
     expect((await ringing.callFriend({ friendId: bia.id })).data).toEqual({
       ringId: null,
       needsRoom: true,
+      missedCall: false,
     });
     expect(incomingRings(bia.id)).toEqual([]);
   });
@@ -146,6 +149,7 @@ describe("calling a friend", () => {
     expect((await ringing.callFriend({ friendId: bia.id })).data).toEqual({
       ringId: null,
       needsRoom: true,
+      missedCall: false,
     });
     expect(incomingRings(bia.id)).toEqual([]);
   });
@@ -193,7 +197,38 @@ describe("calling a friend", () => {
     expect(approval).toBeNull();
   });
 
-  test("nobody rings an offline friend, a stranger, or into someone else's room", async () => {
+  test("an offline friend gets a missed call in the conversation, unread, instead of a ring", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+
+    as(ana);
+    expect((await ringing.callFriend({ friendId: bia.id, room: anaRoom })).data).toEqual({
+      ringId: null,
+      needsRoom: false,
+      missedCall: true,
+    });
+    expect(incomingRings(bia.id)).toEqual([]);
+    const sent = await db
+      .select({ kind: schema.messages.kind, body: schema.messages.body })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    expect(sent).toEqual([{ kind: "missed_call", body: null }]);
+    const unread = await unreadSummary(db, bia.id);
+    expect(unread.total).toBe(1);
+    expect(unread.latest?.kind).toBe("missed_call");
+
+    // Invisível looks Offline to friends, so it gets the same and gives nothing away.
+    markOnline(bia.id);
+    await saveStatus(db, bia.id, "invisible");
+    expect((await ringing.callFriend({ friendId: bia.id, room: anaRoom })).data?.missedCall).toBe(
+      true,
+    );
+    expect(incomingRings(bia.id)).toEqual([]);
+  });
+
+  test("nobody calls a friend in Não perturbe, a stranger, or into someone else's room", async () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     const bia = await verifiedParticipant(db, handler, { name: "Bia" });
     const caio = await verifiedParticipant(db, handler, { name: "Caio" });
@@ -201,12 +236,14 @@ describe("calling a friend", () => {
     const anaRoom = await createRoom(db, ana.id);
     const caioRoom = await createRoom(db, caio.id);
 
+    markOnline(bia.id);
+    markOnline(caio.id);
+    await saveStatus(db, bia.id, "busy");
     as(ana);
     expect((await ringing.callFriend({ friendId: bia.id, room: anaRoom })).serverError).toBe(
       "Não dá para chamar agora.",
     );
-    markOnline(bia.id);
-    markOnline(caio.id);
+    await saveStatus(db, bia.id, "online");
     expect((await ringing.callFriend({ friendId: caio.id, room: anaRoom })).serverError).toBe(
       "Não dá para chamar agora.",
     );

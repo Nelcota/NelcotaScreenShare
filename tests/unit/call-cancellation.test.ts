@@ -33,13 +33,15 @@ test("cancelling before the response cancels the eventual server ring", async ()
   vi.mocked(callFriend).mockReturnValueOnce(response.promise);
   const pending = ringFriend({ friendId: "friend" });
   cancelCalling("friend", null);
-  response.resolve({ data: { ringId: "late-ring", needsRoom: false } });
+  response.resolve({ data: { ringId: "late-ring", needsRoom: false, missedCall: false } });
   expect(await pending).toBeNull();
   expect(cancelCall).toHaveBeenCalledWith({ ringId: "late-ring" });
 });
 
 test("cancelling after the response but before loader revalidation uses the returned ring", async () => {
-  vi.mocked(callFriend).mockResolvedValueOnce({ data: { ringId: "known-ring", needsRoom: false } });
+  vi.mocked(callFriend).mockResolvedValueOnce({
+    data: { ringId: "known-ring", needsRoom: false, missedCall: false },
+  });
   await ringFriend({ friendId: "friend" });
   cancelCalling("friend", null);
   expect(cancelCall).toHaveBeenCalledWith({ ringId: "known-ring" });
@@ -51,13 +53,15 @@ test("a cancelled request that needs a room never opens it", async () => {
   const openRoom = vi.fn();
   const pending = ringFriend({ friendId: "friend" }, openRoom);
   cancelCalling("friend", null);
-  response.resolve({ data: { ringId: null, needsRoom: true } });
+  response.resolve({ data: { ringId: null, needsRoom: true, missedCall: false } });
   expect(await pending).toBeNull();
   expect(openRoom).not.toHaveBeenCalled();
 });
 
 test("cancellation remains visible while room creation is in flight", async () => {
-  vi.mocked(callFriend).mockResolvedValueOnce({ data: { ringId: null, needsRoom: true } });
+  vi.mocked(callFriend).mockResolvedValueOnce({
+    data: { ringId: null, needsRoom: true, missedCall: false },
+  });
   const created = deferred<void>();
   let activeAfterCreation: boolean | undefined;
   const pending = ringFriend({ friendId: "friend" }, async (active) => {
@@ -78,8 +82,8 @@ test("a late answer from a cancelled attempt cannot cancel a subsequent call", a
   const oldCall = ringFriend({ friendId: "friend", room: "abc-defg-hij" });
   cancelCalling("friend", null);
   const newCall = ringFriend({ friendId: "friend", room: "abc-defg-hij" });
-  first.resolve({ data: { ringId: "old-ring", needsRoom: false } });
-  second.resolve({ data: { ringId: "new-ring", needsRoom: false } });
+  first.resolve({ data: { ringId: "old-ring", needsRoom: false, missedCall: false } });
+  second.resolve({ data: { ringId: "new-ring", needsRoom: false, missedCall: false } });
   expect(await oldCall).toBeNull();
   expect((await newCall)?.data?.ringId).toBe("new-ring");
   expect(cancelCall).toHaveBeenCalledExactlyOnceWith({ ringId: "old-ring" });

@@ -36,6 +36,8 @@ interface ParticipantTileProps {
   /** Your own tile while someone else presents: on a phone it is small, so "Você" and a
    * smaller face. */
   shrunkOnPhone?: boolean;
+  /** In the shrunk column beside a screen: only the round face, the name in a hint. */
+  narrow?: boolean;
 }
 
 /** Soft pulse on the border of whoever is speaking. */
@@ -154,6 +156,7 @@ export function ParticipantTile({
   onEnlarge,
   screenInvite,
   shrunkOnPhone = false,
+  narrow = false,
 }: ParticipantTileProps) {
   const scope = useRef<HTMLDivElement>(null);
   const isSpeaking = useIsSpeaking(participant);
@@ -167,7 +170,7 @@ export function ParticipantTile({
   if (screenInvite && !compact)
     return <ShareTileCard scope={scope} trackSid={screenInvite} {...share} />;
 
-  if (compact && camera) {
+  if (compact && camera && !narrow) {
     return (
       <StripCameraTile
         scope={scope}
@@ -189,6 +192,7 @@ export function ParticipantTile({
     // Stage in use: round avatar with the name below (FaceTime style).
     return (
       <StripAvatarTile
+        narrow={narrow}
         scope={scope}
         participant={participant}
         name={name}

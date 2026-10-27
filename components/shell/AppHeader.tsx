@@ -193,7 +193,7 @@ export function AppHeader({
         />
         {actions ? (
           <>
-            <NavDivider />
+            <NavDivider className={account ? undefined : VISITOR_DIVIDER} />
             {actions}
           </>
         ) : null}

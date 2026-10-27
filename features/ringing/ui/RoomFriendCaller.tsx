@@ -25,20 +25,35 @@ import { cn } from "@/lib/utils";
 /** The empty room's invite card leaves this spot free. */
 const INVITE_SLOT_ID = "room-invite-actions";
 
-/** Rings each chosen friend into the room; says how many could not be rung. */
+/**
+ * Rings each chosen friend into the room; a friend who is offline gets a missed call in the
+ * conversation instead. Says so, and how many could not be called.
+ */
 async function ringAll(room: string, friendIds: string[]) {
   if (friendIds.length === 0) {
     toast.error("Não dá para chamar agora.");
     return;
   }
   const results = await Promise.all(friendIds.map((friendId) => ringFriend({ room, friendId })));
-  const failed = results.filter((result) => result !== null && !result.data?.ringId).length;
+  const reached = (result: (typeof results)[number]) =>
+    result?.data?.ringId != null || result?.data?.missedCall === true;
+  if (results.some((result) => result?.data?.missedCall === true)) {
+    toast.success("Quem está offline vê a chamada quando abrir o Nelcota.");
+  }
+  const failed = results.filter((result) => result !== null && !reached(result)).length;
   if (failed === 0) return;
   toast.error(
     failed === friendIds.length
       ? "Não dá para chamar agora."
       : "Alguns amigos não puderam ser chamados.",
   );
+}
+
+/** "Chamando…", the friend's status, or what calling someone offline does. */
+function choiceStatus(friend: FriendStatus, ringing: boolean): string {
+  if (ringing) return "Chamando…";
+  if (friend.status === "offline") return "Vê quando abrir o Nelcota";
+  return SHOWN_STATUS_LABEL[friend.status];
 }
 
 /** One friend in the window: photo with their status, name, and a check when chosen. */
@@ -73,9 +88,7 @@ function FriendChoice({
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-sm font-semibold">{friend.name}</span>
-          <span className="text-xs text-ink-muted">
-            {ringing ? "Chamando…" : SHOWN_STATUS_LABEL[friend.status]}
-          </span>
+          <span className="text-xs text-ink-muted">{choiceStatus(friend, ringing)}</span>
         </span>
         <span
           aria-hidden="true"
@@ -91,19 +104,57 @@ function FriendChoice({
   );
 }
 
-/** The friends that match the search, under "Online · N"; a note when there are none. */
+interface Choices {
+  chosen: ReadonlySet<string>;
+  onToggle: (id: string) => void;
+}
+
+/** "Online · N" or "Offline · N" and its friends; nothing when it is empty. */
+function FriendSection({
+  title,
+  friends,
+  choices,
+}: {
+  title: string;
+  friends: FriendStatus[];
+  choices: Choices;
+}) {
+  if (friends.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-1">
+      <h3 className="px-2 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
+        {title} · {friends.length}
+      </h3>
+      <ul aria-label={title} className="flex flex-col">
+        {friends.map((friend) => (
+          <FriendChoice
+            key={friend.id}
+            friend={friend}
+            checked={choices.chosen.has(friend.id)}
+            onToggle={() => choices.onToggle(friend.id)}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * The friends that match the search: who can take a ring, then who is offline and gets a
+ * missed call (Não perturbe stays out). A note when there are none.
+ */
 function FriendList({
   friends,
   searching,
-  chosen,
-  onToggle,
+  choices,
 }: {
   friends: FriendStatus[];
   searching: boolean;
-  chosen: ReadonlySet<string>;
-  onToggle: (id: string) => void;
+  choices: Choices;
 }) {
-  if (friends.length === 0) {
+  const online = friends.filter((friend) => canBeCalled(friend.status));
+  const offline = friends.filter((friend) => friend.status === "offline");
+  if (online.length === 0 && offline.length === 0) {
     return (
       <p className="px-2 py-3 text-sm text-ink-muted">
         {searching ? "Nenhum amigo com esse nome." : "Nenhum amigo disponível agora."}
@@ -111,21 +162,10 @@ function FriendList({
     );
   }
   return (
-    <section aria-label="Online" className="flex flex-col gap-1">
-      <h3 className="px-2 text-xs font-semibold tracking-wide text-ink-subtle uppercase">
-        Online · {friends.length}
-      </h3>
-      <ul aria-label="Amigos para chamar" className="flex flex-col">
-        {friends.map((friend) => (
-          <FriendChoice
-            key={friend.id}
-            friend={friend}
-            checked={chosen.has(friend.id)}
-            onToggle={() => onToggle(friend.id)}
-          />
-        ))}
-      </ul>
-    </section>
+    <div className="flex flex-col gap-3">
+      <FriendSection title="Online" friends={online} choices={choices} />
+      <FriendSection title="Offline" friends={offline} choices={choices} />
+    </div>
   );
 }
 
@@ -139,8 +179,7 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
   const [query, setQuery] = useState("");
   const [sending, setSending] = useState(false);
   const wanted = searchable(query.trim());
-  const callable = friends.filter((friend) => canBeCalled(friend.status));
-  const shown = callable.filter(
+  const shown = friends.filter(
     (friend) => wanted === "" || searchable(friend.name).includes(wanted),
   );
 
@@ -186,7 +225,11 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
         </DialogDescription>
         <SearchField label="Buscar amigo" value={query} onChange={setQuery} />
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
-          <FriendList friends={shown} searching={wanted !== ""} chosen={chosen} onToggle={toggle} />
+          <FriendList
+            friends={shown}
+            searching={wanted !== ""}
+            choices={{ chosen, onToggle: toggle }}
+          />
         </div>
         <Button
           type="button"
@@ -202,7 +245,10 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
   );
 }
 
-/** "Chamar amigos" on the empty room's invite card: rings Online and Ausente friends into it. */
+/**
+ * "Chamar amigos" on the empty room's invite card: rings Online and Ausente friends into it,
+ * and leaves a missed call for the ones offline.
+ */
 export function RoomFriendCaller({ friends }: { friends: FriendStatus[] }) {
   const { pathname } = useLocation();
   const room = pathname.startsWith("/sala/") ? (pathname.split("/").at(-1) ?? null) : null;

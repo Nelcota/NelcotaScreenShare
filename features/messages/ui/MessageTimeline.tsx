@@ -77,7 +77,7 @@ function DeleteButton({ messageId }: { messageId: string }) {
 
 /**
  * A call that found the friend Offline, like a phone chat shows it: "Chamada perdida" for
- * them, "Chamada não atendida" for whoever called. It cannot be deleted.
+ * them, "Chamada não atendida" for whoever called. It has no delete button.
  */
 function MissedCallItem({
   message,

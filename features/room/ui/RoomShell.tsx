@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppHeader } from "@/components/shell/AppHeader";
+import { AppHeader, type AppHeaderProps } from "@/components/shell/AppHeader";
 
 /**
  * The call with the app's friends column on its left. The call's area contains its layout,
@@ -37,7 +37,7 @@ export function ScreenShell({
   children,
 }: {
   column: ReactNode;
-  account: { name: string; image: string | null } | null;
+  account: AppHeaderProps["account"];
   accountHref?: string;
   children: ReactNode;
 }) {

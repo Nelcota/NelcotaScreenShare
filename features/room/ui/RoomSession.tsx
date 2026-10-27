@@ -175,7 +175,8 @@ export function RoomSession({
   }
 
   if (minimized) return null;
-  const account = userName === null ? null : { name: userName, image: userImage };
+  // Someone on the team gets the panel's shortcut here too, as in the call.
+  const account = userName === null ? null : { name: userName, image: userImage, panel: isAdmin };
 
   if (unavailable)
     return (

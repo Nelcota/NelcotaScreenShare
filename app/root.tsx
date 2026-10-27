@@ -66,10 +66,14 @@ export const shouldRevalidate = skipClientOnlyChanges;
 export const loader = ({ request, context }: LoaderFunctionArgs) =>
   withRequest(request, context, async () => {
     const [mascot, current] = await Promise.all([getSetting(mascotSettings), getUserSession()]);
-    const friendRequests = current ? await pendingReceivedCount(getDb(), current.user.id) : 0;
-    const ringing = current ? await ringingState(getDb(), current.user.id) : null;
-    // Someone on the team gets the panel's shortcut in the app's top bar.
-    const panel = current ? await offersPanelShortcut(current.user) : false;
+    // Someone on the team (`panel`) gets the panel's shortcut in the app's top bar.
+    const [friendRequests, ringing, panel] = current
+      ? await Promise.all([
+          pendingReceivedCount(getDb(), current.user.id),
+          ringingState(getDb(), current.user.id),
+          offersPanelShortcut(current.user),
+        ])
+      : [0, null, false];
     return {
       nonce: request.headers.get("x-nonce") ?? undefined,
       origin: publicOrigin(request),

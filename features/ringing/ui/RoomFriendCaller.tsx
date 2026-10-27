@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { friendPhotoPath, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import { canBeCalled, SHOWN_STATUS_LABEL } from "@/features/friends/domain/presence-status";
 import { ringFriend, useCalling } from "@/features/ringing/client/calling";
+import { friendsToCall } from "@/features/ringing/domain/friend-choice";
 import { usePageSlot } from "@/features/ringing/client/use-page-slot";
 import { searchable } from "@/lib/search-text";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,10 @@ const INVITE_SLOT_ID = "room-invite-actions";
 
 /** Rings each chosen friend into the room; says how many could not be rung. */
 async function ringAll(room: string, friendIds: string[]) {
+  if (friendIds.length === 0) {
+    toast.error("Não dá para chamar agora.");
+    return;
+  }
   const results = await Promise.all(friendIds.map((friendId) => ringFriend({ room, friendId })));
   const failed = results.filter((result) => result !== null && !result.data?.ringId).length;
   if (failed === 0) return;
@@ -128,9 +133,10 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
   const [query, setQuery] = useState("");
   const [sending, setSending] = useState(false);
   const wanted = searchable(query.trim());
-  const shown = friends
-    .filter((friend) => canBeCalled(friend.status))
-    .filter((friend) => wanted === "" || searchable(friend.name).includes(wanted));
+  const callable = friends.filter((friend) => canBeCalled(friend.status));
+  const shown = callable.filter(
+    (friend) => wanted === "" || searchable(friend.name).includes(wanted),
+  );
 
   const toggle = (id: string) => {
     const next = new Set(chosen);
@@ -147,9 +153,12 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
 
   const ring = async () => {
     setSending(true);
-    await ringAll(room, [...chosen]);
-    setSending(false);
-    openChange(false);
+    try {
+      await ringAll(room, friendsToCall(friends, chosen));
+    } finally {
+      setSending(false);
+      openChange(false);
+    }
   };
 
   return (

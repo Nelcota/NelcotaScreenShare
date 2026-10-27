@@ -1,8 +1,9 @@
-import { Phone, Trash2 } from "lucide-react";
+import { Phone, PhoneMissed, PhoneOutgoing, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { deleteMessage } from "@/features/messages/actions";
+import { firstName } from "@/features/messages/domain/conversation-display";
 import type { Gif } from "@/features/messages/domain/klipy";
 import {
   groupTimeline,
@@ -71,6 +72,62 @@ function DeleteButton({ messageId }: { messageId: string }) {
         onConfirm={() => remove.execute({ messageId })}
       />
     </>
+  );
+}
+
+/**
+ * A call that found the friend Offline, like a phone chat shows it: "Chamada perdida" for
+ * them, "Chamada não atendida" for whoever called. It cannot be deleted.
+ */
+function MissedCallItem({
+  message,
+  first,
+  own,
+  contactName,
+}: {
+  message: TimelineMessage;
+  first: boolean;
+  own: boolean;
+  contactName: string | null;
+}) {
+  const Icon = own ? PhoneOutgoing : PhoneMissed;
+  const hint = own
+    ? `${contactName ?? "A pessoa"} estava offline`
+    : `${firstName(message.authorName)} te chamou para uma sala`;
+  return (
+    <li
+      className={cn(
+        "flex px-3 sm:px-4",
+        own ? "justify-end" : "justify-start",
+        first ? "mt-4" : "mt-1.5",
+      )}
+    >
+      <div
+        className={cn(
+          "flex max-w-[min(80%,34rem)] min-w-60 items-center gap-3 rounded-2xl px-3 py-2.5 shadow-xs",
+          own ? "bg-brand text-brand-ink" : "border border-line bg-surface-2 text-ink",
+          first && (own ? "rounded-tr-md" : "rounded-tl-md"),
+        )}
+      >
+        <span
+          className={cn(
+            "grid size-10 shrink-0 place-items-center rounded-full",
+            own ? "bg-brand-ink/10" : "bg-danger/15 text-danger",
+          )}
+        >
+          <Icon className="size-5" aria-hidden="true" />
+        </span>
+        <p className="min-w-0 flex-1 leading-snug">
+          <span className="block text-[0.9375rem] font-semibold">
+            {own ? "Chamada não atendida" : "Chamada perdida"}
+          </span>
+          <span className={cn("text-[0.8125rem]", own ? "text-brand-ink/75" : "text-ink-muted")}>
+            {hint}
+          </span>
+          <BubbleTime at={message.createdAt} own={own} />
+        </p>
+      </div>
+    </li>
   );
 }
 
@@ -169,18 +226,38 @@ function CallLine({ call }: { call: TimelineCall }) {
   );
 }
 
-function Run({ run, selfId, showNames }: { run: MessageRun; selfId: string; showNames: boolean }) {
+function Run({
+  run,
+  selfId,
+  showNames,
+  contactName,
+}: {
+  run: MessageRun;
+  selfId: string;
+  showNames: boolean;
+  contactName: string | null;
+}) {
   return (
     <>
-      {run.messages.map((message, index) => (
-        <MessageItem
-          key={message.id}
-          message={message}
-          first={index === 0}
-          own={message.authorId === selfId}
-          showName={showNames}
-        />
-      ))}
+      {run.messages.map((message, index) =>
+        message.kind === "missed_call" ? (
+          <MissedCallItem
+            key={message.id}
+            message={message}
+            first={index === 0}
+            own={message.authorId === selfId}
+            contactName={contactName}
+          />
+        ) : (
+          <MessageItem
+            key={message.id}
+            message={message}
+            first={index === 0}
+            own={message.authorId === selfId}
+            showName={showNames}
+          />
+        ),
+      )}
     </>
   );
 }
@@ -191,12 +268,15 @@ export function MessageTimeline({
   calls = [],
   selfId,
   showNames = false,
+  contactName = null,
 }: {
   messages: readonly TimelineMessage[];
   calls?: readonly TimelineCall[];
   selfId: string;
   /** In groups, whose bubble it is. */
   showNames?: boolean;
+  /** The friend's first name in a direct conversation, for "Bia estava offline". */
+  contactName?: string | null;
 }) {
   const now = useNow();
   const days = groupTimeline(messages, now, calls);
@@ -217,7 +297,13 @@ export function MessageTimeline({
               run.type === "call" ? (
                 <CallLine key={run.id} call={run} />
               ) : (
-                <Run key={run.messages[0]?.id} run={run} selfId={selfId} showNames={showNames} />
+                <Run
+                  key={run.messages[0]?.id}
+                  run={run}
+                  selfId={selfId}
+                  showNames={showNames}
+                  contactName={contactName}
+                />
               ),
             )}
           </ul>

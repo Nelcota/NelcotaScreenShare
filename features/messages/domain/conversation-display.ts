@@ -60,6 +60,14 @@ export function messagePreview(
   return content;
 }
 
+/** The friend's first name in a direct conversation; null in a group. */
+export function contactName(conversation: ConversationLike): string | null {
+  if (conversation.kind !== "direct") return null;
+  const name = conversation.others[0]?.name;
+  if (name === undefined) return null;
+  return firstName(name);
+}
+
 /** "Mensagem para Carla" or "Mensagem em Noite do filme". */
 export function composerPlaceholder(conversation: ConversationLike): string {
   if (conversation.kind === "direct") {

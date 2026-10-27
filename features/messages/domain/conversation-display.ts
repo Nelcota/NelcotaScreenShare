@@ -1,3 +1,5 @@
+import type { MessageKind } from "@/features/messages/domain/conversation";
+
 interface Person {
   id: string;
   name: string;
@@ -12,6 +14,7 @@ interface ConversationLike {
 interface MessageLike {
   authorId: string;
   authorName: string;
+  kind: MessageKind;
   body: string | null;
   gifSlug: string | null;
 }
@@ -33,8 +36,14 @@ export function conversationTitle(conversation: ConversationLike): string {
   return joinNames(conversation.others.map((person) => firstName(person.name)));
 }
 
-/** What a message holds, in a word when it has no text: "GIF", or "Arquivo" for a file alone. */
-export function messageContentLabel(message: Pick<MessageLike, "body" | "gifSlug">): string {
+/**
+ * What a message holds, in a word when it has no text: "GIF", "Arquivo" for a file alone, or
+ * "Chamada perdida".
+ */
+export function messageContentLabel(
+  message: Pick<MessageLike, "kind" | "body" | "gifSlug">,
+): string {
+  if (message.kind === "missed_call") return "Chamada perdida";
   if (message.body !== null) return message.body;
   return message.gifSlug === null ? "Arquivo" : "GIF";
 }

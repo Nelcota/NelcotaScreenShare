@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
+import type { MessageKind } from "@/features/messages/domain/conversation";
 import type { DbExecutor } from "@/server/db/index.server";
 import {
   conversationMembers,
@@ -70,6 +71,7 @@ async function lastMessages(db: DbExecutor, userId: string, ids: string[]) {
       id: messages.id,
       authorId: messages.authorId,
       authorName: users.name,
+      kind: messages.kind,
       body: messages.body,
       gifSlug: messages.gifSlug,
       createdAt: messages.createdAt,
@@ -135,6 +137,7 @@ export interface UnreadSummary {
     id: string;
     conversationId: string;
     authorName: string;
+    kind: MessageKind;
     body: string | null;
     gifSlug: string | null;
   } | null;
@@ -185,6 +188,7 @@ export async function unreadSummary(db: DbExecutor, userId: string): Promise<Unr
       id: messages.id,
       conversationId: messages.conversationId,
       authorName: users.name,
+      kind: messages.kind,
       body: messages.body,
       gifSlug: messages.gifSlug,
     })

@@ -42,6 +42,7 @@ export async function messageData(db: DbExecutor, userId: string) {
   const sent = await db
     .select({
       conversa: messages.conversationId,
+      tipo: messages.kind,
       texto: messages.body,
       gif: messages.gifSlug,
       enviada_em: messages.createdAt,

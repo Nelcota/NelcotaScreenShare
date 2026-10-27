@@ -48,6 +48,7 @@ test("a reported message with only a file shows the file, not GIF", () => {
       {
         id: "m1",
         authorName: "Ana",
+        kind: "message",
         body: null,
         gifSlug: null,
         fileName: "foto.png",
@@ -56,6 +57,7 @@ test("a reported message with only a file shows the file, not GIF", () => {
       {
         id: "m2",
         authorName: "Bia",
+        kind: "message",
         body: null,
         gifSlug: null,
         fileName: "lista.pdf",

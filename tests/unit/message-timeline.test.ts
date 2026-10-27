@@ -16,6 +16,7 @@ function message(id: string, authorId: string, iso: string) {
     id,
     authorId,
     authorName: authorId,
+    kind: "message" as const,
     body: id,
     gifSlug: null,
     gif: null,
@@ -77,11 +78,18 @@ describe("conversation display", () => {
   });
 
   test("previews the last message", () => {
-    const gif = { authorId: "me", authorName: "Talita", body: null, gifSlug: "x" };
+    const gif = {
+      authorId: "me",
+      authorName: "Talita",
+      kind: "message" as const,
+      body: null,
+      gifSlug: "x",
+    };
     expect(messagePreview(gif, "direct", "me")).toBe("Você: GIF");
     const text = {
       authorId: "f",
       authorName: "Felipe Nunes",
+      kind: "message" as const,
       body: "oi",
       gifSlug: null,
       gif: null,
@@ -92,5 +100,8 @@ describe("conversation display", () => {
     // A file alone has neither text nor GIF: it previewed as "GIF".
     const file = { ...text, body: null, gifSlug: null, authorId: "me" };
     expect(messagePreview(file, "group", "me")).toBe("Você: Arquivo");
+    // A missed call carries nothing either, and reads as one.
+    const call = { ...file, kind: "missed_call" as const, authorId: "f" };
+    expect(messagePreview(call, "direct", "me")).toBe("Chamada perdida");
   });
 });

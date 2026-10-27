@@ -36,6 +36,13 @@ test("the people beside a shared screen shrink to their photos and give the scre
   await viewer.page.getByRole("button", { name: "Mostrar os nomes" }).click();
 
   await expect.poll(() => widthOf(people)).toBeGreaterThan(200);
+
+  // Shrunk on the computer, then on a phone width: the people go back to a row with names.
+  await viewer.page.getByRole("button", { name: "Encolher a lista de pessoas" }).click();
+  await viewer.page.setViewportSize({ width: 375, height: 812 });
+  await expect(viewer.page.getByRole("button", { name: "Mostrar os nomes" })).toHaveCount(0);
+  // A hidden name still has a 1 px box (it stays for screen readers), so measure it.
+  await expect.poll(() => widthOf(people.getByText("Quem Mostra").first())).toBeGreaterThan(30);
   await sharer.context.close();
   await viewer.context.close();
 });

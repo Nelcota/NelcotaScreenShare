@@ -58,9 +58,9 @@ function IdentityCard({
   };
 }) {
   return (
-    <header className="panel rounded-2xl p-5 sm:p-7">
+    <header className="panel rounded-2xl p-5 @xl:p-7">
       <ProfilePhotoForm image={user.image}>
-        <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{user.name}</h1>
+        <h1 className="truncate text-2xl font-semibold tracking-tight @xl:text-3xl">{user.name}</h1>
         <p className="mt-1 text-sm [overflow-wrap:anywhere] text-ink-muted">{user.email}</p>
       </ProfilePhotoForm>
     </header>
@@ -155,7 +155,7 @@ export default function AccountPage() {
   return (
     <div className="relative">
       <PanelClose className="absolute top-3 right-3" />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:py-12">
+      <div className="@container mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 sm:py-12">
         {back ? (
           <BackLink to={back} className="self-start">
             Voltar para a sala

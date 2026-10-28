@@ -86,7 +86,7 @@ export function ProfilePhotoForm({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div className="flex flex-col items-start gap-4 @sm:flex-row @sm:items-center @sm:gap-6">
         {preview ? (
           <PhotoMenu
             busy={busy}
@@ -147,7 +147,7 @@ function AvatarFace({ image, preparing }: { image: string | null; preparing: boo
     <>
       <UserAvatar
         image={image}
-        className="size-20 text-2xl sm:size-24 [&_[data-slot=avatar-fallback]]:bg-brand [&_[data-slot=avatar-fallback]]:text-brand-ink"
+        className="size-20 text-2xl @sm:size-24 [&_[data-slot=avatar-fallback]]:bg-brand [&_[data-slot=avatar-fallback]]:text-brand-ink"
       />
       <span className="absolute right-0 bottom-0 grid size-8 place-items-center rounded-full border-2 border-surface bg-surface-3 text-ink transition-colors group-hover:bg-brand group-hover:text-brand-ink">
         {preparing ? (

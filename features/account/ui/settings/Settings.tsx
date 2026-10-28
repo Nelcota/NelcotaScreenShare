@@ -59,9 +59,9 @@ export function SettingsRow({
   children?: ReactNode;
 }) {
   return (
-    <div className="grid gap-4 px-5 py-5 sm:grid-cols-[15rem_minmax(0,1fr)] sm:gap-6 sm:px-6">
+    <div className="grid gap-4 px-5 py-5 @xl:grid-cols-[15rem_minmax(0,1fr)] @xl:gap-6 @xl:px-6">
       <SettingsRowLabel title={title} description={description} />
-      <div className="min-w-0 sm:self-center">{children}</div>
+      <div className="min-w-0 @xl:self-center">{children}</div>
     </div>
   );
 }
@@ -89,5 +89,5 @@ export function SettingsRowLabel({
 
 /** List that takes the full card width (e.g. sessions). */
 export function SettingsBlock({ children }: { children: ReactNode }) {
-  return <div className="px-5 py-3 sm:px-6">{children}</div>;
+  return <div className="px-5 py-3 @xl:px-6">{children}</div>;
 }

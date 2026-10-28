@@ -67,7 +67,7 @@ export function AccountHealth({
   return (
     <section
       aria-labelledby="saude-da-conta"
-      className="rounded-2xl border border-warning/30 bg-surface p-5 sm:p-6"
+      className="rounded-2xl border border-warning/30 bg-surface p-5 @xl:p-6"
     >
       <div className="flex items-center justify-between gap-4">
         <h2 id="saude-da-conta" className="font-semibold tracking-[-0.01em]">

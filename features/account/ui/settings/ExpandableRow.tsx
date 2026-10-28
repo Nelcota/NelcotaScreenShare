@@ -113,17 +113,17 @@ export function ExpandableRow({
       ref={row}
       id={id}
       className={cn(
-        "grid scroll-mt-6 gap-4 px-5 py-5 sm:gap-x-6 sm:px-6",
+        "grid scroll-mt-6 gap-4 px-5 py-5 @xl:gap-x-6 @xl:px-6",
         hasSummary
-          ? "sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]"
-          : "sm:grid-cols-[minmax(0,1fr)_auto]",
+          ? "@xl:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]"
+          : "@xl:grid-cols-[minmax(0,1fr)_auto]",
       )}
     >
       <SettingsRowLabel id={titleId} title={title} description={description} />
       <div
         className={cn(
           "flex min-w-0 flex-wrap items-center gap-3",
-          hasSummary ? "justify-between sm:self-center" : "justify-start sm:self-start",
+          hasSummary ? "justify-between @xl:self-center" : "justify-start @xl:self-start",
         )}
       >
         {hasSummary ? <div className="min-w-0 text-sm text-ink-muted">{summary}</div> : null}
@@ -143,7 +143,7 @@ export function ExpandableRow({
         id={contentId}
         aria-labelledby={titleId}
         hidden={!open}
-        className={cn("min-w-0", hasSummary ? "sm:col-start-2" : "sm:col-span-2")}
+        className={cn("min-w-0", hasSummary ? "@xl:col-start-2" : "@xl:col-span-2")}
       >
         <RowContext value={() => setOpen(false)}>{children}</RowContext>
       </section>

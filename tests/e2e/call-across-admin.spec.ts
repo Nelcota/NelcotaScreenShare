@@ -101,7 +101,7 @@ test("someone on the team signs in to the panel from Configurações during a ca
       .getByRole("dialog")
       .getByRole("link", { name: "Configurações", exact: true })
       .click();
-    await page.getByRole("link", { name: "Abrir o painel" }).click();
+    await page.getByRole("link", { name: "Abrir o painel", exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/entrar/);
     await expect(card).toBeVisible();
 

@@ -57,11 +57,16 @@ test("the call friends dialog fits a phone held sideways", async ({ browser }) =
 
     // Turned after opening: at this height the call controls cover the invite card.
     await host.page.setViewportSize({ width: 800, height: 360 });
-    const box = await host.page.getByRole("dialog", { name: "Chamar amigos" }).boundingBox();
+    const dialog = host.page.getByRole("dialog", { name: "Chamar amigos" });
 
-    if (box === null) throw new Error("The dialog was not laid out.");
-    expect(box.y).toBeGreaterThanOrEqual(0);
-    expect(box.y + box.height).toBeLessThanOrEqual(360);
+    // Polled: the window settles a moment after the screen turns.
+    await expect
+      .poll(async () => {
+        const box = await dialog.boundingBox();
+        if (box === null) return "not laid out";
+        return { top: box.y >= 0, bottom: box.y + box.height <= 360 };
+      })
+      .toEqual({ top: true, bottom: true });
   } finally {
     await host.context.close();
   }

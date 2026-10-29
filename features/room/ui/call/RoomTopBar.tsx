@@ -133,7 +133,9 @@ function PeopleButton({
                 key={participant.identity}
                 participant={participant}
                 roomCode={roomCode}
-                className="size-8 bg-brand/20 text-sm font-medium text-brand-soft ring-2 ring-surface"
+                // Opaque, the same tint over the surface: the faces overlap, and a see-through
+                // fill would show the photo underneath inside the initials.
+                className="size-8 bg-[color-mix(in_oklab,var(--color-brand)_20%,var(--color-surface))] text-sm font-medium text-brand-soft ring-2 ring-surface"
               />
             ))}
           </span>

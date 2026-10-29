@@ -5,12 +5,14 @@ import { createStoredValue } from "@/lib/stored-value";
 /** From here up (Tailwind's `lg`) the people sit in a column beside the screen. */
 const SIDE_COLUMN_QUERY = "(min-width: 64rem)";
 
-const stripShrunk = createStoredValue<boolean>({
+type StripState = "open" | "shrunk";
+
+const stripState = createStoredValue<StripState>({
   key: "nelcota-people-strip",
   changeEvent: "nelcota-people-strip-change",
-  fallback: false,
-  parse: (raw) => raw === "shrunk",
-  serialize: (shrunk) => (shrunk ? "shrunk" : "open"),
+  fallback: "open",
+  parse: (raw) => (raw === "shrunk" ? "shrunk" : "open"),
+  serialize: (state) => state,
   warning: "Could not access the people strip storage",
 });
 
@@ -30,6 +32,7 @@ export function usePeopleStrip() {
     () => window.matchMedia(SIDE_COLUMN_QUERY).matches,
     () => false,
   );
-  const stored = useStoredValue(stripShrunk, false);
-  return { column, shrunk: column && stored, toggle: () => stripShrunk.write(!stored) };
+  const stored = useStoredValue(stripState, "open");
+  const next: StripState = stored === "shrunk" ? "open" : "shrunk";
+  return { column, shrunk: column && stored === "shrunk", toggle: () => stripState.write(next) };
 }

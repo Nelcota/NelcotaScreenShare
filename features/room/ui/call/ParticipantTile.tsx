@@ -170,12 +170,14 @@ export function ParticipantTile({
   if (screenInvite && !compact)
     return <ShareTileCard scope={scope} trackSid={screenInvite} {...share} />;
 
-  if (compact && camera && !narrow) {
+  // The shrunk column has no room for the 16:9 camera: it goes round like a photo.
+  const stripCamera = narrow ? undefined : camera;
+  if (compact && stripCamera) {
     return (
       <StripCameraTile
         scope={scope}
         participant={participant}
-        camera={camera}
+        camera={stripCamera}
         name={name}
         label={label}
         muted={isMuted}

@@ -25,11 +25,17 @@ test("a panel session open in this browser is enough, whatever the app account",
   expect(deps.panelMember).not.toHaveBeenCalled();
 });
 
-test("without a panel session, only someone on the team gets it", async () => {
-  await expect(offersPanelShortcut(ACCOUNT)).resolves.toBe(false);
-
+test("without a panel session, someone on the team gets it", async () => {
   deps.panelMember.mockResolvedValue(true);
 
-  await expect(offersPanelShortcut(ACCOUNT)).resolves.toBe(true);
+  const offered = await offersPanelShortcut(ACCOUNT);
+
+  expect(offered).toBe(true);
   expect(deps.panelMember).toHaveBeenLastCalledWith(ACCOUNT);
+});
+
+test("without a panel session, someone outside the team does not get it", async () => {
+  const offered = await offersPanelShortcut(ACCOUNT);
+
+  expect(offered).toBe(false);
 });

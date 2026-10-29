@@ -111,13 +111,15 @@ function AccountSide({
 
 /** The theme toggle, with the panel's shortcut before it for someone on the team. */
 function BarTools({ panel }: { panel: boolean }) {
-  if (!panel) return <ThemeToggle className="ml-auto" />;
-  return (
-    <>
-      <PanelShortcut hint="Painel admin" className="ml-auto" />
-      <ThemeToggle />
-    </>
-  );
+  if (panel) {
+    return (
+      <>
+        <PanelShortcut hint="Painel admin" className="ml-auto" />
+        <ThemeToggle />
+      </>
+    );
+  }
+  return <ThemeToggle className="ml-auto" />;
 }
 
 /** The sign-in links for visitors (when the page shows them). */

@@ -141,7 +141,7 @@ test("unmount removes all room notice listeners", () => {
   expect(room.eventNames()).toEqual([]);
 });
 
-test("someone joining or leaving plays its sound, unless you stopped hearing the room", () => {
+test("someone joining or leaving plays its sound, also in Sem som", () => {
   sounds.deafened = false;
   RoomNoticesHarness();
   room.state = ConnectionState.Connected;
@@ -154,5 +154,6 @@ test("someone joining or leaving plays its sound, unless you stopped hearing the
   sounds.deafened = true;
   RoomNoticesHarness();
   room.emit(RoomEvent.ParticipantConnected, participant("caio"));
-  expect(sounds.peer).not.toHaveBeenCalled();
+  // "Sem som" stops only the voices; the call's sounds follow "Sons da chamada".
+  expect(sounds.peer.mock.calls.map(([sound]) => sound)).toEqual(["peer-joined"]);
 });

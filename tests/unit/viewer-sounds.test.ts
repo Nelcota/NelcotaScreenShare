@@ -61,10 +61,10 @@ test("the sharer hears a viewer stop watching", () => {
   expect(capture.play.mock.calls).toEqual([["viewer-left"]]);
 });
 
-test("a sharer who does not hear the room hears no viewer", () => {
+test("a sharer in Sem som still hears a viewer: it only stops the voices", () => {
   capture.deafened = true;
   useViewerSounds();
   capture.screen = { trackSid: "TR_screen" };
   deliver({ trackSid: "TR_screen", watching: true });
-  expect(capture.play).not.toHaveBeenCalled();
+  expect(capture.play.mock.calls).toEqual([["viewer-joined"]]);
 });

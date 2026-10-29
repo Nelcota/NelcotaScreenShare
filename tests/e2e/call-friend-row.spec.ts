@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { sql } from "./support/database";
 import { joinRoom, newParticipant, newRoomCode } from "./support/session";
 
-test("the empty room's invite card opens a window to search friends and call them", async ({
+test("the empty room's invite card opens a dialog to search friends and call them", async ({
   browser,
 }) => {
   const host = await newParticipant(browser, "Anfitriao Linha");
@@ -30,19 +30,39 @@ test("the empty room's invite card opens a window to search friends and call the
     expect(row.x).toBeLessThanOrEqual(link.x + 1);
 
     await call.click();
-    const window = host.page.getByRole("dialog", { name: "Chamar amigos" });
-    const list = window.getByRole("list", { name: "Amigos para chamar" });
+    const dialog = host.page.getByRole("dialog", { name: "Chamar amigos" });
+    const list = dialog.getByRole("list", { name: "Amigos para chamar" });
     await expect(list.getByText("Amiga Linha")).toBeVisible({ timeout: 15_000 });
-    const search = window.getByRole("searchbox", { name: "Buscar amigo" });
+    const search = dialog.getByRole("searchbox", { name: "Buscar amigo" });
     await search.fill("ninguem");
-    await expect(window.getByText("Nenhum amigo com esse nome.")).toBeVisible();
+    await expect(dialog.getByText("Nenhum amigo com esse nome.")).toBeVisible();
 
     await search.fill("amiga");
     await list.getByText("Amiga Linha").click();
-    await window.getByRole("button", { name: "Chamar", exact: true }).click();
-    await expect(window).toBeHidden();
+    await dialog.getByRole("button", { name: "Chamar", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    // Keyboard users carry on from the button that opened the window.
+    await expect(call).toBeFocused();
   } finally {
     await host.context.close();
     await friend.context.close();
+  }
+});
+
+test("the call friends dialog fits a phone held sideways", async ({ browser }) => {
+  const host = await newParticipant(browser, "Anfitriao Deitado");
+  try {
+    await joinRoom(host.page, await newRoomCode(), { micOn: false });
+    await host.page.getByRole("button", { name: "Chamar amigos" }).click();
+
+    // Turned after opening: at this height the call controls cover the invite card.
+    await host.page.setViewportSize({ width: 800, height: 360 });
+    const box = await host.page.getByRole("dialog", { name: "Chamar amigos" }).boundingBox();
+
+    if (box === null) throw new Error("The dialog was not laid out.");
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(360);
+  } finally {
+    await host.context.close();
   }
 });

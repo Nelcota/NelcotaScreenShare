@@ -7,7 +7,13 @@ import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { PresenceDot } from "@/components/PresenceDot";
 import { SearchField } from "@/components/SearchField";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { friendPhotoPath, type FriendStatus } from "@/features/friends/domain/friend-lists";
 import { canBeCalled, SHOWN_STATUS_LABEL } from "@/features/friends/domain/presence-status";
 import { ringFriend, useCalling } from "@/features/ringing/client/calling";
@@ -162,47 +168,37 @@ function FriendPicker({ room, friends }: { room: string; friends: FriendStatus[]
   };
 
   return (
-    <>
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        className="h-9 w-full"
-        onClick={() => setOpen(true)}
+    <Dialog open={open} onOpenChange={openChange}>
+      {/* The trigger gives focus back to this button when the window closes. */}
+      <DialogTrigger asChild>
+        <Button type="button" size="sm" variant="secondary" className="h-9 w-full">
+          <Phone aria-hidden="true" />
+          Chamar amigos
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        showCloseButton
+        className="flex h-[min(max(50dvh,24rem),calc(100dvh-2rem))] flex-col max-sm:top-auto max-sm:bottom-0 max-sm:max-w-full max-sm:translate-y-0 max-sm:rounded-b-none"
       >
-        <Phone aria-hidden="true" />
-        Chamar amigos
-      </Button>
-      <Dialog open={open} onOpenChange={openChange}>
-        <DialogContent
-          showCloseButton
-          className="flex h-[max(50dvh,24rem)] flex-col max-sm:top-auto max-sm:bottom-0 max-sm:max-w-full max-sm:translate-y-0 max-sm:rounded-b-none"
+        <DialogTitle>Chamar amigos</DialogTitle>
+        <DialogDescription className="sr-only">
+          Escolha quem chamar para esta sala.
+        </DialogDescription>
+        <SearchField label="Buscar amigo" value={query} onChange={setQuery} />
+        <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
+          <FriendList friends={shown} searching={wanted !== ""} chosen={chosen} onToggle={toggle} />
+        </div>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={chosen.size === 0 || sending}
+          onClick={() => void ring()}
         >
-          <DialogTitle>Chamar amigos</DialogTitle>
-          <DialogDescription className="sr-only">
-            Escolha quem chamar para esta sala.
-          </DialogDescription>
-          <SearchField label="Buscar amigo" value={query} onChange={setQuery} />
-          <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
-            <FriendList
-              friends={shown}
-              searching={wanted !== ""}
-              chosen={chosen}
-              onToggle={toggle}
-            />
-          </div>
-          <Button
-            type="button"
-            className="w-full"
-            disabled={chosen.size === 0 || sending}
-            onClick={() => void ring()}
-          >
-            <Phone aria-hidden="true" />
-            {chosen.size > 1 ? `Chamar ${chosen.size}` : "Chamar"}
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </>
+          <Phone aria-hidden="true" />
+          {chosen.size > 1 ? `Chamar ${chosen.size}` : "Chamar"}
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }
 

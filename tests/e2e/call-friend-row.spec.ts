@@ -36,6 +36,7 @@ test("the empty room's invite card opens a window to search friends and call the
     const search = window.getByRole("searchbox", { name: "Buscar amigo" });
     await search.fill("ninguem");
     await expect(window.getByText("Nenhum amigo com esse nome.")).toBeVisible();
+
     await search.fill("amiga");
     await list.getByText("Amiga Linha").click();
     await window.getByRole("button", { name: "Chamar", exact: true }).click();

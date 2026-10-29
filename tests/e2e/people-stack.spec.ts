@@ -19,9 +19,11 @@ test("the faces stacked at the top bar are opaque, so they never show each other
       .getByText("2 pessoas", { exact: true })
       .locator("xpath=preceding-sibling::span[1]");
     await expect(stack.locator(":scope > span")).toHaveCount(2);
+
     const fills = await stack
       .locator(":scope > span")
       .evaluateAll((faces) => faces.map((face) => getComputedStyle(face).backgroundColor));
+
     expect(fills.filter(isSeeThrough)).toEqual([]);
   } finally {
     await ana.context.close();

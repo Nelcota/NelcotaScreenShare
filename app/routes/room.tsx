@@ -10,7 +10,7 @@ import {
   assertDefinitionAdmission,
 } from "@/features/rooms/server/room-access.server";
 import { getUserSession, requireUser } from "@/features/auth/server/participant-session.server";
-import { getAdminSession } from "@/features/auth/server/admin-session.server";
+import { offersPanelShortcut } from "@/features/auth/server/panel-shortcut.server";
 import { getDb } from "@/server/db/index.server";
 import { getEnv } from "@/server/env.server";
 import { presenceForGuests } from "@/features/room/domain/presence";
@@ -73,9 +73,9 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
   const { unavailable, permanent } = await roomUnavailable(definition, user?.id);
   // Who is already inside, for the pre-join screen to show.
   // Hidden without an account, behind the password, or until someone is let in.
-  const [roomNow, admin, ownerName, waiting] = await Promise.all([
+  const [roomNow, panelShortcut, ownerName, waiting] = await Promise.all([
     unavailable ? Promise.resolve(null) : roomPresence(getDb(), code),
-    getAdminSession(),
+    offersPanelShortcut(user),
     roomOwnerName(getDb(), code),
     user ? awaitsApproval(getDb(), code, user.id) : true,
   ]);
@@ -91,8 +91,8 @@ export const loader = routeLoader(async ({ params, searchParams, request }) => {
     maxParticipants: MAX_PARTICIPANTS,
     roomName: roomTitle(definition, ownerName),
     presence,
-    // Admin session in this browser: the call offers the panel without leaving the room.
-    isAdmin: admin !== null,
+    // Someone on the team: the call offers the panel without leaving the room.
+    panelShortcut,
   } satisfies RoomEntry;
   // Signed in, the friends column comes along, as on every page of the app.
   return { ...entry, column: user ? await roomColumn(user, request) : null };

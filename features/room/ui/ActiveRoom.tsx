@@ -22,7 +22,7 @@ export interface RoomEntry {
   /** The room's own name, or "Sala de Ana" from the owner; null when it has neither. */
   roomName: RoomTitle | null;
   presence: RoomPresence | null;
-  isAdmin: boolean;
+  panelShortcut: boolean;
 }
 
 /** Streamer mode: the address bar shows `/sala` while the room page is open. */
@@ -77,7 +77,7 @@ export function ActiveRoom({
         maxParticipants={entry.maxParticipants}
         roomName={entry.roomName}
         presence={entry.presence}
-        isAdmin={entry.isAdmin}
+        panelShortcut={entry.panelShortcut}
         minimized={room === undefined}
         renderColumn={room === undefined ? undefined : renderColumn}
         onCallChange={(inCall) => setCall(inCall ? entry : undefined)}

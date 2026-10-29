@@ -25,6 +25,7 @@ import { useNavigationRecovery } from "@/lib/navigation-recovery";
 import { useOfflineNotice } from "@/lib/hooks/use-offline-notice";
 import { requestMiddleware } from "@/server/middleware.server";
 import { getUserSession } from "@/features/auth/server/participant-session.server";
+import { offersPanelShortcut } from "@/features/auth/server/panel-shortcut.server";
 import { pendingReceivedCount } from "@/features/friends/server/friend-list.server";
 import { ringingState } from "@/features/ringing/server/ringing-state.server";
 import { getDb } from "@/server/db/index.server";
@@ -65,14 +66,20 @@ export const shouldRevalidate = skipClientOnlyChanges;
 export const loader = ({ request, context }: LoaderFunctionArgs) =>
   withRequest(request, context, async () => {
     const [mascot, current] = await Promise.all([getSetting(mascotSettings), getUserSession()]);
-    const friendRequests = current ? await pendingReceivedCount(getDb(), current.user.id) : 0;
-    const ringing = current ? await ringingState(getDb(), current.user.id) : null;
+    // Someone on the team (`panel`) gets the panel's shortcut in the app's top bar.
+    const [friendRequests, ringing, panel] = current
+      ? await Promise.all([
+          pendingReceivedCount(getDb(), current.user.id),
+          ringingState(getDb(), current.user.id),
+          offersPanelShortcut(current.user),
+        ])
+      : [0, null, false];
     return {
       nonce: request.headers.get("x-nonce") ?? undefined,
       origin: publicOrigin(request),
       mascot,
       account: current
-        ? { name: current.user.name, image: current.user.image, friendRequests }
+        ? { name: current.user.name, image: current.user.image, friendRequests, panel }
         : null,
       telemetry: { dsn: getEnv().PUBLIC_SENTRY_DSN, release: getEnv().APP_VERSION },
       ringing,

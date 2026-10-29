@@ -61,7 +61,7 @@ interface RoomSessionProps {
   /** People in the room now (null: unknown). */
   presence: RoomPresence | null;
   /** Shows the link to the admin panel inside the call. */
-  isAdmin: boolean;
+  panelShortcut: boolean;
   /** Another page is open: a call goes on hidden; anything else shows nothing. */
   minimized: boolean;
   /** Whether there is a call to keep while the person visits other pages. */
@@ -94,7 +94,7 @@ export function RoomSession({
   maxParticipants,
   roomName,
   presence,
-  isAdmin,
+  panelShortcut,
   minimized,
   onCallChange,
   renderColumn,
@@ -163,7 +163,7 @@ export function RoomSession({
             choices={phase.choices}
             maxParticipants={maxParticipants}
             roomName={roomName}
-            isAdmin={isAdmin}
+            panelShortcut={panelShortcut}
             minimized={minimized}
             onLeave={(notice) => leave(notice, phase.startedAt)}
             onRetry={() => retry(phase.choices, phase.attempt, phase.startedAt)}
@@ -175,7 +175,9 @@ export function RoomSession({
   }
 
   if (minimized) return null;
-  const account = userName === null ? null : { name: userName, image: userImage };
+  // Someone on the team gets the panel's shortcut here too, as in the call.
+  const account =
+    userName === null ? null : { name: userName, image: userImage, panel: panelShortcut };
 
   if (unavailable)
     return (

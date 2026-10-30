@@ -55,7 +55,7 @@ beforeEach(() => {
 });
 
 test.each([true, false])(
-  "watch actions respect deafened=%s while still notifying the sharer",
+  "watch actions play their sound with deafened=%s and notify the sharer",
   (deafened) => {
     state.deafened = deafened;
     const element = ScreenWatchProvider({ children: null });
@@ -65,15 +65,16 @@ test.each([true, false])(
     value.watch("TR_screen");
     value.stopWatching("TR_screen");
     expect(state.noticeWatching).toHaveBeenCalledTimes(2);
-    expect(state.play).toHaveBeenCalledTimes(deafened ? 0 : 2);
+    // "Sem som" stops only the voices.
+    expect(state.play).toHaveBeenCalledTimes(2);
   },
 );
 
-test.each([true, false])("own screen events respect deafened=%s", (deafened) => {
+test.each([true, false])("own screen events play their sound with deafened=%s", (deafened) => {
   state.deafened = deafened;
   useRoomNotices();
   for (const effect of state.effects) effect();
   state.handlers.get(RoomEvent.LocalTrackPublished)?.({ source: Track.Source.ScreenShare });
   state.handlers.get(RoomEvent.LocalTrackUnpublished)?.({ source: Track.Source.ScreenShare });
-  expect(state.play).toHaveBeenCalledTimes(deafened ? 0 : 2);
+  expect(state.play).toHaveBeenCalledTimes(2);
 });

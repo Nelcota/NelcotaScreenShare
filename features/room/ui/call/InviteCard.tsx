@@ -36,17 +36,9 @@ export function InviteCard({ code }: { code: string }) {
         <QrCode value={url} label="QR code para entrar na sala pelo celular" size={85} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <h2 id={titleId} className="text-sm font-semibold">
-            Chamar pessoas
-          </h2>
-          {/* Other features add a way to invite here, e.g. ringing friends. */}
-          <div
-            id="room-invite-actions"
-            ref={pageSlotRef("room-invite-actions")}
-            className="empty:hidden"
-          />
-        </div>
+        <h2 id={titleId} className="text-sm font-semibold">
+          Chamar pessoas
+        </h2>
         <div className="flex min-w-0 gap-2">
           <label htmlFor={`${titleId}-link`} className="sr-only">
             Link da sala
@@ -74,6 +66,12 @@ export function InviteCard({ code }: { code: string }) {
             {copied ? "Copiado" : "Copiar"}
           </Button>
         </div>
+        {/* Other features add a way to invite here, e.g. ringing friends, on a row of its own. */}
+        <div
+          id="room-invite-actions"
+          ref={pageSlotRef("room-invite-actions")}
+          className="empty:hidden"
+        />
       </div>
     </section>
   );

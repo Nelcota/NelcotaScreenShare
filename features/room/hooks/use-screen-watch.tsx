@@ -19,7 +19,6 @@ import {
 } from "react";
 import { keepPublished, wantsTrack } from "@/features/room/domain/screen-watch";
 import { playCallSound } from "@/features/room/audio/call-sounds";
-import { useDeafen } from "@/features/room/ui/dock/Deafen";
 import { noticeWatching } from "@/features/room/client/screen-watch-notice";
 
 type FocusPlace = "stage" | "invite";
@@ -75,7 +74,6 @@ function applySubscriptions(room: Room, watched: ReadonlySet<string>) {
  */
 export function ScreenWatchProvider({ children }: { children: ReactNode }) {
   const room = useRoomContext();
-  const { deafened } = useDeafen();
   const [watched, setWatched] = useState<ReadonlySet<string>>(() => new Set());
   const focusRequest = useRef<{ trackSid: string; place: FocusPlace }>(undefined);
 
@@ -112,13 +110,13 @@ export function ScreenWatchProvider({ children }: { children: ReactNode }) {
     watch: (trackSid) => {
       focusRequest.current = { trackSid, place: "stage" };
       setWatched((current) => new Set(current).add(trackSid));
-      if (!deafened) void playCallSound("watch-on");
+      void playCallSound("watch-on");
       void noticeWatching(room, trackSid, true);
     },
     stopWatching: (trackSid) => {
       focusRequest.current = { trackSid, place: "invite" };
       setWatched((current) => new Set([...current].filter((sid) => sid !== trackSid)));
-      if (!deafened) void playCallSound("watch-off");
+      void playCallSound("watch-off");
       void noticeWatching(room, trackSid, false);
     },
     takeFocus: (trackSid, place) => {

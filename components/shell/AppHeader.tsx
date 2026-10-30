@@ -4,13 +4,15 @@ import { Link, NavLink } from "react-router";
 import type { ComponentProps, ReactNode } from "react";
 import { NavBar, NavBrand, NavDivider, NavPopover } from "@/components/shell/NavBar";
 import { navItemClass } from "@/components/shell/nav-item-class";
+import { PanelShortcut } from "@/components/shell/PanelShortcut";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { AccountMenu } from "@/components/shell/AccountMenu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export interface AppHeaderProps {
-  account: { name: string; image: string | null } | null;
+  /** `panel`: someone on the team; inside the app, the bar has the panel's shortcut. */
+  account: { name: string; image: string | null; panel?: boolean } | null;
   accountHref?: string;
   /** Inside the app: the logo goes to the app's start and "Abrir" is not needed. */
   inApp?: boolean;
@@ -107,6 +109,19 @@ function AccountSide({
   return <AccountMenu account={account} accountHref={accountHref} />;
 }
 
+/** The theme toggle, with the panel's shortcut before it for someone on the team. */
+function BarTools({ panel }: { panel: boolean }) {
+  if (panel) {
+    return (
+      <>
+        <PanelShortcut hint="Painel admin" className="ml-auto" />
+        <ThemeToggle />
+      </>
+    );
+  }
+  return <ThemeToggle className="ml-auto" />;
+}
+
 /** The sign-in links for visitors (when the page shows them). */
 function VisitorLinks({ showAuthLinks }: { showAuthLinks: boolean }) {
   if (!showAuthLinks) return null;
@@ -155,7 +170,7 @@ export function AppHeader({
             ))}
           </>
         )}
-        <ThemeToggle className="ml-auto" />
+        <BarTools panel={inApp && account?.panel === true} />
         {account && !inApp ? (
           <Button asChild className="ml-1 max-sm:px-3">
             <Link viewTransition to={APP_START_PATH}>

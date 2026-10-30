@@ -4,12 +4,11 @@ import { useId } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useParticipantName } from "@/features/room/hooks/use-participant-name";
 import { useStreamerMode } from "@/features/room/hooks/use-streamer-mode";
-import { Check, Copy, Ellipsis, LayoutDashboard } from "lucide-react";
-import { Link, useRouteLoaderData } from "react-router";
+import { Check, Copy, Ellipsis } from "lucide-react";
+import { useRouteLoaderData } from "react-router";
 import type { loader as rootLoader } from "@/app/root";
-import { Hint } from "@/components/Hint";
 import { NavBar, NavBrand, NavDivider, NavPopover } from "@/components/shell/NavBar";
-import { navItemClass } from "@/components/shell/nav-item-class";
+import { PanelShortcut } from "@/components/shell/PanelShortcut";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { useCopyRoomLink } from "@/features/room/hooks/use-copy-room-link";
 import { useRoomName } from "@/features/room/hooks/use-room-roles";
@@ -134,7 +133,9 @@ function PeopleButton({
                 key={participant.identity}
                 participant={participant}
                 roomCode={roomCode}
-                className="size-8 bg-brand/20 text-sm font-medium text-brand-soft ring-2 ring-surface"
+                // Opaque, the same tint over the surface: the faces overlap, and a see-through
+                // fill would show the photo underneath inside the initials.
+                className="size-8 bg-[color-mix(in_oklab,var(--color-brand)_20%,var(--color-surface))] text-sm font-medium text-brand-soft ring-2 ring-surface"
               />
             ))}
           </span>
@@ -179,7 +180,7 @@ export function RoomTopBar({
   participants,
   maxParticipants,
   roomName,
-  isAdmin,
+  panelShortcut,
   connection,
 }: {
   code: string;
@@ -188,7 +189,7 @@ export function RoomTopBar({
   /** The name as the page loaded it; "Sala de Ana" follows a new owner live. */
   roomName: RoomTitle | null;
   /** Admins open the panel without leaving: the call goes on minimized. */
-  isAdmin: boolean;
+  panelShortcut: boolean;
   connection: Connection;
 }) {
   const streamer = useStreamerMode();
@@ -220,18 +221,7 @@ export function RoomTopBar({
       <span className="ml-auto" />
       <PeopleButton participants={participants} max={maxParticipants} roomCode={code} />
       <HostControlsMenu participants={participants} />
-      {isAdmin ? (
-        <Hint text="Painel admin (a chamada continua)">
-          <Link
-            viewTransition
-            to="/admin"
-            aria-label="Abrir o painel admin"
-            className={navItemClass}
-          >
-            <LayoutDashboard className="size-5" aria-hidden="true" />
-          </Link>
-        </Hint>
-      ) : null}
+      {panelShortcut ? <PanelShortcut hint="Painel admin (a chamada continua)" /> : null}
       <ShortcutsHelp className="max-sm:hidden" />
       <ThemeToggle className="max-sm:hidden" />
       <NavPopover

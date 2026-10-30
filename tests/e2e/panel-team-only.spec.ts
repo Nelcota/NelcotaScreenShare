@@ -24,7 +24,7 @@ test("the admin panel exists only for its team, like any wrong address for every
     member.email.toUpperCase(),
   ]);
   await member.page.goto("/conta");
-  await member.page.getByRole("link", { name: "Abrir o painel" }).click();
+  await member.page.getByRole("link", { name: "Abrir o painel", exact: true }).click();
   await expect(member.page).toHaveURL(/\/admin\/entrar/);
   await expect(member.page.getByRole("heading", { name: "Entrar no painel" })).toBeVisible();
 

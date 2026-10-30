@@ -2,12 +2,14 @@ import { useEffect, useEffectEvent } from "react";
 import { useRevalidator } from "react-router";
 import { sessionEndedHref } from "@/features/auth/domain/session-ended";
 import { startLiveConnection } from "@/features/live/client/live-connection";
+import { allowLeavingPage } from "@/lib/leave-warning";
 
 /**
  * A session ended elsewhere: sign in again, with a notice and the way back. A full page load,
  * so a call in progress ends cleanly (LiveKit leaves on page exit) and nothing stale remains.
  */
 function leaveForSignIn() {
+  allowLeavingPage();
   window.location.assign(sessionEndedHref(window.location.pathname + window.location.search));
 }
 

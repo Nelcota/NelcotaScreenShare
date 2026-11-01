@@ -21,11 +21,11 @@ test("a friend called while offline finds a missed call in the conversation", as
       .getByRole("region", { name: "Chamar pessoas" })
       .getByRole("button", { name: "Chamar amigos" })
       .click();
-    const window = host.page.getByRole("dialog", { name: "Chamar amigos" });
-    const offline = window.getByRole("list", { name: "Offline" });
+    const dialog = host.page.getByRole("dialog", { name: "Chamar amigos" });
+    const offline = dialog.getByRole("list", { name: "Offline" });
     await expect(offline.getByText("Vê quando abrir o Nelcota")).toBeVisible();
     await offline.getByText("Bia Perdida").click();
-    await window.getByRole("button", { name: "Chamar", exact: true }).click();
+    await dialog.getByRole("button", { name: "Chamar", exact: true }).click();
     await expect(
       host.page.getByText("Quem está offline vê a chamada quando abrir o Nelcota."),
     ).toBeVisible();

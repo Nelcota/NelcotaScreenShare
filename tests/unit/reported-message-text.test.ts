@@ -13,8 +13,13 @@ describe("the reported message's text", () => {
     expect(
       reportedMessageText({ kind: "message", body: null, gifSlug: null, fileName: "nota.pdf" }),
     ).toBe("Arquivo: nota.pdf");
-    // A missed call carries nothing: it reads as one, not as a file.
+  });
+
+  test("is Chamada perdida for a missed call, not a file", () => {
     const call = { kind: "missed_call", body: null, gifSlug: null, fileName: null } as const;
-    expect(reportedMessageText(call)).toBe("Chamada perdida");
+
+    const text = reportedMessageText(call);
+
+    expect(text).toBe("Chamada perdida");
   });
 });

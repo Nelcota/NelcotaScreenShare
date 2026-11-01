@@ -97,7 +97,9 @@ test("a friend who turned out offline gets a missed call, and the caller is told
   vi.mocked(callFriend).mockResolvedValueOnce({
     data: { ringId: null, needsRoom: false, missedCall: true },
   });
+
   await ringFriend({ friendId: "friend", room: "abc-defg-hij" });
+
   // The other "Chamar" buttons used to end in silence: "Chamando…" just went away.
   expect(toast.success).toHaveBeenCalledWith(
     "Quem está offline vê a chamada quando abrir o Nelcota.",

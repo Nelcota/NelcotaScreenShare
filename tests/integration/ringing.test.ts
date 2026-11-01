@@ -218,13 +218,20 @@ describe("calling a friend", () => {
     const unread = await unreadSummary(db, bia.id);
     expect(unread.total).toBe(1);
     expect(unread.latest?.kind).toBe("missed_call");
+  });
 
-    // Invisível looks Offline to friends, so it gets the same and gives nothing away.
+  test("a friend in Invisível gets the same missed call, so nothing gives them away", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
     markOnline(bia.id);
     await saveStatus(db, bia.id, "invisible");
-    expect((await ringing.callFriend({ friendId: bia.id, room: anaRoom })).data?.missedCall).toBe(
-      true,
-    );
+
+    as(ana);
+    const call = await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    expect(call.data?.missedCall).toBe(true);
     expect(incomingRings(bia.id)).toEqual([]);
   });
 

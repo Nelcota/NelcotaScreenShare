@@ -100,8 +100,19 @@ describe("conversation display", () => {
     // A file alone has neither text nor GIF: it previewed as "GIF".
     const file = { ...text, body: null, gifSlug: null, authorId: "me" };
     expect(messagePreview(file, "group", "me")).toBe("Você: Arquivo");
-    // A missed call carries nothing either, and reads as one.
-    const call = { ...file, kind: "missed_call" as const, authorId: "f" };
-    expect(messagePreview(call, "direct", "me")).toBe("Chamada perdida");
+  });
+
+  test("previews a missed call as one, though it carries nothing", () => {
+    const call = {
+      authorId: "f",
+      authorName: "Felipe Nunes",
+      kind: "missed_call" as const,
+      body: null,
+      gifSlug: null,
+    };
+
+    const preview = messagePreview(call, "direct", "me");
+
+    expect(preview).toBe("Chamada perdida");
   });
 });

@@ -39,6 +39,7 @@ const { getDb } = await import("@/server/db/index.server");
 const { createGroup } = await import("@/features/messages/server/conversations.server");
 const { unreadSummary } = await import("@/features/messages/server/conversation-list.server");
 const { saveStatus } = await import("@/features/friends/server/presence-status.server");
+const { deleteOwnMessage } = await import("@/features/messages/server/messages.server");
 const { liveGroupCall, groupCallLines } =
   await import("@/features/ringing/server/group-calls.server");
 
@@ -218,6 +219,26 @@ describe("calling a friend", () => {
     const unread = await unreadSummary(db, bia.id);
     expect(unread.total).toBe(1);
     expect(unread.latest?.kind).toBe("missed_call");
+  });
+
+  test("the caller cannot delete a missed call", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    const [call] = await db
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    if (call === undefined) throw new Error("The missed call was not saved.");
+
+    const deleted = await deleteOwnMessage(db, call.id, ana.id);
+
+    // The screen never offered it, but the server let the caller take it back.
+    expect(deleted).toBeNull();
+    expect((await unreadSummary(db, bia.id)).total).toBe(1);
   });
 
   test("a friend in Invisível gets the same missed call, so nothing gives them away", async () => {

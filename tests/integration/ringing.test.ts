@@ -40,6 +40,8 @@ const { createGroup } = await import("@/features/messages/server/conversations.s
 const { unreadSummary } = await import("@/features/messages/server/conversation-list.server");
 const { saveStatus } = await import("@/features/friends/server/presence-status.server");
 const { deleteOwnMessage } = await import("@/features/messages/server/messages.server");
+const { markRead } = await import("@/features/messages/server/conversations.server");
+const { leaveMissedCall } = await import("@/features/ringing/server/missed-call.server");
 const { liveGroupCall, groupCallLines } =
   await import("@/features/ringing/server/group-calls.server");
 
@@ -219,6 +221,55 @@ describe("calling a friend", () => {
     const unread = await unreadSummary(db, bia.id);
     expect(unread.total).toBe(1);
     expect(unread.latest?.kind).toBe("missed_call");
+  });
+
+  test("calling again before they open it leaves one missed call, not a pile", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    // Each Chamar used to add its own line and one more unread.
+    expect((await unreadSummary(db, bia.id)).total).toBe(1);
+  });
+
+  test("a call after they read the missed one leaves a new one", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    const [first] = await db
+      .select({ conversationId: schema.messages.conversationId })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    if (first === undefined) throw new Error("The missed call was not saved.");
+    await markRead(db, first.conversationId, bia.id);
+
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    expect((await unreadSummary(db, bia.id)).total).toBe(1);
+  });
+
+  test("a block right after the check leaves no missed call", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    await db.insert(schema.userBlocks).values({ blockerId: bia.id, blockedId: ana.id });
+
+    await leaveMissedCall(db, ana.id, bia.id);
+
+    // The call was checked before the block; the missed call still landed.
+    const sent = await db
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    expect(sent).toEqual([]);
   });
 
   test("the caller cannot delete a missed call", async () => {

@@ -53,6 +53,12 @@ export async function mayRingInto(
  * see them; a missed call in the conversation while they look Offline (Invisível too, so the
  * caller learns nothing more); nothing under Não perturbe, without the friendship, or when
  * they are already in the room.
+ *
+ * @param db - Where friendships, statuses and calls are read.
+ * @param callerId - Who calls.
+ * @param calleeId - The friend being called.
+ * @param roomCode - The room the call is for.
+ * @returns "ring", "missed_call", or null when the call cannot reach them.
  */
 export async function callReach(
   db: DbExecutor,

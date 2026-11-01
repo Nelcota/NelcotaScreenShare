@@ -60,7 +60,12 @@ export function messagePreview(
   return content;
 }
 
-/** The friend's first name in a direct conversation; null in a group. */
+/**
+ * Gives the friend's first name in a direct conversation.
+ *
+ * @param conversation - The conversation being shown.
+ * @returns The other person's first name, or null in a group.
+ */
 export function contactName(conversation: ConversationLike): string | null {
   if (conversation.kind !== "direct") return null;
   const name = conversation.others[0]?.name;

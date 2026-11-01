@@ -4,8 +4,12 @@ import { insertMessage } from "@/features/messages/server/messages.server";
 import type { Database } from "@/server/db/index.server";
 
 /**
- * A call to a friend who looks Offline: "Chamada perdida" in the pair's conversation, which
- * counts as unread until they open it. The caller sees it there too.
+ * Leaves a call to a friend who looks Offline as "Chamada perdida" in the pair's conversation,
+ * which counts as unread until they open it. The caller sees it there too.
+ *
+ * @param db - The database; the conversation is opened before the message's transaction.
+ * @param callerId - Who called, the message's author.
+ * @param calleeId - The friend who was Offline.
  */
 export async function leaveMissedCall(db: Database, callerId: string, calleeId: string) {
   // Opened before, not in the same transaction: a first conversation would join both people

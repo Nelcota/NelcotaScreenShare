@@ -81,13 +81,13 @@ export function normalizeGroupName(name: string | null | undefined): string | nu
   return normalizeMessageBody(name);
 }
 
-/** How a conversation's kind reads in "Baixar meus dados". */
 /** How a message's kind reads in "Baixar meus dados". */
 export const MESSAGE_KIND_IN_EXPORT: Record<MessageKind, string> = {
   message: "mensagem",
   missed_call: "chamada perdida",
 };
 
+/** How a conversation's kind reads in "Baixar meus dados". */
 export const CONVERSATION_KIND_IN_EXPORT: Record<"direct" | "group", string> = {
   direct: "direta",
   group: "grupo",

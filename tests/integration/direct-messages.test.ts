@@ -264,7 +264,12 @@ describe("personal data (LGPD)", () => {
       expect.objectContaining({ id: conversationId, tipo: "direta", com: ["Bia"] }),
     ]);
     expect(data.mensagens_enviadas).toEqual([
-      expect.objectContaining({ conversa: conversationId, texto: "guardada", gif: null }),
+      expect.objectContaining({
+        conversa: conversationId,
+        tipo: "mensagem",
+        texto: "guardada",
+        gif: null,
+      }),
     ]);
     expect(data.gifs_favoritos).toEqual([expect.objectContaining({ gif: "wave" })]);
   });

@@ -11,6 +11,7 @@ import {
 import { leaveGroup, listMessages, markConversationRead } from "@/features/messages/actions";
 import {
   composerPlaceholder,
+  contactName,
   conversationTitle,
   type ConversationItem,
 } from "@/features/messages/domain/conversation-display";
@@ -259,6 +260,7 @@ export function ConversationView({
               calls={data.calls}
               selfId={selfId}
               showNames={conversation.kind === "group"}
+              contactName={contactName(conversation)}
             />
           </div>
           {data.canSend ? (

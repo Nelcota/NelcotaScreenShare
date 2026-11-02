@@ -15,4 +15,12 @@ describe("the friends a call goes to", () => {
 
     expect(called).toEqual(["ana", "caio"]);
   });
+
+  test("keeps someone offline, who gets a missed call", () => {
+    const friends = [friend("ana", "offline"), friend("bia", "online")];
+
+    const called = friendsToCall(friends, new Set(["ana"]));
+
+    expect(called).toEqual(["ana"]);
+  });
 });

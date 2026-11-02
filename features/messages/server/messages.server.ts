@@ -1,18 +1,23 @@
 import { and, desc, eq, lt, sql } from "drizzle-orm";
-import { MESSAGE_PAGE_SIZE } from "@/features/messages/domain/conversation";
+import { MESSAGE_PAGE_SIZE, type MessageKind } from "@/features/messages/domain/conversation";
 import type { DbExecutor } from "@/server/db/index.server";
 import { conversations, messages, userBlocks, users } from "@/server/db/schema";
 
-/** A text, a GIF, or the optional text over an attachment (linked after the insert). */
+/**
+ * A text, a GIF, or the optional text over an attachment (linked after the insert); or a
+ * missed call, which carries nothing.
+ */
 export type MessageContent =
   | { body: string; gifSlug: null }
   | { body: null; gifSlug: string }
-  | { body: string | null; gifSlug: null };
+  | { body: string | null; gifSlug: null }
+  | { kind: "missed_call"; body: null; gifSlug: null };
 
 export interface StoredMessage {
   id: string;
   authorId: string;
   authorName: string;
+  kind: MessageKind;
   body: string | null;
   gifSlug: string | null;
   createdAt: Date;
@@ -64,6 +69,7 @@ export async function listMessages(
       id: messages.id,
       authorId: messages.authorId,
       authorName: users.name,
+      kind: messages.kind,
       body: messages.body,
       gifSlug: messages.gifSlug,
       createdAt: messages.createdAt,
@@ -83,7 +89,10 @@ export async function listMessages(
   return { messages: rows.slice(0, MESSAGE_PAGE_SIZE).toReversed(), hasMore };
 }
 
-/** Deletes a message only its author can delete; returns its conversation, or null. */
+/**
+ * Deletes a message only its author can delete; returns its conversation, or null. A missed
+ * call is the system's line about a call, so even its caller cannot take it back.
+ */
 export async function deleteOwnMessage(
   db: DbExecutor,
   messageId: string,
@@ -91,7 +100,13 @@ export async function deleteOwnMessage(
 ): Promise<string | null> {
   const [deleted] = await db
     .delete(messages)
-    .where(and(eq(messages.id, messageId), eq(messages.authorId, authorId)))
+    .where(
+      and(
+        eq(messages.id, messageId),
+        eq(messages.authorId, authorId),
+        eq(messages.kind, "message"),
+      ),
+    )
     .returning({ conversationId: messages.conversationId });
   if (!deleted) return null;
   await refreshLastMessageAt(db, deleted.conversationId);

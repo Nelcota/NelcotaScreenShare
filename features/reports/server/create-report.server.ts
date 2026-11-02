@@ -62,6 +62,7 @@ async function messageTarget(tx: DbExecutor, messageId: string, reporterId: stri
       id: messages.id,
       authorId: messages.authorId,
       conversationId: messages.conversationId,
+      kind: messages.kind,
       body: messages.body,
       gifSlug: messages.gifSlug,
       attachmentId: messageAttachments.id,

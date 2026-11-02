@@ -49,19 +49,27 @@ export async function mayRingInto(
 }
 
 /**
- * Whether a friend can be rung right now: still friends without a block, and Online or
- * Ausente as their friends see them (Não perturbe, Invisível and Offline do not ring).
+ * How a call reaches a friend now: a ring while they are Online or Ausente as their friends
+ * see them; a missed call in the conversation while they look Offline (Invisível too, so the
+ * caller learns nothing more); nothing under Não perturbe, without the friendship, or when
+ * they are already in the room.
+ *
+ * @param db - Where friendships, statuses and calls are read.
+ * @param callerId - Who calls.
+ * @param calleeId - The friend being called.
+ * @param roomCode - The room the call is for.
+ * @returns "ring", "missed_call", or null when the call cannot reach them.
  */
-export async function canRing(
+export async function callReach(
   db: DbExecutor,
   callerId: string,
   calleeId: string,
   roomCode: string,
-) {
-  if (callerId === calleeId) return false;
-  // Already in the room: nothing to ring for.
-  if (await inCall(db, roomCode, calleeId)) return false;
-  if (!(await canMessage(db, callerId, calleeId))) return false;
+): Promise<"ring" | "missed_call" | null> {
+  if (callerId === calleeId) return null;
+  if (await inCall(db, roomCode, calleeId)) return null;
+  if (!(await canMessage(db, callerId, calleeId))) return null;
   const status = (await shownStatuses(db, [calleeId])).get(calleeId) ?? "offline";
-  return canBeCalled(status);
+  if (canBeCalled(status)) return "ring";
+  return status === "offline" ? "missed_call" : null;
 }

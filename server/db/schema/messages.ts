@@ -11,11 +11,14 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { ATTACHMENT_KINDS } from "@/features/messages/domain/attachments";
+import { MESSAGE_KINDS } from "@/features/messages/domain/conversation";
 import { createdAt, id, timestamptz } from "./columns";
 import { users } from "./user-auth";
 
 export const CONVERSATION_KINDS = ["direct", "group"] as const;
 export const conversationKind = pgEnum("conversation_kind", CONVERSATION_KINDS);
+
+export const messageKind = pgEnum("message_kind", MESSAGE_KINDS);
 
 /**
  * A direct conversation between two friends, or a group of up to 10 people. A direct one
@@ -71,7 +74,8 @@ export const conversationMembers = pgTable(
 
 /**
  * A text, a GIF or an attachment (with an optional text). Only the GIF's slug is kept, never a
- * copy of the media; an attachment lives in the file storage (message_attachments).
+ * copy of the media; an attachment lives in the file storage (message_attachments). A missed
+ * call has none of them: the caller is its author.
  */
 export const messages = pgTable(
   "messages",
@@ -83,6 +87,7 @@ export const messages = pgTable(
     authorId: uuid("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    kind: messageKind("kind").notNull().default("message"),
     body: text("body"),
     gifSlug: text("gif_slug"),
     createdAt: createdAt(),

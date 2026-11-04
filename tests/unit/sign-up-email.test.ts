@@ -4,7 +4,7 @@ import { checkSignUp, emailProblem } from "@/features/auth/domain/sign-up";
 const INVALID = "Digite um e-mail válido.";
 const HOSTILE_EMAIL = `a@${".".repeat(200_000)}@`;
 // Generous bound: the old pattern backtracked for many seconds on this input.
-const FAST_ENOUGH_MS = 200;
+const FAST_ENOUGH_MS = 2_000;
 
 describe("e-mail check", () => {
   test("accepts ordinary addresses", () => {

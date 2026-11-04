@@ -4,7 +4,7 @@ import { Field } from "@/components/Field";
 import { FormError } from "@/components/FormError";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { EMAIL_PATTERN } from "@/features/auth/domain/sign-up";
+import { isPlausibleEmail } from "@/features/auth/domain/sign-up";
 import { copyWorkspaceLink } from "@/components/workspace/RoomCard";
 import { formText } from "@/lib/utils";
 import type { TeamCommand } from "../domain/commands";
@@ -57,7 +57,7 @@ export function TeamInvitations({
           event.preventDefault();
           const data = new FormData(event.currentTarget);
           const email = formText(data, "email").trim();
-          if (!EMAIL_PATTERN.test(email)) return setEmailError("Digite um e-mail válido.");
+          if (!isPlausibleEmail(email)) return setEmailError("Digite um e-mail válido.");
           setEmailError(undefined);
           onCommand({
             kind: "invite",

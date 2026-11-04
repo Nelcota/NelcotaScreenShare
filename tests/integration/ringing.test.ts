@@ -237,7 +237,7 @@ describe("calling a friend", () => {
     expect((await unreadSummary(db, bia.id)).total).toBe(1);
   });
 
-  test("a call after they read the missed one leaves a new one", async () => {
+  test("a call after they read the missed one makes it unread again", async () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     const bia = await verifiedParticipant(db, handler, { name: "Bia" });
     await friends(ana.id, bia.id);
@@ -254,6 +254,30 @@ describe("calling a friend", () => {
     await ringing.callFriend({ friendId: bia.id, room: anaRoom });
 
     expect((await unreadSummary(db, bia.id)).total).toBe(1);
+  });
+
+  test("the caller sees one missed call whether the friend read it or not", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    const [first] = await db
+      .select({ conversationId: schema.messages.conversationId })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    if (first === undefined) throw new Error("The missed call was not saved.");
+    await markRead(db, first.conversationId, bia.id);
+
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    // A second line only after a read told the caller the friend was active, even in Invisível.
+    const sent = await db
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    expect(sent).toHaveLength(1);
   });
 
   test("a block right after the check leaves no missed call", async () => {

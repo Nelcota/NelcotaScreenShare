@@ -3,34 +3,31 @@ import { notifyUsers } from "@/features/live/server/live-bus.server";
 import { canMessage, openDirect } from "@/features/messages/server/conversations.server";
 import { insertMessage } from "@/features/messages/server/messages.server";
 import type { Database, DbExecutor } from "@/server/db/index.server";
-import { conversationMembers, messages } from "@/server/db/schema";
+import { conversations, messages } from "@/server/db/schema";
 
-/** Whether the conversation already ends in this caller's missed call that the callee has not read. */
-async function hasUnreadMissedCall(
-  db: DbExecutor,
-  conversationId: string,
-  callerId: string,
-  calleeId: string,
-) {
+/** The conversation's last message when it is this caller's missed call, read or not. */
+async function trailingMissedCall(db: DbExecutor, conversationId: string, callerId: string) {
   const [latest] = await db
-    .select({
-      kind: messages.kind,
-      authorId: messages.authorId,
-      unread: sql<boolean>`${messages.createdAt} > coalesce(${conversationMembers.lastReadAt}, ${conversationMembers.joinedAt})`,
-    })
+    .select({ id: messages.id, kind: messages.kind, authorId: messages.authorId })
     .from(messages)
-    .innerJoin(
-      conversationMembers,
-      and(
-        eq(conversationMembers.conversationId, messages.conversationId),
-        eq(conversationMembers.userId, calleeId),
-      ),
-    )
     .where(eq(messages.conversationId, conversationId))
     .orderBy(desc(messages.createdAt), desc(messages.id))
     .limit(1);
-  if (latest === undefined) return false;
-  return latest.kind === "missed_call" && latest.authorId === callerId && latest.unread;
+  if (latest === undefined) return null;
+  if (latest.kind !== "missed_call" || latest.authorId !== callerId) return null;
+  return latest.id;
+}
+
+/** Moves a missed call to now, so it shows the latest call and counts as unread again. */
+async function bumpMissedCall(db: DbExecutor, conversationId: string, messageId: string) {
+  await db
+    .update(messages)
+    .set({ createdAt: sql`now()` })
+    .where(and(eq(messages.id, messageId), eq(messages.conversationId, conversationId)));
+  await db
+    .update(conversations)
+    .set({ lastMessageAt: sql`now()` })
+    .where(eq(conversations.id, conversationId));
 }
 
 /**
@@ -49,8 +46,13 @@ export async function leaveMissedCall(db: Database, callerId: string, calleeId: 
     // Checked again with the insert, as sending a message does: a block or an unfriend since
     // the call was checked leaves nothing.
     if (!(await canMessage(tx, callerId, calleeId))) return false;
-    // One line until they open it: calling again meanwhile does not pile up missed calls.
-    if (await hasUnreadMissedCall(tx, conversationId, callerId, calleeId)) return false;
+    // Calling again never piles up lines, and the caller sees the same whether the friend read
+    // the last one or not: deciding by their read state would give away activity in Invisível.
+    const previous = await trailingMissedCall(tx, conversationId, callerId);
+    if (previous !== null) {
+      await bumpMissedCall(tx, conversationId, previous);
+      return true;
+    }
     await insertMessage(tx, conversationId, callerId, {
       kind: "missed_call",
       body: null,

@@ -525,3 +525,57 @@ describe("invitation failing midway", () => {
     assert.equal(row?.status, "pending");
   });
 });
+
+describe("password and 2FA changes after the sign-in window", () => {
+  test("an old session plus the password cannot reissue a fresh session or new backup codes", async () => {
+    const call = newCaller();
+    const email = `stale-${crypto.randomUUID()}@exemplo.com`;
+    const { userId } = await inviteAndAccept(email);
+    const jar = new CookieJar();
+    await call("/sign-in/email", { body: { email, password: PASSWORD }, jar });
+    const enabled = await call("/two-factor/enable", { body: { password: PASSWORD }, jar });
+    const { totpURI } = enabled.body as { totpURI: string };
+    await call("/two-factor/verify-totp", { body: { code: totpFromUri(totpURI) }, jar });
+    await db
+      .update(schema.adminSessions)
+      .set({ createdAt: new Date(Date.now() - 11 * 60_000) })
+      .where(eq(schema.adminSessions.userId, userId));
+
+    const changed = await call("/change-password", {
+      body: { currentPassword: PASSWORD, newPassword: PASSWORD, revokeOtherSessions: true },
+      jar,
+    });
+    const codes = await call("/two-factor/generate-backup-codes", {
+      body: { password: PASSWORD },
+      jar,
+    });
+    const disabled = await call("/two-factor/disable", { body: { password: PASSWORD }, jar });
+    const secret = await call("/two-factor/get-totp-uri", { body: { password: PASSWORD }, jar });
+
+    for (const refused of [changed, codes, disabled]) {
+      assert.equal(refused.status, 403);
+      assert.equal(errorCode(refused.body), "SESSION_NOT_FRESH");
+    }
+    assert.equal(secret.status, 404);
+    assert.equal((await auditOf("auth.two_factor_disabled", userId)).length, 0);
+  });
+
+  test("new backup codes on a fresh session are recorded", async () => {
+    const call = newCaller();
+    const email = `codes-${crypto.randomUUID()}@exemplo.com`;
+    const { userId } = await inviteAndAccept(email);
+    const jar = new CookieJar();
+    await call("/sign-in/email", { body: { email, password: PASSWORD }, jar });
+    const enabled = await call("/two-factor/enable", { body: { password: PASSWORD }, jar });
+    const { totpURI } = enabled.body as { totpURI: string };
+    await call("/two-factor/verify-totp", { body: { code: totpFromUri(totpURI) }, jar });
+
+    const codes = await call("/two-factor/generate-backup-codes", {
+      body: { password: PASSWORD },
+      jar,
+    });
+
+    assert.equal(codes.status, 200);
+    assert.equal((await auditOf("auth.backup_codes_generated", userId)).length, 1);
+  });
+});

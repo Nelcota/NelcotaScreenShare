@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { callAuth } from "@/features/auth/client/auth-call";
 import { authClient } from "@/features/auth/client/participant-auth-client";
 import { authErrorMessage } from "@/features/auth/domain/auth-errors";
-import { EMAIL_PATTERN } from "@/features/auth/domain/sign-up";
+import { isPlausibleEmail } from "@/features/auth/domain/sign-up";
 import { formText } from "@/lib/utils";
 import { useCloseRow } from "./settings/ExpandableRow";
 import { Field } from "@/components/Field";
@@ -23,7 +23,7 @@ export function ChangeEmailForm({ email }: { email: string }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const newEmail = formText(new FormData(event.currentTarget), "email").trim();
-    if (!EMAIL_PATTERN.test(newEmail)) return setError("Digite um e-mail válido.");
+    if (!isPlausibleEmail(newEmail)) return setError("Digite um e-mail válido.");
     if (newEmail.toLowerCase() === email.toLowerCase()) {
       return setError("Digite um e-mail diferente do atual.");
     }

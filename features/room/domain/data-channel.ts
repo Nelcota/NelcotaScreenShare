@@ -73,6 +73,28 @@ export function capChatText(text: string): string {
   return text.slice(0, CHAT_MAX_LENGTH);
 }
 
+/** Farthest instant from the epoch a JavaScript Date can hold, in milliseconds. */
+const MAX_DATE_MS = 8.64e15;
+
+/** Whether a timestamp another client sent can be shown as a date without throwing. */
+function isShowableTimestamp(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= MAX_DATE_MS;
+}
+
+/**
+ * Whether a chat message another client sent has the types the screen relies on. LiveKit
+ * passes peer packets through without checking them, and one bad field would break the
+ * call screen of everyone in the room.
+ */
+export function isWellFormedChatMessage(message: { message: unknown; timestamp: unknown }) {
+  return typeof message.message === "string" && isShowableTimestamp(message.timestamp);
+}
+
+/** Timestamp of a received stream, or the arrival time when the sender's is unusable. */
+export function receivedTimestamp(value: unknown, arrivedAt: number): number {
+  return isShowableTimestamp(value) ? value : arrivedAt;
+}
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 

@@ -395,6 +395,120 @@ describe("email change security", () => {
   });
 });
 
+describe("email change link binding", () => {
+  test("an email-change link changes the address only for the same account, signed in", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const mail = captureMail();
+    const newEmail = `bound-${crypto.randomUUID()}@exemplo.com`;
+    const call = newCaller();
+    assert.equal(
+      (await call("/change-email", { body: { newEmail }, jar: participant.jar })).status,
+      200,
+    );
+    const link = await vi.waitFor(() => {
+      const found = mail.linkFor(newEmail);
+      assert.ok(found);
+      return found;
+    });
+    const other = await verifiedParticipant(db, handler);
+
+    const signedOut = await auth.handler(new Request(link));
+    const wrongAccount = await auth.handler(
+      new Request(link, { headers: { cookie: other.jar.header() } }),
+    );
+
+    for (const refused of [signedOut, wrongAccount]) {
+      assert.equal(refused.status, 302);
+      assert.match(refused.headers.get("location") ?? "", /^\/verificar-email\?token=/);
+      assert.equal(
+        refused.headers
+          .getSetCookie()
+          .some((cookie) => cookie.includes("session_token=") && !cookie.includes("Max-Age=0")),
+        false,
+      );
+    }
+    assert.equal(
+      (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.email,
+      participant.email,
+    );
+
+    const sameAccount = await auth.handler(
+      new Request(link, { headers: { cookie: participant.jar.header() } }),
+    );
+
+    assert.equal(sameAccount.status, 302);
+    assert.equal(
+      (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.email,
+      newEmail,
+    );
+  });
+});
+
+describe("2FA account changes after the sign-in window", () => {
+  test("an old session plus the password cannot change the password or the second factor", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const call = newCaller();
+    const enabled = await call("/two-factor/enable", {
+      body: { password: participant.password },
+      jar: participant.jar,
+    });
+    const setup = z.object({ totpURI: z.string() }).parse(enabled.body);
+    await call("/two-factor/verify-totp", {
+      body: { code: totpFromUri(setup.totpURI) },
+      jar: participant.jar,
+    });
+    await db
+      .update(schema.userSessions)
+      .set({ createdAt: new Date(Date.now() - 2 * 60 * 60_000) })
+      .where(eq(schema.userSessions.userId, participant.id));
+    const password = participant.password;
+
+    const changed = await call("/change-password", {
+      body: {
+        currentPassword: password,
+        newPassword: "outra-senha-boa-1",
+        revokeOtherSessions: true,
+      },
+      jar: participant.jar,
+    });
+    const codes = await call("/two-factor/generate-backup-codes", {
+      body: { password },
+      jar: participant.jar,
+    });
+    const disabled = await call("/two-factor/disable", {
+      body: { password },
+      jar: participant.jar,
+    });
+    const secret = await call("/two-factor/get-totp-uri", {
+      body: { password },
+      jar: participant.jar,
+    });
+
+    for (const refused of [changed, codes, disabled]) {
+      assert.equal(refused.status, 403);
+      assert.equal(errorCode(refused.body), "SESSION_NOT_FRESH");
+    }
+    assert.equal(secret.status, 404);
+    const current = await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) });
+    assert.equal(current?.twoFactorEnabled, true);
+  });
+
+  test("an account without 2FA still changes its password on an old session", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    await db
+      .update(schema.userSessions)
+      .set({ createdAt: new Date(Date.now() - 2 * 60 * 60_000) })
+      .where(eq(schema.userSessions.userId, participant.id));
+
+    const changed = await newCaller()("/change-password", {
+      body: { currentPassword: participant.password, newPassword: "outra-senha-boa-1" },
+      jar: participant.jar,
+    });
+
+    assert.equal(changed.status, 200);
+  });
+});
+
 describe("account name", () => {
   test("is checked on the server: hidden direction marks go, too long or not text is refused", async () => {
     const participant = await verifiedParticipant(db, handler);

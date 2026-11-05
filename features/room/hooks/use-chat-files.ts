@@ -14,7 +14,7 @@ import {
   receivedCaption,
   sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
-import { capChatText } from "@/features/room/domain/data-channel";
+import { capChatText, receivedTimestamp } from "@/features/room/domain/data-channel";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
 /** A text file in the call chat, kept only in this browser's memory while the call lasts. */
@@ -64,7 +64,7 @@ export function useChatFiles() {
           id: reader.info.id,
           from: room.remoteParticipants.get(identity),
           mine: false,
-          timestamp: reader.info.timestamp,
+          timestamp: receivedTimestamp(reader.info.timestamp, Date.now()),
           name: cleanTextFileName(reader.info.name),
           text,
           caption: receivedCaption(reader.info.attributes),

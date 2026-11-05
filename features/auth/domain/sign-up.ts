@@ -1,17 +1,29 @@
 import { displayNameSchema } from "@/features/room/domain/participant-label";
 import { passwordTooShortMessage } from "./password-rules";
 
-/** E-mail that looks valid (the server does the real check). */
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/**
+ * E-mail that looks valid (the server does the real check). Domain labels exclude the
+ * dot so a run of dots has one split, which keeps the check linear on hostile input.
+ */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[^\s@.]{2,}$/;
+
+/** Longest address SMTP delivers (RFC 5321 path limit minus the angle brackets). */
+const MAX_EMAIL_LENGTH = 254;
 
 const INVALID_EMAIL = "Digite um e-mail válido.";
+
+/** Whether a typed e-mail looks deliverable: short enough for SMTP and shaped like one. */
+export function isPlausibleEmail(email: string): boolean {
+  if (email.length > MAX_EMAIL_LENGTH) return false;
+  return EMAIL_PATTERN.test(email);
+}
 
 /**
  * What is wrong with a typed e-mail, or null. Checked before calling the server, so a
  * blank or half-typed address never spends the attempt limit.
  */
 export function emailProblem(email: string): string | null {
-  return EMAIL_PATTERN.test(email.trim()) ? null : INVALID_EMAIL;
+  return isPlausibleEmail(email.trim()) ? null : INVALID_EMAIL;
 }
 
 export type SignUpCheck =
@@ -34,7 +46,7 @@ export function checkSignUp(input: {
     };
   }
   const email = input.email.trim();
-  if (!EMAIL_PATTERN.test(email)) return { ok: false, field: "email", message: INVALID_EMAIL };
+  if (!isPlausibleEmail(email)) return { ok: false, field: "email", message: INVALID_EMAIL };
   if (input.password.length < input.minPassword) {
     return {
       ok: false,

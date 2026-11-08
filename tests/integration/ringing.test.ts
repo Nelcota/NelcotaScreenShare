@@ -37,6 +37,11 @@ const { markOnline } = await import("@/features/friends/server/online-presence.s
 const { getUserAuth } = await import("@/features/auth/server/participant-auth.server");
 const { getDb } = await import("@/server/db/index.server");
 const { createGroup } = await import("@/features/messages/server/conversations.server");
+const { unreadSummary } = await import("@/features/messages/server/conversation-list.server");
+const { saveStatus } = await import("@/features/friends/server/presence-status.server");
+const { deleteOwnMessage } = await import("@/features/messages/server/messages.server");
+const { markRead } = await import("@/features/messages/server/conversations.server");
+const { leaveMissedCall } = await import("@/features/ringing/server/missed-call.server");
 const { liveGroupCall, groupCallLines } =
   await import("@/features/ringing/server/group-calls.server");
 
@@ -115,6 +120,7 @@ describe("calling a friend", () => {
     expect((await ringing.callFriend({ friendId: bia.id })).data).toEqual({
       ringId: null,
       needsRoom: true,
+      missedCall: false,
     });
     expect(incomingRings(bia.id)).toEqual([]);
   });
@@ -146,6 +152,7 @@ describe("calling a friend", () => {
     expect((await ringing.callFriend({ friendId: bia.id })).data).toEqual({
       ringId: null,
       needsRoom: true,
+      missedCall: false,
     });
     expect(incomingRings(bia.id)).toEqual([]);
   });
@@ -193,7 +200,138 @@ describe("calling a friend", () => {
     expect(approval).toBeNull();
   });
 
-  test("nobody rings an offline friend, a stranger, or into someone else's room", async () => {
+  test("an offline friend gets a missed call in the conversation, unread, instead of a ring", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+
+    as(ana);
+    expect((await ringing.callFriend({ friendId: bia.id, room: anaRoom })).data).toEqual({
+      ringId: null,
+      needsRoom: false,
+      missedCall: true,
+    });
+    expect(incomingRings(bia.id)).toEqual([]);
+    const sent = await db
+      .select({ kind: schema.messages.kind, body: schema.messages.body })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    expect(sent).toEqual([{ kind: "missed_call", body: null }]);
+    const unread = await unreadSummary(db, bia.id);
+    expect(unread.total).toBe(1);
+    expect(unread.latest?.kind).toBe("missed_call");
+  });
+
+  test("calling again before they open it leaves one missed call, not a pile", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    // Each Chamar used to add its own line and one more unread.
+    expect((await unreadSummary(db, bia.id)).total).toBe(1);
+  });
+
+  test("a call after they read the missed one makes it unread again", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    const [first] = await db
+      .select({ conversationId: schema.messages.conversationId })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    if (first === undefined) throw new Error("The missed call was not saved.");
+    await markRead(db, first.conversationId, bia.id);
+
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    expect((await unreadSummary(db, bia.id)).total).toBe(1);
+  });
+
+  test("the caller sees one missed call whether the friend read it or not", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    const [first] = await db
+      .select({ conversationId: schema.messages.conversationId })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    if (first === undefined) throw new Error("The missed call was not saved.");
+    await markRead(db, first.conversationId, bia.id);
+
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    // A second line only after a read told the caller the friend was active, even in Invisível.
+    const sent = await db
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    expect(sent).toHaveLength(1);
+  });
+
+  test("a block right after the check leaves no missed call", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    await db.insert(schema.userBlocks).values({ blockerId: bia.id, blockedId: ana.id });
+
+    await leaveMissedCall(db, ana.id, bia.id);
+
+    // The call was checked before the block; the missed call still landed.
+    const sent = await db
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    expect(sent).toEqual([]);
+  });
+
+  test("the caller cannot delete a missed call", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    as(ana);
+    await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+    const [call] = await db
+      .select({ id: schema.messages.id })
+      .from(schema.messages)
+      .where(eq(schema.messages.authorId, ana.id));
+    if (call === undefined) throw new Error("The missed call was not saved.");
+
+    const deleted = await deleteOwnMessage(db, call.id, ana.id);
+
+    // The screen never offered it, but the server let the caller take it back.
+    expect(deleted).toBeNull();
+    expect((await unreadSummary(db, bia.id)).total).toBe(1);
+  });
+
+  test("a friend in Invisível gets the same missed call, so nothing gives them away", async () => {
+    const ana = await verifiedParticipant(db, handler, { name: "Ana" });
+    const bia = await verifiedParticipant(db, handler, { name: "Bia" });
+    await friends(ana.id, bia.id);
+    const anaRoom = await createRoom(db, ana.id);
+    markOnline(bia.id);
+    await saveStatus(db, bia.id, "invisible");
+
+    as(ana);
+    const call = await ringing.callFriend({ friendId: bia.id, room: anaRoom });
+
+    expect(call.data?.missedCall).toBe(true);
+    expect(incomingRings(bia.id)).toEqual([]);
+  });
+
+  test("nobody calls a friend in Não perturbe, a stranger, or into someone else's room", async () => {
     const ana = await verifiedParticipant(db, handler, { name: "Ana" });
     const bia = await verifiedParticipant(db, handler, { name: "Bia" });
     const caio = await verifiedParticipant(db, handler, { name: "Caio" });
@@ -201,12 +339,14 @@ describe("calling a friend", () => {
     const anaRoom = await createRoom(db, ana.id);
     const caioRoom = await createRoom(db, caio.id);
 
+    markOnline(bia.id);
+    markOnline(caio.id);
+    await saveStatus(db, bia.id, "busy");
     as(ana);
     expect((await ringing.callFriend({ friendId: bia.id, room: anaRoom })).serverError).toBe(
       "Não dá para chamar agora.",
     );
-    markOnline(bia.id);
-    markOnline(caio.id);
+    await saveStatus(db, bia.id, "online");
     expect((await ringing.callFriend({ friendId: caio.id, room: anaRoom })).serverError).toBe(
       "Não dá para chamar agora.",
     );

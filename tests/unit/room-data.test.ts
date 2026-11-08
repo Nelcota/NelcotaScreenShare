@@ -9,6 +9,7 @@ import {
   encodeMessage,
   pointerSchema,
   reactionSchema,
+  receivedTimestamp,
 } from "@/features/room/domain/data-channel";
 
 describe("data channel messages", () => {
@@ -30,6 +31,15 @@ describe("data channel messages", () => {
     expect(
       decodeMessage(encodeMessage({ trackSid: "", x: 0.2, y: 0.5 }), pointerSchema),
     ).toBeUndefined();
+  });
+
+  it("keeps a usable stream timestamp and replaces one a Date cannot show", () => {
+    const arrivedAt = 1_700_000_000_000;
+
+    expect(receivedTimestamp(1_600_000_000_000, arrivedAt)).toBe(1_600_000_000_000);
+    expect(receivedTimestamp(9e15, arrivedAt)).toBe(arrivedAt);
+    expect(receivedTimestamp(Number.NaN, arrivedAt)).toBe(arrivedAt);
+    expect(receivedTimestamp(undefined, arrivedAt)).toBe(arrivedAt);
   });
 });
 

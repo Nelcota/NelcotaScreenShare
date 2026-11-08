@@ -4,7 +4,8 @@ import { publicProfile } from "@/features/friends/server/friend-list.server";
 import { roomCodeSchema, roomLink } from "@/features/room/domain/room-code";
 import { answeredCallPath } from "@/features/room/domain/answered-call";
 import { admitByRing } from "@/features/ringing/server/ring-admission.server";
-import { canRing, mayRingInto } from "@/features/ringing/server/ring-rules.server";
+import { callReach, mayRingInto } from "@/features/ringing/server/ring-rules.server";
+import { leaveMissedCall } from "@/features/ringing/server/missed-call.server";
 import { connectedCallRoom } from "@/features/ringing/server/ringing-state.server";
 import { recordGroupCall, ringableMembers } from "@/features/ringing/server/group-calls.server";
 import { membershipOf, memberIdsOf } from "@/features/messages/server/conversations.server";
@@ -26,7 +27,10 @@ const ringLimiter = createRateLimiter({ limit: 20, windowMs: 10 * 60_000 });
 
 const UNAVAILABLE = "Não dá para chamar agora.";
 
-/** Rings a friend into the caller's room: the friend gets a card on any page. */
+/**
+ * Rings a friend into the caller's room: the friend gets a card on any page. A friend who
+ * looks Offline gets "Chamada perdida" in the conversation instead.
+ */
 export const callFriend = defineUserOperation(
   { name: "ringing.call", audit: "none" },
   z.object({ friendId: z.uuid(), room: roomCodeSchema.optional() }),
@@ -35,12 +39,15 @@ export const callFriend = defineUserOperation(
     const db = getDb();
     // Without a room, the call you are in now; none means the page opens a room first.
     const room = parsedInput.room ?? (await connectedCallRoom(db, caller.id));
-    if (!room) return { ringId: null, needsRoom: true };
+    if (!room) return { ringId: null, needsRoom: true, missedCall: false };
     if (!ringLimiter.hit(caller.id).ok)
       throw new ActionError("Muitas chamadas seguidas. Espere um pouco.");
     if (!(await mayRingInto(db, room, caller.id))) throw new ActionError(UNAVAILABLE);
-    if (!(await canRing(db, caller.id, parsedInput.friendId, room))) {
-      throw new ActionError(UNAVAILABLE);
+    const reach = await callReach(db, caller.id, parsedInput.friendId, room);
+    if (reach === null) throw new ActionError(UNAVAILABLE);
+    if (reach === "missed_call") {
+      await leaveMissedCall(db, caller.id, parsedInput.friendId);
+      return { ringId: null, needsRoom: false, missedCall: true };
     }
     const friend = await publicProfile(db, parsedInput.friendId);
     if (!friend) throw new ActionError(UNAVAILABLE);
@@ -52,7 +59,7 @@ export const callFriend = defineUserOperation(
       roomCode: room,
       conversationId: null,
     });
-    return { ringId: ring.id, needsRoom: false };
+    return { ringId: ring.id, needsRoom: false, missedCall: false };
   },
 );
 

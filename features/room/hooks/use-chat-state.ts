@@ -5,7 +5,7 @@ import {
   type ReceivedChatMessage,
 } from "@livekit/components-react";
 import type { Participant } from "livekit-client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { callToast as toast } from "@/features/room/client/call-notices";
 import { playChatNotification, unlockChatAudio } from "@/features/room/audio/chat-notification";
 import { useRoomShortcut } from "@/lib/hooks/use-shortcut-keys";
@@ -21,7 +21,12 @@ import {
   type ChatEditOp,
   type ChatEdits,
 } from "@/features/room/domain/chat-edits";
-import { capChatText, decodeMessage, encodeMessage } from "@/features/room/domain/data-channel";
+import {
+  capChatText,
+  decodeMessage,
+  encodeMessage,
+  isWellFormedChatMessage,
+} from "@/features/room/domain/data-channel";
 
 /** Message as it appears on screen: with edits and deletions already applied. */
 export interface ChatEntry {
@@ -120,7 +125,8 @@ function useSharedNotices(
  * closed (unread counter and toast). Shortcut: C.
  */
 export function useChatState(): ChatState {
-  const { chatMessages, send, isSending } = useChat();
+  const { chatMessages: received, send, isSending } = useChat();
+  const chatMessages = useMemo(() => received.filter(isWellFormedChatMessage), [received]);
   const { localParticipant } = useLocalParticipant();
   const [open, setOpenState] = useState(false);
   // Messages already seen: when opening or closing the panel, everything up to then counts as read.

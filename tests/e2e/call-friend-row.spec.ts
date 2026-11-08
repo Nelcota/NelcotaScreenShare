@@ -31,7 +31,7 @@ test("the empty room's invite card opens a dialog to search friends and call the
 
     await call.click();
     const dialog = host.page.getByRole("dialog", { name: "Chamar amigos" });
-    const list = dialog.getByRole("list", { name: "Amigos para chamar" });
+    const list = dialog.getByRole("list", { name: "Online" });
     await expect(list.getByText("Amiga Linha")).toBeVisible({ timeout: 15_000 });
     const search = dialog.getByRole("searchbox", { name: "Buscar amigo" });
     await search.fill("ninguem");

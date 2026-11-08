@@ -3,7 +3,7 @@ import { nodMascot, setMascotDoubt } from "@/features/mascot/client/events";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/Field";
 import { suggestEmail } from "@/features/auth/domain/email-suggest";
-import { EMAIL_PATTERN } from "@/features/auth/domain/sign-up";
+import { isPlausibleEmail } from "@/features/auth/domain/sign-up";
 
 /** E-mail typed in one tab carries over to the other (only in this browser tab). */
 const REMEMBER_KEY = "nelcota:acesso-email";
@@ -62,7 +62,7 @@ export function EmailField({
     const next = suggestEmail(value);
     setSuggestion(next);
     setMascotDoubt(next !== undefined);
-    if (!next && EMAIL_PATTERN.test(value)) nodMascot();
+    if (!next && isPlausibleEmail(value)) nodMascot();
   }
 
   function accept() {

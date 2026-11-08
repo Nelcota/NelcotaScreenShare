@@ -12,7 +12,12 @@ const capture = vi.hoisted(() => ({
   cursor: 0,
   receive: undefined as ((message: Delivery) => void) | undefined,
   publish: vi.fn(async () => {}),
+  chatMessages: [] as unknown[],
 }));
+
+function textMessage(id: string) {
+  return { id, message: id, timestamp: 1, from: { identity: "ana", name: "Ana", isLocal: false } };
+}
 
 vi.mock("react", () => ({
   useState: (initial: unknown) => {
@@ -30,6 +35,7 @@ vi.mock("react", () => ({
     ];
   },
   useRef: (initial: unknown) => ({ current: initial }),
+  useMemo: <T>(compute: () => T) => compute(),
   useEffect: () => {},
   useCallback: <T>(callback: T) => callback,
   useEffectEvent: <T>(callback: T) => callback,
@@ -42,12 +48,7 @@ const fakeRoom = vi.hoisted(() => {
 
 vi.mock("@livekit/components-react", () => ({
   useChat: () => ({
-    chatMessages: ["first", "second"].map((id) => ({
-      id,
-      message: id,
-      timestamp: 1,
-      from: { identity: "ana", name: "Ana", isLocal: false },
-    })),
+    chatMessages: capture.chatMessages,
     send: vi.fn(),
     isSending: false,
   }),
@@ -65,6 +66,7 @@ beforeEach(() => {
   capture.states = [];
   capture.cursor = 0;
   capture.receive = undefined;
+  capture.chatMessages = ["first", "second"].map(textMessage);
   vi.clearAllMocks();
 });
 
@@ -94,4 +96,19 @@ test("a sender cannot change another participant's messages", () => {
   capture.receive?.({ payload: encodeMessage({ type: "delete", id: "second" }) });
   capture.cursor = 0;
   expect(ChatHarness().messages.map((message) => message.deleted)).toEqual([false, false]);
+});
+
+test("a malformed chat packet from another client is dropped instead of breaking the call", () => {
+  const from = { identity: "eve", name: "Eve", isLocal: false };
+  capture.chatMessages = [
+    textMessage("first"),
+    { id: "number", message: 1, timestamp: 1, from },
+    { id: "no-time", message: "hi", from },
+    { id: "far-future", message: "hi", timestamp: 9e15, from },
+    { id: "text-time", message: "hi", timestamp: "now", from },
+  ];
+
+  const state = ChatHarness();
+
+  expect(state.messages.map((message) => message.id)).toEqual(["first"]);
 });

@@ -1,6 +1,10 @@
 import type { Participant } from "livekit-client";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useRef } from "react";
+import { Hint } from "@/components/Hint";
+import { Button } from "@/components/ui/button";
 import { othersPresenting, peopleOrder } from "@/features/room/domain/people-order";
+import { usePeopleStrip } from "@/features/room/hooks/use-people-strip";
 import { TILE_GAP, useTileGrid } from "@/features/room/hooks/use-tile-grid";
 import { cn } from "@/lib/utils";
 import { ParticipantTile } from "./ParticipantTile";
@@ -15,7 +19,29 @@ interface PeopleAreaProps {
   onEnlarge: (identity: string) => void;
 }
 
-/** With a stage: the side strip, people in a column next to the screen. */
+/** The column's own button: shrinks it to the photos, or brings the names back. */
+function ShrinkButton({ shrunk, onToggle }: { shrunk: boolean; onToggle: () => void }) {
+  const label = shrunk ? "Mostrar os nomes" : "Encolher a lista de pessoas";
+  return (
+    <Hint text={label} side="left">
+      <Button
+        type="button"
+        variant="quiet"
+        size="icon-lg"
+        aria-label={label}
+        onClick={onToggle}
+        className={cn("shrink-0", shrunk ? "self-center" : "self-end")}
+      >
+        {shrunk ? <PanelRightOpen aria-hidden="true" /> : <PanelRightClose aria-hidden="true" />}
+      </Button>
+    </Hint>
+  );
+}
+
+/**
+ * With a stage: the side strip, people in a column next to the screen. In a small window the
+ * column can shrink to the photos, so the screen gets the room.
+ */
 function StageStrip({
   participants,
   roomCode,
@@ -23,15 +49,18 @@ function StageStrip({
   invites,
   onEnlarge,
 }: Omit<PeopleAreaProps, "hasStage">) {
+  const strip = usePeopleStrip();
   return (
     <div
       data-mascot-participants=""
       className={cn(
-        "flex shrink-0 gap-3 overflow-x-auto p-1 lg:w-60 lg:flex-col lg:gap-4 lg:overflow-x-visible lg:overflow-y-auto",
+        "flex shrink-0 gap-3 overflow-x-auto p-1 lg:flex-col lg:gap-4 lg:overflow-x-visible lg:overflow-y-auto",
+        strip.shrunk ? "lg:w-[4.75rem] lg:items-center" : "lg:w-60",
         // Phone on its side: the strip would leave the stage a sliver; the top bar lists people.
         "max-lg:[@media(max-height:32rem)]:hidden",
       )}
     >
+      {strip.column ? <ShrinkButton shrunk={strip.shrunk} onToggle={strip.toggle} /> : null}
       {peopleOrder(participants, sharingIds).map((participant) => (
         <ParticipantTile
           key={participant.identity}
@@ -40,6 +69,7 @@ function StageStrip({
           isSharing={sharingIds.has(participant.identity)}
           screenInvite={invites.get(participant.identity)}
           compact
+          narrow={strip.shrunk}
           onEnlarge={() => onEnlarge(participant.identity)}
         />
       ))}

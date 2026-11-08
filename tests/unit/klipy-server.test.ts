@@ -28,6 +28,7 @@ function message(id: string, gifSlug: string | null) {
     id,
     authorId: "bia",
     authorName: "Bia",
+    kind: "message" as const,
     body: gifSlug ? null : "oi",
     gifSlug,
     createdAt: new Date("2026-10-12T18:00:00Z"),

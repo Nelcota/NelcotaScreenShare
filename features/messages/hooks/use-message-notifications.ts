@@ -2,12 +2,14 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { notify } from "@/features/notifications/client/notify";
 import { firstName, messageContentLabel } from "@/features/messages/domain/conversation-display";
+import type { MessageKind } from "@/features/messages/domain/conversation";
 import { isNewerMessage } from "@/features/messages/domain/newer-message";
 
 export interface LatestUnread {
   id: string;
   conversationId: string;
   authorName: string;
+  kind: MessageKind;
   body: string | null;
   gifSlug: string | null;
 }

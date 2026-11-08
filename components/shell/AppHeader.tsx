@@ -122,16 +122,20 @@ function BarTools({ panel }: { panel: boolean }) {
   return <ThemeToggle className="ml-auto" />;
 }
 
+/** A visitor's bar spaces its dividers like its links: the same room on both sides. */
+const VISITOR_DIVIDER = "mx-2";
+
 /** The sign-in links for visitors (when the page shows them). */
 function VisitorLinks({ showAuthLinks }: { showAuthLinks: boolean }) {
   if (!showAuthLinks) return null;
   return (
     <>
-      <NavDivider />
+      <NavDivider className={VISITOR_DIVIDER} />
       <Link viewTransition to="/entrar" className={navItemClass}>
         Entrar
       </Link>
-      <Button asChild className="max-sm:hidden">
+      {/* The same height as every other item, and a little apart from "Entrar". */}
+      <Button asChild className="ml-1 h-9 max-sm:hidden">
         <Link viewTransition to="/cadastro">
           Criar conta
         </Link>
@@ -155,11 +159,14 @@ export function AppHeader({
 }: AppHeaderProps) {
   return (
     <header data-anim={animation} className={cn("px-4 pt-4 sm:px-6", className)}>
-      <NavBar aria-label="Principal" className="mx-auto max-w-[90rem]">
+      <NavBar
+        aria-label="Principal"
+        className={cn("mx-auto max-w-[90rem]", account ? undefined : "gap-1.5")}
+      >
         <NavBrand href={inApp ? APP_START_PATH : "/"} />
         {account ? null : (
           <>
-            <NavDivider className="max-md:hidden" />
+            <NavDivider className={cn(VISITOR_DIVIDER, "max-md:hidden")} />
             {SITE_LINKS.map(({ to, label }) => (
               <SiteLink
                 key={to}
@@ -186,7 +193,7 @@ export function AppHeader({
         />
         {actions ? (
           <>
-            <NavDivider />
+            <NavDivider className={account ? undefined : VISITOR_DIVIDER} />
             {actions}
           </>
         ) : null}

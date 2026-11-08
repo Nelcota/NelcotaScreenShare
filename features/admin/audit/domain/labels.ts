@@ -6,6 +6,7 @@ const ACTION_LABELS: Record<string, string> = {
   "auth.lockout": "Conta bloqueada por tentativas",
   "auth.two_factor_enabled": "Ativou o 2FA",
   "auth.two_factor_disabled": "Desativou o 2FA",
+  "auth.backup_codes_generated": "Gerou novos códigos de backup",
   "auth.password_changed": "Trocou a senha",
   "auth.password_reset": "Redefiniu a senha",
   "admin_invitation.accept": "Aceitou convite de admin",

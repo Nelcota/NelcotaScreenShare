@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useRouteLoaderData } from "react-router";
+import { toast } from "sonner";
 import type { loader as rootLoader } from "@/app/root";
 import { callFriend, cancelCall } from "@/features/ringing/actions";
 import { savePendingCall, usePendingCall } from "@/features/ringing/client/pending-call";
@@ -50,7 +51,15 @@ function finishAttempt(friendId: string, attempt: CallAttempt) {
   if (attempt.cancelled || !attempt.ringId) attempts.delete(friendId);
 }
 
-/** A cancelled request must cancel its eventual server ring and skip room creation. */
+/** One notice however many offline friends a call reached, from any "Chamar". */
+function noticeMissedCall() {
+  toast.success("Quem está offline vê a chamada quando abrir o Nelcota.", { id: "missed-call" });
+}
+
+/**
+ * A cancelled request must cancel its eventual server ring and skip room creation. A friend
+ * who turned out Offline gets a missed call, and the caller is told.
+ */
 export async function ringFriend(
   input: Parameters<typeof callFriend>[0],
   needsRoom?: (active: () => boolean) => Promise<void>,
@@ -69,6 +78,7 @@ export async function ringFriend(
     }
     if (result.data?.needsRoom && needsRoom) await needsRoom(() => !attempt.cancelled);
     if (attempt.cancelled) return null;
+    if (result.data?.missedCall) noticeMissedCall();
     return result;
   } finally {
     finishAttempt(input.friendId, attempt);

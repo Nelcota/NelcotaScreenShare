@@ -38,6 +38,7 @@ export type ReportQueueRow = Awaited<ReturnType<typeof listReports>>["rows"][num
 const messageColumns = {
   id: messages.id,
   authorName: users.name,
+  kind: messages.kind,
   body: messages.body,
   gifSlug: messages.gifSlug,
   fileName: messageAttachments.fileName,

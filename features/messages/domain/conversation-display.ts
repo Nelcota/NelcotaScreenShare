@@ -1,3 +1,5 @@
+import type { MessageKind } from "@/features/messages/domain/conversation";
+
 interface Person {
   id: string;
   name: string;
@@ -12,6 +14,7 @@ interface ConversationLike {
 interface MessageLike {
   authorId: string;
   authorName: string;
+  kind: MessageKind;
   body: string | null;
   gifSlug: string | null;
 }
@@ -33,8 +36,14 @@ export function conversationTitle(conversation: ConversationLike): string {
   return joinNames(conversation.others.map((person) => firstName(person.name)));
 }
 
-/** What a message holds, in a word when it has no text: "GIF", or "Arquivo" for a file alone. */
-export function messageContentLabel(message: Pick<MessageLike, "body" | "gifSlug">): string {
+/**
+ * What a message holds, in a word when it has no text: "GIF", "Arquivo" for a file alone, or
+ * "Chamada perdida".
+ */
+export function messageContentLabel(
+  message: Pick<MessageLike, "kind" | "body" | "gifSlug">,
+): string {
+  if (message.kind === "missed_call") return "Chamada perdida";
   if (message.body !== null) return message.body;
   return message.gifSlug === null ? "Arquivo" : "GIF";
 }
@@ -49,6 +58,19 @@ export function messagePreview(
   if (message.authorId === selfId) return `Você: ${content}`;
   if (kind === "group") return `${firstName(message.authorName)}: ${content}`;
   return content;
+}
+
+/**
+ * Gives the friend's first name in a direct conversation.
+ *
+ * @param conversation - The conversation being shown.
+ * @returns The other person's first name, or null in a group.
+ */
+export function contactName(conversation: ConversationLike): string | null {
+  if (conversation.kind !== "direct") return null;
+  const name = conversation.others[0]?.name;
+  if (name === undefined) return null;
+  return firstName(name);
 }
 
 /** "Mensagem para Carla" or "Mensagem em Noite do filme". */

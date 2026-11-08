@@ -5,6 +5,10 @@ export const MIN_GROUP_INVITEES = 2;
 export const MAX_GROUP_NAME_LENGTH = 60;
 export const MAX_MESSAGE_LENGTH = 2000;
 
+/** Most are messages people write; a missed call is the system's line about a call. */
+export const MESSAGE_KINDS = ["message", "missed_call"] as const;
+export type MessageKind = (typeof MESSAGE_KINDS)[number];
+
 /** From here the field shows how much is left. */
 const LENGTH_NOTE_FROM = MAX_MESSAGE_LENGTH - 200;
 
@@ -76,6 +80,12 @@ export function normalizeMessageBody(body: string | null | undefined): string | 
 export function normalizeGroupName(name: string | null | undefined): string | null {
   return normalizeMessageBody(name);
 }
+
+/** How a message's kind reads in "Baixar meus dados". */
+export const MESSAGE_KIND_IN_EXPORT: Record<MessageKind, string> = {
+  message: "mensagem",
+  missed_call: "chamada perdida",
+};
 
 /** How a conversation's kind reads in "Baixar meus dados". */
 export const CONVERSATION_KIND_IN_EXPORT: Record<"direct" | "group", string> = {

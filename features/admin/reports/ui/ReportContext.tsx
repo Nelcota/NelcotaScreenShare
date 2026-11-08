@@ -28,7 +28,12 @@ function DeletedMessageCopy({ report, file }: { report: Report; file: ReportedFi
   const fileOnly =
     file !== null &&
     report.messageExcerpt ===
-      reportedMessageText({ body: null, gifSlug: null, fileName: file.fileName });
+      reportedMessageText({
+        kind: "message",
+        body: null,
+        gifSlug: null,
+        fileName: file.fileName,
+      });
   const text = fileOnly ? null : report.messageExcerpt;
   return (
     <div className="flex flex-col gap-1 text-sm">

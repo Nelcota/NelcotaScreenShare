@@ -9,6 +9,7 @@ import { users } from "@/server/db/schema";
 import { logger } from "@/server/logger.server";
 import { enforceEmailPolicy } from "./email-policy.server";
 import { recordAdminLockout } from "./lockout-audit.server";
+import { enforceRecentSignIn } from "./recent-sign-in-policy.server";
 import { requireSecondFactorEverySignIn } from "./trusted-device.server";
 import {
   checkLockout,
@@ -159,6 +160,43 @@ async function countWrongPasswordSignedIn(
   await countWrongPassword(db, { scope, hash: emailHash(secret, scope, email), email, ip, audit });
 }
 
+const BACKUP_CODES_PATH = "/two-factor/generate-backup-codes";
+
+/**
+ * Panel records of second-factor events: a sign-in finished by the code, and new backup
+ * codes, which are sign-in material. Returns whether the route was one of them.
+ */
+async function auditSecondFactorEvent(ctx: AuthContext, db: Database): Promise<boolean> {
+  if (TWO_FACTOR_SIGN_IN.has(ctx.path)) {
+    const userId = ctx.context.newSession?.user.id;
+    if (!userId) return true;
+    await safeAudit(() =>
+      recordAudit(
+        db,
+        { adminId: userId },
+        {
+          action: "auth.sign_in",
+          resourceType: "admin_user",
+          resourceId: userId,
+          metadata: { segundo_fator: ctx.path.endsWith("backup-code") ? "backup" : "totp" },
+        },
+      ),
+    );
+    return true;
+  }
+  if (ctx.path !== BACKUP_CODES_PATH) return false;
+  const userId = (await getSessionFromCtx(ctx))?.user.id;
+  if (!userId) return true;
+  await safeAudit(() =>
+    recordAudit(
+      db,
+      { adminId: userId },
+      { action: "auth.backup_codes_generated", resourceType: "admin_user", resourceId: userId },
+    ),
+  );
+  return true;
+}
+
 /**
  * The account name goes through the same rules as the screens (1 to 32 characters, no
  * invisible ones), so a direct call cannot store a disguised name or hit the database check.
@@ -188,6 +226,7 @@ export function authHooks(
   return {
     before: createAuthMiddleware(async (ctx) => {
       if (scope === "admin") await requireSecondFactorEverySignIn(db, ctx.path, ctx.body);
+      await enforceRecentSignIn(ctx, scope, FRESH_SESSION_SECONDS);
       if (scope === "user") {
         await enforceEmailPolicy(ctx, secret, FRESH_SESSION_SECONDS);
         if (ctx.path === "/update-user" || ctx.path === "/sign-up/email") {
@@ -223,24 +262,7 @@ export function authHooks(
       const returned = ctx.context.returned;
       const failed = returned instanceof APIError;
 
-      if (audit && !failed && TWO_FACTOR_SIGN_IN.has(ctx.path)) {
-        const userId = ctx.context.newSession?.user.id;
-        if (userId) {
-          await safeAudit(() =>
-            recordAudit(
-              db,
-              { adminId: userId },
-              {
-                action: "auth.sign_in",
-                resourceType: "admin_user",
-                resourceId: userId,
-                metadata: { segundo_fator: ctx.path.endsWith("backup-code") ? "backup" : "totp" },
-              },
-            ),
-          );
-        }
-        return;
-      }
+      if (audit && !failed && (await auditSecondFactorEvent(ctx, db))) return;
 
       if (ctx.path !== SIGN_IN_PATH) {
         return countWrongPasswordSignedIn(ctx, { db, secret, scope, audit });

@@ -25,6 +25,7 @@ function render(attachment: MessageAttachment, body: string | null) {
     id: "m1",
     authorId: "u1",
     authorName: "Bia",
+    kind: "message" as const,
     body,
     gifSlug: null,
     gif: null,

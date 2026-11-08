@@ -9,7 +9,7 @@ import {
   receivedImageType,
   sendingPaceProblem,
 } from "@/features/room/domain/chat-images";
-import { capChatText } from "@/features/room/domain/data-channel";
+import { capChatText, receivedTimestamp } from "@/features/room/domain/data-channel";
 import { readChatImage } from "@/features/room/client/read-chat-image";
 import { logBrowserWarning } from "@/lib/telemetry.client";
 
@@ -68,7 +68,7 @@ export function useChatImages() {
           id: reader.info.id,
           from: senderOf(room, identity),
           mine: false,
-          timestamp: reader.info.timestamp,
+          timestamp: receivedTimestamp(reader.info.timestamp, Date.now()),
           url: URL.createObjectURL(new Blob([bytes], { type })),
           name: reader.info.name,
           caption: receivedCaption(reader.info.attributes),

@@ -8,7 +8,10 @@ import {
   messages,
   users,
 } from "@/server/db/schema";
-import { CONVERSATION_KIND_IN_EXPORT } from "@/features/messages/domain/conversation";
+import {
+  CONVERSATION_KIND_IN_EXPORT,
+  MESSAGE_KIND_IN_EXPORT,
+} from "@/features/messages/domain/conversation";
 import { deleteEmptyGroups } from "./conversations.server";
 import { refreshLastMessageAt } from "./messages.server";
 
@@ -42,6 +45,7 @@ export async function messageData(db: DbExecutor, userId: string) {
   const sent = await db
     .select({
       conversa: messages.conversationId,
+      tipo: messages.kind,
       texto: messages.body,
       gif: messages.gifSlug,
       enviada_em: messages.createdAt,
@@ -76,7 +80,7 @@ export async function messageData(db: DbExecutor, userId: string) {
       ...row,
       tipo: CONVERSATION_KIND_IN_EXPORT[row.tipo],
     })),
-    mensagens_enviadas: sent,
+    mensagens_enviadas: sent.map((row) => ({ ...row, tipo: MESSAGE_KIND_IN_EXPORT[row.tipo] })),
     // The files themselves are downloaded from the conversation; here, what was sent.
     arquivos_enviados: files,
     gifs_favoritos: favorites,

@@ -99,7 +99,8 @@ test("over a fullscreen screen, moving the mouse brings the dock back to stop wa
       name: "Controles da chamada",
       includeHidden: true,
     });
-    const dockArea = hiddenDock.locator("..");
+    // The nav sits in a box that keeps it centered; the area that fades is around that box.
+    const dockArea = hiddenDock.locator("xpath=../..");
     const stop = dock.getByRole("button", { name: "Parar de assistir" });
     // With the mouse still, the screen has the whole page and the hidden dock takes no clicks.
     await expect(dockArea).toHaveCSS("opacity", "0", { timeout: 6_000 });

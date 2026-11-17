@@ -4,8 +4,11 @@ import {
   canShare,
   capturesCall,
   classifyShareSupport,
+  capsCaptureSize,
   computerAudioOptions,
   echoesRoomAudio,
+  isMobileShare,
+  picksSurface,
   sharesAudio,
   showsCaptureBar,
   surfaceHasAudio,
@@ -22,6 +25,9 @@ const UA = {
     "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36",
   iphone:
     "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1",
+  // Safari 26+ freezes the iOS version in the user agent, so only the feature tells.
+  iphone27:
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1",
 };
 
 test("desktop: Chromium shares everything; Firefox without audio; Safari warns", () => {
@@ -34,17 +40,62 @@ test("desktop: Chromium shares everything; Firefox without audio; Safari warns",
   assert.equal(classifyShareSupport({ userAgent: UA.safari, hasDisplayMedia: true }), "safari");
 });
 
-test("phones and tablets do not share, even the iPad that claims to be a Mac", () => {
-  assert.equal(classifyShareSupport({ userAgent: UA.android, hasDisplayMedia: false }), "mobile");
-  assert.equal(classifyShareSupport({ userAgent: UA.iphone, hasDisplayMedia: false }), "mobile");
+test("an iPhone whose Safari opens the screen picker shares, without sound", () => {
+  const support = classifyShareSupport({ userAgent: UA.iphone27, hasDisplayMedia: true });
+
+  assert.equal(support, "mobile-screen");
+  assert.equal(canShare(support), true);
+  assert.equal(sharesAudio(support), false);
+});
+
+test("the iPad that claims to be a Mac counts as a tablet", () => {
   assert.equal(
     classifyShareSupport({ userAgent: UA.safari, hasDisplayMedia: true, maxTouchPoints: 5 }),
-    "mobile",
+    "mobile-screen",
   );
   assert.equal(
-    classifyShareSupport({ userAgent: UA.chrome, hasDisplayMedia: true, mobileHint: true }),
+    classifyShareSupport({ userAgent: UA.safari, hasDisplayMedia: false, maxTouchPoints: 5 }),
+    "ios-outdated",
+  );
+});
+
+test("an iPhone without the picker is told to update; other phones do not share", () => {
+  assert.equal(
+    classifyShareSupport({ userAgent: UA.iphone, hasDisplayMedia: false }),
+    "ios-outdated",
+  );
+  assert.equal(classifyShareSupport({ userAgent: UA.android, hasDisplayMedia: false }), "mobile");
+  assert.equal(
+    classifyShareSupport({ userAgent: UA.chrome, hasDisplayMedia: false, mobileHint: true }),
     "mobile",
   );
+  assert.equal(canShare("ios-outdated"), false);
+  assert.equal(canShare("mobile"), false);
+});
+
+test("a phone browser that adds the picker shares without a code change", () => {
+  assert.equal(
+    classifyShareSupport({ userAgent: UA.android, hasDisplayMedia: true }),
+    "mobile-screen",
+  );
+});
+
+test("every phone keeps the share button; only computers choose the surface", () => {
+  assert.equal(isMobileShare("mobile-screen"), true);
+  assert.equal(isMobileShare("ios-outdated"), true);
+  assert.equal(isMobileShare("mobile"), true);
+  assert.equal(isMobileShare("full"), false);
+  assert.equal(isMobileShare("safari"), false);
+  assert.equal(picksSurface("mobile-screen"), false);
+  assert.equal(picksSurface("full"), true);
+  assert.equal(picksSurface("safari"), true);
+});
+
+test("Safari, also on the iPhone, gets the capture size as a maximum", () => {
+  assert.equal(capsCaptureSize("safari"), true);
+  assert.equal(capsCaptureSize("mobile-screen"), true);
+  assert.equal(capsCaptureSize("full"), false);
+  assert.equal(capsCaptureSize("screen-only"), false);
 });
 
 test("desktop without the feature", () => {
@@ -54,7 +105,7 @@ test("desktop without the feature", () => {
   );
 });
 
-test("only desktop browsers share, and only Chromium sends the computer audio", () => {
+test("desktop browsers share, and only Chromium sends the computer audio", () => {
   assert.equal(canShare("full"), true);
   assert.equal(canShare("screen-only"), true);
   assert.equal(canShare("safari"), true);

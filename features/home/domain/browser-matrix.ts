@@ -2,7 +2,7 @@ import type { ShareSupport } from "@/features/room/domain/share-support";
 
 /** One row of the home "Will it work here?" table. */
 export interface BrowserRow {
-  id: "chromium" | "firefox" | "safari" | "mobile";
+  id: "chromium" | "firefox" | "safari" | "ios" | "android";
   name: string;
   screen: boolean;
   audio: boolean;
@@ -21,19 +21,29 @@ export const BROWSER_ROWS: readonly BrowserRow[] = [
   { id: "firefox", name: "Firefox", screen: true, audio: false, summary: "Tela, sem o som." },
   { id: "safari", name: "Safari no Mac", screen: true, audio: false, summary: "Tela, sem o som." },
   {
-    id: "mobile",
-    name: "Celular e tablet",
+    id: "ios",
+    name: "iPhone e iPad",
+    screen: true,
+    audio: false,
+    summary: "Tela no Safari com iOS 27, sem o som.",
+  },
+  {
+    id: "android",
+    name: "Celular Android",
     screen: false,
     audio: false,
     summary: "Assiste, fala e usa o chat.",
   },
 ];
 
+// An iPhone on an older iOS gets no card: the note under the cards tells it to update.
 const ROW_BY_SUPPORT: Record<ShareSupport, BrowserRow["id"] | null> = {
   full: "chromium",
   "screen-only": "firefox",
   safari: "safari",
-  mobile: "mobile",
+  "mobile-screen": "ios",
+  "ios-outdated": null,
+  mobile: "android",
   unsupported: null,
 };
 

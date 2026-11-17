@@ -25,8 +25,11 @@ const MARKS: Record<BrowserRow["id"], ReactNode> = {
   ),
   firefox: <Logo name="firefox" />,
   safari: <Logo name="safari" />,
-  mobile: <Smartphone className="size-6" aria-hidden="true" />,
+  ios: <Smartphone className="size-6" aria-hidden="true" />,
+  android: <Smartphone className="size-6" aria-hidden="true" />,
 };
+
+const PHONE_ROWS: ReadonlySet<BrowserRow["id"]> = new Set(["ios", "android"]);
 
 function Capability({ on, label }: { on: boolean; label: string }) {
   const Icon = on ? Check : Minus;
@@ -62,7 +65,7 @@ export function BrowserCheckSection() {
       <ul
         data-fx
         aria-label="O que cada navegador faz na sala"
-        className="mt-12 grid gap-4 sm:mt-16 sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-12 grid gap-4 sm:mt-16 sm:grid-cols-2 lg:grid-cols-6"
       >
         {BROWSER_ROWS.map((row) => {
           const here = row.id === current;
@@ -71,7 +74,11 @@ export function BrowserCheckSection() {
               key={row.id}
               data-fx-item
               aria-current={here || undefined}
-              className="flex flex-col gap-5 rounded-3xl border border-line p-6 transition-colors duration-(--motion-feedback) hover:border-line-strong aria-[current]:border-brand"
+              className={cn(
+                "flex flex-col gap-5 rounded-3xl border border-line p-6 transition-colors duration-(--motion-feedback) hover:border-line-strong aria-[current]:border-brand",
+                // Computers on the first row, phones on the second.
+                PHONE_ROWS.has(row.id) ? "lg:col-span-3" : "lg:col-span-2",
+              )}
             >
               <span className="flex flex-wrap items-start justify-between gap-3">
                 <span className="flex h-12 min-w-12 items-center justify-center gap-1.5 rounded-2xl bg-surface-2 px-2.5 text-ink">

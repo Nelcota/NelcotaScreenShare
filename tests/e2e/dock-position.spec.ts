@@ -11,7 +11,7 @@ async function dockButtonPositions(page: Page): Promise<number[]> {
   return boxes.map((box) => Math.round(box?.x ?? -1));
 }
 
-test("the dock's buttons stay put when the chat or the friends column open", async ({
+test("the dock's buttons stay put when the chat, the friends column or the hand change", async ({
   browser,
 }) => {
   const { page, context } = await newParticipant(browser, "Dock Parado");
@@ -37,6 +37,11 @@ test("the dock's buttons stay put when the chat or the friends column open", asy
     await expect(chat).toBeHidden();
     await column.getByRole("button", { name: "Recolher amigos" }).click();
     await expect(column.getByRole("button", { name: "Abrir amigos" })).toBeVisible();
+    await expect.poll(() => dockButtonPositions(page)).toEqual(before);
+
+    // "Reações" becomes "Mão erguida": a longer name, the same place.
+    await page.keyboard.press("h");
+    await expect(page.getByRole("button", { name: "Reações (mão levantada)" })).toBeVisible();
     await expect.poll(() => dockButtonPositions(page)).toEqual(before);
 
     // The dock sits at the window's center, not at the center of the space left over.

@@ -190,6 +190,8 @@ export function ReactionsMenu() {
           caption={handRaised ? "Mão erguida" : "Reações"}
           shortCaption={handRaised ? "Mão" : "Reações"}
           pressed={open}
+          // As wide as "Mão erguida": raising the hand does not push the other buttons.
+          className="min-w-12 sm:min-w-20"
         >
           <Hand className={handRaised ? "icon-wave size-5" : "size-5"} aria-hidden="true" />
         </DockButton>

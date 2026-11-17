@@ -22,7 +22,14 @@ describe("display name", () => {
     expect(issueOf(name)).toBe(RESERVED);
   });
 
-  test.each(["Ana", "Administradora Bia", "Badminton", "Caio 🎮"])(
+  test.each(["Nazista Bia", "Ana Pedó-filo", "n4z1", "HEIL Caio", "Bia 1488"])(
+    "refuses names with a blocked term, however it is written: %s",
+    (name) => {
+      expect(issueOf(name)).toBe(RESERVED);
+    },
+  );
+
+  test.each(["Ana", "Administradora Bia", "Badminton", "Caio 🎮", "Ana Zimmer", "Pedro"])(
     "keeps ordinary names: %s",
     (name) => {
       expect(issueOf(name)).toBeNull();

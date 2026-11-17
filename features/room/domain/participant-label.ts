@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasBlockedTerm } from "@/features/moderation/domain/blocked-terms";
 
 /**
  * Invisible characters that only serve to disguise a name: control characters, direction
@@ -20,6 +21,11 @@ function isReservedName(name: string): boolean {
   return RESERVED_NAMES.some((pattern) => pattern.test(plain));
 }
 
+/** A name others see may neither pose as the service nor carry a blocked term (#396). */
+function isRefusedName(name: string): boolean {
+  return isReservedName(name) || hasBlockedTerm(name);
+}
+
 /** Name the person uses in rooms (the account's), without invisible characters. */
 export const displayNameSchema = z
   .string()
@@ -31,7 +37,7 @@ export const displayNameSchema = z
       .trim()
       .min(1, "Digite seu nome para entrar na sala.")
       .max(32, "Seu nome pode ter até 32 caracteres. Use um nome mais curto.")
-      .refine((name) => !isReservedName(name), "Esse nome não pode ser usado."),
+      .refine((name) => !isRefusedName(name), "Esse nome não pode ser usado."),
   );
 
 /** LiveKit identity of someone who joined through a link, without an account. */

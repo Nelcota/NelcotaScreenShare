@@ -26,6 +26,17 @@ describe("e-mail check", () => {
     expect(emailProblem(`${local}@b${domain}`)).toBe(INVALID);
   });
 
+  test("refuses a name with a blocked term before checking the email", () => {
+    const check = checkSignUp({
+      name: "Hitler",
+      email: "ana@exemplo.com",
+      password: "a long enough password",
+      minPassword: 8,
+    });
+
+    expect(check).toEqual({ ok: false, field: "name", message: "Esse nome não pode ser usado." });
+  });
+
   test("answers a run of dots ending in @ quickly instead of backtracking", () => {
     const started = performance.now();
 

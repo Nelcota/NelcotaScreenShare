@@ -123,6 +123,18 @@ test("an empty or too long name is refused with the reason", async () => {
   expect(deps.updateParticipant).not.toHaveBeenCalled();
 });
 
+test.each(["account", "guest"] as const)(
+  "%s: a name with a blocked term is refused and neither name changes",
+  async (kind) => {
+    asCaller(kind);
+    const response = await rename({ room: ROOM, name: "N4Z1" });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Esse nome não pode ser usado." });
+    expect(deps.updateParticipant).not.toHaveBeenCalled();
+    expect(deps.updateUser).not.toHaveBeenCalled();
+  },
+);
+
 test("someone outside the call cannot rename and the account stays as it was", async () => {
   asCaller("account");
   deps.updateParticipant.mockRejectedValue(new ServerError("not_found", "not found", 404));

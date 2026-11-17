@@ -154,6 +154,13 @@ describe("access", () => {
     assert.equal(claims(tokenBody.parse(await again.json()).token).sub, identity);
   });
 
+  test("a guest name with a blocked term gets no token", async () => {
+    const response = await post({ room: "sala-ok", password: ACCESS, guestName: "Heil Iris" });
+
+    assert.equal(response.status, 400);
+    assert.equal(await errorCode(response), "invalid_request");
+  });
+
   test("a guest waits until someone with an account is in the room", async () => {
     for (const room of ["sala-nova", "sala-so-convidados"]) {
       const response = await post({ room, password: ACCESS, guestName: "Iris" });

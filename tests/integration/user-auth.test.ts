@@ -537,6 +537,36 @@ describe("account name", () => {
   });
 });
 
+describe("account name with a blocked term", () => {
+  test("is refused when changing the name and keeps the old one", async () => {
+    const participant = await verifiedParticipant(db, handler);
+    const call = newCaller();
+    const nameOf = async () =>
+      (await db.query.users.findFirst({ where: eq(schema.users.id, participant.id) }))?.name;
+    const before = await nameOf();
+
+    const refused = await call("/update-user", {
+      body: { name: "Ana Pedó-filo" },
+      jar: participant.jar,
+    });
+
+    assert.equal(refused.status, 400);
+    assert.equal(await nameOf(), before);
+  });
+
+  test("is refused at sign-up and no account is created", async () => {
+    const email = `termo-${crypto.randomUUID()}@exemplo.com`;
+
+    const signUp = await newCaller()("/sign-up/email", {
+      body: { name: "h1tl3r", email, password: PASSWORD },
+    });
+
+    assert.equal(signUp.status, 400);
+    const created = await db.query.users.findFirst({ where: eq(schema.users.email, email) });
+    assert.equal(created, undefined);
+  });
+});
+
 describe("profile photo", () => {
   test("sign-up validates the photo with the same rules as the update", async () => {
     for (const invalid of INVALID_IMAGES) {

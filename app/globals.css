@@ -610,6 +610,26 @@ body:has(.admin-shell) [data-mobile="true"] [data-slot="sidebar-menu-button"][da
   transition: padding-right var(--motion-layout) cubic-bezier(0.65, 0, 0.35, 1);
 }
 
+/*
+ * The call dock sits at the window's center whatever opens beside it (the friends column,
+ * the chat), so its buttons keep their place. Its query container is the call area, which
+ * ends at the window's right edge and is padded by 0.75rem. On a narrow window the dock only
+ * moves as far as it must to stay clear of the column and, from lg, of the corner mascot;
+ * it never moves right of the call area's center.
+ */
+@utility dock-window-center {
+  --dock-clearance: 0rem;
+  translate: min(
+    0px,
+    max(calc((100cqw - 100vw) / 2 + 0.75rem), calc(var(--dock-clearance) - 50cqw + 50%))
+  );
+
+  /* The mascot's box ends 6.5rem into the call area; the dock's own box starts at 0.75rem. */
+  @media (width >= 64rem) {
+    --dock-clearance: 5.75rem;
+  }
+}
+
 @keyframes surface-enter {
   from {
     opacity: 0;

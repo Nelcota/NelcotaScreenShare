@@ -68,9 +68,10 @@ export function ChatPanel({ chat, roomCode }: { chat: ChatState; roomCode: strin
       aria-label="Chat da sala"
       data-chat-open={chat.open || undefined}
       {...drop.handlers}
-      // Wide screen: a column as tall as the room, aligned with the top of the bar and the bottom of the dock.
+      // Wide screen: a column from the top of the bar. It always ends above the dock, so
+      // opening it never pushes the dock's buttons aside.
       className={cn(
-        "glass invisible fixed top-20 right-3 bottom-32 z-40 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl group-data-capture-bar/room:max-lg:bottom-42 sm:right-6 lg:top-4 lg:bottom-4",
+        "glass invisible fixed top-20 right-3 bottom-32 z-40 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl group-data-capture-bar/room:bottom-42 sm:right-6 lg:top-4",
         drop.dropping && "ring-2 ring-brand-soft",
       )}
     >

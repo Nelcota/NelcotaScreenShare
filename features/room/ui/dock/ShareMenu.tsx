@@ -6,7 +6,7 @@ import { useRoomShortcut, useShortcutLabel } from "@/lib/hooks/use-shortcut-keys
 import { DockButton } from "./DockButton";
 import { GlassPopoverContent } from "@/components/GlassPopover";
 import { SharePanel } from "./SharePanel";
-import { canShare, shareSupportMessage } from "@/features/room/domain/share-support";
+import { canShare, picksSurface, shareSupportMessage } from "@/features/room/domain/share-support";
 import type { ScreenShareControl } from "@/features/room/hooks/use-screen-share";
 import { useShareSupport } from "@/features/room/hooks/use-share-support";
 
@@ -42,7 +42,7 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
   const { isSharing, busy } = share;
   const shareKey = useShortcutLabel("share");
   const support = useShareSupport();
-  // Same rule as the notes before joining: phones and tablets watch, they do not share.
+  // Same rule as the notes before joining: a phone shares only where its browser allows it.
   const supported = support !== null && canShare(support);
   const [open, setOpen] = useState(false);
   // While sharing, the button shows for how long: makes it clear the screen is live.
@@ -63,6 +63,11 @@ export function ShareMenu({ share }: { share: ScreenShareControl }) {
     // While sharing: the button stops immediately, without opening the menu.
     if (next && isSharing) {
       void share.stop();
+      return;
+    }
+    // A phone's picker offers only its own screen, without sound: nothing to choose here.
+    if (next && support !== null && !picksSurface(support)) {
+      void share.start({ surface: "monitor", audio: false });
       return;
     }
     setOpen(next);

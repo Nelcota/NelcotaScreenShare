@@ -10,7 +10,11 @@ export type ShareSupport =
   | "screen-only"
   /** Safari on Mac: screen, no audio. */
   | "safari"
-  /** Phone or tablet: watches and talks, does not share. */
+  /** Phone or tablet whose browser opens the screen picker (Safari on iOS 27+): screen, no audio. */
+  | "mobile-screen"
+  /** iPhone or iPad whose browser does not share yet: Safari on iOS 27 does. */
+  | "ios-outdated"
+  /** Other phones and tablets (Android): watch and talk, do not share. */
   | "mobile"
   /** Desktop with an old browser or without the feature. */
   | "unsupported";
@@ -31,13 +35,24 @@ export function classifyShareSupport({
   maxTouchPoints = 0,
 }: BrowserTraits): ShareSupport {
   const ipadAsMac = /Macintosh/.test(userAgent) && maxTouchPoints > 1;
-  const mobile = mobileHint ?? (/Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || ipadAsMac);
-  if (mobile) return "mobile";
+  const apple = /iPhone|iPad|iPod/.test(userAgent) || ipadAsMac;
+  const mobile = mobileHint ?? (/Android|Mobile/i.test(userAgent) || apple);
+  if (mobile) return mobileShareSupport(hasDisplayMedia, apple);
   if (!hasDisplayMedia) return "unsupported";
   if (/Firefox\//.test(userAgent)) return "screen-only";
   // Safari has "Safari/" but not "Chrome/" (Chromium includes both).
   if (/Safari\//.test(userAgent) && !/Chrome\/|Chromium\//.test(userAgent)) return "safari";
   return "full";
+}
+
+/**
+ * Phones share only where the browser itself offers the picker: Safari since iOS 27; Android
+ * browsers do not expose it yet. Detected by feature, so a browser that adds it just works.
+ */
+function mobileShareSupport(hasDisplayMedia: boolean, apple: boolean): ShareSupport {
+  if (hasDisplayMedia) return "mobile-screen";
+  if (apple) return "ios-outdated";
+  return "mobile";
 }
 
 /** Reads the current browser's traits (client only). */
@@ -58,7 +73,30 @@ function canShareScreen(): boolean {
 
 /** Can the person start a screen share from this browser? */
 export function canShare(support: ShareSupport): boolean {
-  return support === "full" || support === "screen-only" || support === "safari";
+  return (
+    support === "full" ||
+    support === "screen-only" ||
+    support === "safari" ||
+    support === "mobile-screen"
+  );
+}
+
+/** Is this a phone or a tablet? There the dock keeps the camera next to the share button. */
+export function isMobileShare(support: ShareSupport): boolean {
+  return support === "mobile-screen" || support === "ios-outdated" || support === "mobile";
+}
+
+/**
+ * Does the person pick a screen, a window or a tab in our menu first? A phone's picker
+ * only offers its own screen, so the share starts right away.
+ */
+export function picksSurface(support: ShareSupport): boolean {
+  return support !== "mobile-screen";
+}
+
+/** Does the browser ignore an ideal capture size? WebKit (Safari, also on iOS) needs a maximum. */
+export function capsCaptureSize(support: ShareSupport): boolean {
+  return support === "safari" || support === "mobile-screen";
 }
 
 /**
@@ -90,6 +128,16 @@ export const SHARE_SUPPORT_TEXT: Record<
     tone: "warn",
     title: "No Safari, a tela vai sem o áudio.",
     detail: "Para compartilhar com som, use o Chrome ou o Edge.",
+  },
+  "mobile-screen": {
+    tone: "ok",
+    title: "Seu celular compartilha a tela.",
+    detail: "O som do celular não vai junto.",
+  },
+  "ios-outdated": {
+    tone: "info",
+    title: "No iPhone, compartilhar a tela pede o iOS 27.",
+    detail: "Atualize o iPhone e use o Safari, ou entre pelo computador.",
   },
   mobile: {
     tone: "info",

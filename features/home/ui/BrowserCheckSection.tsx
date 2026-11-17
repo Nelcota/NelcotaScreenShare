@@ -25,7 +25,8 @@ const MARKS: Record<BrowserRow["id"], ReactNode> = {
   ),
   firefox: <Logo name="firefox" />,
   safari: <Logo name="safari" />,
-  mobile: <Smartphone className="size-6" aria-hidden="true" />,
+  ios: <Smartphone className="size-6" aria-hidden="true" />,
+  android: <Smartphone className="size-6" aria-hidden="true" />,
 };
 
 function Capability({ on, label }: { on: boolean; label: string }) {
